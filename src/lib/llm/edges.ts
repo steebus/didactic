@@ -1,7 +1,17 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { EdgeKind } from '../types'
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+let client: Anthropic | null = null
+
+/** Constructed on first use: building the SDK at module load fails the
+ *  production build on any machine without a key. */
+function getClient() {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error('ANTHROPIC_API_KEY is not set')
+  }
+  client ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  return client
+}
 const VALID_KINDS: EdgeKind[] = ['prereq', 'related', 'specialises', 'alternative']
 
 const TOOL = {
@@ -37,7 +47,7 @@ export async function proposeEdges(
   const all = [...newNodes, ...neighbours]
   const validIds = new Set(all.map(n => n.id))
 
-  const res = await client.messages.create({
+  const res = await getClient().messages.create({
     model: 'claude-sonnet-5',
     max_tokens: 2000,
     tools: [TOOL],

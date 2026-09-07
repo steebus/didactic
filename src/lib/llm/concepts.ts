@@ -1,6 +1,16 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+let client: Anthropic | null = null
+
+/** Constructed on first use: building the SDK at module load fails the
+ *  production build on any machine without a key. */
+function getClient() {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    throw new Error('ANTHROPIC_API_KEY is not set')
+  }
+  client ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  return client
+}
 
 const MAX_CHARS = 100_000
 
@@ -28,7 +38,7 @@ const TOOL = {
 }
 
 export async function extractConcepts(title: string, text: string) {
-  const res = await client.messages.create({
+  const res = await getClient().messages.create({
     model: 'claude-sonnet-5',
     max_tokens: 2000,
     tools: [TOOL],
