@@ -38,9 +38,10 @@ Success is the weekly return: opening the app after a week away and both
 seeing the shape of recent attention and being able to act on a cold area in
 one click.
 
-The product is the map. Resource ingestion feeds it. Quizzing, agent
-conversation, and curriculum generation are later phases whose value depends
-entirely on the map feeling alive first.
+The product is the map. Resource ingestion feeds it, and curricula are how a
+cold or empty area gets worked deliberately rather than waiting for something
+to wander into the inbox. Quizzing and open agent conversation are later
+phases whose value depends entirely on the map feeling alive first.
 
 ## Positioning
 
@@ -56,22 +57,28 @@ that flatters its owner.
 
 ## Operating Context
 
+- The map has four layers: a **subject** ("photography", "front-end
+  development") holds **topics**, a topic holds **curricula**, and a
+  curriculum holds **lessons**. Topics under one subject need not relate to
+  each other — portrait and landscape photography are separate pursuits — and
+  a topic belongs to every subject it genuinely sits under, not just the one
+  it was first entered through.
 - Resources arrive as URLs, PDFs, pasted notes, and book references — often
   captured on a phone mid-reading, processed later.
 - Ingestion is asynchronous; a resource is filed into the graph on arrival,
   but no learning is recorded until the user marks it consumed and says how
   deeply.
-- Subjects overlap heavily. Nodes must be reused across topics rather than
+- Subjects overlap heavily. Topics must be reused across subjects rather than
   duplicated per subject, which is why concept resolution runs through vector
   similarity on every write path, ingestion and skeleton seeding alike.
-- The graph grows to thousands of nodes; the home screen exists because a raw
+- The graph grows to thousands of topics; the home screen exists because a raw
   canvas at that size cannot be glanced at.
 
 ## Capabilities and Constraints
 
-- **Node health has two channels:** ability (1–5, app-owned, with an explicit
+- **Topic health has two channels:** ability (1–5, app-owned, with an explicit
   confidence) and freshness (time decay, computed at read time).
-- **Ability is app-owned and not user-editable.** Node detail explains its
+- **Ability is app-owned and not user-editable.** Topic detail explains its
   reasoning by listing the exposures behind it; there is no manual override
   and no pinning. A wrong score is corrected by feeding real evidence, not by
   setting the number. This is a confirmed product decision, not an
@@ -85,8 +92,15 @@ that flatters its owner.
 - Single user. Auth exists; sharing, tenancy, and row-level security do not.
 - Full-book text ingestion is out of scope; books carry metadata and the
   user's own notes.
+- **A curriculum is drafted with the agent and owned by the user.** The agent
+  can lay one out from the subject and topic alone; the user steers it with a
+  stated goal and with reference material they trust, and reshapes it before
+  approving. A draft is a proposal and counts for nothing until approved.
+- **Completing a lesson is an exposure like any other.** It goes through the
+  append-only log at a depth the user states, so the consumption ceiling still
+  holds: working the lessons of a curriculum by reading alone cannot pass 3.5.
 - Deferred to later phases: quizzing, conversational agent, FSRS scheduling,
-  curriculum generation, blindspot suggestions.
+  blindspot suggestions.
 
 ## Brand Commitments
 

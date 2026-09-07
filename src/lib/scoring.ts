@@ -59,16 +59,16 @@ export function computeFreshness(
   return Math.max(0, Math.min(1, freshness))
 }
 
-export function clusterAggregate(
-  nodes: Array<{ ability: number; freshness: number; state: string }>
+export function subjectAggregate(
+  topics: Array<{ ability: number; freshness: number; state: string }>
 ): { ability: number; freshness: number } {
-  const active = nodes.filter(n => n.state === 'active')
+  const active = topics.filter(t => t.state === 'active')
   if (active.length === 0) return { ability: 0, freshness: 0 }
 
   const ability = active.reduce((s, n) => s + n.ability, 0) / active.length
 
-  // Weight toward the worst: a cluster must not look healthy because
-  // two hot nodes mask twenty cold ones. Power mean with p < 1 pulls
+  // Weight toward the worst: a subject must not look healthy because
+  // two hot topics mask twenty cold ones. Power mean with p < 1 pulls
   // the result down toward the minimum.
   const p = 0.3
   const powerMean = Math.pow(
@@ -83,23 +83,23 @@ export function clusterAggregate(
 }
 
 /**
- * The ONLY function permitted to write nodes.ability. Ability is a
+ * The ONLY function permitted to write topics.ability. Ability is a
  * cache over the exposure log, never a directly-set value.
  */
-export async function recomputeAbility(db: SupabaseClient, nodeId: string) {
+export async function recomputeAbility(db: SupabaseClient, topicId: string) {
   const { data: exposures, error } = await db
-    .from('exposures').select('*').eq('node_id', nodeId)
+    .from('exposures').select('*').eq('topic_id', topicId)
   if (error) throw error
 
   const { ability, confidence } = computeAbility(exposures ?? [])
   const lastExposure = (exposures ?? [])
     .map((e: Exposure) => e.created_at).sort().at(-1) ?? null
 
-  const { error: updateError } = await db.from('nodes').update({
+  const { error: updateError } = await db.from('topics').update({
     ability,
     ability_confidence: confidence,
     last_exposure_at: lastExposure,
-  }).eq('id', nodeId)
+  }).eq('id', topicId)
   if (updateError) throw updateError
 
   return { ability, confidence }

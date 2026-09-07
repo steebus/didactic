@@ -1,0 +1,449 @@
+/* The topic area: one topic's curriculum and its material, which is
+   what opening a node on the graph is for. */
+
+.sheet {
+  max-width: var(--sheet-max);
+  margin: 0 auto;
+  padding: 0 0 var(--space-6);
+  background-color: var(--paper);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(90, 70, 45, 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(90, 70, 45, 0.03) 0 1px, transparent 1px 4px);
+  min-height: 100dvh;
+  box-shadow: 0 2px 24px rgba(36, 29, 22, 0.16);
+}
+
+.head {
+  color: var(--paper);
+  padding: var(--space-5);
+}
+
+.headRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.eyebrow {
+  font-size: var(--step--2);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(239, 231, 214, 0.7);
+  margin: 0 0 var(--space-2);
+}
+
+.title {
+  font-size: var(--step-3);
+  font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 72;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.back {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(239, 231, 214, 0.85);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(239, 231, 214, 0.4);
+  padding-bottom: 2px;
+  white-space: nowrap;
+}
+
+.back:hover {
+  color: var(--paper);
+  border-bottom-color: var(--plate-mustard);
+  text-decoration: none;
+}
+
+.summary {
+  margin: var(--space-3) 0 0;
+  max-width: 60ch;
+  font-size: var(--step-0);
+  color: rgba(239, 231, 214, 0.85);
+}
+
+.figures {
+  display: flex;
+  gap: var(--space-5);
+  margin-top: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.figure {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+.figureLabel {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(239, 231, 214, 0.6);
+}
+
+.figureValue {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--paper);
+}
+
+/* An uncertain figure prints hedged. Ability is app-owned and cannot be
+   corrected by hand, so it must not look more certain than it is. */
+.about {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  font-style: italic;
+  opacity: 0.75;
+}
+
+.headRule {
+  height: 5px;
+  background: var(--plate-mustard);
+  margin-bottom: var(--space-5);
+}
+
+.body {
+  padding: 0 var(--space-5);
+}
+
+.spread {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 19rem;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.main {
+  display: grid;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+@media (max-width: 60rem) {
+  .spread {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .body {
+    padding: 0 var(--space-4);
+  }
+}
+
+/* --- Section furniture ---------------------------------------- */
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border-bottom: 2px solid var(--rule-strong);
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.sectionTitle {
+  font-size: var(--step-2);
+  font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 40;
+}
+
+.sectionNote {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* --- Curricula ------------------------------------------------- */
+
+.routes {
+  list-style: none;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.route {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--rule);
+  text-decoration: none;
+}
+
+.route:hover .routeTitle {
+  color: var(--plate-terracotta);
+}
+
+.routeBody {
+  min-width: 0;
+}
+
+.routeTitle {
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1, 'opsz' 24;
+  margin: 0;
+}
+
+.routeMeta {
+  margin: var(--space-1) 0 0;
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+}
+
+.routeGoal {
+  margin: var(--space-2) 0 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  font-style: italic;
+  max-width: 54ch;
+}
+
+.routeFigure {
+  display: grid;
+  justify-items: end;
+  gap: var(--space-1);
+  min-width: 6rem;
+}
+
+.routeFigure .figureLabel {
+  color: var(--ink-faint);
+}
+
+.routeCount {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Progress is a printed rule filling up, not a coloured bar: the sheet
+   has no other colour-only signals and should not start here. */
+.routeBar {
+  display: block;
+  width: 6rem;
+  height: 3px;
+  background: var(--paper-edge);
+  position: relative;
+}
+
+.routeBar::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--fraction) * 100%);
+  background: var(--rule-strong);
+}
+
+/* --- Drafting -------------------------------------------------- */
+
+.drafter {
+  border: 1px solid var(--rule-strong);
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.drafterTitle {
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1;
+  margin: 0;
+}
+
+.drafterNote {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  max-width: 62ch;
+}
+
+.label {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-top: var(--space-2);
+}
+
+.textarea {
+  width: 100%;
+  min-height: 4.5rem;
+  padding: var(--space-2);
+  font: inherit;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  resize: vertical;
+}
+
+.sources {
+  border: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.sourceRow {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  font-size: var(--step--1);
+}
+
+.sourceKind {
+  color: var(--ink-faint);
+  font-size: var(--step--2);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.drafterActions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: var(--space-2);
+}
+
+.action {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: var(--step-0);
+  padding: var(--space-2) var(--space-4);
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.action:hover {
+  background: var(--plate-terracotta);
+  text-decoration: none;
+}
+
+.action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.quietAction {
+  font-size: var(--step--1);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink-soft);
+  cursor: pointer;
+  padding: 0 0 2px;
+}
+
+.problem {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--plate-terracotta);
+}
+
+/* --- Material -------------------------------------------------- */
+
+.material {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.materialRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.materialName {
+  font-size: var(--step-0);
+}
+
+.materialMeta {
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+/* Leader dots, as a stock table prints them. */
+.leaders {
+  flex: 1;
+  border-bottom: 1px dotted var(--rule);
+  transform: translateY(-0.2em);
+  min-width: var(--space-3);
+}
+
+/* --- Margin column --------------------------------------------- */
+
+.margin {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.block {
+  border-top: 2px solid var(--rule-strong);
+  padding-top: var(--space-3);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.blockTitle {
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1, 'opsz' 24;
+}
+
+.blockNote {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.record {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.recordRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--step--1);
+}
+
+.recordDate {
+  color: var(--ink-faint);
+  font-size: var(--step--2);
+  white-space: nowrap;
+}
+
+.caveat {
+  margin: 0;
+  font-size: var(--step--1);
+  font-style: italic;
+  color: var(--ink-faint);
+}
+
+.empty {
+  font-size: var(--step-0);
+  color: var(--ink-faint);
+  font-style: italic;
+  margin: 0 0 var(--space-4);
+  max-width: 58ch;
+}

@@ -9,25 +9,25 @@ export const dynamic = 'force-dynamic'
 
 async function getPending() {
   const db = supabaseAdmin()
-  const { data } = await db.from('nodes')
+  const { data } = await db.from('topics')
     .select('id, title, embedding')
     .eq('state', 'pending')
     .order('created_at', { ascending: false })
 
   return Promise.all(
-    (data ?? []).map(async node => {
+    (data ?? []).map(async topic => {
       let nearest: { id: string; title: string } | null = null
-      if (node.embedding) {
+      if (topic.embedding) {
         const embedding =
-          typeof node.embedding === 'string' ? JSON.parse(node.embedding) : node.embedding
-        const { data: matches } = await db.rpc('match_nodes', {
+          typeof topic.embedding === 'string' ? JSON.parse(topic.embedding) : topic.embedding
+        const { data: matches } = await db.rpc('match_topics', {
           query_embedding: embedding,
           match_count: 1,
         })
         const top = matches?.[0]
-        if (top && top.id !== node.id) nearest = { id: top.id, title: top.title }
+        if (top && top.id !== topic.id) nearest = { id: top.id, title: top.title }
       }
-      return { id: node.id, title: node.title, nearest }
+      return { id: topic.id, title: topic.title, nearest }
     })
   )
 }
@@ -56,7 +56,7 @@ export default async function InboxPage() {
       <div className={styles.headRule} />
 
       <div className={styles.body}>
-        <PendingQueue nodes={pending} />
+        <PendingQueue topics={pending} />
 
         <section>
           <div className={styles.sectionHead}>

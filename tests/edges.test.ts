@@ -47,7 +47,7 @@ describe('proposeEdges', () => {
     expect(await proposeEdges([{ id: 'a', title: 'x' }], [])).toEqual([])
   })
 
-  it('returns nothing when there are no new nodes, without calling the model', async () => {
+  it('returns nothing when there are no new topics, without calling the model', async () => {
     const { proposeEdges } = await import('@/lib/llm/edges')
     expect(await proposeEdges([], [{ id: 'b', title: 'y' }])).toEqual([])
     expect(mockCreate).not.toHaveBeenCalled()

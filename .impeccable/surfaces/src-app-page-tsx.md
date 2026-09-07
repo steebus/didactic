@@ -7,9 +7,10 @@ related_targets: []
 
 ## Scope
 
-Home screen (`src/app/page.tsx`): the cluster overview and the four panels.
+Home screen (`src/app/page.tsx`): the subject overview and the four panels.
 Visitor mode: **Operate**. This surface establishes the visual world for the
-whole app; the graph view, node detail, inbox, and refresher inherit it.
+whole app; the graph view, topic area, curriculum, lesson, inbox, and
+refresher inherit it.
 
 ## Audience and job
 
@@ -17,7 +18,7 @@ One user, a front-end developer learning across a wide spread of technical and
 non-technical subjects. Two sessions: desktop deep exploration, and mobile
 capture or check-in. The job on this surface is a glance — what have I been
 feeding, what has gone cold, what have I stockpiled and not read — followed by
-one click into a cluster, a resource, or a refresher.
+one click into a subject, a topic, a resource, or a refresher.
 
 ## Content and constraints
 

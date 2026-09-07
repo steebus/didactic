@@ -14,16 +14,16 @@ const db = createClient(
   { auth: { persistSession: false } }
 )
 
-const { data: nodes, error } = await db.from('nodes').select('id')
+const { data: topics, error } = await db.from('topics').select('id')
 if (error) throw error
 
-for (const node of nodes ?? []) {
+for (const topic of topics ?? []) {
   const { data: exposures } = await db
-    .from('exposures').select('*').eq('node_id', node.id)
+    .from('exposures').select('*').eq('topic_id', topic.id)
   const { ability, confidence } = computeAbility((exposures ?? []) as Exposure[])
-  await db.from('nodes')
+  await db.from('topics')
     .update({ ability, ability_confidence: confidence })
-    .eq('id', node.id)
+    .eq('id', topic.id)
 }
 
-console.log('recomputed', (nodes ?? []).length, 'nodes')
+console.log('recomputed', (topics ?? []).length, 'topics')

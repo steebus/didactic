@@ -15,7 +15,7 @@ const EDITION_DATE = new Intl.DateTimeFormat('en-GB', {
 
 function viabilityFigure(ability: number) {
   // Ability is 1-5; the sheet prints it as a percentage of full stock,
-  // which is how a grower reads viability. An empty cluster aggregates
+  // which is how a grower reads viability. An empty subject aggregates
   // to 0, which is below the floor, so the figure is clamped rather
   // than printing a negative percentage.
   return Math.max(0, Math.round(((ability - 1) / 4) * 100))
@@ -24,7 +24,7 @@ function viabilityFigure(ability: number) {
 export default async function Home() {
   const data = await getHomeData(supabaseAdmin())
   const today = EDITION_DATE.format(new Date())
-  const largestHolding = Math.max(1, ...data.clusters.map(c => c.count))
+  const largestHolding = Math.max(1, ...data.subjects.map(s => s.count))
 
   return (
     <main className={styles.sheet}>
@@ -34,7 +34,7 @@ export default async function Home() {
           <div className={styles.edition}>
             <span className={styles.editionRule}>Stock list · {today}</span>
             <span className={styles.editionRule}>
-              {data.totals.nodes} subjects · {data.totals.clusters} sections
+              {data.totals.topics} topics · {data.totals.subjects} subjects
             </span>
           </div>
         </div>
@@ -46,14 +46,14 @@ export default async function Home() {
       <div className={styles.headRule} />
 
       <div className={styles.sheetBody}>
-      {data.totals.nodes === 0 ? (
+      {data.totals.topics === 0 ? (
         <div className={styles.blank}>
           <h2 className={styles.blankTitle}>Nothing sown yet</h2>
           <p className={styles.blankNote}>
             Name something you want to learn and the sheet fills itself, or send
             an article to the inbox and let it find its own place.
           </p>
-          <Link href="/topics/new" className={styles.recommendationAction} style={{ color: 'var(--ink)' }}>
+          <Link href="/subjects/new" className={styles.recommendationAction} style={{ color: 'var(--ink)' }}>
             Sow a subject
           </Link>
         </div>
@@ -68,38 +68,38 @@ export default async function Home() {
             </div>
 
             <ul className={styles.listing}>
-              {data.clusters.map(cluster => {
-                const state = stockState(cluster.freshness, cluster.lastExposureAt)
-                const slug = slugify(cluster.title)
+              {data.subjects.map(subject => {
+                const state = stockState(subject.freshness, subject.lastExposureAt)
+                const slug = slugify(subject.title)
                 // Larger holdings take more of the sheet.
-                const weight = cluster.count / largestHolding
+                const weight = subject.count / largestHolding
                 // A figure the app is unsure of prints soft and hedged:
                 // ability is app-owned and cannot be corrected by hand,
                 // so it must not look more certain than it is.
-                const vague = cluster.confidence < 0.4
+                const vague = subject.confidence < 0.4
                 return (
-                  <li key={cluster.id}>
+                  <li key={subject.id}>
                     <Link
-                      href={`/graph?cluster=${cluster.id}`}
+                      href={`/graph?subject=${subject.id}`}
                       className={styles.entry}
                       style={{ '--weight': weight } as React.CSSProperties}
                     >
                       <Emblem
                         slug={slug}
-                        colour={cluster.colour}
+                        colour={subject.colour}
                         size={48 + weight * 28}
                       />
 
                       <div className={styles.entryBody}>
-                        <h3 className={styles.entryTitle}>{cluster.title}</h3>
+                        <h3 className={styles.entryTitle}>{subject.title}</h3>
                         <div className={styles.entryMeta}>
                           <span>
-                            {cluster.count} {cluster.count === 1 ? 'subject' : 'subjects'}
+                            {subject.count} {subject.count === 1 ? 'topic' : 'topics'}
                           </span>
                           <span className={styles.leaders} aria-hidden="true" />
-                          {cluster.queuedCount > 0 && (
+                          {subject.queuedCount > 0 && (
                             <span className={styles.queuedFlag}>
-                              {cluster.queuedCount} unread
+                              {subject.queuedCount} unread
                             </span>
                           )}
                         </div>
@@ -111,14 +111,14 @@ export default async function Home() {
                           className={`${styles.viability} ${vague ? styles.viabilityVague : ''}`}
                         >
                           {vague && <span className={styles.about}>about </span>}
-                          {viabilityFigure(cluster.ability)}
+                          {viabilityFigure(subject.ability)}
                         </span>
                         <span className={styles.figureLabel}>Condition</span>
                         <span className={styles.conditionCell}>
                           <StockBar
-                            freshness={cluster.freshness}
-                            lastExposureAt={cluster.lastExposureAt}
-                            colour={cluster.colour}
+                            freshness={subject.freshness}
+                            lastExposureAt={subject.lastExposureAt}
+                            colour={subject.colour}
                           />
                           <span className={styles.stateLine}>{STOCK_LABEL[state]}</span>
                         </span>
@@ -129,21 +129,21 @@ export default async function Home() {
               })}
             </ul>
 
-            {data.unclustered.length > 0 && (
+            {data.unfiled.length > 0 && (
               <section className={styles.loose}>
                 <h3 className={styles.looseTitle}>Loose stock</h3>
                 <p className={styles.looseNote}>
-                  Sown but not yet filed into a section.
+                  Sown but not yet filed under a subject.
                 </p>
                 <ul className={styles.looseList}>
-                  {data.unclustered.map(node => (
-                    <li key={node.id} className={styles.blockRow}>
-                      <Link href={`/graph?node=${node.id}`} className={styles.blockRowName}>
-                        {node.title}
+                  {data.unfiled.map(topic => (
+                    <li key={topic.id} className={styles.blockRow}>
+                      <Link href={`/topics/${topic.id}`} className={styles.blockRowName}>
+                        {topic.title}
                       </Link>
                       <span className={styles.leaders} aria-hidden="true" />
                       <span className={styles.blockFigure}>
-                        {viabilityFigure(node.ability)}
+                        {viabilityFigure(topic.ability)}
                       </span>
                     </li>
                   ))}
@@ -159,14 +159,14 @@ export default async function Home() {
                 <p className={styles.empty}>Nothing tended lately.</p>
               ) : (
                 <ul className={styles.blockList}>
-                  {data.hot.map(node => (
-                    <li key={node.id} className={styles.blockRow}>
-                      <Link href={`/graph?node=${node.id}`} className={styles.blockRowName}>
-                        {node.title}
+                  {data.hot.map(topic => (
+                    <li key={topic.id} className={styles.blockRow}>
+                      <Link href={`/topics/${topic.id}`} className={styles.blockRowName}>
+                        {topic.title}
                       </Link>
                       <span className={styles.leaders} aria-hidden="true" />
                       <span className={styles.blockFigure}>
-                        {viabilityFigure(node.ability)}
+                        {viabilityFigure(topic.ability)}
                       </span>
                     </li>
                   ))}
@@ -180,14 +180,14 @@ export default async function Home() {
                 <p className={styles.empty}>Everything is holding.</p>
               ) : (
                 <ul className={styles.blockList}>
-                  {data.cold.map(node => (
-                    <li key={node.id} className={styles.blockRow}>
-                      <Link href={`/graph?node=${node.id}`} className={styles.blockRowName}>
-                        {node.title}
+                  {data.cold.map(topic => (
+                    <li key={topic.id} className={styles.blockRow}>
+                      <Link href={`/topics/${topic.id}`} className={styles.blockRowName}>
+                        {topic.title}
                       </Link>
                       <span className={styles.leaders} aria-hidden="true" />
                       <span className={styles.blockFigure}>
-                        {viabilityFigure(node.ability)}
+                        {viabilityFigure(topic.ability)}
                       </span>
                     </li>
                   ))}
@@ -221,7 +221,7 @@ export default async function Home() {
                   Ten minutes would bring it back.
                 </p>
                 <Link
-                  href={`/refresher/${data.suggested.id}`}
+                  href={`/topics/${data.suggested.id}`}
                   className={styles.recommendationAction}
                 >
                   Tend it
@@ -241,7 +241,7 @@ export default async function Home() {
         <nav className={styles.footLinks}>
           <Link href="/graph">The whole bed</Link>
           <Link href="/inbox">Inbox</Link>
-          <Link href="/topics/new">Sow a subject</Link>
+          <Link href="/subjects/new">Sow a subject</Link>
         </nav>
       </footer>
       </div>

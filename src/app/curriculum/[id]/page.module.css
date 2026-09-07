@@ -1,0 +1,390 @@
+/* One route through a topic. A linear curriculum prints as a single
+   column of tiers; a branching one puts every fork at the tier it can
+   actually be reached from. */
+
+.sheet {
+  max-width: 68rem;
+  margin: 0 auto;
+  padding: 0 0 var(--space-6);
+  background-color: var(--paper);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(90, 70, 45, 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(90, 70, 45, 0.03) 0 1px, transparent 1px 4px);
+  min-height: 100dvh;
+  box-shadow: 0 2px 24px rgba(36, 29, 22, 0.16);
+}
+
+.head {
+  background: var(--plate-ultramarine);
+  color: var(--paper);
+  padding: var(--space-5);
+}
+
+.headRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.eyebrow {
+  font-size: var(--step--2);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(239, 231, 214, 0.7);
+  margin: 0 0 var(--space-2);
+}
+
+.eyebrowLink {
+  color: inherit;
+  text-decoration-color: rgba(239, 231, 214, 0.45);
+}
+
+.title {
+  font-size: var(--step-3);
+  font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 72;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.back {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(239, 231, 214, 0.85);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(239, 231, 214, 0.4);
+  padding-bottom: 2px;
+  white-space: nowrap;
+}
+
+.back:hover {
+  color: var(--paper);
+  border-bottom-color: var(--plate-mustard);
+  text-decoration: none;
+}
+
+.goal {
+  margin: var(--space-3) 0 0;
+  max-width: 62ch;
+  font-size: var(--step-0);
+  font-style: italic;
+  color: rgba(239, 231, 214, 0.85);
+}
+
+.figures {
+  display: flex;
+  gap: var(--space-5);
+  margin-top: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.figure {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+.figureLabel {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(239, 231, 214, 0.6);
+}
+
+.figureValue {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--paper);
+}
+
+.headRule {
+  height: 5px;
+  background: var(--plate-mustard);
+  margin-bottom: var(--space-5);
+}
+
+.body {
+  padding: 0 var(--space-5);
+  display: grid;
+  gap: var(--space-6);
+}
+
+@media (max-width: 48rem) {
+  .body {
+    padding: 0 var(--space-4);
+  }
+}
+
+/* --- The proposal notice --------------------------------------- */
+
+.proposal {
+  border: 1px solid var(--plate-mustard);
+  border-left-width: 5px;
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.proposalTitle {
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1;
+  margin: 0;
+}
+
+.proposalNote {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  max-width: 62ch;
+}
+
+.proposalActions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: var(--space-2);
+}
+
+/* --- Sections --------------------------------------------------- */
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border-bottom: 2px solid var(--rule-strong);
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.sectionTitle {
+  font-size: var(--step-2);
+  font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 40;
+}
+
+.sectionNote {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* --- Tiers and lessons ------------------------------------------ */
+
+.tier {
+  margin-bottom: var(--space-5);
+}
+
+.tierLabel {
+  font-size: var(--step--2);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 var(--space-2);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: var(--space-1);
+}
+
+.lessons {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.lessonRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+/* Availability reads by shape as well as ink: a filled square is
+   worked, an open square is open, a dashed one is not yet reachable.
+   Colour alone cannot carry it — see PRODUCT.md on accessibility. */
+.state {
+  flex: none;
+  width: 0.85rem;
+  height: 0.85rem;
+  margin-top: 0.35rem;
+  border: 1.5px solid var(--rule-strong);
+}
+
+.complete {
+  background: var(--rule-strong);
+}
+
+.available {
+  background: transparent;
+}
+
+.locked {
+  border-style: dashed;
+  border-color: var(--rule);
+  background: transparent;
+}
+
+.lessonBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.lessonTitle {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1, 'opsz' 24;
+}
+
+.lessonSummary {
+  margin: var(--space-1) 0 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  max-width: 62ch;
+}
+
+.lessonMeta {
+  margin: var(--space-1) 0 0;
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.reorder {
+  display: flex;
+  gap: var(--space-1);
+  flex: none;
+}
+
+.nudge {
+  font: inherit;
+  line-height: 1;
+  padding: var(--space-1) var(--space-2);
+  background: none;
+  border: 1px solid var(--rule);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.nudge:hover:not(:disabled) {
+  border-color: var(--rule-strong);
+  color: var(--ink);
+}
+
+.nudge:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* --- Adding by hand --------------------------------------------- */
+
+.adder {
+  border: 1px solid var(--rule-strong);
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+.label {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.input {
+  width: 100%;
+  padding: var(--space-2);
+  font: inherit;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+}
+
+/* --- Sources ----------------------------------------------------- */
+
+.sourceList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.sourceRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  font-size: var(--step-0);
+  flex-wrap: wrap;
+}
+
+.sourceNote {
+  font-size: var(--step--1);
+  font-style: italic;
+  color: var(--ink-faint);
+}
+
+/* --- Shared controls --------------------------------------------- */
+
+.action {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: var(--step-0);
+  padding: var(--space-2) var(--space-4);
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.action:hover:not(:disabled) {
+  background: var(--plate-terracotta);
+}
+
+.action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.quietAction {
+  font-size: var(--step--1);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink-soft);
+  cursor: pointer;
+  padding: 0 0 2px;
+}
+
+.quietAction:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.pending {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  color: var(--ink-faint);
+  font-style: italic;
+  margin: 0;
+}
+
+.problem {
+  margin: 0;
+  font-size: var(--step-0);
+  color: var(--plate-terracotta);
+}
+
+.footNote {
+  margin: 0;
+  border-top: 1px solid var(--rule);
+  padding-top: var(--space-3);
+}

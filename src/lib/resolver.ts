@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { config } from './config'
 
 export type Resolution =
-  | { action: 'link'; nodeId: string; similarity: number }
+  | { action: 'link'; topicId: string; similarity: number }
   | { action: 'pending'; title: string; similarity: number; nearestId: string }
   | { action: 'create'; title: string }
 
@@ -31,7 +31,7 @@ export function resolveConcept(
   }
 
   if (best.similarity >= config.RESOLVER_MATCH) {
-    return { action: 'link', nodeId: best.id, similarity: best.similarity }
+    return { action: 'link', topicId: best.id, similarity: best.similarity }
   }
   if (best.similarity >= config.RESOLVER_AMBIGUOUS) {
     // Defer to the user. A wrong merge destroys information; a wrong
@@ -51,7 +51,7 @@ export async function fetchCandidates(
   conceptEmbedding: number[],
   limit = 10
 ): Promise<Array<{ id: string; title: string; embedding: number[] }>> {
-  const { data, error } = await db.rpc('match_nodes', {
+  const { data, error } = await db.rpc('match_topics', {
     query_embedding: conceptEmbedding,
     match_count: limit,
   })

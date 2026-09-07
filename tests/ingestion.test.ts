@@ -71,7 +71,7 @@ function mockDb(opts: {
     rpc: async (fn: string, args: unknown) => {
       rpcCalls[fn] ??= []
       rpcCalls[fn].push(args)
-      if (fn === 'match_nodes') return { data: opts.candidates, error: null }
+      if (fn === 'match_topics') return { data: opts.candidates, error: null }
       if (fn === 'commit_ingestion') return { data: opts.created ?? [], error: null }
       return { data: null, error: null }
     },
@@ -92,12 +92,12 @@ beforeEach(() => { vi.clearAllMocks() })
 afterEach(() => { globalThis.fetch = realFetch })
 
 describe('ingestResource', () => {
-  it('links a concept matching an existing node instead of creating a duplicate', async () => {
+  it('links a concept matching an existing topic instead of creating a duplicate', async () => {
     const existingReact = new Array(1536).fill(0)
     existingReact[0] = 1
     const db = mockDb({
       resource: { id: 'r1', url: 'https://example.com/a', kind: 'article', raw_text: null },
-      candidates: [{ id: 'node-react', title: 'React Hooks', embedding: existingReact }],
+      candidates: [{ id: 'topic-react', title: 'React Hooks', embedding: existingReact }],
       html,
     })
     const { ingestResource } = await import('@/lib/ingest')
@@ -130,16 +130,16 @@ describe('ingestResource', () => {
     expect(statusWrites).toHaveLength(0)
   })
 
-  it('writes edges for newly created nodes, using the ids the commit returned', async () => {
+  it('writes edges for newly created topics, using the ids the commit returned', async () => {
     const { proposeEdges } = await import('@/lib/llm/edges')
     vi.mocked(proposeEdges).mockResolvedValue([
-      { from: 'new-1', to: 'node-react', kind: 'related', weight: 0.6 },
+      { from: 'new-1', to: 'topic-react', kind: 'related', weight: 0.6 },
     ])
     const existingReact = new Array(1536).fill(0)
     existingReact[0] = 1
     const db = mockDb({
       resource: { id: 'r1', url: 'https://example.com/a', kind: 'article', raw_text: null },
-      candidates: [{ id: 'node-react', title: 'React Hooks', embedding: existingReact }],
+      candidates: [{ id: 'topic-react', title: 'React Hooks', embedding: existingReact }],
       html,
       created: [{ out_id: 'new-1', out_title: 'CDN Distribution' }],
     })
@@ -149,14 +149,14 @@ describe('ingestResource', () => {
     const edges = db.inserted('edges') as Array<Record<string, unknown>>
     expect(edges).toHaveLength(1)
     expect(edges[0]).toMatchObject({
-      from_node: 'new-1',
-      to_node: 'node-react',
+      from_topic: 'new-1',
+      to_topic: 'topic-react',
       kind: 'related',
       created_by: 'ai',
     })
   })
 
-  it('passes the newly created nodes to edge proposal, not an empty list', async () => {
+  it('passes the newly created topics to edge proposal, not an empty list', async () => {
     const { proposeEdges } = await import('@/lib/llm/edges')
     vi.mocked(proposeEdges).mockResolvedValue([])
     const db = mockDb({
@@ -184,14 +184,14 @@ describe('ingestResource', () => {
     near[1] = Math.sqrt(1 - 0.75 * 0.75)
     const db = mockDb({
       resource: { id: 'r1', url: 'https://example.com/a', kind: 'article', raw_text: null },
-      candidates: [{ id: 'node-x', title: 'Something Adjacent', embedding: near }],
+      candidates: [{ id: 'topic-x', title: 'Something Adjacent', embedding: near }],
       html,
     })
     const { ingestResource } = await import('@/lib/ingest')
     const result = await ingestResource(db as never, 'r1')
     expect(result.pending).toBeGreaterThan(0)
 
-    const newNodes = (db.rpcArgs('commit_ingestion')[0] as { p_new_nodes: Array<{ state: string }> }).p_new_nodes
+    const newNodes = (db.rpcArgs('commit_ingestion')[0] as { p_new_topics: Array<{ state: string }> }).p_new_topics
     expect(newNodes.some(n => n.state === 'pending')).toBe(true)
   })
 })

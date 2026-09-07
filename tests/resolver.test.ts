@@ -40,7 +40,7 @@ describe('resolveConcept fixture suite', () => {
       const [conceptVec, candidateVec] = vectorsWithSimilarity(c.similarity!)
       const result = resolveConcept(
         c.concept,
-        [{ id: 'node-1', title: c.candidateTitle, embedding: candidateVec }],
+        [{ id: 'topic-1', title: c.candidateTitle, embedding: candidateVec }],
         conceptVec
       )
       expect(result.action).toBe(c.expected)
@@ -68,10 +68,10 @@ describe('resolveConcept boundaries', () => {
       { id: 'worse', title: 'a', embedding: near },
       { id: 'better', title: 'b', embedding: nearer },
     ], a)
-    expect(result).toMatchObject({ action: 'link', nodeId: 'better' })
+    expect(result).toMatchObject({ action: 'link', topicId: 'better' })
   })
 
-  it('reports the nearest node id when deferring, so the user has context', () => {
+  it('reports the nearest topic id when deferring, so the user has context', () => {
     const [a, b] = vectorsWithSimilarity(0.75)
     const result = resolveConcept('x', [{ id: 'n-42', title: 'y', embedding: b }], a)
     expect(result).toMatchObject({ action: 'pending', nearestId: 'n-42' })

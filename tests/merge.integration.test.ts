@@ -16,13 +16,13 @@ const uniq = () => Math.random().toString(36).slice(2, 8)
 async function wipe() {
   await db.from('exposures').delete().eq('user_id', USER)
   await db.from('edges').delete().eq('user_id', USER)
-  await db.from('resource_nodes').delete().gte('relevance', 0)
-  await db.from('nodes').delete().eq('user_id', USER)
+  await db.from('resource_topics').delete().gte('relevance', 0)
+  await db.from('topics').delete().eq('user_id', USER)
   await db.from('resources').delete().eq('user_id', USER)
 }
 
-async function makeNode(title: string) {
-  const { data } = await db.from('nodes').insert({
+async function makeTopic(title: string) {
+  const { data } = await db.from('topics').insert({
     user_id: USER, title, slug: `${title.toLowerCase().replace(/\W+/g, '-')}-${uniq()}`,
     created_by: 'ai',
   }).select('id').single()
@@ -36,69 +36,69 @@ async function makeResource(title: string) {
   return data!.id as string
 }
 
-describe.skipIf(!reachable)('merge_nodes against real Postgres', () => {
-  it('moves exposures onto the surviving node', async () => {
+describe.skipIf(!reachable)('merge_topics against real Postgres', () => {
+  it('moves exposures onto the surviving topic', async () => {
     await wipe()
-    const dupe = await makeNode('Hooks in React')
-    const canonical = await makeNode('React Hooks')
+    const dupe = await makeTopic('Hooks in React')
+    const canonical = await makeTopic('React Hooks')
     const resource = await makeResource('Article')
 
     await db.from('exposures').insert({
-      user_id: USER, node_id: dupe, source: 'resource', source_id: resource,
+      user_id: USER, topic_id: dupe, source: 'resource', source_id: resource,
       depth: 'read', ability_delta: 0.5, reason: 'read of "Article"',
     })
 
-    await db.rpc('merge_nodes', { p_from: dupe, p_into: canonical })
+    await db.rpc('merge_topics', { p_from: dupe, p_into: canonical })
 
-    const { data: moved } = await db.from('exposures').select('*').eq('node_id', canonical)
+    const { data: moved } = await db.from('exposures').select('*').eq('topic_id', canonical)
     expect(moved).toHaveLength(1)
-    const { data: gone } = await db.from('nodes').select('*').eq('id', dupe)
+    const { data: gone } = await db.from('topics').select('*').eq('id', dupe)
     expect(gone).toHaveLength(0)
   })
 
-  it('keeps the stronger relevance when both nodes share a resource', async () => {
+  it('keeps the stronger relevance when both topics share a resource', async () => {
     await wipe()
-    const dupe = await makeNode('Hooks in React')
-    const canonical = await makeNode('React Hooks')
+    const dupe = await makeTopic('Hooks in React')
+    const canonical = await makeTopic('React Hooks')
     const resource = await makeResource('Shared Article')
 
-    await db.from('resource_nodes').insert([
-      { resource_id: resource, node_id: dupe, relevance: 0.9 },
-      { resource_id: resource, node_id: canonical, relevance: 0.4 },
+    await db.from('resource_topics').insert([
+      { resource_id: resource, topic_id: dupe, relevance: 0.9 },
+      { resource_id: resource, topic_id: canonical, relevance: 0.4 },
     ])
 
-    await db.rpc('merge_nodes', { p_from: dupe, p_into: canonical })
+    await db.rpc('merge_topics', { p_from: dupe, p_into: canonical })
 
-    const { data } = await db.from('resource_nodes').select('*').eq('resource_id', resource)
+    const { data } = await db.from('resource_topics').select('*').eq('resource_id', resource)
     expect(data).toHaveLength(1)
     expect(Number(data![0].relevance)).toBeCloseTo(0.9)
   })
 
   it('re-points edges and drops the self-edge the merge creates', async () => {
     await wipe()
-    const dupe = await makeNode('Hooks in React')
-    const canonical = await makeNode('React Hooks')
-    const other = await makeNode('JavaScript')
+    const dupe = await makeTopic('Hooks in React')
+    const canonical = await makeTopic('React Hooks')
+    const other = await makeTopic('JavaScript')
 
     await db.from('edges').insert([
-      { user_id: USER, from_node: dupe, to_node: canonical, kind: 'related', weight: 0.5, created_by: 'ai' },
-      { user_id: USER, from_node: dupe, to_node: other, kind: 'prereq', weight: 0.8, created_by: 'ai' },
+      { user_id: USER, from_topic: dupe, to_topic: canonical, kind: 'related', weight: 0.5, created_by: 'ai' },
+      { user_id: USER, from_topic: dupe, to_topic: other, kind: 'prereq', weight: 0.8, created_by: 'ai' },
     ])
 
-    await db.rpc('merge_nodes', { p_from: dupe, p_into: canonical })
+    await db.rpc('merge_topics', { p_from: dupe, p_into: canonical })
 
     const { data } = await db.from('edges').select('*')
     // dupe->canonical became canonical->canonical and was dropped;
     // dupe->other survives as canonical->other.
     expect(data).toHaveLength(1)
-    expect(data![0].from_node).toBe(canonical)
-    expect(data![0].to_node).toBe(other)
+    expect(data![0].from_topic).toBe(canonical)
+    expect(data![0].to_topic).toBe(other)
   })
 
-  it('refuses to merge a node into itself', async () => {
+  it('refuses to merge a topic into itself', async () => {
     await wipe()
-    const node = await makeNode('React Hooks')
-    const { error } = await db.rpc('merge_nodes', { p_from: node, p_into: node })
+    const topic = await makeTopic('React Hooks')
+    const { error } = await db.rpc('merge_topics', { p_from: topic, p_into: topic })
     expect(error).not.toBeNull()
     expect(error!.message).toContain('itself')
   })

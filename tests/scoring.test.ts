@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { computeAbility, computeFreshness, clusterAggregate } from '@/lib/scoring'
+import { computeAbility, computeFreshness, subjectAggregate } from '@/lib/scoring'
 import type { Exposure } from '@/lib/types'
 
 function exposure(over: Partial<Exposure> = {}): Exposure {
   return {
-    id: 'e', node_id: 'n', source: 'resource', source_id: 'r',
+    id: 'e', topic_id: 'n', source: 'resource', source_id: 'r',
     depth: 'read', ability_delta: 0, reason: '',
     created_at: '2026-01-01T00:00:00Z',
     ...over,
@@ -86,7 +86,7 @@ describe('computeFreshness', () => {
     expect(computeFreshness('2026-06-01T00:00:00Z', 3, now)).toBeCloseTo(1)
   })
 
-  it('halves at the half-life for a novice node', () => {
+  it('halves at the half-life for a novice topic', () => {
     const at90 = computeFreshness('2026-03-03T00:00:00Z', 1, now)
     expect(at90).toBeCloseTo(0.5, 1)
   })
@@ -104,35 +104,35 @@ describe('computeFreshness', () => {
   })
 })
 
-describe('clusterAggregate', () => {
+describe('subjectAggregate', () => {
   it('averages ability across members', () => {
-    const result = clusterAggregate([
+    const result = subjectAggregate([
       { ability: 2, freshness: 1, state: 'active' },
       { ability: 4, freshness: 1, state: 'active' },
     ])
     expect(result.ability).toBeCloseTo(3)
   })
 
-  it('excludes pending nodes from the rollup', () => {
-    const result = clusterAggregate([
+  it('excludes pending topics from the rollup', () => {
+    const result = subjectAggregate([
       { ability: 2, freshness: 1, state: 'active' },
       { ability: 5, freshness: 1, state: 'pending' },
     ])
     expect(result.ability).toBeCloseTo(2)
   })
 
-  it('weights freshness toward the worst members, so cold nodes are not masked', () => {
+  it('weights freshness toward the worst members, so cold topics are not masked', () => {
     const members = [
       { ability: 3, freshness: 1.0, state: 'active' },
       { ability: 3, freshness: 1.0, state: 'active' },
       ...Array(20).fill({ ability: 3, freshness: 0.05, state: 'active' }),
     ]
-    const result = clusterAggregate(members)
+    const result = subjectAggregate(members)
     const plainMean = members.reduce((s, m) => s + m.freshness, 0) / members.length
     expect(result.freshness).toBeLessThan(plainMean)
   })
 
-  it('returns zeros for an empty cluster', () => {
-    expect(clusterAggregate([])).toEqual({ ability: 0, freshness: 0 })
+  it('returns zeros for an empty subject', () => {
+    expect(subjectAggregate([])).toEqual({ ability: 0, freshness: 0 })
   })
 })

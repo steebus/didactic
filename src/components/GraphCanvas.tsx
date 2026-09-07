@@ -6,25 +6,28 @@ import Sigma from 'sigma'
 import forceAtlas2 from 'graphology-layout-forceatlas2'
 import styles from './GraphCanvas.module.css'
 
-interface GraphNode {
+interface GraphTopic {
   id: string
   title: string
   ability: number
   ability_confidence: number
   freshness: number
-  cluster_id: string | null
+  /** The home subject, which is what the seed is coloured by. */
+  primary_subject_id: string | null
+  /** Every subject the topic is filed under, home included. */
+  subject_ids: string[]
   state: string
   last_exposure_at: string | null
 }
 
 interface GraphEdge {
-  from_node: string
-  to_node: string
+  from_topic: string
+  to_topic: string
   kind: string
   weight: number
 }
 
-interface Cluster {
+interface Subject {
   id: string
   title: string
   colour: string
@@ -48,38 +51,38 @@ function fade(hex: string, amount: number) {
 }
 
 export function GraphCanvas({
-  initialCluster,
-  initialNode,
+  initialSubject,
+  initialTopic,
 }: {
-  initialCluster: string | null
-  initialNode: string | null
+  initialSubject: string | null
+  initialTopic: string | null
 }) {
   const holder = useRef<HTMLDivElement>(null)
   const sigma = useRef<Sigma | null>(null)
 
   const [data, setData] = useState<{
-    nodes: GraphNode[]
+    topics: GraphTopic[]
     edges: GraphEdge[]
-    clusters: Cluster[]
+    subjects: Subject[]
   } | null>(null)
-  const [selected, setSelected] = useState<string | null>(initialNode)
+  const [selected, setSelected] = useState<string | null>(initialTopic)
   const [query, setQuery] = useState('')
-  const [cluster, setCluster] = useState<string | null>(initialCluster)
+  const [subject, setSubject] = useState<string | null>(initialSubject)
   const [showDormantOnly, setShowDormantOnly] = useState(false)
 
   useEffect(() => {
     Promise.all([
-      fetch('/api/nodes').then(r => r.json()),
-      fetch('/api/clusters').then(r => r.json()),
-    ]).then(([graph, clusters]) => {
-      setData({ ...graph, clusters: clusters.clusters ?? [] })
+      fetch('/api/topics').then(r => r.json()),
+      fetch('/api/subjects').then(r => r.json()),
+    ]).then(([graph, subjects]) => {
+      setData({ ...graph, subjects: subjects.subjects ?? [] })
     })
   }, [])
 
   const colourFor = useCallback(
-    (node: GraphNode) => {
-      const c = data?.clusters.find(x => x.id === node.cluster_id)
-      return c?.colour ?? '#7d6f5d'
+    (topic: GraphTopic) => {
+      const s = data?.subjects.find(x => x.id === topic.primary_subject_id)
+      return s?.colour ?? '#7d6f5d'
     },
     [data]
   )
@@ -88,36 +91,39 @@ export function GraphCanvas({
     if (!data || !holder.current) return
 
     const graph = new Graph()
-    const visible = data.nodes.filter(n => {
-      if (n.state !== 'active') return false
-      if (query && !n.title.toLowerCase().includes(query.toLowerCase())) return false
-      if (cluster && n.cluster_id !== cluster) return false
-      if (showDormantOnly && n.freshness >= 0.25) return false
+    const visible = data.topics.filter(t => {
+      if (t.state !== 'active') return false
+      if (query && !t.title.toLowerCase().includes(query.toLowerCase())) return false
+      // Filter on the whole membership set, not the home subject:
+      // exposure belongs to landscape photography even though portrait
+      // is where it was first sown.
+      if (subject && !t.subject_ids.includes(subject)) return false
+      if (showDormantOnly && t.freshness >= 0.25) return false
       return true
     })
 
-    const visibleIds = new Set(visible.map(n => n.id))
+    const visibleIds = new Set(visible.map(t => t.id))
 
-    visible.forEach((n, i) => {
+    visible.forEach((t, i) => {
       const angle = (i / visible.length) * Math.PI * 2
-      graph.addNode(n.id, {
-        label: n.title,
+      graph.addNode(t.id, {
+        label: t.title,
         // Size by ability: a stronger holding is a larger seed.
-        size: 5 + n.ability * 2.4,
+        size: 5 + t.ability * 2.4,
         // Dormancy is mixed into the fill itself. Sigma has no alpha
         // attribute, so a separate opacity key renders as nothing.
-        color: fade(colourFor(n), 0.3 + n.freshness * 0.7),
+        color: fade(colourFor(t), 0.3 + t.freshness * 0.7),
         x: Math.cos(angle) * 100 + Math.random() * 10,
         y: Math.sin(angle) * 100 + Math.random() * 10,
-        freshness: n.freshness,
-        ability: n.ability,
+        freshness: t.freshness,
+        ability: t.ability,
       })
     })
 
     data.edges.forEach(e => {
-      if (!visibleIds.has(e.from_node) || !visibleIds.has(e.to_node)) return
-      if (graph.hasEdge(e.from_node, e.to_node)) return
-      graph.addEdge(e.from_node, e.to_node, {
+      if (!visibleIds.has(e.from_topic) || !visibleIds.has(e.to_topic)) return
+      if (graph.hasEdge(e.from_topic, e.to_topic)) return
+      graph.addEdge(e.from_topic, e.to_topic, {
         size: 0.5 + e.weight,
         color: 'rgba(107, 92, 69, 0.35)',
         kind: e.kind,
@@ -129,7 +135,7 @@ export function GraphCanvas({
         iterations: 400,
         settings: {
           // Strong gravity pulls the whole planting into frame; a low
-          // scalingRatio keeps clusters from flinging to the corners.
+          // scalingRatio keeps clumps from flinging to the corners.
           gravity: 8,
           scalingRatio: 3,
           slowDown: 12,
@@ -188,9 +194,9 @@ export function GraphCanvas({
       renderer.kill()
       sigma.current = null
     }
-  }, [data, query, cluster, showDormantOnly, colourFor])
+  }, [data, query, subject, showDormantOnly, colourFor])
 
-  const selectedNode = data?.nodes.find(n => n.id === selected) ?? null
+  const selectedTopic = data?.topics.find(t => t.id === selected) ?? null
 
   return (
     <div className={styles.frame}>
@@ -199,18 +205,18 @@ export function GraphCanvas({
           className={styles.search}
           value={query}
           onChange={e => setQuery(e.target.value)}
-          placeholder="Find a subject"
-          aria-label="Find a subject"
+          placeholder="Find a topic"
+          aria-label="Find a topic"
         />
         <select
           className={styles.select}
-          value={cluster ?? ''}
-          onChange={e => setCluster(e.target.value || null)}
-          aria-label="Filter by section"
+          value={subject ?? ''}
+          onChange={e => setSubject(e.target.value || null)}
+          aria-label="Filter by subject"
         >
-          <option value="">All sections</option>
-          {data?.clusters.map(c => (
-            <option key={c.id} value={c.id}>{c.title}</option>
+          <option value="">All subjects</option>
+          {data?.subjects.map(s => (
+            <option key={s.id} value={s.id}>{s.title}</option>
           ))}
         </select>
         <label className={styles.toggle}>
@@ -227,14 +233,17 @@ export function GraphCanvas({
 
       {!data && <p className={styles.pending}>Reading the bed…</p>}
 
-      {data && data.nodes.filter(n => n.state === 'active').length === 0 && (
+      {data && data.topics.filter(t => t.state === 'active').length === 0 && (
         <p className={styles.pending}>Nothing sown yet.</p>
       )}
 
-      {selectedNode && (
-        <NodePanel
-          node={selectedNode}
-          colour={colourFor(selectedNode)}
+      {selectedTopic && (
+        <TopicPanel
+          // Remount on a new selection so the panel starts empty rather
+          // than printing the last topic's record under this one's name.
+          key={selectedTopic.id}
+          topic={selectedTopic}
+          colour={colourFor(selectedTopic)}
           onClose={() => setSelected(null)}
         />
       )}
@@ -242,28 +251,42 @@ export function GraphCanvas({
   )
 }
 
-function NodePanel({
-  node,
+function TopicPanel({
+  topic,
   colour,
   onClose,
 }: {
-  node: GraphNode
+  topic: GraphTopic
   colour: string
   onClose: () => void
 }) {
   const [detail, setDetail] = useState<{
     exposures: Array<{ id: string; reason: string; created_at: string; depth: string }>
     resources: Array<{ relevance: number; resources: { title: string; status: string } }>
-    edges: Array<{ from_node: string; to_node: string; kind: string }>
+    edges: Array<{ from_topic: string; to_topic: string; kind: string }>
+    curricula: Array<{
+      id: string
+      title: string
+      status: string
+      shape: string
+      lessonCount: number
+      completedCount: number
+    }>
   } | null>(null)
 
   useEffect(() => {
-    setDetail(null)
-    fetch(`/api/nodes/${node.id}`).then(r => r.json()).then(setDetail)
-  }, [node.id])
+    let cancelled = false
+    fetch(`/api/topics/${topic.id}`)
+      .then(r => r.json())
+      .then(d => !cancelled && setDetail(d))
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [topic.id])
 
-  const viability = Math.max(0, Math.round(((node.ability - 1) / 4) * 100))
-  const vague = node.ability_confidence < 0.4
+  const viability = Math.max(0, Math.round(((topic.ability - 1) / 4) * 100))
+  const vague = topic.ability_confidence < 0.4
 
   return (
     <aside className={styles.panel}>
@@ -273,7 +296,7 @@ function NodePanel({
 
       <div className={styles.panelPlate} style={{ background: colour }} />
 
-      <h2 className={styles.panelTitle}>{node.title}</h2>
+      <h2 className={styles.panelTitle}>{topic.title}</h2>
 
       <dl className={styles.figures}>
         <dt>Viability</dt>
@@ -282,8 +305,8 @@ function NodePanel({
         </dd>
         <dt>Last tended</dt>
         <dd>
-          {node.last_exposure_at
-            ? new Date(node.last_exposure_at).toLocaleDateString('en-GB', {
+          {topic.last_exposure_at
+            ? new Date(topic.last_exposure_at).toLocaleDateString('en-GB', {
                 day: 'numeric', month: 'short', year: 'numeric',
               })
             : 'Never sown'}
@@ -295,6 +318,30 @@ function NodePanel({
           Not much to go on yet — this figure is a guess.
         </p>
       )}
+
+      <section className={styles.panelBlock}>
+        <h3 className={styles.panelBlockTitle}>Curriculum</h3>
+        {!detail ? (
+          <p className={styles.muted}>Reading the record…</p>
+        ) : detail.curricula.length === 0 ? (
+          <p className={styles.muted}>
+            No route laid out yet.
+          </p>
+        ) : (
+          <ul className={styles.record}>
+            {detail.curricula.map(c => (
+              <li key={c.id}>
+                <a href={`/curriculum/${c.id}`}>{c.title}</a>
+                <span className={styles.recordDate}>
+                  {c.status === 'draft'
+                    ? 'draft'
+                    : `${c.completedCount}/${c.lessonCount}`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <section className={styles.panelBlock}>
         <h3 className={styles.panelBlockTitle}>Why this figure</h3>
@@ -334,8 +381,8 @@ function NodePanel({
         </section>
       )}
 
-      <a className={styles.tend} href={`/refresher/${node.id}`}>
-        Tend it
+      <a className={styles.tend} href={`/topics/${topic.id}`}>
+        Open the topic
       </a>
     </aside>
   )

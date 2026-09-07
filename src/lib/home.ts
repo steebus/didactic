@@ -1,8 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { computeFreshness, clusterAggregate } from './scoring'
+import { computeFreshness, subjectAggregate } from './scoring'
 import type { Resource } from './types'
 
-export interface ClusterCell {
+export interface SubjectCell {
   id: string
   title: string
   colour: string
@@ -15,111 +15,129 @@ export interface ClusterCell {
   confidence: number
   /** Most recent exposure across members, or null when no member has
    *  ever been tended. Null is what makes the 'unsown' state
-   *  reachable for a populated cluster. */
+   *  reachable for a populated subject. */
   lastExposureAt: string | null
 }
 
-export interface NodeSummary {
+export interface TopicSummary {
   id: string
   title: string
   ability: number
   confidence: number
   freshness: number
-  cluster_id: string | null
+  primary_subject_id: string | null
 }
 
 export interface HomeData {
-  clusters: ClusterCell[]
-  unclustered: NodeSummary[]
-  hot: NodeSummary[]
-  cold: NodeSummary[]
+  subjects: SubjectCell[]
+  unfiled: TopicSummary[]
+  hot: TopicSummary[]
+  cold: TopicSummary[]
   queued: Resource[]
   pendingCount: number
-  suggested: NodeSummary | null
-  totals: { nodes: number; clusters: number; resources: number }
+  suggested: TopicSummary | null
+  totals: { topics: number; subjects: number; resources: number }
 }
 
 export async function getHomeData(db: SupabaseClient): Promise<HomeData> {
-  const [{ data: nodes }, { data: clusters }, { data: resources }, { data: links }] =
-    await Promise.all([
-      db.from('nodes').select('*'),
-      db.from('clusters').select('*'),
-      db.from('resources').select('*').order('added_at', { ascending: false }),
-      db.from('resource_nodes').select('resource_id, node_id'),
-    ])
+  const [
+    { data: topics },
+    { data: subjects },
+    { data: resources },
+    { data: links },
+    { data: memberships },
+  ] = await Promise.all([
+    db.from('topics').select('*'),
+    db.from('subjects').select('*'),
+    db.from('resources').select('*').order('added_at', { ascending: false }),
+    db.from('resource_topics').select('resource_id, topic_id'),
+    db.from('topic_subjects').select('topic_id, subject_id'),
+  ])
 
-  const all = (nodes ?? []).map(n => ({
-    ...n,
-    ability: Number(n.ability),
-    ability_confidence: Number(n.ability_confidence),
-    freshness: computeFreshness(n.last_exposure_at, Number(n.ability)),
+  const all = (topics ?? []).map(t => ({
+    ...t,
+    ability: Number(t.ability),
+    ability_confidence: Number(t.ability_confidence),
+    freshness: computeFreshness(t.last_exposure_at, Number(t.ability)),
   }))
 
-  const active = all.filter(n => n.state === 'active')
+  const active = all.filter(t => t.state === 'active')
   const pendingCount = all.length - active.length
 
-  const summary = (n: (typeof all)[number]): NodeSummary => ({
-    id: n.id,
-    title: n.title,
-    ability: n.ability,
-    confidence: n.ability_confidence,
-    freshness: n.freshness,
-    cluster_id: n.cluster_id,
+  const summary = (t: (typeof all)[number]): TopicSummary => ({
+    id: t.id,
+    title: t.title,
+    ability: t.ability,
+    confidence: t.ability_confidence,
+    freshness: t.freshness,
+    primary_subject_id: t.primary_subject_id,
   })
 
-  // Queued resources per cluster: where material has been stockpiled
+  // Queued resources per subject: where material has been stockpiled
   // but not read. This is the "unsown stock" signal.
   const queuedResources = (resources ?? []).filter(r => r.status === 'queued')
   const queuedIds = new Set(queuedResources.map(r => r.id))
-  const queuedNodeIds = new Set(
-    (links ?? []).filter(l => queuedIds.has(l.resource_id)).map(l => l.node_id)
+  const queuedTopicIds = new Set(
+    (links ?? []).filter(l => queuedIds.has(l.resource_id)).map(l => l.topic_id)
   )
 
-  const clusterCells: ClusterCell[] = (clusters ?? []).map(c => {
-    const members = active.filter(n => n.cluster_id === c.id)
+  // Membership is many-to-many, so a topic counts toward every subject
+  // it sits under. Exposure is filed under portrait and landscape
+  // photography both, and reading it warms both.
+  const bySubject = new Map<string, Set<string>>()
+  const filed = new Set<string>()
+  for (const m of memberships ?? []) {
+    if (!bySubject.has(m.subject_id)) bySubject.set(m.subject_id, new Set())
+    bySubject.get(m.subject_id)!.add(m.topic_id)
+    filed.add(m.topic_id)
+  }
+
+  const subjectCells: SubjectCell[] = (subjects ?? []).map(s => {
+    const ids = bySubject.get(s.id) ?? new Set<string>()
+    const members = active.filter(t => ids.has(t.id))
     const tended = members
-      .map(n => n.last_exposure_at)
+      .map(t => t.last_exposure_at)
       .filter((d): d is string => d !== null)
       .sort()
     return {
-      id: c.id,
-      title: c.title,
-      colour: c.colour,
+      id: s.id,
+      title: s.title,
+      colour: s.colour,
       count: members.length,
-      queuedCount: members.filter(n => queuedNodeIds.has(n.id)).length,
+      queuedCount: members.filter(t => queuedTopicIds.has(t.id)).length,
       confidence: members.length
-        ? members.reduce((s, n) => s + n.ability_confidence, 0) / members.length
+        ? members.reduce((sum, t) => sum + t.ability_confidence, 0) / members.length
         : 0,
       lastExposureAt: tended.at(-1) ?? null,
-      ...clusterAggregate(members),
+      ...subjectAggregate(members),
     }
   }).sort((a, b) => b.count - a.count)
 
   const hot = [...active]
-    .filter(n => n.freshness > 0)
+    .filter(t => t.freshness > 0)
     .sort((a, b) => b.freshness - a.freshness)
     .slice(0, 5)
     .map(summary)
 
-  // Cold means known enough to be worth keeping, but fading. A node
+  // Cold means known enough to be worth keeping, but fading. A topic
   // never touched is not cold, it is unsown.
   const cold = active
-    .filter(n => n.ability >= 2 && n.freshness < 0.4 && n.last_exposure_at !== null)
+    .filter(t => t.ability >= 2 && t.freshness < 0.4 && t.last_exposure_at !== null)
     .sort((a, b) => a.freshness - b.freshness)
     .slice(0, 5)
     .map(summary)
 
   return {
-    clusters: clusterCells,
-    unclustered: active.filter(n => n.cluster_id === null).map(summary),
+    subjects: subjectCells,
+    unfiled: active.filter(t => !filed.has(t.id)).map(summary),
     hot,
     cold,
     queued: queuedResources,
     pendingCount,
     suggested: cold[0] ?? null,
     totals: {
-      nodes: active.length,
-      clusters: clusterCells.length,
+      topics: active.length,
+      subjects: subjectCells.length,
       resources: (resources ?? []).length,
     },
   }

@@ -19,11 +19,11 @@ const reachable = await fetch(`${URL}/rest/v1/`, { signal: AbortSignal.timeout(2
 
 async function seed() {
   await db.from('exposures').delete().eq('user_id', USER)
-  await db.from('resource_nodes').delete().neq('relevance', -1)
-  await db.from('nodes').delete().eq('user_id', USER)
+  await db.from('resource_topics').delete().neq('relevance', -1)
+  await db.from('topics').delete().eq('user_id', USER)
   await db.from('resources').delete().eq('user_id', USER)
 
-  const { data: node } = await db.from('nodes').insert({
+  const { data: topic } = await db.from('topics').insert({
     user_id: USER,
     title: 'React Hooks',
     slug: `react-hooks-${Math.random().toString(36).slice(2, 8)}`,
@@ -37,50 +37,50 @@ async function seed() {
     status: 'queued',
   }).select('id').single()
 
-  await db.from('resource_nodes').insert({
+  await db.from('resource_topics').insert({
     resource_id: resource!.id,
-    node_id: node!.id,
+    topic_id: topic!.id,
     relevance: 0.9,
   })
 
-  return { nodeId: node!.id, resourceId: resource!.id }
+  return { topicId: topic!.id, resourceId: resource!.id }
 }
 
 describe.skipIf(!reachable)('setResourceStatus against real Postgres', () => {
   it('writes no exposure when a resource is merely marked as reading', async () => {
-    const { resourceId, nodeId } = await seed()
+    const { resourceId, topicId } = await seed()
     await setResourceStatus(db, resourceId, 'reading')
 
-    const { data } = await db.from('exposures').select('*').eq('node_id', nodeId)
+    const { data } = await db.from('exposures').select('*').eq('topic_id', topicId)
     expect(data).toHaveLength(0)
   })
 
-  it('writes an exposure per linked node when consumed', async () => {
-    const { resourceId, nodeId } = await seed()
+  it('writes an exposure per linked topic when consumed', async () => {
+    const { resourceId, topicId } = await seed()
     const result = await setResourceStatus(db, resourceId, 'consumed', 'read')
 
     expect(result.exposuresWritten).toBe(1)
-    const { data } = await db.from('exposures').select('*').eq('node_id', nodeId)
+    const { data } = await db.from('exposures').select('*').eq('topic_id', topicId)
     expect(data).toHaveLength(1)
     expect(data![0].depth).toBe('read')
     expect(data![0].reason).toContain('A Hooks Article')
   })
 
   it('raises ability above the floor once consumed', async () => {
-    const { resourceId, nodeId } = await seed()
+    const { resourceId, topicId } = await seed()
     await setResourceStatus(db, resourceId, 'consumed', 'read')
 
-    const { data } = await db.from('nodes').select('ability, ability_confidence, last_exposure_at')
-      .eq('id', nodeId).single()
+    const { data } = await db.from('topics').select('ability, ability_confidence, last_exposure_at')
+      .eq('id', topicId).single()
     expect(Number(data!.ability)).toBeGreaterThan(1.0)
     expect(data!.last_exposure_at).not.toBeNull()
   })
 
   it('keeps ability at or below the consumption ceiling for reads', async () => {
-    const { resourceId, nodeId } = await seed()
+    const { resourceId, topicId } = await seed()
     await setResourceStatus(db, resourceId, 'consumed', 'read')
 
-    const { data } = await db.from('nodes').select('ability').eq('id', nodeId).single()
+    const { data } = await db.from('topics').select('ability').eq('id', topicId).single()
     expect(Number(data!.ability)).toBeLessThanOrEqual(3.5)
   })
 

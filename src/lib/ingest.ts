@@ -38,8 +38,8 @@ export async function ingestResource(db: SupabaseClient, resourceId: string) {
   const { summary, concepts } = await extractConcepts(title, text)
 
   // 3. Resolve each against the graph.
-  const links: Array<{ node_id: string; relevance: number }> = []
-  const newNodes: Array<Record<string, unknown>> = []
+  const links: Array<{ topic_id: string; relevance: number }> = []
+  const newTopics: Array<Record<string, unknown>> = []
   let pendingCount = 0
 
   for (const concept of concepts) {
@@ -48,10 +48,10 @@ export async function ingestResource(db: SupabaseClient, resourceId: string) {
     const resolution = resolveConcept(concept.name, candidates, vector)
 
     if (resolution.action === 'link') {
-      links.push({ node_id: resolution.nodeId, relevance: concept.relevance })
+      links.push({ topic_id: resolution.topicId, relevance: concept.relevance })
     } else {
       if (resolution.action === 'pending') pendingCount++
-      newNodes.push({
+      newTopics.push({
         title: concept.name,
         slug: slugify(concept.name),
         summary: null,
@@ -62,37 +62,37 @@ export async function ingestResource(db: SupabaseClient, resourceId: string) {
     }
   }
 
-  // 4. Commit nodes first, so the new ones have real ids to relate.
+  // 4. Commit topics first, so the new ones have real ids to relate.
   const { data: createdIds, error: commitError } = await db.rpc('commit_ingestion', {
     p_resource_id: resourceId,
     p_user_id: resource.user_id,
     p_summary: summary,
-    p_new_nodes: newNodes,
+    p_new_topics: newTopics,
     p_links: links,
   })
   if (commitError) throw commitError
 
-  // 5. Propose edges between the newly created nodes and their existing
+  // 5. Propose edges between the newly created topics and their existing
   // neighbours, then write them. Edges are a second pass because the
-  // LLM needs real node ids to reference.
-  const { data: existingNodes } = await db
-    .from('nodes').select('id, title').in('id', links.map(l => l.node_id))
+  // LLM needs real topic ids to reference.
+  const { data: existingTopics } = await db
+    .from('topics').select('id, title').in('id', links.map(l => l.topic_id))
 
   // commit_ingestion returns out_id/out_title: a plpgsql function whose
   // OUT params are named id/title shadows those column names inside its
   // own body, so the prefix is load-bearing, not cosmetic.
-  const newNodeRefs = (createdIds ?? []).map((c: { out_id: string; out_title: string }) => ({
+  const newTopicRefs = (createdIds ?? []).map((c: { out_id: string; out_title: string }) => ({
     id: c.out_id,
     title: c.out_title,
   }))
 
-  if (newNodeRefs.length > 0) {
-    const edges = await proposeEdges(newNodeRefs, existingNodes ?? [])
+  if (newTopicRefs.length > 0) {
+    const edges = await proposeEdges(newTopicRefs, existingTopics ?? [])
     if (edges.length > 0) {
       await db.from('edges').insert(edges.map(e => ({
         user_id: resource.user_id,
-        from_node: e.from,
-        to_node: e.to,
+        from_topic: e.from,
+        to_topic: e.to,
         kind: e.kind,
         weight: e.weight,
         created_by: 'ai' as const,
@@ -103,7 +103,7 @@ export async function ingestResource(db: SupabaseClient, resourceId: string) {
   // 6. Status stays 'queued'. Filing is not reading.
   return {
     linked: links.length,
-    created: newNodes.length,
+    created: newTopics.length,
     pending: pendingCount,
   }
 }

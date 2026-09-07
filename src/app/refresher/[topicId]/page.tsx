@@ -19,32 +19,32 @@ interface RefresherState {
 export default function RefresherPage({
   params,
 }: {
-  params: Promise<{ nodeId: string }>
+  params: Promise<{ topicId: string }>
 }) {
-  const { nodeId } = use(params)
-  const [node, setNode] = useState<{ title: string; ability: number; freshness: number } | null>(null)
+  const { topicId } = use(params)
+  const [topic, setTopic] = useState<{ title: string; ability: number; freshness: number } | null>(null)
   const [state, setState] = useState<RefresherState | null>(null)
 
   useEffect(() => {
-    fetch(`/api/nodes/${nodeId}`)
+    fetch(`/api/topics/${topicId}`)
       .then(r => r.json())
-      .then(d => d.node && setNode(d.node))
+      .then(d => d.topic && setTopic(d.topic))
 
-    fetch(`/api/refresher/${nodeId}`, { method: 'POST' })
+    fetch(`/api/refresher/${topicId}`, { method: 'POST' })
       .then(async r => {
         const body = await r.json()
         setState(r.ok ? body : { error: body.error, resources: body.resources ?? [] })
       })
       .catch(() => setState({ error: 'Could not reach the server.', resources: [] }))
-  }, [nodeId])
+  }, [topicId])
 
-  const viability = node ? Math.max(0, Math.round(((node.ability - 1) / 4) * 100)) : null
+  const viability = topic ? Math.max(0, Math.round(((topic.ability - 1) / 4) * 100)) : null
 
   return (
     <main className={styles.sheet}>
       <header className={styles.head}>
         <div className={styles.headRow}>
-          <h1 className={styles.eyebrowless}>{node?.title ?? 'Tending'}</h1>
+          <h1 className={styles.eyebrowless}>{topic?.title ?? 'Tending'}</h1>
           <Link href="/" className={styles.back}>
             Back to the stock list
           </Link>
@@ -58,7 +58,7 @@ export default function RefresherPage({
             <span className={styles.figure}>
               <span className={styles.figureLabel}>Condition</span>
               <span className={styles.figureValue}>
-                {Math.round((node?.freshness ?? 0) * 100)}
+                {Math.round((topic?.freshness ?? 0) * 100)}
               </span>
             </span>
           </div>

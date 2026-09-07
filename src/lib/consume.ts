@@ -36,22 +36,22 @@ export async function setResourceStatus(
 
   if (status !== 'consumed') return { exposuresWritten: 0 }
 
-  const { data: links, error: linkError } = await db.from('resource_nodes')
-    .select('node_id, relevance').eq('resource_id', resourceId)
+  const { data: links, error: linkError } = await db.from('resource_topics')
+    .select('topic_id, relevance').eq('resource_id', resourceId)
   if (linkError) throw linkError
 
   let written = 0
   for (const link of links ?? []) {
     await db.from('exposures').insert({
       user_id: resource.user_id,
-      node_id: link.node_id,
+      topic_id: link.topic_id,
       source: 'resource',
       source_id: resourceId,
       depth,
       ability_delta: link.relevance * config.DEPTH_WEIGHTS[depth!],
       reason: `${depth} of "${resource.title}"`,
     })
-    await recomputeAbility(db, link.node_id)
+    await recomputeAbility(db, link.topic_id)
     written++
   }
 

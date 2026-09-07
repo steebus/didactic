@@ -155,7 +155,7 @@
 
 /* Rows are sized by holding: a section with more stock takes more of
    the sheet, so the shape of the listing carries information before
-   any figure is read. --weight is 0-1, set per row from node count. */
+   any figure is read. --weight is 0-1, set per row from topic count. */
 .entry {
   display: grid;
   grid-template-columns: var(--plate-size) minmax(0, 1fr) auto;

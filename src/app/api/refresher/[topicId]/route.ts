@@ -2,15 +2,15 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { generateRefresher } from '@/lib/llm/refresher'
 
-export async function POST(_: Request, { params }: { params: Promise<{ nodeId: string }> }) {
-  const { nodeId } = await params
+export async function POST(_: Request, { params }: { params: Promise<{ topicId: string }> }) {
+  const { topicId } = await params
   const db = supabaseAdmin()
 
-  const { data: node } = await db.from('nodes').select('*').eq('id', nodeId).single()
-  if (!node) return NextResponse.json({ error: 'not found' }, { status: 404 })
+  const { data: topic } = await db.from('topics').select('*').eq('id', topicId).single()
+  if (!topic) return NextResponse.json({ error: 'not found' }, { status: 404 })
 
-  const { data: links } = await db.from('resource_nodes')
-    .select('resources(title, summary, url, status)').eq('node_id', nodeId)
+  const { data: links } = await db.from('resource_topics')
+    .select('resources(title, summary, url, status)').eq('topic_id', topicId)
 
   const consumed = (links ?? [])
     .map(l => l.resources as unknown as {
@@ -21,7 +21,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ nodeId: s
   // Reuse a stored refresher rather than paying to regenerate one.
   const { data: existing } = await db.from('conversations')
     .select('id, started_at, messages(content)')
-    .eq('node_id', nodeId).eq('kind', 'refresher')
+    .eq('topic_id', topicId).eq('kind', 'refresher')
     .order('started_at', { ascending: false }).limit(1).maybeSingle()
 
   const stored = (existing?.messages as Array<{ content: string }> | undefined)?.[0]
@@ -36,7 +36,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ nodeId: s
   let content: string
   try {
     content = await generateRefresher(
-      { title: node.title, summary: node.summary, ability: Number(node.ability) },
+      { title: topic.title, summary: topic.summary, ability: Number(topic.ability) },
       consumed
     )
   } catch (e) {
@@ -50,7 +50,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ nodeId: s
   }
 
   const { data: convo } = await db.from('conversations')
-    .insert({ user_id: node.user_id, kind: 'refresher', node_id: nodeId })
+    .insert({ user_id: topic.user_id, kind: 'refresher', topic_id: topicId })
     .select('id').single()
   await db.from('messages').insert({
     conversation_id: convo!.id, role: 'assistant', content,

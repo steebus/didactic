@@ -23,8 +23,8 @@ const QUESTIONS = [
 // The single-user development identity. Real auth replaces this.
 const USER_ID = '11111111-1111-1111-1111-111111111111'
 
-export default function NewTopicPage() {
-  const [topic, setTopic] = useState('')
+export default function NewSubjectPage() {
+  const [subject, setSubject] = useState('')
   const [answers, setAnswers] = useState(['', '', ''])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -34,18 +34,18 @@ export default function NewTopicPage() {
     setBusy(true)
     setError(null)
     try {
-      const res = await fetch('/api/topics', {
+      const res = await fetch('/api/subjects', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          topic,
+          subject,
           userId: USER_ID,
           answers: QUESTIONS.map((q, i) => ({ q: q.q, a: answers[i] })),
         }),
       })
       const body = await res.json()
       if (!res.ok) throw new Error(body.error ?? 'Could not draw the map.')
-      router.push(`/graph?cluster=${body.clusterId}`)
+      router.push(`/graph?subject=${body.subjectId}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.')
       setBusy(false)
@@ -67,25 +67,25 @@ export default function NewTopicPage() {
       <div className={styles.body}>
         <p className={styles.lead}>
           Name what you want to learn. A few questions about where you stand,
-          and the app lays out a bed for it — subtopics, connections, and an
+          and the app lays out a bed for it — topics, connections, and an
           honest first guess at what you already know.
         </p>
 
         <div className={styles.field}>
-          <label className={styles.label} htmlFor="topic">
+          <label className={styles.label} htmlFor="subject">
             The subject
           </label>
           <input
-            id="topic"
+            id="subject"
             className={styles.input}
-            value={topic}
-            onChange={e => setTopic(e.target.value)}
+            value={subject}
+            onChange={e => setSubject(e.target.value)}
             placeholder="React, or Milton Friedman, or medium format"
             autoFocus
           />
         </div>
 
-        {topic.trim() && (
+        {subject.trim() && (
           <div className={styles.questions}>
             {QUESTIONS.map((question, i) => (
               <div key={question.q} className={styles.field}>
@@ -117,7 +117,7 @@ export default function NewTopicPage() {
           <button
             className={styles.submit}
             onClick={submit}
-            disabled={!topic.trim() || busy}
+            disabled={!subject.trim() || busy}
           >
             {busy ? 'Laying out the bed…' : 'Lay out the bed'}
           </button>

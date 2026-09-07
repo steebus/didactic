@@ -16,7 +16,7 @@ const VALID_KINDS: EdgeKind[] = ['prereq', 'related', 'specialises', 'alternativ
 
 const TOOL = {
   name: 'record_edges',
-  description: 'Record typed relationships between knowledge graph nodes.',
+  description: 'Record typed relationships between topics on the knowledge graph.',
   input_schema: {
     type: 'object' as const,
     properties: {
@@ -25,8 +25,8 @@ const TOOL = {
         items: {
           type: 'object',
           properties: {
-            from: { type: 'string', description: 'Source node id.' },
-            to: { type: 'string', description: 'Target node id.' },
+            from: { type: 'string', description: 'Source topic id.' },
+            to: { type: 'string', description: 'Target topic id.' },
             kind: { type: 'string', enum: VALID_KINDS },
             weight: { type: 'number', description: '0-1 strength of the relationship.' },
           },
@@ -39,12 +39,12 @@ const TOOL = {
 }
 
 export async function proposeEdges(
-  newNodes: Array<{ id: string; title: string }>,
+  newTopics: Array<{ id: string; title: string }>,
   neighbours: Array<{ id: string; title: string }>
 ) {
-  if (newNodes.length === 0) return []
+  if (newTopics.length === 0) return []
 
-  const all = [...newNodes, ...neighbours]
+  const all = [...newTopics, ...neighbours]
   const validIds = new Set(all.map(n => n.id))
 
   const res = await getClient().messages.create({
@@ -54,12 +54,12 @@ export async function proposeEdges(
     tool_choice: { type: 'tool', name: 'record_edges' },
     messages: [{
       role: 'user',
-      content: `Propose relationships between these knowledge graph nodes. Only relate the NEW nodes to each other or to the EXISTING ones. Use the given ids exactly.
+      content: `Propose relationships between these topics on the knowledge graph. Only relate the NEW topics to each other or to the EXISTING ones. Use the given ids exactly.
 
 Kinds: prereq (A must be learned before B), related (adjacent), specialises (B is a narrower case of A), alternative (competing choice for the same job).
 
 NEW:
-${newNodes.map(n => `${n.id}: ${n.title}`).join('\n')}
+${newTopics.map(n => `${n.id}: ${n.title}`).join('\n')}
 
 EXISTING:
 ${neighbours.map(n => `${n.id}: ${n.title}`).join('\n')}`,

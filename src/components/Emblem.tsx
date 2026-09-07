@@ -1,5 +1,5 @@
 /**
- * Cluster plates. Flat two-colour forms in the register of a catalogue
+ * Subject plates. Flat two-colour forms in the register of a catalogue
  * engraving: one silhouette, one ink, no gradients. Each subject gets a
  * seed or specimen form rather than a category icon.
  */

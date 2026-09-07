@@ -1,0 +1,295 @@
+/* One lesson. A reading page first, with the honest question at the
+   end: not "did you finish" but "how did you actually work it". */
+
+.sheet {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 0 0 var(--space-6);
+  background-color: var(--paper);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(90, 70, 45, 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(90, 70, 45, 0.03) 0 1px, transparent 1px 4px);
+  min-height: 100dvh;
+  box-shadow: 0 2px 24px rgba(36, 29, 22, 0.16);
+}
+
+.head {
+  background: var(--plate-green);
+  color: var(--paper);
+  padding: var(--space-5);
+}
+
+.headRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.eyebrow {
+  font-size: var(--step--2);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(239, 231, 214, 0.7);
+  margin: 0 0 var(--space-2);
+}
+
+.eyebrowLink {
+  color: inherit;
+  text-decoration-color: rgba(239, 231, 214, 0.45);
+}
+
+.title {
+  font-size: var(--step-3);
+  font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 72;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.back {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(239, 231, 214, 0.85);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(239, 231, 214, 0.4);
+  padding-bottom: 2px;
+  white-space: nowrap;
+}
+
+.back:hover {
+  color: var(--paper);
+  border-bottom-color: var(--plate-mustard);
+  text-decoration: none;
+}
+
+.figures {
+  display: flex;
+  gap: var(--space-5);
+  margin-top: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.figure {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+.figureLabel {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(239, 231, 214, 0.6);
+}
+
+.figureValue {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--paper);
+}
+
+.headRule {
+  height: 5px;
+  background: var(--plate-mustard);
+  margin-bottom: var(--space-5);
+}
+
+.body {
+  padding: 0 var(--space-5);
+  display: grid;
+  gap: var(--space-5);
+}
+
+@media (max-width: 48rem) {
+  .body {
+    padding: 0 var(--space-4);
+  }
+}
+
+/* --- Unmet prerequisites ---------------------------------------- */
+
+.gate {
+  border: 1px solid var(--plate-mustard);
+  border-left-width: 5px;
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+  max-width: 68ch;
+}
+
+.gateTitle {
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1;
+  margin: 0;
+}
+
+.gateNote {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.gateList {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: var(--step--1);
+}
+
+/* --- The lesson itself ------------------------------------------ */
+
+.standfirst {
+  margin: 0;
+  max-width: 68ch;
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.prose {
+  font-size: var(--step-0);
+  line-height: 1.65;
+  max-width: 68ch;
+  /* The body comes back as markdown-flavoured prose. Until it is parsed
+     the newlines are the structure, so they must survive. */
+  white-space: pre-wrap;
+}
+
+.pending {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  color: var(--ink-faint);
+  font-style: italic;
+  margin: 0;
+}
+
+.problem {
+  margin: 0;
+  font-size: var(--step-0);
+  color: var(--plate-terracotta);
+}
+
+/* --- Material --------------------------------------------------- */
+
+.sectionHead {
+  border-bottom: 2px solid var(--rule-strong);
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.sectionTitle {
+  font-size: var(--step-2);
+  font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 40;
+}
+
+.material {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+  max-width: 68ch;
+}
+
+.materialRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.materialMeta {
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.leaders {
+  flex: 1;
+  border-bottom: 1px dotted var(--rule);
+  transform: translateY(-0.2em);
+  min-width: var(--space-3);
+}
+
+/* --- Finishing --------------------------------------------------- */
+
+.finish {
+  border-top: 2px solid var(--rule-strong);
+  padding-top: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+  max-width: 68ch;
+}
+
+.finishTitle {
+  font-size: var(--step-2);
+  font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 40;
+}
+
+.finishNote {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.depths {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-top: var(--space-2);
+}
+
+.depth {
+  flex: 1 1 12rem;
+  display: grid;
+  gap: var(--space-1);
+  text-align: left;
+  padding: var(--space-3);
+  background: none;
+  border: 1px solid var(--rule-strong);
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.depth:hover:not(:disabled) {
+  background: var(--paper-deep);
+  border-color: var(--ink);
+}
+
+.depth:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.depthLabel {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1;
+}
+
+.depthNote {
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+}
+
+.quietAction {
+  justify-self: start;
+  font-size: var(--step--1);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  color: var(--ink-soft);
+  cursor: pointer;
+  padding: 0 0 2px;
+}
+
+.quietAction:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
