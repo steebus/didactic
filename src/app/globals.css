@@ -15,7 +15,7 @@
   /* Ink: warm near-black, the colour of letterpress on absorbent stock. */
   --ink: #241d16;
   --ink-soft: #574a3b;
-  --ink-faint: #7d6f5d;
+  --ink-faint: #6b5c45;
 
   /* Plate colours: saturated chromolithograph inks. */
   --plate-green: #2f5233;
@@ -29,7 +29,7 @@
   --rule: #b9a988;
   --rule-strong: #6b5c45;
 
-  --sheet-max: 1440px;
+  --sheet-max: 1240px;
 
   --font-display: var(--font-display-loaded), 'Georgia', serif;
   --font-text: var(--font-text-loaded), 'Helvetica Neue', sans-serif;

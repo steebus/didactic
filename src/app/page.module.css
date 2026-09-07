@@ -6,7 +6,12 @@
   max-width: var(--sheet-max);
   margin: 0 auto;
   padding: 0 0 var(--space-6);
-  background: var(--paper);
+  /* The tooth belongs to the sheet, not the bed behind it. Colour is
+     set first: the shorthand would reset the image layers. */
+  background-color: var(--paper);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(90, 70, 45, 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(90, 70, 45, 0.03) 0 1px, transparent 1px 4px);
   min-height: 100dvh;
   box-shadow: 0 2px 24px rgba(36, 29, 22, 0.16);
 }
@@ -233,7 +238,53 @@
 /* Low confidence prints soft: the figure is a guess and must look
    like one. */
 .viabilityVague {
-  opacity: 0.55;
+  opacity: 0.62;
+  font-style: italic;
+}
+
+.about {
+  font-size: var(--step--2);
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+
+/* --- Loose stock: sown but unfiled --------------------------- */
+
+.loose {
+  margin-top: var(--space-5);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--rule-strong);
+}
+
+.looseTitle {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin: 0;
+}
+
+.looseNote {
+  margin: var(--space-1) 0 var(--space-3);
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.looseList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+  columns: 2;
+}
+
+@media (max-width: 40rem) {
+  .looseList {
+    columns: 1;
+  }
 }
 
 .stateLine {

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -82,7 +82,14 @@ function mockDb(opts: {
   }
 }
 
+// mockDb replaces globalThis.fetch. Files share one process (file
+// parallelism is off so integration tests can share a database), so the
+// stub is restored after every case rather than leaking into whichever
+// file runs next.
+const realFetch = globalThis.fetch
+
 beforeEach(() => { vi.clearAllMocks() })
+afterEach(() => { globalThis.fetch = realFetch })
 
 describe('ingestResource', () => {
   it('links a concept matching an existing node instead of creating a duplicate', async () => {

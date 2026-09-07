@@ -69,10 +69,14 @@ export default async function Home() {
 
             <ul className={styles.listing}>
               {data.clusters.map(cluster => {
-                const state = stockState(cluster.freshness, cluster.count > 0 ? 'seen' : null)
+                const state = stockState(cluster.freshness, cluster.lastExposureAt)
                 const slug = slugify(cluster.title)
                 // Larger holdings take more of the sheet.
                 const weight = cluster.count / largestHolding
+                // A figure the app is unsure of prints soft and hedged:
+                // ability is app-owned and cannot be corrected by hand,
+                // so it must not look more certain than it is.
+                const vague = cluster.confidence < 0.4
                 return (
                   <li key={cluster.id}>
                     <Link
@@ -103,14 +107,17 @@ export default async function Home() {
 
                       <div className={styles.entryFigures}>
                         <span className={styles.figureLabel}>Viability</span>
-                        <span className={styles.viability}>
+                        <span
+                          className={`${styles.viability} ${vague ? styles.viabilityVague : ''}`}
+                        >
+                          {vague && <span className={styles.about}>about </span>}
                           {viabilityFigure(cluster.ability)}
                         </span>
                         <span className={styles.figureLabel}>Condition</span>
                         <span className={styles.conditionCell}>
                           <StockBar
                             freshness={cluster.freshness}
-                            lastExposureAt={cluster.count > 0 ? 'seen' : null}
+                            lastExposureAt={cluster.lastExposureAt}
                             colour={cluster.colour}
                           />
                           <span className={styles.stateLine}>{STOCK_LABEL[state]}</span>
@@ -121,6 +128,28 @@ export default async function Home() {
                 )
               })}
             </ul>
+
+            {data.unclustered.length > 0 && (
+              <section className={styles.loose}>
+                <h3 className={styles.looseTitle}>Loose stock</h3>
+                <p className={styles.looseNote}>
+                  Sown but not yet filed into a section.
+                </p>
+                <ul className={styles.looseList}>
+                  {data.unclustered.map(node => (
+                    <li key={node.id} className={styles.blockRow}>
+                      <Link href={`/graph?node=${node.id}`} className={styles.blockRowName}>
+                        {node.title}
+                      </Link>
+                      <span className={styles.leaders} aria-hidden="true" />
+                      <span className={styles.blockFigure}>
+                        {viabilityFigure(node.ability)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
           </section>
 
           <aside className={styles.margin}>

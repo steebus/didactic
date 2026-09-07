@@ -1,0 +1,246 @@
+/* The bed: the whole planting seen at once, on the press ground. */
+
+.frame {
+  position: relative;
+  height: 100dvh;
+  background: var(--paper);
+  overflow: hidden;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  /* Bed markings: a faint drill grid, the way a planting plan is ruled. */
+  background-image:
+    repeating-linear-gradient(0deg, rgba(107, 92, 69, 0.06) 0 1px, transparent 1px 48px),
+    repeating-linear-gradient(90deg, rgba(107, 92, 69, 0.06) 0 1px, transparent 1px 48px);
+}
+
+/* --- Controls: a printed header strip, not a floating toolbar ---- */
+
+.controls {
+  position: absolute;
+  inset: 0 auto auto 0;
+  right: 0;
+  z-index: 2;
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+  padding: var(--space-3) var(--space-4);
+  background: var(--plate-green);
+  border-bottom: 4px solid var(--plate-mustard);
+}
+
+.search,
+.select {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  padding: var(--space-2) var(--space-3);
+  min-width: 0;
+}
+
+.search {
+  flex: 1 1 12rem;
+  max-width: 20rem;
+}
+
+.search::placeholder {
+  color: var(--ink-faint);
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(239, 231, 214, 0.9);
+  cursor: pointer;
+}
+
+.toggle input {
+  accent-color: var(--plate-mustard);
+  width: 1rem;
+  height: 1rem;
+}
+
+.pending {
+  position: absolute;
+  inset: 50% auto auto 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  color: var(--ink-faint);
+  margin: 0;
+}
+
+/* --- Node panel: a specimen card slipped over the bed ------------ */
+
+.panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(24rem, 100%);
+  z-index: 3;
+  overflow-y: auto;
+  background: var(--paper);
+  border-left: 2px solid var(--rule-strong);
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+  box-shadow: -4px 0 20px rgba(36, 29, 22, 0.12);
+}
+
+@media (max-width: 40rem) {
+  /* On a phone the panel is a sheet from the bottom, not a side rail:
+     a 24rem rail would cover the whole bed. */
+  .panel {
+    top: auto;
+    left: 0;
+    width: 100%;
+    max-height: 72dvh;
+    border-left: none;
+    border-top: 2px solid var(--rule-strong);
+    box-shadow: 0 -4px 20px rgba(36, 29, 22, 0.16);
+  }
+}
+
+.close {
+  justify-self: end;
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  padding: 0 0 2px;
+  cursor: pointer;
+}
+
+.close:hover {
+  color: var(--plate-terracotta);
+  border-bottom-color: var(--plate-terracotta);
+}
+
+.panelPlate {
+  height: 5px;
+}
+
+.panelTitle {
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 40;
+  margin: 0;
+  line-height: 1.05;
+}
+
+.figures {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  align-items: baseline;
+}
+
+.figures dt {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.figures dd {
+  margin: 0;
+  justify-self: end;
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* A low-confidence figure prints soft: it is a guess and must look
+   like one. */
+.figureVague {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.caveat {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  font-style: italic;
+  border-left: 2px solid var(--plate-mustard);
+  padding-left: var(--space-3);
+}
+
+.panelBlock {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.panelBlockTitle {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: var(--space-1);
+  margin: 0;
+}
+
+.record {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--step--1);
+}
+
+.record li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  align-items: baseline;
+}
+
+.recordDate {
+  color: var(--ink-faint);
+  font-size: var(--step--2);
+  white-space: nowrap;
+}
+
+.muted {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.tend {
+  justify-self: start;
+  font-size: var(--step--1);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--plate-green);
+  padding: var(--space-2) var(--space-4);
+  text-decoration: none;
+}
+
+.tend:hover {
+  background: var(--plate-terracotta);
+  text-decoration: none;
+}

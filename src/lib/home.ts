@@ -10,6 +10,13 @@ export interface ClusterCell {
   queuedCount: number
   ability: number
   freshness: number
+  /** Mean confidence across members. Drives how vaguely the sheet
+   *  prints the viability figure — see PRODUCT.md principle 4. */
+  confidence: number
+  /** Most recent exposure across members, or null when no member has
+   *  ever been tended. Null is what makes the 'unsown' state
+   *  reachable for a populated cluster. */
+  lastExposureAt: string | null
 }
 
 export interface NodeSummary {
@@ -70,12 +77,20 @@ export async function getHomeData(db: SupabaseClient): Promise<HomeData> {
 
   const clusterCells: ClusterCell[] = (clusters ?? []).map(c => {
     const members = active.filter(n => n.cluster_id === c.id)
+    const tended = members
+      .map(n => n.last_exposure_at)
+      .filter((d): d is string => d !== null)
+      .sort()
     return {
       id: c.id,
       title: c.title,
       colour: c.colour,
       count: members.length,
       queuedCount: members.filter(n => queuedNodeIds.has(n.id)).length,
+      confidence: members.length
+        ? members.reduce((s, n) => s + n.ability_confidence, 0) / members.length
+        : 0,
+      lastExposureAt: tended.at(-1) ?? null,
       ...clusterAggregate(members),
     }
   }).sort((a, b) => b.count - a.count)
