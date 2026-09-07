@@ -1,150 +1,486 @@
-.page {
-  --background: #fafafa;
-  --foreground: #fff;
+/* The catalogue sheet: a stock listing with a printed margin. */
 
-  --text-primary: #000;
-  --text-secondary: #666;
-
-  --button-primary-hover: #383838;
-  --button-secondary-hover: #f2f2f2;
-  --button-secondary-border: #ebebeb;
-
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-geist-sans);
-  background-color: var(--background);
+/* The sheet is a printed object on a darker press bed, trimmed at its
+   own edges rather than bleeding to the browser's. */
+.sheet {
+  max-width: var(--sheet-max);
+  margin: 0 auto;
+  padding: 0 0 var(--space-6);
+  background: var(--paper);
+  min-height: 100dvh;
+  box-shadow: 0 2px 24px rgba(36, 29, 22, 0.16);
 }
 
-.main {
+.sheetBody {
+  padding: 0 var(--space-5);
+}
+
+@media (max-width: 48rem) {
+  .sheetBody {
+    padding: 0 var(--space-4);
+  }
+}
+
+/* --- Sheet head: masthead, edition line, totals --------------- */
+
+/* The masthead is printed, not typed onto bare stock: a saturated band
+   the way a catalogue cover carries its own ink. */
+.head {
+  background: var(--plate-green);
+  color: var(--paper);
+  padding: var(--space-5) var(--space-5) var(--space-5);
+  margin-bottom: var(--space-2);
+}
+
+.masthead {
   display: flex;
-  flex: 1;
-  width: 100%;
-  max-width: 800px;
-  flex-direction: column;
-  align-items: flex-start;
+  align-items: baseline;
   justify-content: space-between;
-  background-color: var(--foreground);
-  padding: 120px 60px;
+  gap: var(--space-4);
+  flex-wrap: wrap;
 }
 
-.intro {
+.title {
+  font-size: var(--step-4);
+  font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 120;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+}
+
+.edition {
+  font-size: var(--step--1);
+  color: rgba(239, 231, 214, 0.8);
+  text-align: right;
+  line-height: 1.5;
+}
+
+.editionRule {
+  display: block;
+  font-variant-numeric: tabular-nums;
+}
+
+.strapline {
+  margin: var(--space-3) 0 0;
+  font-size: var(--step-1);
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 20, 'WONK' 0;
+  color: rgba(239, 231, 214, 0.88);
+  max-width: 46ch;
+  line-height: 1.3;
+}
+
+/* Thin rule under the head, the way a catalogue separates masthead
+   from stock. */
+.headRule {
+  height: 5px;
+  background: var(--plate-mustard);
+  margin-bottom: var(--space-5);
+}
+
+@media (max-width: 40rem) {
+  .head {
+    padding: var(--space-4);
+  }
+
+  .masthead {
+    display: block;
+  }
+
+  .edition {
+    text-align: left;
+    margin-top: var(--space-2);
+  }
+
+  .editionRule {
+    display: inline;
+  }
+
+  .editionRule + .editionRule::before {
+    content: ' · ';
+  }
+
+  .strapline {
+    font-size: var(--step-0);
+  }
+}
+
+/* --- The spread: listing plus margin ------------------------- */
+
+.spread {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 20rem;
+  gap: var(--space-6);
+  align-items: start;
+}
+
+@media (max-width: 60rem) {
+  .spread {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-5);
+  }
+}
+
+/* --- Stock listing ------------------------------------------- */
+
+.sectionHead {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-  gap: 24px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border-bottom: 1px solid var(--rule-strong);
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-1);
 }
 
-.intro h1 {
-  max-width: 320px;
-  font-size: 40px;
-  font-weight: 600;
-  line-height: 48px;
-  letter-spacing: -2.4px;
-  text-wrap: balance;
-  color: var(--text-primary);
+.sectionTitle {
+  font-size: var(--step-2);
+  font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 40;
 }
 
-.intro p {
-  max-width: 440px;
-  font-size: 18px;
-  line-height: 32px;
-  text-wrap: balance;
-  color: var(--text-secondary);
+.sectionNote {
+  font-size: var(--step--1);
+  color: var(--ink-faint);
 }
 
-.intro a {
-  font-weight: 500;
-  color: var(--text-primary);
+.listing {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-.ctas {
-  display: flex;
-  flex-direction: row;
-  width: 100%;
-  max-width: 440px;
-  gap: 16px;
-  font-size: 14px;
-}
-
-.ctas a {
-  display: flex;
-  justify-content: center;
+/* Rows are sized by holding: a section with more stock takes more of
+   the sheet, so the shape of the listing carries information before
+   any figure is read. --weight is 0-1, set per row from node count. */
+.entry {
+  display: grid;
+  grid-template-columns: var(--plate-size) minmax(0, 1fr) auto;
+  gap: var(--space-4);
   align-items: center;
-  height: 40px;
-  padding: 0 16px;
-  border-radius: 128px;
-  border: 1px solid transparent;
-  transition: 0.2s;
-  cursor: pointer;
-  width: fit-content;
-  font-weight: 500;
+  padding: calc(var(--space-2) + var(--weight) * 2.75rem) var(--space-2);
+  border-bottom: 1px solid var(--rule);
+  text-decoration: none;
+  transition: background-color 140ms ease-out;
+  --plate-size: calc(2.75rem + var(--weight) * 2.5rem);
 }
 
-a.primary {
-  background: var(--text-primary);
-  color: var(--background);
-  gap: 8px;
+.entry:hover {
+  background-color: var(--paper-deep);
 }
 
-a.secondary {
-  border-color: var(--button-secondary-border);
+.entryBody {
+  min-width: 0;
 }
 
-/* Enable hover only on non-touch devices */
-@media (hover: hover) and (pointer: fine) {
-  a.primary:hover {
-    background: var(--button-primary-hover);
-    border-color: transparent;
+.entryTitle {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-weight: 600;
+  font-variation-settings: 'SOFT' 25, 'WONK' 1, 'opsz' 24;
+  line-height: 1.15;
+  margin: 0;
+}
+
+/* Leader dots, the catalogue's own way of tying a name to its figure. */
+.entryMeta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.leaders {
+  flex: 1;
+  border-bottom: 1px dotted var(--rule);
+  transform: translateY(-0.25em);
+  min-width: var(--space-4);
+}
+
+.entryFigures {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: var(--space-1) var(--space-4);
+  align-items: baseline;
+  justify-items: end;
+  text-align: right;
+}
+
+.figureLabel {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  grid-column: 1;
+}
+
+.viability {
+  font-size: var(--step-2);
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 10, 'WONK' 0, 'opsz' 30;
+  line-height: 1;
+  font-variant-numeric: tabular-nums lining-nums;
+  grid-column: 2;
+}
+
+.conditionCell {
+  grid-column: 2;
+  display: grid;
+  gap: var(--space-1);
+  justify-items: end;
+}
+
+/* Low confidence prints soft: the figure is a guess and must look
+   like one. */
+.viabilityVague {
+  opacity: 0.55;
+}
+
+.stateLine {
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.queuedFlag {
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--plate-terracotta);
+}
+
+/* On a phone the entry stops being a table row and becomes a stacked
+   card: plate and name on one line, figures ruled off beneath. The
+   three-column grid cannot survive 390px without wrapping titles into
+   their own figures. */
+@media (max-width: 40rem) {
+  .entry {
+    grid-template-columns: var(--plate-size) minmax(0, 1fr);
+    grid-template-areas:
+      'plate body'
+      'figures figures';
+    gap: var(--space-3);
+    padding: var(--space-4) var(--space-2);
+    --plate-size: 3rem;
   }
 
-  a.secondary:hover {
-    background: var(--button-secondary-hover);
-    border-color: transparent;
+  /* The plate carries an inline size for the weighted desktop listing;
+     on a phone every row is the same width, so it is capped here. */
+  .entry > svg:first-child {
+    grid-area: plate;
+    width: var(--plate-size);
+    height: var(--plate-size);
+  }
+
+  .entryBody {
+    grid-area: body;
+    align-self: center;
+  }
+
+  .entryFigures {
+    grid-area: figures;
+    grid-template-columns: auto 1fr auto;
+    justify-items: start;
+    align-items: center;
+    gap: var(--space-2) var(--space-3);
+    padding-top: var(--space-3);
+    border-top: 1px dotted var(--rule);
+  }
+
+  .figureLabel {
+    grid-column: 1;
+  }
+
+  .viability {
+    grid-column: 3;
+    justify-self: end;
+    font-size: var(--step-1);
+  }
+
+  .conditionCell {
+    grid-column: 2 / 4;
+    justify-items: end;
+    width: 100%;
+  }
+
+  .entryMeta {
+    flex-wrap: wrap;
+  }
+
+  .leaders {
+    display: none;
   }
 }
 
-@media (max-width: 600px) {
-  .main {
-    padding: 48px 24px;
-  }
+/* --- Margin -------------------------------------------------- */
 
-  .intro {
-    gap: 16px;
-  }
+.margin {
+  border-left: 1px solid var(--rule-strong);
+  padding-left: var(--space-4);
+  display: grid;
+  gap: var(--space-5);
+  align-content: start;
+  position: sticky;
+  top: var(--space-4);
+  align-self: stretch;
+}
 
-  .intro h1 {
-    font-size: 32px;
-    line-height: 40px;
-    letter-spacing: -1.92px;
+@media (max-width: 60rem) {
+  .margin {
+    border-left: none;
+    border-top: 2px solid var(--rule-strong);
+    padding-left: 0;
+    padding-top: var(--space-4);
+    position: static;
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  .logo {
-    filter: invert();
-  }
-
-  .page {
-    --background: #000;
-    --foreground: #000;
-
-    --text-primary: #ededed;
-    --text-secondary: #999;
-
-    --button-primary-hover: #ccc;
-    --button-secondary-hover: #1a1a1a;
-    --button-secondary-border: #1a1a1a;
-  }
+.block {
+  display: grid;
+  gap: var(--space-2);
 }
 
-.code {
-  font-family: var(--font-geist-mono);
-  font-size: 0.9em;
-  background: color-mix(in srgb, currentColor 8%, transparent);
-  padding: 0.1em 0.4em;
-  border-radius: 6px;
+.blockTitle {
+  font-size: var(--step--2);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--ink);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: var(--space-1);
+  font-family: var(--font-text);
+}
+
+.blockList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.blockRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--step--1);
+}
+
+.blockRowName {
+  text-decoration: none;
+}
+
+.blockRowName:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--plate-terracotta);
+}
+
+.blockFigure {
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+  font-size: var(--step--2);
+}
+
+.empty {
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+  font-style: italic;
+  margin: 0;
+}
+
+/* The recommendation is the one place the sheet raises its voice. */
+.recommendation {
+  background: var(--plate-green);
+  color: var(--paper);
+  padding: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.recommendationTitle {
+  font-size: var(--step--2);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  font-family: var(--font-text);
+  color: rgba(239, 231, 214, 0.75);
+}
+
+.recommendationName {
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 36;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.recommendationNote {
+  font-size: var(--step--1);
+  color: rgba(239, 231, 214, 0.85);
+  margin: 0;
+}
+
+.recommendationAction {
+  justify-self: start;
+  margin-top: var(--space-1);
+  font-size: var(--step--1);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--paper);
+  border-bottom: 2px solid var(--plate-mustard);
+  padding-bottom: 2px;
+  text-decoration: none;
+}
+
+.recommendationAction:hover {
+  border-bottom-color: var(--paper);
+  text-decoration: none;
+}
+
+/* --- Foot ---------------------------------------------------- */
+
+.foot {
+  margin-top: var(--space-6);
+  padding-top: var(--space-3);
+  border-top: 2px solid var(--rule-strong);
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  font-size: var(--step--2);
+  color: var(--ink-faint);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.footLinks {
+  display: flex;
+  gap: var(--space-4);
+}
+
+/* --- Empty state --------------------------------------------- */
+
+.blank {
+  border: 1px solid var(--rule);
+  padding: var(--space-6) var(--space-5);
+  text-align: center;
+  display: grid;
+  gap: var(--space-3);
+  justify-items: center;
+}
+
+.blankTitle {
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  font-variation-settings: 'SOFT' 30, 'WONK' 1;
+  margin: 0;
+}
+
+.blankNote {
+  font-size: var(--step-0);
+  color: var(--ink-soft);
+  max-width: 44ch;
+  margin: 0;
 }

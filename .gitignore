@@ -4,3 +4,4 @@ node_modules/
 .env.local
 .impeccable/config.local.json
 .impeccable/review/
+.playwright-mcp/

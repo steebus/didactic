@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "db:seed": "sh scripts/seed-dev.sh"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",
