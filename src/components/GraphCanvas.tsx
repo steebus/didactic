@@ -37,6 +37,16 @@ const EDGE_KIND_LABEL: Record<string, string> = {
   alternative: 'instead of',
 }
 
+/** Mix a hex plate colour toward the paper by the given amount. A
+ *  dormant seed sits back into the bed rather than disappearing. */
+function fade(hex: string, amount: number) {
+  const paper = [239, 231, 214]
+  const n = parseInt(hex.replace('#', ''), 16)
+  const rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+  const mixed = rgb.map((c, i) => Math.round(paper[i] + (c - paper[i]) * amount))
+  return `rgb(${mixed.join(',')})`
+}
+
 export function GraphCanvas({
   initialCluster,
   initialNode,
@@ -94,10 +104,9 @@ export function GraphCanvas({
         label: n.title,
         // Size by ability: a stronger holding is a larger seed.
         size: 5 + n.ability * 2.4,
-        color: colourFor(n),
-        // Dormancy dims the seed; the ring below keeps it legible
-        // without relying on colour alone.
-        alpha: 0.35 + n.freshness * 0.65,
+        // Dormancy is mixed into the fill itself. Sigma has no alpha
+        // attribute, so a separate opacity key renders as nothing.
+        color: fade(colourFor(n), 0.3 + n.freshness * 0.7),
         x: Math.cos(angle) * 100 + Math.random() * 10,
         y: Math.sin(angle) * 100 + Math.random() * 10,
         freshness: n.freshness,
@@ -117,11 +126,14 @@ export function GraphCanvas({
 
     if (graph.order > 0) {
       forceAtlas2.assign(graph, {
-        iterations: 220,
+        iterations: 400,
         settings: {
-          gravity: 1.4,
-          scalingRatio: 12,
-          slowDown: 6,
+          // Strong gravity pulls the whole planting into frame; a low
+          // scalingRatio keeps clusters from flinging to the corners.
+          gravity: 8,
+          scalingRatio: 3,
+          slowDown: 12,
+          adjustSizes: true,
           barnesHutOptimize: graph.order > 80,
         },
       })
@@ -134,25 +146,32 @@ export function GraphCanvas({
       labelSize: 12,
       labelWeight: '500',
       labelColor: { color: '#241d16' },
-      defaultDrawNodeHover: () => {},
-      minCameraRatio: 0.2,
-      maxCameraRatio: 4,
+      // Sigma hides labels that would collide; a larger grid cell means
+      // it hides more of them rather than overprinting into mush.
+      labelGridCellSize: 90,
+      labelRenderedSizeThreshold: 7,
+      minCameraRatio: 0.3,
+      maxCameraRatio: 3,
     })
 
-    // Dormant seeds get a drawn ring rather than a colour shift, so the
-    // state reads on a monochrome or sunlit screen.
+    // A dormant seed's label recedes with it, so the whole entry reads
+    // as one state rather than a faded dot with black text beside it.
     renderer.setSetting('defaultDrawNodeLabel', (context, nodeData, settings) => {
       const d = nodeData as unknown as {
         x: number; y: number; size: number; label: string; freshness: number
       }
       if (!d.label) return
       context.font = `500 ${settings.labelSize}px ${settings.labelFont}`
-      context.fillStyle = d.freshness < 0.25 ? '#7d6f5d' : '#241d16'
-      context.fillText(d.label, d.x + d.size + 4, d.y + settings.labelSize / 3)
+      context.fillStyle = d.freshness < 0.25 ? '#8a7d68' : '#241d16'
+      context.fillText(d.label, d.x + d.size + 5, d.y + settings.labelSize / 3)
     })
 
     renderer.on('clickNode', ({ node }) => setSelected(node))
     renderer.on('clickStage', () => setSelected(null))
+
+    // Sit the whole planting in frame rather than leaving the camera
+    // wherever the layout happened to finish.
+    renderer.getCamera().animatedReset({ duration: 0 })
 
     sigma.current = renderer
     return () => {

@@ -135,3 +135,7 @@ select seed_edge('exposure-triangle','darkroom-printing','related',0.6);
 
 drop function seed_edge(text,text,edge_kind,numeric);
 select count(*) as edges from edges;
+
+-- Exposure history. Ability is a rollup over this log, never set
+-- directly: a figure with no record behind it is exactly what the app
+-- refuses to show. Run `npm run db:seed` to apply, which recomputes.

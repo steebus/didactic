@@ -8,5 +8,8 @@ export default defineConfig({
     // cases, so they cannot run concurrently with each other. Unit tests
     // are unaffected by the single fork.
     fileParallelism: false,
+    // Those wipes also destroy the development fixture, so it is put
+    // back once the run finishes.
+    globalSetup: ['./tests/restore-fixture.ts'],
   },
 })

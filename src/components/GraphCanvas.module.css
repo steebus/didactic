@@ -9,7 +9,9 @@
 
 .canvas {
   position: absolute;
-  inset: 0;
+  /* Clear of the control strip: the camera fits the graph to the canvas
+     box, so a full-bleed canvas parks nodes under the header. */
+  inset: 4.5rem 0 0 0;
   /* Bed markings: a faint drill grid, the way a planting plan is ruled. */
   background-image:
     repeating-linear-gradient(0deg, rgba(107, 92, 69, 0.06) 0 1px, transparent 1px 48px),

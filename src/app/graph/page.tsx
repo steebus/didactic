@@ -1,4 +1,4 @@
-import { GraphCanvas } from '@/components/GraphCanvas'
+import { GraphCanvas } from '@/components/GraphCanvasLoader'
 
 export const dynamic = 'force-dynamic'
 
