@@ -78,9 +78,12 @@ export async function ingestResource(db: SupabaseClient, resourceId: string) {
   const { data: existingNodes } = await db
     .from('nodes').select('id, title').in('id', links.map(l => l.node_id))
 
-  const newNodeRefs = (createdIds ?? []).map((c: { id: string; title: string }) => ({
-    id: c.id,
-    title: c.title,
+  // commit_ingestion returns out_id/out_title: a plpgsql function whose
+  // OUT params are named id/title shadows those column names inside its
+  // own body, so the prefix is load-bearing, not cosmetic.
+  const newNodeRefs = (createdIds ?? []).map((c: { out_id: string; out_title: string }) => ({
+    id: c.out_id,
+    title: c.out_title,
   }))
 
   if (newNodeRefs.length > 0) {

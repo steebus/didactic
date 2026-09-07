@@ -26,7 +26,10 @@ function mockDb(opts: {
   resource: Record<string, unknown>
   candidates: Array<{ id: string; title: string; embedding: number[] }>
   html: string
-  created?: Array<{ id: string; title: string }>
+  // Mirrors commit_ingestion's real return columns: a plpgsql function
+  // with OUT params named id/title shadows those column names in its
+  // own body, so the real function returns out_id/out_title.
+  created?: Array<{ out_id: string; out_title: string }>
 }) {
   const inserts: Record<string, unknown[]> = {}
   const updates: Record<string, unknown[]> = {}
@@ -131,7 +134,7 @@ describe('ingestResource', () => {
       resource: { id: 'r1', url: 'https://example.com/a', kind: 'article', raw_text: null },
       candidates: [{ id: 'node-react', title: 'React Hooks', embedding: existingReact }],
       html,
-      created: [{ id: 'new-1', title: 'CDN Distribution' }],
+      created: [{ out_id: 'new-1', out_title: 'CDN Distribution' }],
     })
     const { ingestResource } = await import('@/lib/ingest')
     await ingestResource(db as never, 'r1')
@@ -153,7 +156,10 @@ describe('ingestResource', () => {
       resource: { id: 'r1', url: 'https://example.com/a', kind: 'article', raw_text: null },
       candidates: [],
       html,
-      created: [{ id: 'new-1', title: 'React Hooks' }, { id: 'new-2', title: 'CDN Distribution' }],
+      created: [
+        { out_id: 'new-1', out_title: 'React Hooks' },
+        { out_id: 'new-2', out_title: 'CDN Distribution' },
+      ],
     })
     const { ingestResource } = await import('@/lib/ingest')
     await ingestResource(db as never, 'r1')
