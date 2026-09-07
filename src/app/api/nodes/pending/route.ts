@@ -4,11 +4,37 @@ import { supabaseAdmin } from '@/lib/supabase'
 export async function GET() {
   const db = supabaseAdmin()
   const { data, error } = await db.from('nodes')
-    .select('id, title, created_at, cluster_id')
+    .select('id, title, created_at, cluster_id, embedding')
     .eq('state', 'pending')
     .order('created_at', { ascending: false })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ nodes: data })
+
+  // Each pending node carries the existing subject it was mistaken for,
+  // so the user can merge without hunting for the target themselves.
+  const nodes = await Promise.all(
+    (data ?? []).map(async node => {
+      let nearest: { id: string; title: string } | null = null
+      if (node.embedding) {
+        const embedding =
+          typeof node.embedding === 'string' ? JSON.parse(node.embedding) : node.embedding
+        const { data: matches } = await db.rpc('match_nodes', {
+          query_embedding: embedding,
+          match_count: 1,
+        })
+        const top = matches?.[0]
+        if (top && top.id !== node.id) nearest = { id: top.id, title: top.title }
+      }
+      return {
+        id: node.id,
+        title: node.title,
+        created_at: node.created_at,
+        cluster_id: node.cluster_id,
+        nearest,
+      }
+    })
+  )
+
+  return NextResponse.json({ nodes })
 }
 
 export async function PATCH(req: Request) {

@@ -22,6 +22,7 @@ export async function teardown() {
   try {
     run('supabase/seed.sql')
     run('supabase/fixtures/dev-data.sql')
+    run('supabase/fixtures/links.sql')
     run('supabase/fixtures/exposures.sql')
     // Ability is a rollup, so the restored exposures have to be folded
     // back into the cached figures.
