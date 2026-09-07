@@ -161,9 +161,19 @@ export function GraphCanvas({
         x: number; y: number; size: number; label: string; freshness: number
       }
       if (!d.label) return
+
       context.font = `500 ${settings.labelSize}px ${settings.labelFont}`
       context.fillStyle = d.freshness < 0.25 ? '#8a7d68' : '#241d16'
-      context.fillText(d.label, d.x + d.size + 5, d.y + settings.labelSize / 3)
+
+      // Flip the label to the left of its seed when it would otherwise
+      // run off the right edge. On a phone the graph is narrow enough
+      // that a fixed right-hand offset clips most of the outer labels.
+      const width = context.measureText(d.label).width
+      const gap = d.size + 5
+      const overflows = d.x + gap + width > context.canvas.width / window.devicePixelRatio
+      const x = overflows ? d.x - gap - width : d.x + gap
+
+      context.fillText(d.label, x, d.y + settings.labelSize / 3)
     })
 
     renderer.on('clickNode', ({ node }) => setSelected(node))

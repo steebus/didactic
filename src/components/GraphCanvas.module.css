@@ -10,7 +10,8 @@
 .canvas {
   position: absolute;
   /* Clear of the control strip: the camera fits the graph to the canvas
-     box, so a full-bleed canvas parks nodes under the header. */
+     box, so a full-bleed canvas parks nodes under the header. The strip
+     wraps to two rows on a phone, hence the taller inset there. */
   inset: 4.5rem 0 0 0;
   /* Bed markings: a faint drill grid, the way a planting plan is ruled. */
   background-image:
@@ -70,6 +71,22 @@
   accent-color: var(--plate-mustard);
   width: 1rem;
   height: 1rem;
+}
+
+@media (max-width: 40rem) {
+  .canvas {
+    inset: 7.5rem 0 0 0;
+  }
+
+  .controls {
+    padding: var(--space-3);
+    gap: var(--space-2);
+  }
+
+  .search {
+    flex: 1 1 100%;
+    max-width: none;
+  }
 }
 
 .pending {
