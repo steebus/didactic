@@ -34,9 +34,17 @@ const TOOL = {
 export async function POST(req: Request) {
   const { topic, answers, userId } = await req.json()
   if (!topic) return NextResponse.json({ error: 'topic is required' }, { status: 400 })
-  if (!process.env.ANTHROPIC_API_KEY) {
+
+  // Both keys are needed: one to propose the subtopics, one to embed
+  // them so they can be resolved against subjects already sown.
+  const missing = [
+    !process.env.ANTHROPIC_API_KEY && 'ANTHROPIC_API_KEY',
+    !process.env.OPENAI_API_KEY && 'OPENAI_API_KEY',
+  ].filter(Boolean)
+
+  if (missing.length > 0) {
     return NextResponse.json(
-      { error: 'ANTHROPIC_API_KEY is not set, so a map cannot be drawn yet.' },
+      { error: `${missing.join(' and ')} not set, so a bed cannot be laid out yet.` },
       { status: 503 }
     )
   }
@@ -64,8 +72,26 @@ Estimate a starting level of 1-5 per subtopic from those answers. Be conservativ
     return NextResponse.json({ error: 'no structured output' }, { status: 502 })
   }
 
-  const { subtopics } = tool.input as {
-    subtopics: Array<{ name: string; summary: string; estimated_level: number }>
+  const raw = (tool.input as {
+    subtopics?: Array<{ name?: string; summary?: string; estimated_level?: number }>
+  }).subtopics
+
+  // The model's shape is a promise, not a guarantee. Anything without a
+  // usable name cannot be embedded or resolved, so it is dropped rather
+  // than crashing the request.
+  const subtopics = (raw ?? [])
+    .filter(s => typeof s?.name === 'string' && s.name.trim().length > 0)
+    .map(s => ({
+      name: s.name!.trim(),
+      summary: typeof s.summary === 'string' ? s.summary : '',
+      estimated_level: Number.isFinite(s.estimated_level) ? s.estimated_level! : 1,
+    }))
+
+  if (subtopics.length === 0) {
+    return NextResponse.json(
+      { error: 'The map came back empty. Try naming the subject differently.' },
+      { status: 502 }
+    )
   }
 
   const db = supabaseAdmin()
@@ -121,6 +147,16 @@ Estimate a starting level of 1-5 per subtopic from those answers. Be conservativ
     })
     await recomputeAbility(db, node.id)
     created++
+  }
+
+  // An empty section is worse than no section: it would print on the
+  // stock list as a bed with nothing in it.
+  if (created === 0 && linked === 0) {
+    await db.from('clusters').delete().eq('id', cluster!.id)
+    return NextResponse.json(
+      { error: 'Nothing could be sown for that subject.' },
+      { status: 502 }
+    )
   }
 
   return NextResponse.json({ clusterId: cluster!.id, nodesCreated: created, linked })
