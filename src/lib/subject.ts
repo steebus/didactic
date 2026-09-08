@@ -146,15 +146,46 @@ export interface SubjectArea {
   lastExposureAt: string | null
   counts: { topics: number; resources: number; unread: number; curricula: number }
   /** What the user said when they sowed it, if it was sown here. */
-  sowing: {
-    roots: number | null
-    confident: string | null
-    gaps: string | null
-    depth: string | null
-    qualifiers: Array<{ prompt: string; level: number; answer: string }>
-    evidence: Array<{ title: string; kind: string }>
-    created_at: string
-  } | null
+  sowing: Sowing | null
+}
+
+/** The app's reading of the sowing answers, beside the user's own. */
+export interface Assessment {
+  level: number
+  note: string
+  shown: string[]
+  missing: string[]
+  answered: number
+  asked: number
+}
+
+export interface Sowing {
+  roots: number | null
+  confident: string | null
+  gaps: string | null
+  depth: string | null
+  qualifiers: Array<{ prompt: string; level: number; answer: string }>
+  evidence: Array<{ title: string; kind: string }>
+  assessment: Assessment | null
+  created_at: string
+}
+
+/**
+ * How the app's reading sits against the user's own figure.
+ *
+ * Derived from the two numbers rather than asked of the model, so the
+ * verdict can never disagree with the figures printed beside it. A
+ * single rung is inside the noise of one conversation, so it is only
+ * called a difference at two.
+ */
+export type Verdict = 'above' | 'below' | 'matching' | 'unstated'
+
+export function readVerdict(roots: number | null, assessed: number | null): Verdict {
+  if (roots === null || assessed === null) return 'unstated'
+  const gap = assessed - roots
+  if (gap >= 2) return 'above'
+  if (gap <= -2) return 'below'
+  return 'matching'
 }
 
 /**
@@ -299,14 +330,19 @@ export async function getSubjectArea(
   }
 }
 
-async function getSowing(db: SupabaseClient, subjectId: string): Promise<SubjectArea['sowing']> {
+export async function getSowing(
+  db: SupabaseClient,
+  subjectId: string
+): Promise<Sowing | null> {
   const { data } = await db
     .from('subject_sowings')
-    .select('roots, confident, gaps, depth, qualifiers, evidence, created_at')
+    .select('roots, confident, gaps, depth, qualifiers, evidence, assessment, created_at')
     .eq('subject_id', subjectId)
     .maybeSingle()
 
   if (!data) return null
+
+  const assessment = data.assessment as Assessment | null
   return {
     roots: data.roots === null ? null : Number(data.roots),
     confident: data.confident,
@@ -314,6 +350,18 @@ async function getSowing(db: SupabaseClient, subjectId: string): Promise<Subject
     depth: data.depth,
     qualifiers: Array.isArray(data.qualifiers) ? data.qualifiers : [],
     evidence: Array.isArray(data.evidence) ? data.evidence : [],
+    // Sown before the reading existed, or sown with nothing to read.
+    assessment:
+      assessment && Number.isFinite(assessment.level)
+        ? {
+            level: Number(assessment.level),
+            note: typeof assessment.note === 'string' ? assessment.note : '',
+            shown: Array.isArray(assessment.shown) ? assessment.shown : [],
+            missing: Array.isArray(assessment.missing) ? assessment.missing : [],
+            answered: Number(assessment.answered) || 0,
+            asked: Number(assessment.asked) || 0,
+          }
+        : null,
     created_at: data.created_at,
   }
 }

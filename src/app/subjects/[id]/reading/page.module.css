@@ -1,0 +1,376 @@
+/* The reading: what you said about yourself set against what your
+   answers showed, as two plates of the same plant at different depths. */
+
+.sheet {
+  max-width: 62rem;
+  margin: 0 auto;
+  padding: 0 0 var(--space-6);
+  background-color: var(--paper);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(90, 70, 45, 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(90, 70, 45, 0.03) 0 1px, transparent 1px 4px);
+  min-height: 100dvh;
+  box-shadow: 0 2px 24px rgba(36, 29, 22, 0.16);
+}
+
+.head {
+  color: var(--paper);
+  padding: var(--space-5);
+}
+
+.title {
+  font-size: var(--step-3);
+  font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 72;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin: var(--space-4) 0 0;
+}
+
+.strapline {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 20, 'WONK' 0;
+  color: rgba(239, 231, 214, 0.85);
+  margin: var(--space-3) 0 0;
+  max-width: 54ch;
+  line-height: 1.35;
+}
+
+.headRule {
+  height: 5px;
+  background: var(--plate-mustard);
+  margin-bottom: var(--space-5);
+}
+
+.body {
+  padding: 0 var(--space-5);
+  display: grid;
+  gap: var(--space-6);
+}
+
+/* --- The two figures -------------------------------------------- */
+
+/* Set as a pair on one rule, because the comparison is the sheet. The
+   plates are the same size and the same drawing: only the depth of the
+   plant differs, so the difference is the only thing that reads. */
+.compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-5);
+  border-top: 2px solid var(--rule-strong);
+  padding-top: var(--space-4);
+}
+
+.column {
+  margin: 0;
+  display: grid;
+  gap: var(--space-3);
+  justify-items: center;
+}
+
+.columnHead {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+  text-align: center;
+}
+
+.columnLabel {
+  font-size: var(--step--2);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.columnFigure {
+  font-family: var(--font-display);
+  font-size: var(--step-3);
+  font-variation-settings: 'SOFT' 10, 'WONK' 0, 'opsz' 60;
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: 1;
+  color: var(--ink);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.of {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.columnStage {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1, 'opsz' 24;
+  color: var(--ink-soft);
+}
+
+.plate {
+  width: min(11rem, 100%);
+}
+
+/* --- The verdict ------------------------------------------------- */
+
+.verdict {
+  border-left: 5px solid var(--plate-mustard);
+  padding-left: var(--space-4);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.verdictTitle {
+  font-size: var(--step-2);
+  font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 40;
+  margin: 0;
+  max-width: 40ch;
+}
+
+.verdictNote,
+.verdictBody {
+  margin: 0;
+  font-size: var(--step-0);
+  color: var(--ink-soft);
+  max-width: 64ch;
+  line-height: 1.5;
+}
+
+.verdictBody {
+  color: var(--ink);
+}
+
+.tally {
+  margin: 0;
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* --- Shown and not shown ----------------------------------------- */
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.block {
+  border-top: 2px solid var(--rule-strong);
+  padding-top: var(--space-3);
+  display: grid;
+  gap: var(--space-3);
+  align-content: start;
+}
+
+.blockTitle {
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1, 'opsz' 24;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* Held ground is ticked; missing ground is ruled. Neither is a colour
+   on its own — the mark is the carrier. */
+.listRow {
+  font-size: var(--step-0);
+  color: var(--ink);
+  padding-left: var(--space-4);
+  position: relative;
+}
+
+.listRow::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: var(--space-3);
+  border-top: 2px solid var(--plate-green);
+}
+
+.listGaps .listRow::before {
+  border-top: 2px dotted var(--plate-terracotta);
+}
+
+/* --- The questions ------------------------------------------------ */
+
+.answers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.answerRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.rung {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 10, 'WONK' 0, 'opsz' 24;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--paper);
+  background: var(--plate-green);
+  width: 1.75rem;
+  height: 1.75rem;
+  display: grid;
+  place-items: center;
+}
+
+/* A question left blank is part of the record, printed back rather than
+   quietly dropped: where you stopped is the useful part. */
+.skipped .rung {
+  background: var(--rule);
+}
+
+.skipped .prompt {
+  color: var(--ink-faint);
+}
+
+.prompt {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1, 'opsz' 24;
+  color: var(--ink);
+  line-height: 1.25;
+}
+
+.answer {
+  margin: var(--space-2) 0 0;
+  font-size: var(--step-0);
+  color: var(--ink-soft);
+  border-left: 1px solid var(--rule);
+  padding-left: var(--space-3);
+  white-space: pre-wrap;
+}
+
+/* --- Foot --------------------------------------------------------- */
+
+.foot {
+  border-top: 2px solid var(--rule-strong);
+  padding-top: var(--space-4);
+  display: grid;
+  gap: var(--space-4);
+}
+
+.caveat {
+  margin: 0;
+  font-size: var(--step--1);
+  font-style: italic;
+  color: var(--ink-faint);
+  max-width: 64ch;
+}
+
+.note {
+  margin: 0;
+  font-size: var(--step-0);
+  color: var(--ink-soft);
+  max-width: 60ch;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-5);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.action {
+  font-size: var(--step--1);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 2px solid var(--plate-mustard);
+  padding-bottom: 3px;
+  justify-self: start;
+}
+
+.action:hover {
+  color: var(--plate-terracotta);
+  text-decoration: none;
+}
+
+.quietAction {
+  font-size: var(--step--1);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 3px;
+}
+
+.quietAction:hover {
+  color: var(--plate-terracotta);
+  text-decoration: none;
+}
+
+/* --- Motion -------------------------------------------------------- */
+
+/* The second plate settles after the first, so the pair reads as a
+   comparison being made rather than two pictures appearing. */
+.column {
+  animation: plateIn var(--dur-settle) var(--ease-settle) both;
+}
+
+.column:last-child {
+  animation-delay: 180ms;
+}
+
+@keyframes plateIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-travel) * 0.375rem));
+  }
+}
+
+.verdict {
+  animation: plateIn var(--dur-settle) var(--ease-settle) both;
+  animation-delay: 360ms;
+}
+
+/* --- Narrow -------------------------------------------------------- */
+
+@media (max-width: 48rem) {
+  .body {
+    padding: 0 var(--space-4);
+  }
+
+  /* The two figures stay side by side at every width: separating them
+     onto their own screens would take the comparison away, which is the
+     only thing this sheet is for. */
+  .compare {
+    gap: var(--space-3);
+  }
+
+  .columnFigure {
+    font-size: var(--step-2);
+  }
+
+  .columnStage {
+    font-size: var(--step-0);
+  }
+
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-4);
+  }
+}

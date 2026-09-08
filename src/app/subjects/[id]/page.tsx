@@ -6,7 +6,7 @@ import { getSubjectArea } from '@/lib/subject'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
 import { Emblem, slugify } from '@/components/Emblem'
 import { SheetNav } from '@/components/SheetNav'
-import { ROOT_STAGES } from '@/components/RootsGauge'
+import { ROOT_STAGES } from '@/components/RootsSpecimen'
 import { SubjectBed } from './SubjectBed'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
@@ -168,6 +168,12 @@ export default async function SubjectPage({
                   A self-report sets the first figure and nothing else. Real
                   reading and real work overwrite it.
                 </p>
+
+                {sowing.assessment && (
+                  <Link href={`/subjects/${subject.id}/reading`} className={styles.readingLink}>
+                    See the reading
+                  </Link>
+                )}
               </section>
             )}
 

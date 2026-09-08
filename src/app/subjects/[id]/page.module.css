@@ -589,6 +589,25 @@
   margin-top: var(--space-1);
 }
 
+/* The way to the sheet that compares the user's own figure with what
+   their answers showed. An action, so it takes the mustard rule. */
+.readingLink {
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom: 2px solid var(--plate-mustard);
+  padding-bottom: 3px;
+  justify-self: start;
+}
+
+.readingLink:hover {
+  color: var(--plate-terracotta);
+  text-decoration: none;
+}
+
 /* --- Motion ------------------------------------------------------ */
 
 /* The bed prints in order, root to tip, so the outline reads as one

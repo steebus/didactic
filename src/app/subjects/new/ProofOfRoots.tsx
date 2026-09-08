@@ -1,6 +1,8 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { readJson } from '@/lib/http'
+import { bookNote, type BookMatch } from '@/lib/books'
 import styles from './page.module.css'
 
 export interface ProofEntry {
@@ -21,7 +23,7 @@ const MODES: Array<{ value: Mode; label: string; hint: string }> = [
   {
     value: 'book',
     label: 'A book or course',
-    hint: 'Title and author, or the course and who ran it.',
+    hint: 'Start typing a title and it will look it up, or write it out yourself.',
   },
   {
     value: 'credential',
@@ -56,6 +58,14 @@ export function ProofOfRoots({
   const [error, setError] = useState<string | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
 
+  // Book lookup. `chosen` holds the matched record so the subjects
+  // Open Library knows about are filed with it; typing again drops it,
+  // because what is filed must be what is on screen.
+  const [matches, setMatches] = useState<BookMatch[]>([])
+  const [looking, setLooking] = useState(false)
+  const [highlighted, setHighlighted] = useState(-1)
+  const [chosen, setChosen] = useState<BookMatch | null>(null)
+
   const ready =
     (mode === 'link' && url.trim().length > 0) ||
     (mode === 'book' && title.trim().length > 0) ||
@@ -65,7 +75,52 @@ export function ProofOfRoots({
     setUrl('')
     setTitle('')
     setDetail('')
+    setChosen(null)
+    setMatches([])
+    setHighlighted(-1)
   }
+
+  function choose(book: BookMatch) {
+    setChosen(book)
+    setTitle(book.label)
+    setMatches([])
+    setHighlighted(-1)
+  }
+
+  // Lookup runs a beat behind the typing: a request per keystroke is
+  // both rude to Open Library and slower on screen than waiting.
+  useEffect(() => {
+    // Nothing to look up once a book has been picked, and nothing worth
+    // looking up below three characters. Whether the results still
+    // apply is decided at render rather than by clearing them here:
+    // clearing state from inside an effect is a cascading render.
+    const q = title.trim()
+    if (mode !== 'book' || chosen || q.length < 3) return
+
+    const cancelled = { current: false }
+    const timer = setTimeout(async () => {
+      setLooking(true)
+      try {
+        const res = await fetch(`/api/books/search?q=${encodeURIComponent(q)}`)
+        const { body } = await readJson<{ books?: BookMatch[] }>(res)
+        if (!cancelled.current) setMatches(Array.isArray(body.books) ? body.books : [])
+      } catch {
+        // The manual field is right there, so a failed lookup is
+        // silence rather than an error.
+        if (!cancelled.current) setMatches([])
+      } finally {
+        if (!cancelled.current) setLooking(false)
+      }
+    }, 280)
+
+    return () => {
+      cancelled.current = true
+      clearTimeout(timer)
+    }
+  }, [mode, title, chosen])
+
+  // Results only stand while the query that produced them still does.
+  const showing = mode === 'book' && !chosen && title.trim().length >= 3 ? matches : []
 
   async function file() {
     setBusy(true)
@@ -75,7 +130,17 @@ export function ProofOfRoots({
         mode === 'link'
           ? { kind: 'article', url: url.trim(), title: title.trim() || url.trim() }
           : mode === 'book'
-            ? { kind: 'book', title: title.trim() }
+            ? {
+                kind: 'book',
+                title: title.trim(),
+                // A matched book files with what Open Library says it
+                // is about, which is what lets the ingester place it on
+                // the map. The app never holds a book's contents, so
+                // this is the honest most it can record.
+                ...(chosen
+                  ? { url: `https://openlibrary.org${chosen.key}`, text: bookNote(chosen) }
+                  : {}),
+              }
             : {
                 kind: 'note',
                 title: title.trim(),
@@ -198,14 +263,81 @@ export function ProofOfRoots({
         )}
 
         {mode === 'book' && (
-          <input
-            className={styles.proofInput}
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && ready && !busy && file()}
-            placeholder="Refactoring — Martin Fowler"
-            aria-label="Book or course"
-          />
+          <div className={styles.lookup}>
+            <input
+              className={styles.proofInput}
+              value={title}
+              onChange={e => {
+                setTitle(e.target.value)
+                // Editing after a match means the match no longer
+                // describes what is in the box.
+                setChosen(null)
+              }}
+              onKeyDown={e => {
+                if (e.key === 'ArrowDown' && showing.length) {
+                  e.preventDefault()
+                  setHighlighted(h => (h + 1) % showing.length)
+                } else if (e.key === 'ArrowUp' && showing.length) {
+                  e.preventDefault()
+                  setHighlighted(h => (h <= 0 ? showing.length - 1 : h - 1))
+                } else if (e.key === 'Escape') {
+                  setMatches([])
+                  setHighlighted(-1)
+                } else if (e.key === 'Enter') {
+                  if (highlighted >= 0 && showing[highlighted]) {
+                    e.preventDefault()
+                    choose(showing[highlighted])
+                  } else if (ready && !busy) {
+                    file()
+                  }
+                }
+              }}
+              placeholder="Refactoring, or Machine Learning by Andrew Ng"
+              aria-label="Book or course"
+              role="combobox"
+              aria-expanded={showing.length > 0}
+              aria-controls="book-matches"
+              aria-autocomplete="list"
+              aria-activedescendant={
+                highlighted >= 0 && showing[highlighted]
+                  ? `book-${highlighted}`
+                  : undefined
+              }
+              autoComplete="off"
+            />
+
+            {looking && showing.length === 0 && (
+              <p className={styles.lookupNote}>Looking it up…</p>
+            )}
+
+            {showing.length > 0 && (
+              <ul className={styles.matches} id="book-matches" role="listbox">
+                {showing.map((book, i) => (
+                  <li key={book.key} id={`book-${i}`} role="option" aria-selected={i === highlighted}>
+                    <button
+                      type="button"
+                      className={`${styles.match} ${i === highlighted ? styles.matchOn : ''}`}
+                      onMouseEnter={() => setHighlighted(i)}
+                      onClick={() => choose(book)}
+                    >
+                      <span className={styles.matchTitle}>{book.title}</span>
+                      <span className={styles.matchMeta}>
+                        {book.authors.join(', ') || 'Author unknown'}
+                        {book.year ? ` · ${book.year}` : ''}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {chosen && (
+              <p className={styles.lookupNote}>
+                Matched on Open Library. It will be filed with what the record
+                says it is about.
+              </p>
+            )}
+          </div>
         )}
 
         {mode === 'credential' && (

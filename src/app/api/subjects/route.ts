@@ -3,14 +3,27 @@ import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/supabase'
 import { embed } from '@/lib/embedding'
 import { resolveConcept, fetchCandidates } from '@/lib/resolver'
-import { recomputeAbility } from '@/lib/scoring'
+import { recomputeAbilities } from '@/lib/scoring'
 import { config } from '@/lib/config'
 import { ownerId } from '@/lib/auth'
 
+/**
+ * Laying out a bed is an LLM call, one embedding per topic and a
+ * similarity search per topic, so it is the longest request the app
+ * makes. The platform default cuts it off part way through, and what
+ * reaches the browser is an empty body rather than an answer.
+ */
+export const maxDuration = 300
+
+/** Embeddings and similarity searches run in parallel, but not all at
+ *  once: twenty simultaneous calls to the edge function find its rate
+ *  limit rather than its speed. */
+const CONCURRENCY = 6
+
 const PLATE_INKS = ['#b8482a', '#2f5233', '#c8871a', '#2a4a7c', '#6b3550', '#6b7233']
 
-/** The same rungs the roots slider prints, so the model reads the
- *  figure the way the user set it. */
+/** The same rungs the roots slider prints, so the model reads and
+ *  writes the figure the way the user set it. */
 const ROOT_STAGES = [
   'bare ground, no prior knowledge at all',
   'just germinated: knows the words, nothing has taken hold',
@@ -23,6 +36,9 @@ const ROOT_STAGES = [
 interface Qualifier {
   prompt: string
   level: number
+  /** What a good answer shows. Written when the question was, never
+   *  shown to the user, and used here as the rubric to mark against. */
+  probes: string
   answer: string
 }
 
@@ -34,7 +50,8 @@ interface Evidence {
 
 const TOOL = {
   name: 'record_subject_topics',
-  description: 'Record the topics within a subject and an estimated starting level for each.',
+  description:
+    'Record the topics within a subject, an estimated starting level for each, and a reading of what the answers actually showed.',
   input_schema: {
     type: 'object' as const,
     properties: {
@@ -50,6 +67,35 @@ const TOOL = {
           required: ['name', 'summary', 'estimated_level'],
         },
       },
+      assessment: {
+        type: 'object',
+        description:
+          'Your reading of where they actually stand, from what they wrote rather than from what they claimed. Omit entirely if they gave you nothing to read.',
+        properties: {
+          level: {
+            type: 'number',
+            description:
+              '1-5 on the same scale as their own figure: what their answers demonstrate, not what they say.',
+          },
+          note: {
+            type: 'string',
+            description:
+              'Two or three sentences addressed to them, saying what the answers showed and what they did not. Plain and specific; no praise, no hedging.',
+          },
+          shown: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Short phrases naming what they demonstrably hold.',
+          },
+          missing: {
+            type: 'array',
+            items: { type: 'string' },
+            description:
+              'Short phrases naming what they did not show — wrong, vague, or skipped.',
+          },
+        },
+        required: ['level', 'note', 'shown', 'missing'],
+      },
     },
     required: ['topics'],
   },
@@ -62,17 +108,28 @@ export async function GET() {
   return NextResponse.json({ subjects: data })
 }
 
+/** Run an async job over a list a few at a time, in order. */
+async function inBatches<T, R>(
+  items: T[],
+  size: number,
+  job: (item: T) => Promise<R>
+): Promise<R[]> {
+  const out: R[] = []
+  for (let i = 0; i < items.length; i += size) {
+    out.push(...(await Promise.all(items.slice(i, i + size).map(job))))
+  }
+  return out
+}
+
 /**
  * Everything the user said on the sowing sheet, as one brief for the
  * model. All of it is optional: a subject named and nothing else still
  * lays out a bed, it just rests on the subject's name alone.
  */
 function buildBrief(input: {
-  subject: string
   roots: number | null
   confident: string
   gaps: string
-  depth: string
   qualifiers: Qualifier[]
   evidence: Evidence[]
 }) {
@@ -102,7 +159,11 @@ function buildBrief(input: {
     parts.push(
       `Their answers to the qualifying questions, easiest first. These are the strongest evidence here — they are about the subject rather than about how they feel — so weigh them above the self-report:\n${
         answered
-          .map(q => `- [rung ${q.level}/5] ${q.prompt}\n  ${q.answer.trim()}`)
+          .map(q =>
+            `- [rung ${q.level}/5] ${q.prompt}${
+              q.probes ? `\n  A good answer shows: ${q.probes}` : ''
+            }\n  They wrote: ${q.answer.trim()}`
+          )
           .join('\n')
       }`
     )
@@ -128,6 +189,15 @@ function scopeInstruction(depth: string) {
   }
   return `How far they want to take it, in their words:\n${depth}\n\nLet that set both the number of topics and how finely they are cut. Someone who wants an overview or is merely curious gets 6 to 10 broad topics and no specialist corners. Someone who wants a working knowledge gets 10 to 16. Someone who wants to master it gets 16 to 24, cut fine enough that each one is a real piece of work, including the awkward corners a survey would skip.`
 }
+
+/** Trim a model-written list to something a margin can print. */
+const phrases = (v: unknown, cap = 5) =>
+  Array.isArray(v)
+    ? v
+        .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+        .map(x => x.trim())
+        .slice(0, cap)
+    : []
 
 export async function POST(req: Request) {
   const body = await req.json()
@@ -156,6 +226,7 @@ export async function POST(req: Request) {
     .map(q => ({
       prompt: text(q.prompt),
       level: typeof q.level === 'number' ? Math.min(5, Math.max(1, Math.round(q.level))) : 3,
+      probes: text(q.probes),
       answer: text(q.answer),
     }))
     .filter(q => q.prompt)
@@ -179,8 +250,13 @@ export async function POST(req: Request) {
     )
   }
 
+  const answeredCount = qualifiers.filter(q => q.answer).length
+  // A reading needs something to read. Nothing said means no verdict,
+  // rather than a verdict of nought.
+  const readable = answeredCount > 0 || confident.length > 0 || gaps.length > 0
+
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-  const brief = buildBrief({ subject, roots, confident, gaps, depth, qualifiers, evidence })
+  const brief = buildBrief({ roots, confident, gaps, qualifiers, evidence })
 
   const res = await client.messages.create({
     model: 'claude-sonnet-5',
@@ -201,7 +277,13 @@ Estimate a starting level of 1-5 per topic${
         roots === 0
           ? ' They have said outright that they have no prior knowledge, so every level is 1.'
           : ''
-      }`,
+      }
+
+${
+  readable
+    ? `Then give the assessment: your own reading of where they stand, judged from what they wrote rather than from what they claimed. Mark the answers as a knowledgeable person would — a correct but thin answer at rung 1 is not the same as a fluent one at rung 4, and a confident wrong answer counts against. Say plainly where the answers were vague or absent. This is printed back to them beside their own figure, so it must be specific enough to argue with.`
+    : 'They gave nothing to read, so omit the assessment entirely.'
+}`,
     }],
   })
 
@@ -210,14 +292,15 @@ Estimate a starting level of 1-5 per topic${
     return NextResponse.json({ error: 'no structured output' }, { status: 502 })
   }
 
-  const raw = (tool.input as {
+  const raw = tool.input as {
     topics?: Array<{ name?: string; summary?: string; estimated_level?: number }>
-  }).topics
+    assessment?: { level?: number; note?: string; shown?: unknown; missing?: unknown }
+  }
 
   // The model's shape is a promise, not a guarantee. Anything without a
   // usable name cannot be embedded or resolved, so it is dropped rather
   // than crashing the request.
-  const proposed = (raw ?? [])
+  const proposed = (raw.topics ?? [])
     .filter(t => typeof t?.name === 'string' && t.name.trim().length > 0)
     .map(t => ({
       name: t.name!.trim(),
@@ -232,6 +315,18 @@ Estimate a starting level of 1-5 per topic${
     )
   }
 
+  const assessment =
+    readable && raw.assessment && Number.isFinite(raw.assessment.level)
+      ? {
+          level: Math.min(5, Math.max(0, Math.round(raw.assessment.level!))),
+          note: typeof raw.assessment.note === 'string' ? raw.assessment.note.trim() : '',
+          shown: phrases(raw.assessment.shown),
+          missing: phrases(raw.assessment.missing),
+          answered: answeredCount,
+          asked: qualifiers.length,
+        }
+      : null
+
   const db = supabaseAdmin()
   const { data: existing } = await db.from('subjects').select('id')
   const colour = PLATE_INKS[(existing?.length ?? 0) % PLATE_INKS.length]
@@ -243,8 +338,8 @@ Estimate a starting level of 1-5 per topic${
     return NextResponse.json({ error: subjectError.message }, { status: 500 })
   }
 
-  // What the figures below rest on, kept so they can be read back.
-  // A failure here loses the account but not the bed, so it does not
+  // What the figures below rest on, kept so they can be read back. A
+  // failure here loses the account but not the bed, so it does not
   // abort the sowing.
   await db.from('subject_sowings').insert({
     subject_id: row!.id,
@@ -255,73 +350,125 @@ Estimate a starting level of 1-5 per topic${
     depth: depth || null,
     qualifiers,
     evidence,
+    assessed_level: assessment?.level ?? null,
+    assessment,
   })
 
-  const rootsNote =
-    roots !== null ? ` — roots ${roots} of 5` : ''
-  const evidenceNote = evidence.length
-    ? `, with ${evidence.length} ${evidence.length === 1 ? 'piece' : 'pieces'} of evidence filed`
-    : ''
+  // --- Resolving the proposals against the map ---------------------
+  //
+  // Embedding and searching used to run one topic at a time, which put
+  // a twenty-topic bed well past any function timeout. They are
+  // independent per topic, so they now run a few at a time; only the
+  // decision that follows stays sequential, because two proposals in
+  // one batch can be near-duplicates of each other and the second must
+  // be able to see the first.
+  const embedded = await inBatches(proposed, CONCURRENCY, async candidate => ({
+    candidate,
+    vector: await embed(candidate.name),
+  }))
 
-  let created = 0
-  let linked = 0
+  const searched = await inBatches(embedded, CONCURRENCY, async entry => ({
+    ...entry,
+    candidates: await fetchCandidates(db, entry.vector),
+  }))
 
-  for (const candidate of proposed) {
-    const vector = await embed(candidate.name)
-    const candidates = await fetchCandidates(db, vector)
-    const resolution = resolveConcept(candidate.name, candidates, vector)
+  const toLink: string[] = []
+  const toCreate: Array<{
+    name: string
+    summary: string
+    level: number
+    vector: number[]
+    pending: boolean
+  }> = []
+  // Proposals already accepted in this pass, so the resolver can see
+  // them before they exist in the database. Their ids are marked so a
+  // match against one is not mistaken for a row to link.
+  const accepted: Array<{ id: string; title: string; embedding: number[] }> = []
+
+  for (const { candidate, vector, candidates } of searched) {
+    const resolution = resolveConcept(candidate.name, [...candidates, ...accepted], vector)
 
     // An existing topic keeps its own history rather than being
     // duplicated into the new subject. It is filed under this subject
     // too: exposure belongs to portrait and to landscape photography,
     // and JavaScript belongs to front-end and to app development.
     if (resolution.action === 'link') {
-      await db.from('topic_subjects').upsert(
-        { topic_id: resolution.topicId, subject_id: row!.id, created_by: 'ai' },
-        { onConflict: 'topic_id,subject_id', ignoreDuplicates: true }
-      )
-      linked++
+      // Matching something accepted moments ago means the model
+      // proposed the same topic twice. There is nothing to link and
+      // nothing to create; the first one stands.
+      if (!resolution.topicId.startsWith('batch:')) toLink.push(resolution.topicId)
       continue
     }
 
-    const { data: topic } = await db.from('topics').insert({
-      user_id: row!.user_id,
-      title: candidate.name,
-      slug: `${candidate.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${crypto.randomUUID().slice(0, 4)}`,
+    toCreate.push({
+      name: candidate.name,
       summary: candidate.summary,
-      embedding: JSON.stringify(vector),
-      primary_subject_id: row!.id,
-      state: resolution.action === 'pending' ? 'pending' : 'active',
-      created_by: 'ai',
-    }).select('id').single()
-
-    if (!topic) continue
-    created++
-
-    // Roots of nought is a stated fact, not a missing answer: nothing
-    // has been sown here, so nothing is recorded. Writing a floor
-    // exposure anyway would give the topic a history it does not have
-    // and a confidence it has not earned.
-    if (roots === 0) continue
-
-    // The only place a self-declared figure enters the record. It is
-    // written as a real exposure so the number can still explain itself,
-    // and real evidence will outweigh it.
-    const level = Math.min(5, Math.max(1, candidate.estimated_level))
-    await db.from('exposures').insert({
-      user_id: row!.user_id,
-      topic_id: topic.id,
-      source: 'manual',
-      depth: level >= 4 ? 'applied' : level >= 2 ? 'read' : 'skim',
-      ability_delta: (level / 5) * config.DEPTH_WEIGHTS.read,
-      reason: `your own account when sowing "${subject}"${rootsNote}${evidenceNote}`,
+      level: Math.min(5, Math.max(1, candidate.estimated_level)),
+      vector,
+      pending: resolution.action === 'pending',
     })
-    await recomputeAbility(db, topic.id)
+    accepted.push({ id: `batch:${accepted.length}`, title: candidate.name, embedding: vector })
+  }
+
+  if (toLink.length > 0) {
+    await db.from('topic_subjects').upsert(
+      [...new Set(toLink)].map(topic_id => ({
+        topic_id,
+        subject_id: row!.id,
+        created_by: 'ai' as const,
+      })),
+      { onConflict: 'topic_id,subject_id', ignoreDuplicates: true }
+    )
+  }
+
+  const { data: created } = toCreate.length
+    ? await db.from('topics').insert(
+        toCreate.map(t => ({
+          user_id: row!.user_id,
+          title: t.name,
+          slug: `${t.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${crypto.randomUUID().slice(0, 4)}`,
+          summary: t.summary,
+          embedding: JSON.stringify(t.vector),
+          primary_subject_id: row!.id,
+          state: t.pending ? 'pending' : 'active',
+          created_by: 'ai' as const,
+        }))
+      ).select('id, title')
+    : { data: [] }
+
+  const rootsNote = roots !== null ? ` — roots ${roots} of 5` : ''
+  const evidenceNote = evidence.length
+    ? `, with ${evidence.length} ${evidence.length === 1 ? 'piece' : 'pieces'} of evidence filed`
+    : ''
+
+  // Roots of nought is a stated fact, not a missing answer: nothing has
+  // been sown here, so nothing is recorded. Writing a floor exposure
+  // anyway would give every topic a history it does not have and a
+  // confidence it has not earned.
+  if (roots !== 0 && created && created.length > 0) {
+    const levelFor = new Map(toCreate.map(t => [t.name, t.level]))
+    // The only place a self-declared figure enters the record. It is
+    // written as a real exposure so the number can still explain
+    // itself, and real evidence will outweigh it.
+    await db.from('exposures').insert(
+      created.map(topic => {
+        const level = levelFor.get(topic.title) ?? 1
+        return {
+          user_id: row!.user_id,
+          topic_id: topic.id,
+          source: 'manual' as const,
+          depth: level >= 4 ? ('applied' as const) : level >= 2 ? ('read' as const) : ('skim' as const),
+          ability_delta: (level / 5) * config.DEPTH_WEIGHTS.read,
+          reason: `your own account when sowing "${subject}"${rootsNote}${evidenceNote}`,
+        }
+      })
+    )
+    await recomputeAbilities(db, created.map(t => t.id))
   }
 
   // An empty subject is worse than no subject: it would print on the
   // stock list as a bed with nothing in it.
-  if (created === 0 && linked === 0) {
+  if ((created?.length ?? 0) === 0 && toLink.length === 0) {
     await db.from('subjects').delete().eq('id', row!.id)
     return NextResponse.json(
       { error: 'Nothing could be sown for that subject.' },
@@ -329,5 +476,12 @@ Estimate a starting level of 1-5 per topic${
     )
   }
 
-  return NextResponse.json({ subjectId: row!.id, topicsCreated: created, linked })
+  return NextResponse.json({
+    subjectId: row!.id,
+    topicsCreated: created?.length ?? 0,
+    linked: toLink.length,
+    // Where to send them next: a reading exists only when they gave the
+    // app something to read.
+    reading: assessment !== null,
+  })
 }

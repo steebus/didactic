@@ -189,7 +189,7 @@ block shadow, and this world does not use one.
 | --- | --- |
 | `var(--sheet-max)` = `1240px` | Stock list, inbox, topic, subject |
 | `68rem` | Curriculum |
-| `62rem` | Lesson, refresher |
+| `62rem` | Lesson, refresher, the reading |
 | `52rem` | Sow a subject |
 | `30rem` | Entry |
 
@@ -395,6 +395,25 @@ is one ink.
 shade back from the shoot (`rgba(239,231,214,0.82)` against solid paper) and
 run against three dotted strata, because the question asks how *deep* the
 roots go and a shoot alone cannot answer it.
+
+### Two figures compared → the same plant at two depths
+
+The reading sets the user's own roots figure against the app's reading of
+their answers, and it does it by printing `RootsSpecimen` twice at the same
+size in the subject's own ink. Only the depth of the plant differs, so the
+difference is the only thing that reads. Each plate carries its number, the
+stage name, and a label saying whose figure it is.
+
+**Rule — the verdict is derived from the two numbers, never asked for.**
+`readVerdict` compares them in code, so the sentence above the plates can
+never disagree with the figures beside it. One rung is inside the noise of a
+single conversation and is called "matching"; a difference is only named at
+two.
+
+**Rule — what was shown and what was not are marked, not coloured.** Held
+ground takes a solid `2px` green rule before it, missing ground a `2px`
+dotted terracotta one. The mark is the carrier and the colour is redundant,
+as everywhere else in this world.
 
 ### Subject plates
 

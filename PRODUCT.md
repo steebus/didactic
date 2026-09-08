@@ -94,6 +94,19 @@ that flatters its owner.
   read material straight away. Naming the subject also sets the agent writing
   5–10 qualifying questions about the subject, in difficulty order, answered
   while the rest of the sheet is filled in. All of it is optional.
+- **The app prints its own reading of the sowing beside the user's figure.**
+  The qualifying answers are marked against the rubric written with each
+  question — a rubric the user never sees, because printed under the question
+  it gave the answer away — and the result is a second figure on the same
+  0-5 scale, with what was shown, what was not, and every answer as given.
+  Both figures are kept: the app does not overwrite what the user said about
+  themselves. A difference is only called one at two rungs, because a single
+  rung is inside the noise of one conversation.
+- **Books are looked up rather than typed, through Open Library.** No key, no
+  account: a title resolves to a work, an author and the subjects the record
+  carries, and those subjects become the text the ingester files it by, since
+  the app never holds a book's contents. Manual entry stays the fallback and
+  every lookup failure falls back to it silently.
 - **How far the user says they want to go sets the shape of the bed**, not
   just its labels: curiosity gets 6–10 broad topics, a working knowledge
   10–16, mastery 16–24 finely cut. This is the one input that changes what

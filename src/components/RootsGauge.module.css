@@ -157,103 +157,12 @@
   color: var(--ink-soft);
 }
 
-/* --- The plate -------------------------------------------------- */
+/* --- The plate slot -------------------------------------------- */
 
-/* Reversed out of a saturated field, like every other specimen in this
-   catalogue. A line drawing on the paper ground would be the
-   antiques-shop version of this world. */
+/* The gauge only reserves the room; the drawing is RootsSpecimen and
+   carries its own styles. */
 .plate {
-  margin: 0;
   width: 9.5rem;
-  display: grid;
-  gap: 0;
-}
-
-.specimen {
-  display: block;
-  width: 100%;
-  height: auto;
-  background: var(--plate-green);
-}
-
-.caption {
-  font-size: var(--step--2);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-  text-align: center;
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--rule);
-}
-
-.soil {
-  fill: rgba(36, 29, 22, 0.22);
-}
-
-.stratum {
-  stroke: rgba(239, 231, 214, 0.22);
-  stroke-width: 1;
-}
-
-.soilLine {
-  stroke: var(--plate-mustard);
-  stroke-width: 3;
-}
-
-.plant {
-  fill: var(--paper);
-}
-
-/* Growth is drawn on: the path is dashed to its own length and the gap
-   is pulled back as the notch rises, so the line travels the way a root
-   travels rather than fading in. */
-.root,
-.stem {
-  fill: none;
-  stroke: var(--paper);
-  stroke-linecap: round;
-  transition: stroke-dashoffset var(--dur-settle) var(--ease-settle);
-}
-
-/* Roots are underground, so they are printed a shade back from the
-   shoot — the same ink, less of it. */
-.root {
-  stroke: rgba(239, 231, 214, 0.82);
-}
-
-.leaf {
-  fill: var(--paper);
-  transform-origin: 0 0;
-  transition: transform var(--dur-settle) var(--ease-settle);
-}
-
-.midrib {
-  fill: none;
-  stroke: var(--plate-green);
-  stroke-width: 1.4;
-  stroke-linecap: round;
-}
-
-.crown {
-  transition: transform var(--dur-settle) var(--ease-settle);
-}
-
-.bud,
-.petal {
-  fill: var(--paper);
-}
-
-.heart {
-  fill: var(--plate-green);
-}
-
-.seed {
-  transition: opacity var(--dur-state) var(--ease-settle);
-}
-
-.seedHalf {
-  fill: var(--paper);
-  transition: transform var(--dur-settle) var(--ease-settle);
 }
 
 /* --- Narrow ----------------------------------------------------- */

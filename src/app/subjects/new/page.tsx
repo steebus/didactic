@@ -4,12 +4,16 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { SheetNav } from '@/components/SheetNav'
 import { RootsGauge, ROOT_STAGES } from '@/components/RootsGauge'
+import { readJson } from '@/lib/http'
 import { ProofOfRoots, type ProofEntry } from './ProofOfRoots'
 import styles from './page.module.css'
 
 interface QualifyingQuestion {
   prompt: string
   level: number
+  /** What a good answer would show. Never printed — under the question
+   *  it was a crib, and half of them gave the answer away. It is sent
+   *  back with the answers as the rubric the marking reads against. */
   probes: string
 }
 
@@ -67,9 +71,9 @@ export default function NewSubjectPage() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ subject: name }),
       })
-      const body = await res.json()
-      if (!res.ok || !Array.isArray(body.questions) || body.questions.length === 0) {
-        throw new Error(body.error ?? 'empty set')
+      const { ok, body } = await readJson<{ questions?: QualifyingQuestion[] }>(res)
+      if (!ok || !Array.isArray(body.questions) || body.questions.length === 0) {
+        throw new Error('empty set')
       }
       setQuestions(body.questions)
       setAnswers(Array(body.questions.length).fill(''))
@@ -119,13 +123,23 @@ export default function NewSubjectPage() {
           qualifiers: questions.map((q, i) => ({
             prompt: q.prompt,
             level: q.level,
+            probes: q.probes,
             answer: answers[i] ?? '',
           })),
         }),
       })
-      const body = await res.json()
-      if (!res.ok) throw new Error(body.error ?? 'Could not draw the map.')
-      router.push(`/subjects/${body.subjectId}`)
+      const { ok, body, error: failed } = await readJson<{
+        subjectId?: string
+        reading?: boolean
+      }>(res)
+      if (!ok || !body.subjectId) throw new Error(failed ?? 'Could not draw the map.')
+
+      // Straight to the reading when there is one — the comparison
+      // between what they said and what their answers showed is the
+      // point of having asked.
+      router.push(
+        body.reading ? `/subjects/${body.subjectId}/reading` : `/subjects/${body.subjectId}`
+      )
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.')
       setBusy(false)
@@ -326,9 +340,6 @@ export default function NewSubjectPage() {
                             >
                               {question.prompt}
                             </label>
-                            {question.probes && (
-                              <p className={styles.hint}>{question.probes}</p>
-                            )}
                             <textarea
                               id={`qualifier-${i}`}
                               className={styles.textarea}
