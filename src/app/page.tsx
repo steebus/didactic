@@ -6,6 +6,7 @@ import { Emblem, slugify } from '@/components/Emblem'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
 import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
+import { requireOwner } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +17,10 @@ const EDITION_DATE = new Intl.DateTimeFormat('en-GB', {
 })
 
 export default async function Home() {
+  // The proxy has already turned unauthenticated traffic away; this is
+  // the check that counts, made where the data is read.
+  await requireOwner()
+
   const data = await getHomeData(supabaseAdmin())
   const today = EDITION_DATE.format(new Date())
   const largestHolding = Math.max(1, ...data.subjects.map(s => s.count))

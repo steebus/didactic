@@ -8,6 +8,7 @@ import { DraftCurriculum } from './DraftCurriculum'
 import { AddResource } from '@/components/AddResource'
 import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
+import { requireOwner } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,6 +24,7 @@ export default async function TopicPage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  await requireOwner()
   const { id } = await params
   const area = await getTopicArea(supabaseAdmin(), id)
   if (!area) notFound()

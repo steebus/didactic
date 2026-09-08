@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { ownerId } from '@/lib/auth'
 
 /** Big enough for a scanned certificate or a course handbook, small
  *  enough that a mis-picked file fails fast rather than uploading. */
@@ -12,16 +13,15 @@ const MAX_BYTES = 15 * 1024 * 1024
  * proof the app could never open.
  */
 export async function POST(req: Request) {
+  const userId = await ownerId()
+  if (!userId) return NextResponse.json({ error: 'not signed in' }, { status: 401 })
+
   const form = await req.formData()
   const file = form.get('file')
-  const userId = form.get('userId')
   const consumed = form.get('consumed') === 'true'
 
   if (!(file instanceof File)) {
     return NextResponse.json({ error: 'file is required' }, { status: 400 })
-  }
-  if (typeof userId !== 'string' || !userId) {
-    return NextResponse.json({ error: 'userId is required' }, { status: 400 })
   }
   if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
     return NextResponse.json(

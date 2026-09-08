@@ -5,6 +5,7 @@ import { embed } from '@/lib/embedding'
 import { resolveConcept, fetchCandidates } from '@/lib/resolver'
 import { recomputeAbility } from '@/lib/scoring'
 import { config } from '@/lib/config'
+import { ownerId } from '@/lib/auth'
 
 const PLATE_INKS = ['#b8482a', '#2f5233', '#c8871a', '#2a4a7c', '#6b3550', '#6b7233']
 
@@ -131,8 +132,12 @@ function scopeInstruction(depth: string) {
 export async function POST(req: Request) {
   const body = await req.json()
   const subject: string = typeof body.subject === 'string' ? body.subject.trim() : ''
-  const userId: string = body.userId
   if (!subject) return NextResponse.json({ error: 'subject is required' }, { status: 400 })
+
+  // The owner of everything written below, taken from the session
+  // rather than from the request body.
+  const userId = await ownerId()
+  if (!userId) return NextResponse.json({ error: 'not signed in' }, { status: 401 })
 
   // Everything below the subject name is optional, so each field is
   // normalised to something printable rather than trusted.

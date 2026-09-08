@@ -1,0 +1,154 @@
+/* The door. One field pair, so the measure is the narrowest in the
+   build: a sheet is as wide as what it has to hold. */
+
+.sheet {
+  max-width: 30rem;
+  margin: 0 auto;
+  padding: 0 0 var(--space-6);
+  background-color: var(--paper);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(90, 70, 45, 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(90, 70, 45, 0.03) 0 1px, transparent 1px 4px);
+  min-height: 100dvh;
+  box-shadow: 0 2px 24px rgba(36, 29, 22, 0.16);
+}
+
+.head {
+  background: var(--plate-green);
+  color: var(--paper);
+  padding: var(--space-6) var(--space-5) var(--space-5);
+}
+
+/* No running head here: there is nowhere else to go until the door
+   opens, and a nav printing four sheets that all redirect back is a
+   dead end dressed as a menu. */
+.mark {
+  margin-bottom: var(--space-4);
+}
+
+.title {
+  font-size: var(--step-3);
+  font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 72;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.strapline {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 20, 'WONK' 0;
+  color: rgba(239, 231, 214, 0.85);
+  margin: var(--space-3) 0 0;
+  line-height: 1.35;
+}
+
+.headRule {
+  height: 5px;
+  background: var(--plate-mustard);
+  margin-bottom: var(--space-5);
+}
+
+.body {
+  padding: 0 var(--space-5);
+  display: grid;
+  gap: var(--space-4);
+}
+
+.field {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.label {
+  font-size: var(--step--2);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.hint {
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+  font-style: italic;
+  margin: 0;
+  max-width: 46ch;
+}
+
+.input {
+  font-family: var(--font-text);
+  font-size: var(--step-0);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  padding: var(--space-3);
+  width: 100%;
+  transition:
+    border-color var(--dur-feedback) var(--ease-settle),
+    background-color var(--dur-feedback) var(--ease-settle);
+}
+
+.input:focus {
+  background: var(--paper-deep);
+}
+
+.actions {
+  display: grid;
+  gap: var(--space-3);
+  border-top: 1px solid var(--rule-strong);
+  padding-top: var(--space-4);
+}
+
+.submit {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--plate-green);
+  border: none;
+  border-radius: 0;
+  padding: var(--space-3) var(--space-5);
+  cursor: pointer;
+  justify-self: start;
+  transition:
+    background-color var(--dur-state) var(--ease-settle),
+    transform var(--dur-feedback) var(--ease-settle);
+}
+
+.submit:hover:not(:disabled) {
+  background: var(--plate-terracotta);
+}
+
+.submit:active:not(:disabled) {
+  transform: translateY(calc(var(--motion-travel) * 1px));
+}
+
+.submit:disabled {
+  background: var(--rule);
+  cursor: not-allowed;
+}
+
+.note {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  margin: 0;
+  max-width: 46ch;
+}
+
+.problem {
+  margin: 0;
+  font-size: var(--step-0);
+  color: var(--plate-terracotta);
+  border-left: 2px solid var(--plate-terracotta);
+  padding-left: var(--space-3);
+}
+
+@media (max-width: 40rem) {
+  .body {
+    padding: 0 var(--space-4);
+  }
+}

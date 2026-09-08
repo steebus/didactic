@@ -43,6 +43,38 @@
   text-decoration: none;
 }
 
+/* Leaving is not one of the sheets, so it is set apart from them by a
+   rule rather than by a different size or colour. */
+.leave {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(239, 231, 214, 0.7);
+  background: none;
+  border: none;
+  border-left: 1px solid rgba(239, 231, 214, 0.35);
+  border-radius: 0;
+  padding: 0 0 0 var(--space-4);
+  cursor: pointer;
+}
+
+.leave:hover:not(:disabled) {
+  color: var(--paper);
+}
+
+.leave:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+@media (max-width: 40rem) {
+  .leave {
+    border-left: none;
+    padding-left: 0;
+  }
+}
+
 /* The sheet you are on is stated, not offered. */
 .here {
   color: var(--plate-mustard);
@@ -63,7 +95,8 @@
 /* Motion: the running head is a link set, so it acknowledges hover
    without moving the line it sits on. */
 .back,
-.sheet {
+.sheet,
+.leave {
   transition:
     color var(--dur-feedback) var(--ease-settle),
     border-bottom-color var(--dur-feedback) var(--ease-settle);

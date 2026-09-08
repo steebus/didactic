@@ -28,9 +28,6 @@ const DEPTH_PICKS = [
   },
 ]
 
-// The single-user development identity. Real auth replaces this.
-const USER_ID = '11111111-1111-1111-1111-111111111111'
-
 /**
  * Sowing a subject. The sheet asks four things in the order they are
  * worth asking: how deep the roots already go, what has taken, where
@@ -107,7 +104,6 @@ export default function NewSubjectPage() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           subject: named,
-          userId: USER_ID,
           // Untouched is not the same answer as nought: nought says
           // there is nothing here, and the slider not having been moved
           // says nothing at all.

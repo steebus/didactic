@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { SignOut } from './SignOut'
 import styles from './SheetNav.module.css'
 
 /**
@@ -44,6 +45,9 @@ export function SheetNav({
             </Link>
           )
         )}
+        {/* The catalogue is private, so every sheet carries the way
+            out of it. */}
+        <SignOut />
       </span>
     </nav>
   )

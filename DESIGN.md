@@ -191,6 +191,12 @@ block shadow, and this world does not use one.
 | `68rem` | Curriculum |
 | `62rem` | Lesson, refresher |
 | `52rem` | Sow a subject |
+| `30rem` | Entry |
+
+The entry sheet is the narrowest in the build because it holds one field
+pair, and it is the one surface with no running head: until the door opens
+there is nowhere else to go, and a nav printing four sheets that all redirect
+back is a dead end dressed as a menu.
 
 **Rule — the measure is set by reading load, not by hierarchy.** A reading
 surface is narrower than a listing surface; a single form is narrowest.
@@ -247,6 +253,11 @@ Inbox, Sow — plus an optional back link. Two rules the component enforces:
   `<span>` in `--plate-mustard` with `aria-current="page"`, not as a link.
 - **No link is printed twice.** A back link pointing at the same href as a sheet
   link removes the sheet link.
+- **Leaving is set apart by a rule, not by a colour.** The sign-out control
+  sits with the sheets at the same size and tracking, divided from them by a
+  `1px solid rgba(239,231,214,0.35)` left border which is dropped below
+  `40rem`. It is the one navigation that leaves, and the catalogue is private,
+  so every surface carries it.
 
 ### Rules and borders
 

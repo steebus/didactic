@@ -6,6 +6,7 @@ import { AddResource } from '@/components/AddResource'
 import type { Resource } from '@/lib/types'
 import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
+import { requireOwner } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,6 +36,8 @@ async function getPending() {
 }
 
 export default async function InboxPage() {
+  await requireOwner()
+
   const db = supabaseAdmin()
   const [{ data: resources }, pending] = await Promise.all([
     db.from('resources').select('*').order('added_at', { ascending: false }),

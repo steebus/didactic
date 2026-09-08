@@ -4,9 +4,6 @@ import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import styles from '@/app/inbox/page.module.css'
 
-// The single-user development identity. Real auth replaces this.
-const USER_ID = '11111111-1111-1111-1111-111111111111'
-
 type Kind = 'article' | 'book' | 'note'
 
 const KINDS: Array<{ value: Kind; label: string; hint: string }> = [
@@ -55,7 +52,6 @@ export function AddResource({
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          userId: USER_ID,
           topicId,
           kind,
           url: kind === 'article' ? url.trim() : null,

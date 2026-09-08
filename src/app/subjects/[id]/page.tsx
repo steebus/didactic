@@ -9,6 +9,7 @@ import { SheetNav } from '@/components/SheetNav'
 import { ROOT_STAGES } from '@/components/RootsGauge'
 import { SubjectBed } from './SubjectBed'
 import styles from './page.module.css'
+import { requireOwner } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,6 +24,7 @@ export default async function SubjectPage({
 }: {
   params: Promise<{ id: string }>
 }) {
+  await requireOwner()
   const { id } = await params
   const area = await getSubjectArea(supabaseAdmin(), id)
   if (!area) notFound()

@@ -109,7 +109,15 @@ that flatters its owner.
   3.5 of 5; higher requires applied work, or later, quiz and agent evidence.
 - **Ambiguous concepts are adjudicated by the user**, not silently merged or
   split. A wrong merge destroys information; a wrong split costs a click.
-- Single user. Auth exists; sharing, tenancy, and row-level security do not.
+- **Single user, and the app is gated by one account.** A fresh installation
+  is unclaimed: the first visit sets the one email and password that opens it,
+  and claiming closes that form for good. There is no second account, no
+  invitation, and no password reset. Every sheet and every write path is behind
+  the gate; the only exception is the queue worker, which carries its own
+  shared key and no session.
+- **The account is also the owner id every row is written against**, taken
+  from the session rather than sent by the client. Sharing, tenancy and
+  row-level security remain out of scope.
 - Full-book text ingestion is out of scope; books carry metadata and the
   user's own notes.
 - **A curriculum is drafted with the agent and owned by the user.** The agent

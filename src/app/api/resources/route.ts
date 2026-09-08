@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { ownerId } from '@/lib/auth'
 
 export async function POST(req: Request) {
-  const { url, title, kind, text, userId, topicId, consumed } = await req.json()
+  const { url, title, kind, text, topicId, consumed } = await req.json()
+
+  // Who is writing is settled by the session, never by the request. A
+  // client that could name its own owner is a client that could write
+  // rows nobody can sign in to read.
+  const userId = await ownerId()
+  if (!userId) return NextResponse.json({ error: 'not signed in' }, { status: 401 })
 
   if (!kind) return NextResponse.json({ error: 'kind is required' }, { status: 400 })
   if (kind === 'article' && !url) {

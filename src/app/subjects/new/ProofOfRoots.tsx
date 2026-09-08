@@ -31,9 +31,6 @@ const MODES: Array<{ value: Mode; label: string; hint: string }> = [
   { value: 'file', label: 'A PDF', hint: 'A handbook, a paper, a certificate. Under 15 MB.' },
 ]
 
-// The single-user development identity. Real auth replaces this.
-const USER_ID = '11111111-1111-1111-1111-111111111111'
-
 /**
  * Proof of what you already hold, filed as you name it rather than at
  * the end. Each entry becomes a real resource in the library the moment
@@ -90,7 +87,7 @@ export function ProofOfRoots({
       const res = await fetch('/api/resources', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ ...payload, userId: USER_ID, consumed: true }),
+        body: JSON.stringify({ ...payload, consumed: true }),
       })
       const body = await res.json().catch(() => ({}))
       if (!res.ok && res.status !== 202) throw new Error(body.error ?? 'Could not file that.')
@@ -117,7 +114,6 @@ export function ProofOfRoots({
     try {
       const form = new FormData()
       form.set('file', picked)
-      form.set('userId', USER_ID)
       form.set('consumed', 'true')
 
       const res = await fetch('/api/resources/upload', { method: 'POST', body: form })
