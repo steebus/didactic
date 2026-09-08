@@ -24,13 +24,20 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .select('id, title, goal, topic_id').eq('id', lesson.curriculum_id).single()
   if (!curriculum) return NextResponse.json({ error: 'curriculum not found' }, { status: 404 })
 
-  const [{ data: topic }, { data: siblings }, { data: sources }] = await Promise.all([
-    db.from('topics').select('title').eq('id', curriculum.topic_id).single(),
-    db.from('lessons').select('title, position, completed_at')
-      .eq('curriculum_id', curriculum.id).order('position'),
-    db.from('curriculum_sources').select('resources(title, summary)')
-      .eq('curriculum_id', curriculum.id),
-  ])
+  const [{ data: topic }, { data: siblings }, { data: sources }, { data: filed }] =
+    await Promise.all([
+      db.from('topics').select('title').eq('id', curriculum.topic_id).single(),
+      db.from('lessons').select('title, position, completed_at')
+        .eq('curriculum_id', curriculum.id).order('position'),
+      db.from('curriculum_sources').select('resources(title, summary, url)')
+        .eq('curriculum_id', curriculum.id),
+      // Everything filed against the topic, so the lesson can point at
+      // material the reader already has rather than sending them off to
+      // find something new.
+      db.from('resource_topics')
+        .select('resources(title, summary, url, status)')
+        .eq('topic_id', curriculum.topic_id),
+    ])
 
   let body: string
   try {
@@ -46,7 +53,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       },
       covered: (siblings ?? []).filter(s => s.completed_at !== null).map(s => s.title),
       sources: (sources ?? []).flatMap(s =>
-        s.resources ? [s.resources as unknown as { title: string; summary: string | null }] : []
+        s.resources
+          ? [s.resources as unknown as {
+              title: string; summary: string | null; url: string | null
+            }]
+          : []
+      ),
+      library: (filed ?? []).flatMap(r =>
+        r.resources
+          ? [r.resources as unknown as {
+              title: string; summary: string | null; url: string | null; status: string
+            }]
+          : []
       ),
     })
   } catch (e) {

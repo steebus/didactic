@@ -35,6 +35,25 @@ interface Subject {
   colour: string
 }
 
+interface GraphResource {
+  id: string
+  title: string
+  kind: string
+  status: string
+  /** Every topic it touches: a paper on retrieval reaches into both
+   *  embeddings and vector search. */
+  topic_ids: string[]
+}
+
+interface GraphLesson {
+  id: string
+  title: string
+  topic_id: string
+  stage: string
+  completed_at: string | null
+  curriculum_id: string
+}
+
 const EDGE_KIND_LABEL: Record<string, string> = {
   prereq: 'sow first',
   related: 'grows with',
@@ -76,12 +95,18 @@ export function GraphCanvas({
     topics: GraphTopic[]
     edges: GraphEdge[]
     subjects: Subject[]
+    resources: GraphResource[]
+    lessons: GraphLesson[]
   } | null>(null)
   const [selected, setSelected] = useState<string | null>(initialTopic)
   const [query, setQuery] = useState('')
   const [subject, setSubject] = useState<string | null>(initialSubject)
   const [showDormantOnly, setShowDormantOnly] = useState(false)
   const [showForces, setShowForces] = useState(false)
+  // The bed is topics by default. Material and lessons are layers over
+  // it, off until asked for, or the planting is unreadable.
+  const [showResources, setShowResources] = useState(false)
+  const [showLessons, setShowLessons] = useState(false)
   // The forces, exposed the way Obsidian exposes them: pulling these
   // around is how you find the arrangement that reads for you, and no
   // single default suits every planting.
@@ -163,6 +188,65 @@ export function GraphCanvas({
         kind: e.kind,
       })
     })
+
+    // --- Material and lessons, when asked for -------------------------
+    //
+    // Smaller and in ink rather than plate colour: these are not things
+    // you know, they are things that touch what you know. A resource
+    // reaches into every topic it covers, which is how the canvas shows
+    // one paper feeding several subjects at once.
+    if (showResources) {
+      for (const r of data.resources ?? []) {
+        const attached = r.topic_ids.filter(id => visibleIds.has(id))
+        if (attached.length === 0) continue
+
+        const nodeId = `resource:${r.id}`
+        graph.addNode(nodeId, {
+          label: r.title,
+          size: 4.5,
+          // Read material is inked; unread is outlined by being paler,
+          // matching the sheet's own unsown/sown distinction.
+          color: r.status === 'consumed' ? '#6b5c45' : '#c3b393',
+          x: 0,
+          y: 0,
+          freshness: 1,
+          kindOfThing: 'resource',
+          resourceId: r.id,
+        })
+
+        for (const topicId of attached) {
+          graph.addEdge(nodeId, topicId, {
+            size: 0.7,
+            color: 'rgba(107, 92, 69, 0.35)',
+            kind: 'covers',
+          })
+        }
+      }
+    }
+
+    if (showLessons) {
+      for (const l of data.lessons ?? []) {
+        if (!visibleIds.has(l.topic_id)) continue
+
+        const nodeId = `lesson:${l.id}`
+        graph.addNode(nodeId, {
+          label: l.title,
+          size: 3.5,
+          color: l.completed_at ? '#2f5233' : '#a8b394',
+          x: 0,
+          y: 0,
+          freshness: 1,
+          kindOfThing: 'lesson',
+          lessonId: l.id,
+        })
+
+        graph.addEdge(nodeId, l.topic_id, {
+          size: 0.6,
+          color: 'rgba(47, 82, 51, 0.3)',
+          kind: 'teaches',
+        })
+      }
+    }
 
     // Membership pulls too. Topics sharing a subject attract even with
     // no stated relationship, which is what makes the bed cluster by
@@ -351,7 +435,16 @@ export function GraphCanvas({
       context.globalAlpha = 1
     })
 
-    renderer.on('clickNode', ({ node }) => setSelected(node))
+    renderer.on('clickNode', ({ node }) => {
+      // Material and lessons open where they live; only topics get the
+      // panel, which reads topic detail.
+      if (node.startsWith('lesson:')) {
+        window.location.href = `/lesson/${node.slice('lesson:'.length)}`
+        return
+      }
+      if (node.startsWith('resource:')) return
+      setSelected(node)
+    })
     renderer.on('clickStage', () => setSelected(null))
 
     // --- Live forces --------------------------------------------------
@@ -424,7 +517,7 @@ export function GraphCanvas({
       renderer.kill()
       sigma.current = null
     }
-  }, [data, query, subject, showDormantOnly, colourFor, repel, centre, linkDistance])
+  }, [data, query, subject, showDormantOnly, showResources, showLessons, colourFor, repel, centre, linkDistance])
 
   const selectedTopic = data?.topics.find(t => t.id === selected) ?? null
 
@@ -458,6 +551,24 @@ export function GraphCanvas({
               onChange={e => setShowDormantOnly(e.target.checked)}
             />
             Dormant only
+          </label>
+
+          <label className={styles.toggle}>
+            <input
+              type="checkbox"
+              checked={showResources}
+              onChange={e => setShowResources(e.target.checked)}
+            />
+            Material
+          </label>
+
+          <label className={styles.toggle}>
+            <input
+              type="checkbox"
+              checked={showLessons}
+              onChange={e => setShowLessons(e.target.checked)}
+            />
+            Lessons
           </label>
 
           <button

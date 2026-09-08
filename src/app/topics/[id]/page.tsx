@@ -5,6 +5,7 @@ import { viabilityFigure } from '@/lib/scoring'
 import { getTopicArea } from '@/lib/topic'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
 import { DraftCurriculum } from './DraftCurriculum'
+import { AddResource } from '@/components/AddResource'
 import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
 
@@ -136,8 +137,7 @@ export default async function TopicPage({
 
               {resources.length === 0 ? (
                 <p className={styles.empty}>
-                  Nothing filed against this topic yet. Send something to the
-                  inbox and it will find its way here.
+                  Nothing filed against this topic yet.
                 </p>
               ) : (
                 <ul className={styles.material}>
@@ -160,6 +160,11 @@ export default async function TopicPage({
                   ))}
                 </ul>
               )}
+
+              {/* Filed here rather than sent to the inbox to be sorted:
+                  when you already know what a thing is about, saying so
+                  beats waiting for a model to work it out. */}
+              <AddResource topicId={topic.id} topicTitle={topic.title} compact />
             </section>
           </div>
 

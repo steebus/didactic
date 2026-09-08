@@ -20,7 +20,18 @@ const KINDS: Array<{ value: Kind; label: string; hint: string }> = [
  * more often than at a desk, so the common case — paste a link, done —
  * is one field and one press.
  */
-export function AddResource() {
+export function AddResource({
+  topicId,
+  topicTitle,
+  compact,
+}: {
+  /** When present, the resource is linked to this topic on arrival. */
+  topicId?: string
+  topicTitle?: string
+  /** On a topic sheet the capture is a footnote to the material list,
+   *  not the reason the page exists. */
+  compact?: boolean
+} = {}) {
   const [kind, setKind] = useState<Kind>('article')
   const [url, setUrl] = useState('')
   const [title, setTitle] = useState('')
@@ -45,6 +56,7 @@ export function AddResource() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
           userId: USER_ID,
+          topicId,
           kind,
           url: kind === 'article' ? url.trim() : null,
           title: title.trim() || null,
@@ -61,7 +73,9 @@ export function AddResource() {
       setSaved(
         body.warning
           ? 'Saved, but not queued for reading yet.'
-          : 'Filed. It will find its place shortly.'
+          : topicTitle
+            ? `Filed under ${topicTitle}.`
+            : 'Filed. It will find its place shortly.'
       )
       setUrl('')
       setTitle('')
@@ -75,9 +89,11 @@ export function AddResource() {
   }
 
   return (
-    <section className={styles.capture}>
+    <section className={`${styles.capture} ${compact ? styles.captureCompact : ''}`}>
       <div className={styles.captureHead}>
-        <h2 className={styles.captureTitle}>Send it something</h2>
+        <h2 className={styles.captureTitle}>
+          {topicTitle ? `Add to ${topicTitle}` : 'Send it something'}
+        </h2>
         <div className={styles.kinds}>
           {KINDS.map(k => (
             <button

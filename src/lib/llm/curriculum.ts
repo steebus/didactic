@@ -175,7 +175,12 @@ export async function generateLessonBody(input: {
   lesson: { title: string; summary: string | null; stage: LessonStage; estimatedMinutes: number | null }
   /** Titles of the lessons already completed, so it can build on them. */
   covered: string[]
-  sources: Array<{ title: string; summary: string | null }>
+  /** Material the reader chose to steer the curriculum. */
+  sources: Array<{ title: string; summary: string | null; url?: string | null }>
+  /** Everything else already filed against this topic, read or not. The
+   *  lesson can point at it rather than sending the reader looking for
+   *  material they already have. */
+  library: Array<{ title: string; summary: string | null; url: string | null; status: string }>
 }): Promise<string> {
   const res = await getClient().messages.create({
     model: 'claude-sonnet-5',
@@ -193,7 +198,18 @@ ${input.covered.length
   : '\nThis is early in the curriculum, so assume no prior lessons.'}
 ${input.sources.length
   ? `\nThe reader chose this material to steer the curriculum:\n${
-      input.sources.map(s => `- ${s.title}${s.summary ? `: ${s.summary}` : ''}`).join('\n')
+      input.sources.map(s =>
+        `- ${s.title}${s.url ? ` (${s.url})` : ''}${s.summary ? `: ${s.summary}` : ''}`
+      ).join('\n')
+    }`
+  : ''}
+${input.library.length
+  ? `\nMaterial already filed against this topic. Where a point genuinely connects to one of these, link it inline as a markdown link so the reader can go straight to something they already have. Do not force connections, do not list them at the end, and never invent a URL:\n${
+      input.library.map(r =>
+        `- ${r.title}${r.url ? ` (${r.url})` : ' (no link)'} — ${
+          r.status === 'consumed' ? 'they have read this' : 'unread'
+        }${r.summary ? `: ${r.summary}` : ''}`
+      ).join('\n')
     }`
   : ''}
 

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 
 export async function POST(req: Request) {
-  const { url, title, kind, text, userId } = await req.json()
+  const { url, title, kind, text, userId, topicId } = await req.json()
 
   if (!kind) return NextResponse.json({ error: 'kind is required' }, { status: 400 })
   if (kind === 'article' && !url) {
@@ -23,6 +23,17 @@ export async function POST(req: Request) {
   }).select('id').single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Added from a topic sheet: the association is stated, not guessed.
+  // Ingestion still runs and may find further topics, but this one is
+  // certain and should not wait on a model to agree.
+  if (topicId) {
+    await db.from('resource_topics').insert({
+      resource_id: data.id,
+      topic_id: topicId,
+      relevance: 0.9,
+    })
+  }
 
   await db.from('ingestion_jobs').insert({ resource_id: data.id })
   const { error: queueError } = await db.rpc('enqueue_ingestion', { p_resource_id: data.id })

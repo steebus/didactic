@@ -15,7 +15,16 @@ import styles from './Prose.module.css'
 export function Prose({ markdown }: { markdown: string }) {
   const html = useMemo(() => {
     const raw = marked.parse(markdown, { async: false, gfm: true, breaks: false })
-    return DOMPurify.sanitize(raw, {
+    // A lesson links out to the reader's own material, which should
+    // open beside the lesson rather than replacing it.
+    DOMPurify.addHook('afterSanitizeAttributes', node => {
+      if (node.tagName === 'A' && node.getAttribute('href')?.startsWith('http')) {
+        node.setAttribute('target', '_blank')
+        node.setAttribute('rel', 'noreferrer')
+      }
+    })
+
+    const clean = DOMPurify.sanitize(raw, {
       ALLOWED_TAGS: [
         'p', 'br', 'strong', 'em', 'del', 'code', 'pre', 'blockquote',
         'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -27,6 +36,12 @@ export function Prose({ markdown }: { markdown: string }) {
       // able to script or reach back into the page.
       ADD_ATTR: ['target', 'rel'],
     })
+
+    // Hooks are global to DOMPurify, so this one is removed rather than
+    // stacking a new copy on every render.
+    DOMPurify.removeHook('afterSanitizeAttributes')
+
+    return clean
   }, [markdown])
 
   return (
