@@ -3,9 +3,11 @@ import { config } from '@/lib/config'
 
 describe('config', () => {
   it('exposes resolver thresholds with match above ambiguous', () => {
-    expect(config.RESOLVER_MATCH).toBe(0.85)
-    expect(config.RESOLVER_AMBIGUOUS).toBe(0.70)
+    // The values move whenever the embedding model changes; the
+    // ordering and the ceiling are what must hold.
     expect(config.RESOLVER_MATCH).toBeGreaterThan(config.RESOLVER_AMBIGUOUS)
+    expect(config.RESOLVER_MATCH).toBeLessThanOrEqual(1)
+    expect(config.RESOLVER_AMBIGUOUS).toBeGreaterThan(0)
   })
 
   it('weights depth so applied counts five times a skim', () => {

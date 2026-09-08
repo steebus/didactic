@@ -26,6 +26,7 @@ export async function teardown() {
     run('supabase/fixtures/exposures.sql')
     // Ability is a rollup, so the restored exposures have to be folded
     // back into the cached figures.
+    execSync('npx vite-node scripts/reembed.ts', { stdio: 'ignore' })
     execSync('npx vite-node scripts/recompute.ts', { stdio: 'ignore' })
   } catch {
     // No local stack, or no Docker. Nothing to restore.

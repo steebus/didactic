@@ -1,9 +1,11 @@
 [
   { "name": "exact match links", "concept": "React Hooks", "candidateTitle": "React Hooks", "similarity": 0.99, "expected": "link" },
-  { "name": "phrasing variant links rather than fragmenting", "concept": "Hooks in React", "candidateTitle": "React Hooks", "similarity": 0.91, "expected": "link" },
-  { "name": "just above match threshold links", "concept": "useEffect hook", "candidateTitle": "React Hooks", "similarity": 0.86, "expected": "link" },
-  { "name": "mid-band defers to the user", "concept": "React Server Components", "candidateTitle": "React Hooks", "similarity": 0.78, "expected": "pending" },
-  { "name": "just above ambiguous floor defers", "concept": "Vue Composition API", "candidateTitle": "React Hooks", "similarity": 0.71, "expected": "pending" },
-  { "name": "unrelated concept creates", "concept": "Milton Friedman", "candidateTitle": "React Hooks", "similarity": 0.12, "expected": "create" },
+  { "name": "phrasing variant links rather than fragmenting", "concept": "Hooks in React", "candidateTitle": "React Hooks", "similarity": 0.96, "expected": "link" },
+  { "name": "just above match threshold links", "concept": "useEffect hook", "candidateTitle": "React Hooks", "similarity": 0.95, "expected": "link" },
+  { "name": "a close sibling defers rather than merging", "concept": "React Server Components", "candidateTitle": "React Hooks", "similarity": 0.91, "expected": "pending" },
+  { "name": "mid-band defers to the user", "concept": "Vue Composition API", "candidateTitle": "React Hooks", "similarity": 0.86, "expected": "pending" },
+  { "name": "just above ambiguous floor defers", "concept": "Server Side Rendering", "candidateTitle": "React", "similarity": 0.82, "expected": "pending" },
+  { "name": "an unrelated concept creates instead of filling the queue", "concept": "Bread Baking", "candidateTitle": "Caching Strategy", "similarity": 0.80, "expected": "create" },
+  { "name": "a wholly foreign concept creates", "concept": "Milton Friedman", "candidateTitle": "React Hooks", "similarity": 0.62, "expected": "create" },
   { "name": "no candidates at all creates", "concept": "CDN edge caching", "candidateTitle": null, "similarity": null, "expected": "create" }
 ]

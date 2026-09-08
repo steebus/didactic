@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { config } from '@/lib/config'
 
 const html = readFileSync(join(__dirname, 'fixtures/article.html'), 'utf-8')
 
@@ -178,10 +179,12 @@ describe('ingestResource', () => {
   })
 
   it('marks an ambiguous concept pending rather than merging or splitting silently', async () => {
-    // 0.75 similarity: inside the ambiguous band.
+    // Sit the candidate squarely inside the ambiguous band, wherever
+    // the current model's thresholds put it.
+    const midBand = (config.RESOLVER_MATCH + config.RESOLVER_AMBIGUOUS) / 2
     const near = new Array(1536).fill(0)
-    near[0] = 0.75
-    near[1] = Math.sqrt(1 - 0.75 * 0.75)
+    near[0] = midBand
+    near[1] = Math.sqrt(1 - midBand * midBand)
     const db = mockDb({
       resource: { id: 'r1', url: 'https://example.com/a', kind: 'article', raw_text: null },
       candidates: [{ id: 'topic-x', title: 'Something Adjacent', embedding: near }],

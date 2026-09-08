@@ -56,5 +56,14 @@ export async function fetchCandidates(
     match_count: limit,
   })
   if (error) throw error
-  return data ?? []
+
+  // PostgREST serialises a pgvector column as a JSON string. Left
+  // unparsed it reaches cosineSimilarity as characters, every score
+  // comes back near zero, and the resolver creates a duplicate for
+  // every concept it should have linked.
+  return (data ?? []).map((row: { id: string; title: string; embedding: number[] | string }) => ({
+    id: row.id,
+    title: row.title,
+    embedding: typeof row.embedding === 'string' ? JSON.parse(row.embedding) : row.embedding,
+  }))
 }

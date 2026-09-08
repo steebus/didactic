@@ -6,5 +6,6 @@ docker exec -i supabase_db_didactic psql -U postgres -q < supabase/seed.sql
 docker exec -i supabase_db_didactic psql -U postgres -q < supabase/fixtures/dev-data.sql
 docker exec -i supabase_db_didactic psql -U postgres -q < supabase/fixtures/links.sql
 docker exec -i supabase_db_didactic psql -U postgres -q < supabase/fixtures/exposures.sql
+npx vite-node scripts/reembed.ts
 npx vite-node scripts/recompute.ts
 echo "dev fixture restored"

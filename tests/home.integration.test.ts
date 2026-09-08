@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { getHomeData } from '@/lib/home'
 
-const URL = 'http://127.0.0.1:54351'
+const URL = 'http://127.0.0.1:54600'
 const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU'
 const USER = '11111111-1111-1111-1111-111111111111'
 

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { resolveConcept, cosineSimilarity } from '@/lib/resolver'
 import cases from './fixtures/resolver-cases.json'
+import { config } from '@/lib/config'
 
 // Build two unit vectors with a known cosine similarity, so fixture
 // similarities drive the real code path rather than being stubbed.
@@ -49,16 +50,25 @@ describe('resolveConcept fixture suite', () => {
 })
 
 describe('resolveConcept boundaries', () => {
-  it('treats exactly 0.85 as a link, not pending', () => {
-    const [a, b] = vectorsWithSimilarity(0.85)
+  // Read from config rather than hardcoded: the bands are measured
+  // against whichever embedding model is in use and are expected to
+  // move. The boundaries themselves are what must not drift.
+  it('treats the match threshold exactly as a link, not pending', () => {
+    const [a, b] = vectorsWithSimilarity(config.RESOLVER_MATCH)
     const result = resolveConcept('x', [{ id: 'n', title: 'y', embedding: b }], a)
     expect(result.action).toBe('link')
   })
 
-  it('treats exactly 0.70 as pending, not create', () => {
-    const [a, b] = vectorsWithSimilarity(0.70)
+  it('treats the ambiguous floor exactly as pending, not create', () => {
+    const [a, b] = vectorsWithSimilarity(config.RESOLVER_AMBIGUOUS)
     const result = resolveConcept('x', [{ id: 'n', title: 'y', embedding: b }], a)
     expect(result.action).toBe('pending')
+  })
+
+  it('creates just below the ambiguous floor rather than queueing noise', () => {
+    const [a, b] = vectorsWithSimilarity(config.RESOLVER_AMBIGUOUS - 0.01)
+    const result = resolveConcept('x', [{ id: 'n', title: 'y', embedding: b }], a)
+    expect(result.action).toBe('create')
   })
 
   it('picks the single best candidate when several are above threshold', () => {
@@ -72,7 +82,8 @@ describe('resolveConcept boundaries', () => {
   })
 
   it('reports the nearest topic id when deferring, so the user has context', () => {
-    const [a, b] = vectorsWithSimilarity(0.75)
+    const midBand = (config.RESOLVER_MATCH + config.RESOLVER_AMBIGUOUS) / 2
+    const [a, b] = vectorsWithSimilarity(midBand)
     const result = resolveConcept('x', [{ id: 'n-42', title: 'y', embedding: b }], a)
     expect(result).toMatchObject({ action: 'pending', nearestId: 'n-42' })
   })

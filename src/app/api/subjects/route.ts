@@ -42,16 +42,11 @@ export async function POST(req: Request) {
   const { subject, answers, userId } = await req.json()
   if (!subject) return NextResponse.json({ error: 'subject is required' }, { status: 400 })
 
-  // Both keys are needed: one to propose the topics, one to embed them
-  // so they can be resolved against topics already sown.
-  const missing = [
-    !process.env.ANTHROPIC_API_KEY && 'ANTHROPIC_API_KEY',
-    !process.env.OPENAI_API_KEY && 'OPENAI_API_KEY',
-  ].filter(Boolean)
-
-  if (missing.length > 0) {
+  // Only one key is needed now: the topics are proposed by Anthropic,
+  // and embedding runs on the edge function with no key at all.
+  if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json(
-      { error: `${missing.join(' and ')} not set, so a bed cannot be laid out yet.` },
+      { error: 'ANTHROPIC_API_KEY not set, so a bed cannot be laid out yet.' },
       { status: 503 }
     )
   }
