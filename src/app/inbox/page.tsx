@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { supabaseAdmin } from '@/lib/supabase'
 import { ResourceList } from '@/components/ResourceList'
 import { PendingQueue } from '@/components/PendingQueue'
+import { AddResource } from '@/components/AddResource'
 import type { Resource } from '@/lib/types'
 import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
@@ -55,6 +56,8 @@ export default async function InboxPage() {
       <div className={styles.headRule} />
 
       <div className={styles.body}>
+        <AddResource />
+
         <PendingQueue topics={pending} />
 
         <section>
