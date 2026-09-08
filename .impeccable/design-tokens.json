@@ -1,0 +1,163 @@
+{
+  "version": 1,
+  "project": "Didactic",
+  "world": "The Seed Catalogue",
+  "seed_key": "0865a26a",
+  "source": "src/app/globals.css",
+  "derived_from": "shipped artifact",
+  "colour_scheme": "light-only",
+  "color": {
+    "ground": {
+      "paper": { "value": "#efe7d6", "var": "--paper", "role": "the sheet" },
+      "paper-deep": { "value": "#e3d8c2", "var": "--paper-deep", "role": "row hover" },
+      "paper-edge": { "value": "#d5c8ae", "var": "--paper-edge", "role": "sheet trims" },
+      "press-bed": { "value": "#ddd2ba", "var": "--press-bed", "role": "surface behind the sheet" }
+    },
+    "ink": {
+      "ink": { "value": "#241d16", "var": "--ink", "role": "body and headings" },
+      "ink-soft": { "value": "#574a3b", "var": "--ink-soft", "role": "secondary prose" },
+      "ink-faint": { "value": "#6b5c45", "var": "--ink-faint", "role": "agate marginalia" }
+    },
+    "plate": {
+      "green": { "value": "#2f5233", "var": "--plate-green", "role": "default masthead band, primary action fill" },
+      "terracotta": { "value": "#b8482a", "var": "--plate-terracotta", "role": "interactive accent, focus ring" },
+      "mustard": { "value": "#c8871a", "var": "--plate-mustard", "role": "head rule, action underline, selection" },
+      "ultramarine": { "value": "#2a4a7c", "var": "--plate-ultramarine", "role": "curriculum masthead" },
+      "plum": { "value": "#6b3550", "var": "--plate-plum", "role": "subject plate" },
+      "olive": { "value": "#6b7233", "var": "--plate-olive", "role": "subject plate" }
+    },
+    "rule": {
+      "rule": { "value": "#b9a988", "var": "--rule", "role": "standard rule, leader dots" },
+      "rule-strong": { "value": "#6b5c45", "var": "--rule-strong", "role": "section-defining rule" }
+    },
+    "reversed": {
+      "note": "Text on a plate band is --paper at alpha, never a different hue.",
+      "steps": [0.7, 0.75, 0.85, 0.88, 0.9],
+      "base": "rgba(239, 231, 214, a)"
+    },
+    "graph": {
+      "unfiled-seed": "#7d6f5d",
+      "edge": "rgba(90, 76, 56, 0.62)",
+      "membership-edge": "rgba(90, 76, 56, 0.10)",
+      "label": "#241d16",
+      "label-dormant": "#8a7d68"
+    }
+  },
+  "typography": {
+    "families": {
+      "display": { "var": "--font-display", "face": "Fraunces", "variable": true, "axes": ["SOFT", "WONK", "opsz"], "fallback": "Georgia, serif" },
+      "text": { "var": "--font-text", "face": "Archivo", "fallback": "Helvetica Neue, sans-serif" }
+    },
+    "numerals": { "global": "tabular-nums", "figures": "tabular-nums lining-nums" },
+    "scale": {
+      "step--2": { "value": "0.6875rem", "role": "agate labels, marginalia" },
+      "step--1": { "value": "0.8125rem", "role": "meta rows, form controls" },
+      "step-0": { "value": "0.9375rem", "role": "body" },
+      "step-1": { "value": "1.25rem", "role": "entry titles, prose body" },
+      "step-2": { "value": "1.75rem", "role": "section titles, viability figure" },
+      "step-3": { "value": "2.5rem", "role": "surface titles" },
+      "step-4": { "value": "clamp(3rem, 6vw, 5rem)", "role": "home masthead only" }
+    },
+    "roles": [
+      { "name": "home-masthead", "size": "step-4", "variation": "'SOFT' 40, 'WONK' 1, 'opsz' 120", "line-height": 0.9, "tracking": "-0.03em" },
+      { "name": "surface-title", "size": "step-3", "variation": "'SOFT' 40, 'WONK' 1, 'opsz' 72", "line-height": 0.95, "tracking": "-0.02em" },
+      { "name": "prose-h1", "size": "step-3", "variation": "'SOFT' 40, 'WONK' 1, 'opsz' 60" },
+      { "name": "section-title", "size": "step-2", "variation": "'SOFT' 30, 'WONK' 1, 'opsz' 40" },
+      { "name": "recommendation-name", "size": "step-2", "variation": "'SOFT' 30, 'WONK' 1, 'opsz' 36" },
+      { "name": "entry-title", "size": "step-1", "variation": "'SOFT' 25, 'WONK' 1, 'opsz' 24", "line-height": 1.15 },
+      { "name": "strapline", "size": "step-1", "variation": "'SOFT' 20, 'WONK' 0" },
+      { "name": "viability-figure", "size": "step-2", "variation": "'SOFT' 10, 'WONK' 0, 'opsz' 30", "note": "flatter than a title of the same size; figures must not wobble" },
+      { "name": "agate-label", "size": "step--2", "family": "text", "transform": "uppercase", "tracking": ["0.06em", "0.1em", "0.14em"], "colour": "--ink-faint" }
+    ]
+  },
+  "space": {
+    "space-1": "0.25rem",
+    "space-2": "0.5rem",
+    "space-3": "0.875rem",
+    "space-4": "1.375rem",
+    "space-5": "2.25rem",
+    "space-6": "3.5rem",
+    "ratio": "~1.6"
+  },
+  "measure": {
+    "sheet-max": { "value": "1240px", "var": "--sheet-max", "surfaces": ["stock list", "inbox", "topic"] },
+    "curriculum": "68rem",
+    "reading": { "value": "62rem", "surfaces": ["lesson", "refresher"] },
+    "form": { "value": "52rem", "surfaces": ["subjects/new"] },
+    "prose": "68ch",
+    "graph": "100dvh, no sheet"
+  },
+  "texture": {
+    "paper-tooth-sheet": "repeating-linear-gradient(90deg, rgba(90,70,45,0.04) 0 1px, transparent 1px 3px), repeating-linear-gradient(0deg, rgba(90,70,45,0.03) 0 1px, transparent 1px 4px)",
+    "paper-tooth-bed": "repeating-linear-gradient(90deg, rgba(90,70,45,0.035) 0 1px, transparent 1px 3px), repeating-linear-gradient(0deg, rgba(90,70,45,0.025) 0 1px, transparent 1px 4px)",
+    "graph-drill-grid": "repeating-linear-gradient at 48px, rgba(107,92,69,0.06)"
+  },
+  "elevation": {
+    "sheet": "0 2px 24px rgba(36, 29, 22, 0.16)",
+    "panel-rail": "-4px 0 20px rgba(36, 29, 22, 0.12)",
+    "panel-sheet": "0 -4px 20px rgba(36, 29, 22, 0.16)",
+    "note": "soft drop shadows only; no offset block shadows in this world"
+  },
+  "border": {
+    "radius": "0",
+    "hairline": "1px solid var(--rule)",
+    "dotted": "1px dotted var(--rule)",
+    "section": "1px solid var(--rule-strong)",
+    "heavy": "2px solid var(--rule-strong)",
+    "action-underline": "2px solid var(--plate-mustard)",
+    "head-rule": "5px var(--plate-mustard)",
+    "graph-strip-rule": "4px solid var(--plate-mustard)"
+  },
+  "state": {
+    "stock_states": [
+      { "name": "in-season", "threshold": "freshness >= 0.6", "hatch": { "gap": 2, "width": 2, "angle": 45 }, "label": "In season" },
+      { "name": "holding", "threshold": "freshness >= 0.25", "hatch": { "gap": 4, "width": 1.5, "angle": 45 }, "label": "Holding" },
+      { "name": "dormant", "threshold": "freshness < 0.25", "hatch": { "gap": 7, "width": 1, "angle": 45 }, "label": "Dormant" },
+      { "name": "unsown", "threshold": "lastExposureAt === null", "hatch": null, "label": "Unsown", "note": "checked before any threshold; distinct from dormant" }
+    ],
+    "carriers": ["hatch density", "printed state word", "aria-label", "plate colour (redundant)"],
+    "ability": {
+      "formula": "round(((ability - 1) / 4) * 100), floored at 0",
+      "low_confidence_threshold": 0.4,
+      "low_confidence_treatment": ["prefix \"about\"", "font-style: italic", "opacity 0.62 / 0.6", "printed caveat with mustard left rule"]
+    },
+    "row_weight": {
+      "var": "--weight",
+      "range": "0-1, from topic count",
+      "plate-size": "calc(2.75rem + var(--weight) * 2.5rem)",
+      "padding-block": "calc(var(--space-2) + var(--weight) * 2.75rem)",
+      "mobile": "pinned to 3rem plate, --space-4 padding"
+    },
+    "graph_encoding": {
+      "size": "5 + ability * 2.4",
+      "fill": "fade(subjectColour, 0.3 + freshness * 0.7) toward #efe7d6",
+      "edge-size": "0.9 + weight * 1.4"
+    }
+  },
+  "motion": {
+    "status": "near-absent; recorded as built, not as intended",
+    "keyframes_count": 0,
+    "transitions": [
+      { "where": "stock list row hover", "value": "background-color 140ms ease-out" },
+      { "where": "sow-subject control hover", "value": "background-color 140ms ease-out" },
+      { "where": "inbox action hover", "value": "background-color 120ms ease-out, color 120ms ease-out" }
+    ],
+    "reduced_motion": "globally clamped to 0.01ms in globals.css"
+  },
+  "breakpoints": {
+    "60rem": "spread collapses to one column; margin unsticks, rule moves to top",
+    "48rem": "sheet body padding --space-5 to --space-4",
+    "40rem": "stock row becomes a stacked card; leader dots dropped; graph panel becomes bottom sheet; canvas inset 7.5rem"
+  },
+  "browser_surfaces": {
+    "selection": { "background": "--plate-mustard", "color": "--paper" },
+    "focus-visible": "2px solid var(--plate-terracotta), offset 2px",
+    "scrollbar": { "width": "thin", "thumb": "--rule", "track": "transparent", "radius": 0 },
+    "link": { "rest": "--rule, 1px, offset 0.22em", "hover": "--plate-terracotta" }
+  },
+  "not_canonized": [
+    "one-off rem measures inside a single surface stylesheet",
+    "the specific plate assigned to any one subject (that is data)",
+    "resolved pixel values from the --weight computation"
+  ]
+}
