@@ -301,7 +301,7 @@ async function sow(req: Request) {
 
   const res = await client.messages.create({
     model: 'claude-sonnet-5',
-    max_tokens: 8000,
+    max_tokens: 4000,
     tools: [TOOL],
     tool_choice: { type: 'tool', name: 'record_subject_topics' },
     messages: [{

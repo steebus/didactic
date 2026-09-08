@@ -1,0 +1,61 @@
+# The edge functions are a separate deploy target from the app. Vercel
+# builds and ships src/ on every push; nothing shipped
+# supabase/functions/, so `embed` existed locally and returned 404 in
+# production. Every sowing then dropped all of its topics and deleted
+# the subject it had just created.
+name: Deploy edge functions
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/functions/**'
+      - '.github/workflows/deploy-functions.yml'
+  # Deploying by hand is worth keeping: it is how a failed run is
+  # retried without an empty commit.
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # Deployed one at a time rather than with --all: a function that
+      # fails to bundle should not be reported as a whole-repo failure
+      # with no name attached.
+      - run: supabase functions deploy embed --project-ref "$PROJECT_REF"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+
+      - run: supabase functions deploy ingest --project-ref "$PROJECT_REF"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+
+      # A deploy that reports success while the function answers 404 is
+      # the failure this workflow exists to prevent, so the result is
+      # checked rather than assumed.
+      - name: Check embed answers
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          status=$(curl -s -o /tmp/body -w '%{http_code}' \
+            -X POST "$SUPABASE_URL/functions/v1/embed" \
+            -H 'content-type: application/json' \
+            -H "authorization: Bearer $ANON_KEY" \
+            -d '{"text":"deployment smoke test"}' --max-time 60)
+          if [ "$status" != "200" ]; then
+            echo "embed returned $status"; cat /tmp/body; exit 1
+          fi
+          # 384 dimensions, or the resolver's thresholds are calibrated
+          # against a different model than the one answering.
+          dims=$(jq '.embedding | length' /tmp/body)
+          echo "embed returned $dims dimensions"
+          [ "$dims" = "384" ] || { echo "expected 384"; exit 1; }
