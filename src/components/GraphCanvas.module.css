@@ -12,7 +12,10 @@
   /* Clear of the control strip: the camera fits the graph to the canvas
      box, so a full-bleed canvas parks nodes under the header. The strip
      wraps to two rows on a phone, hence the taller inset there. */
-  inset: 4.5rem 0 0 0;
+  /* Set from the controls strip, which grows when the forces panel
+     opens. A fixed inset hides the top of the planting. */
+  inset: var(--controls-height, 4.5rem) 0 0 0;
+  transition: inset var(--dur-state) var(--ease-settle);
   /* Bed markings: a faint drill grid, the way a planting plan is ruled. */
   background-image:
     repeating-linear-gradient(0deg, rgba(107, 92, 69, 0.06) 0 1px, transparent 1px 48px),
@@ -271,4 +274,85 @@
 .tend:hover {
   background: var(--plate-terracotta);
   text-decoration: none;
+}
+
+/* --- Force controls --------------------------------------------- */
+
+.forcesToggle {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(239, 231, 214, 0.9);
+  background: none;
+  border: 1px solid rgba(239, 231, 214, 0.4);
+  border-radius: 0;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-feedback) var(--ease-settle),
+    border-color var(--dur-feedback) var(--ease-settle),
+    color var(--dur-feedback) var(--ease-settle);
+}
+
+.forcesToggle:hover {
+  background: var(--plate-mustard);
+  border-color: var(--plate-mustard);
+  color: var(--ink);
+}
+
+.forces {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+  flex-wrap: wrap;
+  padding-top: var(--space-3);
+  margin-top: var(--space-2);
+  border-top: 1px solid rgba(239, 231, 214, 0.2);
+  animation: forcesIn var(--dur-state) var(--ease-settle) both;
+}
+
+@keyframes forcesIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-travel) * -0.375rem));
+  }
+}
+
+.force {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.forceLabel {
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(239, 231, 214, 0.75);
+  white-space: nowrap;
+}
+
+.force input[type='range'] {
+  accent-color: var(--plate-mustard);
+  width: 6rem;
+}
+
+.forceValue {
+  font-family: var(--font-display);
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--paper);
+  min-width: 2ch;
+}
+
+@media (max-width: 40rem) {
+  .forces {
+    gap: var(--space-3);
+  }
+
+  .force input[type='range'] {
+    width: 4.5rem;
+  }
 }

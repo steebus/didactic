@@ -50,10 +50,12 @@
      --motion-travel scales every spatial movement, so reduced motion
      can drop travel to zero while colour and opacity still confirm
      that something happened. */
-  --motion-travel: 1;
-  --dur-feedback: 120ms;
-  --dur-state: 240ms;
-  --dur-settle: 460ms;
+  /* Travel is scaled up from the first pass: the motion was correct
+     but too small to read as motion at all. */
+  --motion-travel: 2.2;
+  --dur-feedback: 140ms;
+  --dur-state: 300ms;
+  --dur-settle: 620ms;
   /* A confident arrival, not a bounce. */
   --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-exit: cubic-bezier(0.4, 0, 1, 1);
@@ -169,3 +171,42 @@ a:hover {
      }
 
    That block belongs back the moment anyone else uses this. */
+
+/* Every sheet arrives rather than appearing. Navigation between them
+   was a hard cut, which is the main reason the app read as static
+   however much the individual surfaces moved. */
+main {
+  animation: sheetIn var(--dur-settle) var(--ease-settle) both;
+}
+
+@keyframes sheetIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-travel) * 0.375rem));
+  }
+}
+
+/* The masthead band lands first and the rule under it draws across,
+   which is what makes a sheet feel printed rather than swapped. */
+main > header {
+  animation: bandIn var(--dur-settle) var(--ease-settle) both;
+}
+
+@keyframes bandIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-travel) * -0.25rem));
+  }
+}
+
+/* Links and buttons acknowledge the pointer everywhere, not only on the
+   surfaces that were worked individually. */
+a,
+button {
+  transition:
+    color var(--dur-feedback) var(--ease-settle),
+    background-color var(--dur-feedback) var(--ease-settle),
+    border-color var(--dur-feedback) var(--ease-settle),
+    text-decoration-color var(--dur-feedback) var(--ease-settle),
+    opacity var(--dur-feedback) var(--ease-settle);
+}

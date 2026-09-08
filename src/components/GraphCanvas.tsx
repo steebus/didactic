@@ -42,13 +42,23 @@ const EDGE_KIND_LABEL: Record<string, string> = {
   alternative: 'instead of',
 }
 
-/** Mix a hex plate colour toward the paper by the given amount. A
- *  dormant seed sits back into the bed rather than disappearing. */
-function fade(hex: string, amount: number) {
-  const paper = [239, 231, 214]
-  const n = parseInt(hex.replace('#', ''), 16)
-  const rgb = [(n >> 16) & 255, (n >> 8) & 255, n & 255]
-  const mixed = rgb.map((c, i) => Math.round(paper[i] + (c - paper[i]) * amount))
+const PAPER = [239, 231, 214]
+
+/** Mix a plate colour toward the paper by the given amount. A dormant
+ *  or unrelated seed sits back into the bed rather than disappearing.
+ *
+ *  Accepts hex or the rgb() strings this function itself returns, since
+ *  hover fades colours that were already faded by freshness. */
+function fade(colour: string, amount: number) {
+  const rgb = colour.startsWith('#')
+    ? [
+        (parseInt(colour.slice(1), 16) >> 16) & 255,
+        (parseInt(colour.slice(1), 16) >> 8) & 255,
+        parseInt(colour.slice(1), 16) & 255,
+      ]
+    : (colour.match(/\d+/g) ?? ['0', '0', '0']).slice(0, 3).map(Number)
+
+  const mixed = rgb.map((c, i) => Math.round(PAPER[i] + (c - PAPER[i]) * amount))
   return `rgb(${mixed.join(',')})`
 }
 
@@ -71,6 +81,13 @@ export function GraphCanvas({
   const [query, setQuery] = useState('')
   const [subject, setSubject] = useState<string | null>(initialSubject)
   const [showDormantOnly, setShowDormantOnly] = useState(false)
+  const [showForces, setShowForces] = useState(false)
+  // The forces, exposed the way Obsidian exposes them: pulling these
+  // around is how you find the arrangement that reads for you, and no
+  // single default suits every planting.
+  const [repel, setRepel] = useState(24)
+  const [centre, setCentre] = useState(1.2)
+  const [linkDistance, setLinkDistance] = useState(1)
 
   useEffect(() => {
     Promise.all([
@@ -169,10 +186,11 @@ export function GraphCanvas({
     }
 
     const layoutSettings = {
-      // Lower gravity with a wider scalingRatio lets the beds
-      // separate; strong gravity collapses them into one mass.
-      gravity: 1.2,
-      scalingRatio: 24,
+      // Centre force pulls the planting together; repulsion pushes the
+      // beds apart. Both are the user's to set.
+      gravity: centre,
+      scalingRatio: repel,
+      edgeWeightInfluence: linkDistance,
       slowDown: 14,
       adjustSizes: true,
       barnesHutOptimize: graph.order > 80,
@@ -200,8 +218,107 @@ export function GraphCanvas({
       // it hides more of them rather than overprinting into mush.
       labelGridCellSize: 90,
       labelRenderedSizeThreshold: 7,
-      minCameraRatio: 0.3,
-      maxCameraRatio: 3,
+      // Wide enough to pull right back and read the beds as beds, or
+      // push in until a single planting fills the frame.
+      minCameraRatio: 0.15,
+      maxCameraRatio: 6,
+    })
+
+    // --- Hovering a seed shows what it grows with ---------------------
+    //
+    // Everything unrelated recedes into the bed rather than disappearing,
+    // so the neighbourhood reads without losing the shape around it.
+    let hovered: string | null = null
+
+    const neighboursOf = (topicId: string) => {
+      const set = new Set<string>([topicId])
+      graph.forEachNeighbor(topicId, n => set.add(n))
+      return set
+    }
+
+    renderer.setSetting('nodeReducer', (node, attrs) => {
+      if (!hovered) return attrs
+      const near = neighboursOf(hovered)
+      if (near.has(node)) {
+        return node === hovered ? { ...attrs, size: (attrs.size as number) * 1.25 } : attrs
+      }
+      return { ...attrs, color: fade(attrs.color as string, 0.22), label: '' }
+    })
+
+    renderer.setSetting('edgeReducer', (edge, attrs) => {
+      if (!hovered) return attrs
+      const [from, to] = graph.extremities(edge)
+      const near = neighboursOf(hovered)
+      if (near.has(from) && near.has(to)) {
+        return { ...attrs, color: 'rgba(184, 72, 42, 0.85)', size: (attrs.size as number) * 1.6 }
+      }
+      return { ...attrs, color: 'rgba(90, 76, 56, 0.10)' }
+    })
+
+    renderer.on('enterNode', ({ node }) => {
+      hovered = node
+      renderer.refresh()
+    })
+
+    renderer.on('leaveNode', () => {
+      hovered = null
+      renderer.refresh()
+    })
+
+    // --- Pulling back shows the beds -----------------------------------
+    //
+    // Zoomed in you read topics; zoomed out the individual names stop
+    // mattering and what you want is which bed you are looking at. The
+    // subject name is drawn over its members' centre, fading in as the
+    // seed labels fade out, so the two never compete.
+    const subjectOf = new Map<string, string>()
+    for (const t of visible) {
+      if (t.primary_subject_id) subjectOf.set(t.id, t.primary_subject_id)
+    }
+
+    renderer.on('afterRender', () => {
+      const ratio = renderer.getCamera().ratio
+      // Below this the seed labels carry the sheet; above it they have
+      // thinned out and the bed names take over.
+      const strength = Math.min(1, Math.max(0, (ratio - 0.9) / 0.6))
+      if (strength <= 0.01) return
+
+      const context = renderer.getCanvases().labels.getContext('2d')
+      if (!context) return
+
+      // Mean position of each bed's members, in screen coordinates.
+      const centres = new Map<string, { x: number; y: number; n: number }>()
+      graph.forEachNode((node, attrs) => {
+        const subjectId = subjectOf.get(node)
+        if (!subjectId) return
+        const p = renderer.graphToViewport({ x: attrs.x as number, y: attrs.y as number })
+        const acc = centres.get(subjectId) ?? { x: 0, y: 0, n: 0 }
+        centres.set(subjectId, { x: acc.x + p.x, y: acc.y + p.y, n: acc.n + 1 })
+      })
+
+      context.save()
+      context.textAlign = 'center'
+      for (const [subjectId, acc] of centres) {
+        const subject = data.subjects.find(s => s.id === subjectId)
+        if (!subject || acc.n === 0) continue
+        // Fixed screen size, not scaled by zoom: a name that grows as
+        // you pull back ends up filling the frame and overprinting its
+        // neighbours. Bigger beds get a slightly larger name.
+        const size = 16 + Math.min(acc.n, 12) * 1.1
+        context.font = `600 ${size}px Georgia, serif`
+        context.fillStyle = fade(subject.colour, 0.35 + strength * 0.65)
+        // A paper halo so a name over a dense bed stays readable.
+        context.lineWidth = size * 0.28
+        context.strokeStyle = 'rgba(239, 231, 214, 0.9)'
+        context.lineJoin = 'round'
+        // Sit the name above its bed rather than through the middle of
+        // it, so the seeds stay visible underneath.
+        const x = acc.x / acc.n
+        const y = acc.y / acc.n - size * 1.4
+        context.strokeText(subject.title, x, y)
+        context.fillText(subject.title, x, y)
+      }
+      context.restore()
     })
 
     // A dormant seed's label recedes with it, so the whole entry reads
@@ -212,7 +329,13 @@ export function GraphCanvas({
       }
       if (!d.label) return
 
+      // Seed names give way as you pull back: past this the bed names
+      // take over, and printing both makes an unreadable page.
+      const ratio = renderer.getCamera().ratio
+      if (ratio > 1.5) return
+
       context.font = `500 ${settings.labelSize}px ${settings.labelFont}`
+      context.globalAlpha = Math.min(1, Math.max(0.15, (1.5 - ratio) / 0.5))
       context.fillStyle = d.freshness < 0.25 ? '#8a7d68' : '#241d16'
 
       // Flip the label to the left of its seed when it would otherwise
@@ -224,6 +347,8 @@ export function GraphCanvas({
       const x = overflows ? d.x - gap - width : d.x + gap
 
       context.fillText(d.label, x, d.y + settings.labelSize / 3)
+      // Restore, or the alpha leaks into everything drawn after this.
+      context.globalAlpha = 1
     })
 
     renderer.on('clickNode', ({ node }) => setSelected(node))
@@ -299,7 +424,7 @@ export function GraphCanvas({
       renderer.kill()
       sigma.current = null
     }
-  }, [data, query, subject, showDormantOnly, colourFor])
+  }, [data, query, subject, showDormantOnly, colourFor, repel, centre, linkDistance])
 
   const selectedTopic = data?.topics.find(t => t.id === selected) ?? null
 
@@ -334,10 +459,60 @@ export function GraphCanvas({
             />
             Dormant only
           </label>
+
+          <button
+            className={styles.forcesToggle}
+            onClick={() => setShowForces(v => !v)}
+            aria-expanded={showForces}
+          >
+            Forces
+          </button>
         </div>
+
+        {showForces && (
+          <div className={styles.forces}>
+            <label className={styles.force}>
+              <span className={styles.forceLabel}>Repel</span>
+              <input
+                type="range" min={4} max={80} step={2}
+                value={repel}
+                onChange={e => setRepel(+e.target.value)}
+              />
+              <span className={styles.forceValue}>{repel}</span>
+            </label>
+            <label className={styles.force}>
+              <span className={styles.forceLabel}>Draw together</span>
+              <input
+                type="range" min={0.1} max={6} step={0.1}
+                value={centre}
+                onChange={e => setCentre(+e.target.value)}
+              />
+              <span className={styles.forceValue}>{centre.toFixed(1)}</span>
+            </label>
+            <label className={styles.force}>
+              <span className={styles.forceLabel}>Link pull</span>
+              <input
+                type="range" min={0} max={3} step={0.1}
+                value={linkDistance}
+                onChange={e => setLinkDistance(+e.target.value)}
+              />
+              <span className={styles.forceValue}>{linkDistance.toFixed(1)}</span>
+            </label>
+            <button
+              className={styles.forcesToggle}
+              onClick={() => { setRepel(24); setCentre(1.2); setLinkDistance(1) }}
+            >
+              Reset
+            </button>
+          </div>
+        )}
       </div>
 
-      <div ref={holder} className={styles.canvas} />
+      <div
+        ref={holder}
+        className={styles.canvas}
+        style={{ '--controls-height': showForces ? '8.5rem' : '4.5rem' } as React.CSSProperties}
+      />
 
       {!data && <p className={styles.pending}>Reading the bed…</p>}
 
