@@ -535,3 +535,69 @@
   max-width: 44ch;
   margin: 0;
 }
+
+/* --- Under way: curricula with work left --------------------- */
+
+.workList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.workRow {
+  display: grid;
+  gap: var(--space-1);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--rule);
+}
+
+.workRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.workTitle {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1, 'opsz' 24;
+  line-height: 1.15;
+  text-decoration: none;
+}
+
+.workTitle:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--plate-terracotta);
+}
+
+.workMeta {
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* The resume link is the action in this block, so it carries the ink. */
+.workNext {
+  justify-self: start;
+  margin-top: var(--space-1);
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--plate-green);
+  text-decoration: none;
+  border-bottom: 2px solid var(--plate-mustard);
+  padding-bottom: 1px;
+}
+
+.workNext:hover {
+  color: var(--plate-terracotta);
+  border-bottom-color: var(--plate-terracotta);
+  text-decoration: none;
+}
+
+.workBlocked {
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+  font-style: italic;
+}

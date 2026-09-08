@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
 
 const QUESTIONS = [
@@ -55,11 +56,9 @@ export default function NewSubjectPage() {
   return (
     <main className={styles.sheet}>
       <header className={styles.head}>
+        <SheetNav current="sow" />
         <div className={styles.headRow}>
           <h1 className={styles.title}>Sow a subject</h1>
-          <Link href="/" className={styles.back}>
-            Back to the stock list
-          </Link>
         </div>
       </header>
       <div className={styles.headRule} />

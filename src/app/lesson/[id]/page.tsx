@@ -2,6 +2,8 @@
 
 import { use, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { Prose } from '@/components/Prose'
+import { useScrollMemory } from '@/lib/useScrollMemory'
 import styles from './page.module.css'
 
 interface LessonData {
@@ -49,6 +51,10 @@ export default function LessonPage({
   const [busy, setBusy] = useState(false)
   // Bumped after every write, so re-reading stays the effect's job.
   const [revision, setRevision] = useState(0)
+
+  // A lesson is long enough to leave halfway. Restore once the body is
+  // on the page, or the restore lands on a document too short to scroll.
+  useScrollMemory(`lesson:${id}`, body !== null)
 
   useEffect(() => {
     let cancelled = false
@@ -200,7 +206,9 @@ export default function LessonPage({
         {writing && !body ? (
           <p className={styles.pending}>Writing the lesson…</p>
         ) : body ? (
-          <article className={styles.prose}>{body}</article>
+          <article>
+            <Prose markdown={body} />
+          </article>
         ) : (
           !error && <p className={styles.pending}>Nothing written yet.</p>
         )}

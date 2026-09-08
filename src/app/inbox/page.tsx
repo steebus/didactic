@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { ResourceList } from '@/components/ResourceList'
 import { PendingQueue } from '@/components/PendingQueue'
 import type { Resource } from '@/lib/types'
+import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
 
 export const dynamic = 'force-dynamic'
@@ -46,11 +47,9 @@ export default async function InboxPage() {
   return (
     <main className={styles.sheet}>
       <header className={styles.head}>
+        <SheetNav current="inbox" />
         <div className={styles.headRow}>
           <h1 className={styles.title}>Inbox</h1>
-          <Link href="/" className={styles.back}>
-            Back to the stock list
-          </Link>
         </div>
       </header>
       <div className={styles.headRule} />

@@ -23,6 +23,8 @@
 
 .controls {
   position: absolute;
+  flex-direction: column;
+  align-items: stretch;
   inset: 0 auto auto 0;
   right: 0;
   z-index: 2;
@@ -33,6 +35,13 @@
   padding: var(--space-3) var(--space-4);
   background: var(--plate-green);
   border-bottom: 4px solid var(--plate-mustard);
+}
+
+.filters {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .search,

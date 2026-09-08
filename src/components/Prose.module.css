@@ -1,0 +1,172 @@
+/* Parsed lesson prose, set as printed instruction rather than a dump.
+   A reading measure, headings that step down clearly, and code that
+   reads as a specimen block on the sheet. */
+
+.prose {
+  font-size: var(--step-1);
+  line-height: 1.6;
+  max-width: 68ch;
+  color: var(--ink);
+}
+
+.prose > * + * {
+  margin-top: var(--space-4);
+}
+
+/* More space above a heading than below it. */
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  margin-bottom: var(--space-2);
+}
+
+.prose > h1 + *,
+.prose > h2 + *,
+.prose > h3 + *,
+.prose > h4 + * {
+  margin-top: var(--space-2);
+}
+
+.prose > * + h1,
+.prose > * + h2,
+.prose > * + h3,
+.prose > * + h4 {
+  margin-top: var(--space-5);
+}
+
+.prose h1 {
+  font-size: var(--step-3);
+  font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 60;
+}
+
+.prose h2 {
+  font-size: var(--step-2);
+  font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 40;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: var(--space-2);
+}
+
+.prose h3 {
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1, 'opsz' 28;
+}
+
+.prose h4 {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.prose p {
+  margin: 0;
+}
+
+.prose ul,
+.prose ol {
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.prose li + li {
+  margin-top: var(--space-2);
+}
+
+.prose li::marker {
+  color: var(--plate-terracotta);
+}
+
+.prose strong {
+  font-weight: 700;
+}
+
+.prose a {
+  color: var(--ink);
+  text-decoration-color: var(--plate-terracotta);
+}
+
+/* Inline code: set in the ground's own tint, not a grey chip. */
+.prose code {
+  font-family: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Menlo, monospace;
+  font-size: 0.85em;
+  background: var(--paper-deep);
+  padding: 0.1em 0.35em;
+  border: 1px solid var(--rule);
+}
+
+/* A code block is a specimen plate: ruled off, on its own ground, and
+   allowed to scroll rather than forcing the page sideways. */
+.prose pre {
+  margin: 0;
+  background: var(--paper-deep);
+  border-left: 3px solid var(--plate-green);
+  padding: var(--space-4);
+  overflow-x: auto;
+  font-size: var(--step--1);
+  line-height: 1.55;
+}
+
+.prose pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+.prose blockquote {
+  margin: 0;
+  padding-left: var(--space-4);
+  border-left: 2px solid var(--plate-mustard);
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.prose hr {
+  border: none;
+  border-top: 1px solid var(--rule-strong);
+  margin: var(--space-5) 0;
+}
+
+.prose table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--step-0);
+  display: block;
+  overflow-x: auto;
+}
+
+.prose th,
+.prose td {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--rule);
+}
+
+.prose th {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  border-bottom-color: var(--rule-strong);
+}
+
+@media (max-width: 40rem) {
+  .prose {
+    font-size: var(--step-0);
+  }
+
+  .prose h1 {
+    font-size: var(--step-2);
+  }
+
+  .prose h2 {
+    font-size: var(--step-1);
+  }
+}

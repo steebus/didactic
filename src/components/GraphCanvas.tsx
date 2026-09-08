@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import Graph from 'graphology'
 import Sigma from 'sigma'
 import forceAtlas2 from 'graphology-layout-forceatlas2'
+import { SheetNav } from './SheetNav'
 import styles from './GraphCanvas.module.css'
 
 interface GraphTopic {
@@ -104,8 +105,21 @@ export function GraphCanvas({
 
     const visibleIds = new Set(visible.map(t => t.id))
 
+    // Seed each subject in its own quarter of the bed. Most topics carry
+    // no edges at all, and force layout can only group what is
+    // connected — without this the planting settles into one ring with
+    // photography sitting next to edge functions.
+    const subjectIds = [...new Set(visible.map(t => t.primary_subject_id ?? 'loose'))]
+    const seedAngle = new Map(
+      subjectIds.map((id, i) => [id, (i / Math.max(1, subjectIds.length)) * Math.PI * 2])
+    )
+
     visible.forEach((t, i) => {
-      const angle = (i / visible.length) * Math.PI * 2
+      const home = t.primary_subject_id ?? 'loose'
+      const base = seedAngle.get(home) ?? 0
+      // Spread within the bed so members do not start stacked.
+      const jitter = (i % 7) / 7 - 0.5
+      const radius = 260 + ((i % 5) - 2) * 34
       graph.addNode(t.id, {
         label: t.title,
         // Size by ability: a stronger holding is a larger seed.
@@ -113,8 +127,8 @@ export function GraphCanvas({
         // Dormancy is mixed into the fill itself. Sigma has no alpha
         // attribute, so a separate opacity key renders as nothing.
         color: fade(colourFor(t), 0.3 + t.freshness * 0.7),
-        x: Math.cos(angle) * 100 + Math.random() * 10,
-        y: Math.sin(angle) * 100 + Math.random() * 10,
+        x: Math.cos(base + jitter * 0.8) * radius,
+        y: Math.sin(base + jitter * 0.8) * radius,
         freshness: t.freshness,
         ability: t.ability,
       })
@@ -124,21 +138,44 @@ export function GraphCanvas({
       if (!visibleIds.has(e.from_topic) || !visibleIds.has(e.to_topic)) return
       if (graph.hasEdge(e.from_topic, e.to_topic)) return
       graph.addEdge(e.from_topic, e.to_topic, {
-        size: 0.5 + e.weight,
-        color: 'rgba(107, 92, 69, 0.35)',
+        size: 0.9 + e.weight * 1.4,
+        // Printed rules, not hairlines: the earlier value vanished on a
+        // sunlit phone screen.
+        color: 'rgba(90, 76, 56, 0.62)',
         kind: e.kind,
       })
     })
 
+    // Membership pulls too. Topics sharing a subject attract even with
+    // no stated relationship, which is what makes the bed cluster by
+    // subject rather than by whatever the LLM happened to connect.
+    // These carry no weight in the render, only in the physics.
+    const bySubject = new Map<string, string[]>()
+    for (const t of visible) {
+      for (const subjectId of t.subject_ids.length ? t.subject_ids : ['loose']) {
+        bySubject.set(subjectId, [...(bySubject.get(subjectId) ?? []), t.id])
+      }
+    }
+    for (const members of bySubject.values()) {
+      // A ring through the members: enough to hold a bed together
+      // without the density of connecting every pair.
+      for (let i = 0; i < members.length; i++) {
+        const a = members[i]
+        const b = members[(i + 1) % members.length]
+        if (a === b || graph.hasEdge(a, b)) continue
+        graph.addEdge(a, b, { size: 0.4, color: 'rgba(90, 76, 56, 0.10)', kind: 'membership' })
+      }
+    }
+
     if (graph.order > 0) {
       forceAtlas2.assign(graph, {
-        iterations: 400,
+        iterations: 500,
         settings: {
-          // Strong gravity pulls the whole planting into frame; a low
-          // scalingRatio keeps clumps from flinging to the corners.
-          gravity: 8,
-          scalingRatio: 3,
-          slowDown: 12,
+          // Lower gravity with a wider scalingRatio lets the beds
+          // separate; strong gravity collapses them into one mass.
+          gravity: 1.2,
+          scalingRatio: 24,
+          slowDown: 14,
           adjustSizes: true,
           barnesHutOptimize: graph.order > 80,
         },
@@ -187,6 +224,11 @@ export function GraphCanvas({
 
     // Sit the whole planting in frame rather than leaving the camera
     // wherever the layout happened to finish.
+    // ponytail: animatedReset restores Sigma's default camera rather
+    // than fitting to the planting's bounding box, so the beds can sit
+    // off-centre when the layout spreads them unevenly. Fitting properly
+    // means computing the box and setting camera ratio and offset by
+    // hand; not worth it until the framing actually gets in the way.
     renderer.getCamera().animatedReset({ duration: 0 })
 
     sigma.current = renderer
@@ -201,32 +243,35 @@ export function GraphCanvas({
   return (
     <div className={styles.frame}>
       <div className={styles.controls}>
-        <input
-          className={styles.search}
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Find a topic"
-          aria-label="Find a topic"
-        />
-        <select
-          className={styles.select}
-          value={subject ?? ''}
-          onChange={e => setSubject(e.target.value || null)}
-          aria-label="Filter by subject"
-        >
-          <option value="">All subjects</option>
-          {data?.subjects.map(s => (
-            <option key={s.id} value={s.id}>{s.title}</option>
-          ))}
-        </select>
-        <label className={styles.toggle}>
+        <SheetNav back={{ href: '/', label: 'Stock list' }} current="bed" />
+        <div className={styles.filters}>
           <input
-            type="checkbox"
-            checked={showDormantOnly}
-            onChange={e => setShowDormantOnly(e.target.checked)}
+            className={styles.search}
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Find a topic"
+            aria-label="Find a topic"
           />
-          Dormant only
-        </label>
+          <select
+            className={styles.select}
+            value={subject ?? ''}
+            onChange={e => setSubject(e.target.value || null)}
+            aria-label="Filter by subject"
+          >
+            <option value="">All subjects</option>
+            {data?.subjects.map(s => (
+              <option key={s.id} value={s.id}>{s.title}</option>
+            ))}
+          </select>
+          <label className={styles.toggle}>
+            <input
+              type="checkbox"
+              checked={showDormantOnly}
+              onChange={e => setShowDormantOnly(e.target.checked)}
+            />
+            Dormant only
+          </label>
+        </div>
       </div>
 
       <div ref={holder} className={styles.canvas} />

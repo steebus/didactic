@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { computeFreshness, subjectAggregate } from './scoring'
+import { viewLessons } from './curriculum'
 import type { Resource } from './types'
 
 export interface SubjectCell {
@@ -28,6 +29,17 @@ export interface TopicSummary {
   primary_subject_id: string | null
 }
 
+/** An active curriculum with work left, and where to pick it up. */
+export interface CurriculumInProgress {
+  id: string
+  title: string
+  topicTitle: string
+  completed: number
+  total: number
+  /** The next lesson whose ground has been covered, if any is open. */
+  nextLesson: { id: string; title: string } | null
+}
+
 export interface HomeData {
   subjects: SubjectCell[]
   unfiled: TopicSummary[]
@@ -36,7 +48,62 @@ export interface HomeData {
   queued: Resource[]
   pendingCount: number
   suggested: TopicSummary | null
+  inProgress: CurriculumInProgress[]
   totals: { topics: number; subjects: number; resources: number }
+}
+
+/**
+ * Active curricula with lessons still to work, newest first, each with
+ * the next lesson whose ground has been covered. A draft is a proposal
+ * and does not belong here; an archived one has been set aside, and a
+ * finished one has nothing to resume.
+ */
+async function getCurriculaInProgress(
+  db: SupabaseClient
+): Promise<CurriculumInProgress[]> {
+  const { data: curricula } = await db
+    .from('curricula')
+    .select('id, title, status, created_at, topics(title)')
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+
+  if (!curricula?.length) return []
+
+  const ids = curricula.map(c => c.id)
+  const [{ data: lessons }, { data: prereqs }] = await Promise.all([
+    db.from('lessons')
+      .select('id, curriculum_id, title, position, completed_at')
+      .in('curriculum_id', ids),
+    db.from('lesson_prereqs').select('lesson_id, requires_lesson_id'),
+  ])
+
+  const out: CurriculumInProgress[] = []
+
+  for (const curriculum of curricula) {
+    const mine = (lessons ?? []).filter(l => l.curriculum_id === curriculum.id)
+    if (mine.length === 0) continue
+
+    const completed = mine.filter(l => l.completed_at !== null).length
+    if (completed === mine.length) continue // nothing left to resume
+
+    // Availability is derived the same way the curriculum page derives
+    // it, so the two never disagree about what is open.
+    const views = viewLessons(mine as never, (prereqs ?? []) as never)
+    const next = views.find(v => v.availability === 'available')
+
+    const topic = curriculum.topics as unknown as { title: string } | null
+
+    out.push({
+      id: curriculum.id,
+      title: curriculum.title,
+      topicTitle: topic?.title ?? '',
+      completed,
+      total: mine.length,
+      nextLesson: next ? { id: next.lesson.id, title: next.lesson.title } : null,
+    })
+  }
+
+  return out.slice(0, 4)
 }
 
 export async function getHomeData(db: SupabaseClient): Promise<HomeData> {
@@ -135,6 +202,7 @@ export async function getHomeData(db: SupabaseClient): Promise<HomeData> {
     queued: queuedResources,
     pendingCount,
     suggested: cold[0] ?? null,
+    inProgress: await getCurriculaInProgress(db),
     totals: {
       topics: active.length,
       subjects: subjectCells.length,

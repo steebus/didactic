@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { getHomeData } from '@/lib/home'
 import { Emblem, slugify } from '@/components/Emblem'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
+import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
 
 export const dynamic = 'force-dynamic'
@@ -29,6 +30,7 @@ export default async function Home() {
   return (
     <main className={styles.sheet}>
       <header className={styles.head}>
+        <SheetNav current="stock" />
         <div className={styles.masthead}>
           <h1 className={styles.title}>Didactic</h1>
           <div className={styles.edition}>
@@ -153,6 +155,34 @@ export default async function Home() {
           </section>
 
           <aside className={styles.margin}>
+            {data.inProgress.length > 0 && (
+              <section className={styles.block}>
+                <h2 className={styles.blockTitle}>Under way</h2>
+                <ul className={styles.workList}>
+                  {data.inProgress.map(c => (
+                    <li key={c.id} className={styles.workRow}>
+                      <Link href={`/curriculum/${c.id}`} className={styles.workTitle}>
+                        {c.title}
+                      </Link>
+                      <span className={styles.workMeta}>
+                        {c.topicTitle && `${c.topicTitle} · `}
+                        {c.completed} of {c.total} worked
+                      </span>
+                      {c.nextLesson ? (
+                        <Link href={`/lesson/${c.nextLesson.id}`} className={styles.workNext}>
+                          Carry on: {c.nextLesson.title}
+                        </Link>
+                      ) : (
+                        <span className={styles.workBlocked}>
+                          Nothing open — earlier ground first
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+
             <section className={styles.block}>
               <h2 className={styles.blockTitle}>In season</h2>
               {data.hot.length === 0 ? (
