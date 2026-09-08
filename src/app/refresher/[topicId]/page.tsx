@@ -95,7 +95,7 @@ export default function RefresherPage({
           ) : (
             <ul className={styles.priorList}>
               {state.resources.map((r, i) => (
-                <li key={i} className={styles.priorRow}>
+                <li key={i} className={styles.priorRow} style={{ '--i': i } as React.CSSProperties}>
                   <div>
                     {r.url ? (
                       <a className={styles.priorName} href={r.url} target="_blank" rel="noreferrer">

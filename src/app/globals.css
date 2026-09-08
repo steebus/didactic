@@ -43,6 +43,21 @@
   --step-3: 2.5rem;
   --step-4: clamp(3rem, 6vw, 5rem);
 
+  /* Motion. Timing expresses distance and consequence: feedback is
+     immediate, state changes are routine, and only a thing finding its
+     own position is allowed to take its time.
+
+     --motion-travel scales every spatial movement, so reduced motion
+     can drop travel to zero while colour and opacity still confirm
+     that something happened. */
+  --motion-travel: 1;
+  --dur-feedback: 120ms;
+  --dur-state: 240ms;
+  --dur-settle: 460ms;
+  /* A confident arrival, not a bounce. */
+  --ease-settle: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.875rem;
@@ -139,11 +154,18 @@ a:hover {
   background: transparent;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+/* The reduced-motion guard is deliberately off: this is a single-user
+   app and its owner asked for motion regardless of the OS setting.
+   Everything spatial is still expressed through --motion-travel, so
+   restoring the guard is one block:
+
+     @media (prefers-reduced-motion: reduce) {
+       :root { --motion-travel: 0; --ease-settle: linear;
+               --dur-settle: var(--dur-state); }
+       *, *::before, *::after {
+         animation-duration: 0.01ms !important;
+         animation-iteration-count: 1 !important;
+       }
+     }
+
+   That block belongs back the moment anyone else uses this. */

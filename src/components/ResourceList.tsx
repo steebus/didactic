@@ -14,6 +14,7 @@ const DEPTHS = [
 export function ResourceList({ resources }: { resources: Resource[] }) {
   const [asking, setAsking] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  const [leaving, setLeaving] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [, startTransition] = useTransition()
   const router = useRouter()
@@ -32,11 +33,20 @@ export function ResourceList({ resources }: { resources: Resource[] }) {
         throw new Error(error ?? 'Request failed')
       }
       setAsking(null)
+
+      // A row that changes section should be seen leaving it, or the
+      // list simply reshuffles and the reader has to find what moved.
+      if (body.status === 'consumed' || body.status === 'abandoned') {
+        setLeaving(id)
+        await new Promise(resolve => setTimeout(resolve, 260))
+      }
+
       startTransition(() => router.refresh())
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save that. Try again.')
     } finally {
       setBusy(null)
+      setLeaving(null)
     }
   }
 
@@ -49,7 +59,10 @@ export function ResourceList({ resources }: { resources: Resource[] }) {
       {error && <p className={styles.empty}>{error}</p>}
       <ul className={styles.list}>
         {resources.map(r => (
-          <li key={r.id} className={styles.row}>
+          <li
+            key={r.id}
+            className={`${styles.row} ${leaving === r.id ? styles.rowLeaving : ''}`}
+          >
             <div>
               <h3 className={styles.rowTitle}>{r.title}</h3>
               <div className={styles.rowMeta}>

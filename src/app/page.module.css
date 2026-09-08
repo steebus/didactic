@@ -601,3 +601,60 @@
   color: var(--ink-faint);
   font-style: italic;
 }
+
+/* --- Motion --------------------------------------------------- */
+
+/* The stock list arrives as a list: entries settle in sequence, capped
+   so the last row is never waiting on the first. --i is set per row. */
+.entry {
+  animation: entrySettle var(--dur-settle) var(--ease-settle) both;
+  animation-delay: calc(min(var(--i, 0) * 45ms, 320ms));
+  transition:
+    background-color var(--dur-feedback) var(--ease-settle),
+    transform var(--dur-feedback) var(--ease-settle);
+}
+
+@keyframes entrySettle {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-travel) * 0.5rem));
+  }
+}
+
+/* A row acknowledges the press before the page changes under it. */
+.entry:active {
+  transform: translateY(calc(var(--motion-travel) * 1px));
+}
+
+/* The margin is marginalia: it arrives after the stock it annotates. */
+.margin {
+  animation: marginIn var(--dur-settle) var(--ease-settle) both;
+  animation-delay: 160ms;
+}
+
+@keyframes marginIn {
+  from {
+    opacity: 0;
+  }
+}
+
+/* The recommendation is the sheet's one raised voice, so it is the last
+   thing to land. */
+.recommendation {
+  animation: recommendationIn var(--dur-settle) var(--ease-settle) both;
+  animation-delay: 320ms;
+}
+
+@keyframes recommendationIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-travel) * 0.625rem));
+  }
+}
+
+.recommendationAction,
+.workNext {
+  transition:
+    color var(--dur-feedback) var(--ease-settle),
+    border-bottom-color var(--dur-feedback) var(--ease-settle);
+}

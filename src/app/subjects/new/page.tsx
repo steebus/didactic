@@ -87,7 +87,7 @@ export default function NewSubjectPage() {
         {subject.trim() && (
           <div className={styles.questions}>
             {QUESTIONS.map((question, i) => (
-              <div key={question.q} className={styles.field}>
+              <div key={question.q} className={styles.field} style={{ '--i': i } as React.CSSProperties}>
                 <label className={styles.label} htmlFor={`q${i}`}>
                   {question.q}
                 </label>

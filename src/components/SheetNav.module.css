@@ -59,3 +59,12 @@
     margin-left: 0;
   }
 }
+
+/* Motion: the running head is a link set, so it acknowledges hover
+   without moving the line it sits on. */
+.back,
+.sheet {
+  transition:
+    color var(--dur-feedback) var(--ease-settle),
+    border-bottom-color var(--dur-feedback) var(--ease-settle);
+}

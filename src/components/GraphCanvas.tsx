@@ -178,9 +178,14 @@ export function GraphCanvas({
       barnesHutOptimize: graph.order > 80,
     }
 
+    // Drag physics stay live under reduced motion: they are a direct
+    // response to the hand, which is feedback rather than decoration.
     if (graph.order > 0) {
-      // Settle the planting before the first paint, so it opens on a
-      // readable bed rather than animating out of a seeded ring.
+      // Settle fully before the first paint. Cutting this short to let
+      // the bed visibly take root was tried and reverted: the running
+      // forces need a resolved starting state, and from a half-settled
+      // one they leave seeds clumped and overlapping instead of
+      // spreading. A legible bed beats an entrance.
       forceAtlas2.assign(graph, { iterations: 400, settings: layoutSettings })
     }
 

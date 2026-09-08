@@ -192,3 +192,36 @@
   font-style: italic;
   margin: 0;
 }
+
+/* --- Motion --------------------------------------------------- */
+
+/* A refresher is generated on open: the prior material is already
+   yours, so it arrives first and the written piece settles after it. */
+.priorRow {
+  animation: priorIn var(--dur-state) var(--ease-settle) both;
+  animation-delay: calc(min(var(--i, 0) * 50ms, 200ms));
+}
+
+@keyframes priorIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-travel) * 0.375rem));
+  }
+}
+
+/* Waiting on a model is the one place a pulse is honest: it says the
+   page is working rather than broken. */
+.pending {
+  animation: breathe 2.4s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+
+.back {
+  transition:
+    color var(--dur-feedback) var(--ease-settle),
+    border-bottom-color var(--dur-feedback) var(--ease-settle);
+}

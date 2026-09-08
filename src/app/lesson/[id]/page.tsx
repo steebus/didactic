@@ -268,10 +268,11 @@ export default function LessonPage({
                 the ceiling.
               </p>
               <div className={styles.depths}>
-                {DEPTHS.map(d => (
+                {DEPTHS.map((d, i) => (
                   <button
                     key={d.value}
                     className={styles.depth}
+                    style={{ '--i': i } as React.CSSProperties}
                     disabled={busy}
                     onClick={() => mark('complete', d.value)}
                   >

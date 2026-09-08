@@ -105,7 +105,7 @@
 .prose pre {
   margin: 0;
   background: var(--paper-deep);
-  border-left: 3px solid var(--plate-green);
+  border-top: 3px solid var(--plate-green);
   padding: var(--space-4);
   overflow-x: auto;
   font-size: var(--step--1);
@@ -168,5 +168,19 @@
 
   .prose h2 {
     font-size: var(--step-1);
+  }
+}
+
+/* A lesson body is written on first open, so it arrives rather than
+   appearing. One fade, no per-element choreography: this is reading
+   material, not a presentation. */
+.prose {
+  animation: proseIn var(--dur-settle) var(--ease-settle) both;
+}
+
+@keyframes proseIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-travel) * 0.375rem));
   }
 }

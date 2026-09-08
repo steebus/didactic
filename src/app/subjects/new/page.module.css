@@ -196,3 +196,47 @@
   font-size: var(--step-0);
   color: var(--ink-soft);
 }
+
+/* --- Motion --------------------------------------------------- */
+
+/* The questions appear only once a subject is named, so they arrive as
+   a set: the form is asking, not merely growing. */
+.questions .field {
+  animation: fieldIn var(--dur-state) var(--ease-settle) both;
+  animation-delay: calc(min(var(--i, 0) * 70ms, 210ms));
+}
+
+@keyframes fieldIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-travel) * 0.5rem));
+  }
+}
+
+.submit {
+  transition:
+    background-color var(--dur-state) var(--ease-settle),
+    transform var(--dur-feedback) var(--ease-settle);
+}
+
+.submit:active:not(:disabled) {
+  transform: translateY(calc(var(--motion-travel) * 1px));
+}
+
+.input,
+.textarea {
+  transition:
+    border-color var(--dur-feedback) var(--ease-settle),
+    background-color var(--dur-feedback) var(--ease-settle);
+}
+
+.input:focus,
+.textarea:focus {
+  background: var(--paper-deep);
+}
+
+.back {
+  transition:
+    color var(--dur-feedback) var(--ease-settle),
+    border-bottom-color var(--dur-feedback) var(--ease-settle);
+}

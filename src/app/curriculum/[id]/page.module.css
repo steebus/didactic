@@ -122,8 +122,10 @@
 /* --- The proposal notice --------------------------------------- */
 
 .proposal {
-  border: 1px solid var(--plate-mustard);
-  border-left-width: 5px;
+  border: 1px solid var(--rule);
+  /* A printed rule across the head, the catalogue's own way of
+     marking a notice. A thick side tab is the category tell. */
+  border-top: 4px solid var(--plate-mustard);
   padding: var(--space-4);
   display: grid;
   gap: var(--space-2);
@@ -397,4 +399,61 @@
   text-transform: uppercase;
   color: var(--ink-faint);
   margin-right: var(--space-1);
+}
+
+/* --- Motion --------------------------------------------------- */
+
+/* A curriculum reads as tiers of lessons, so the rows settle in tier
+   order. Capped: the last row never waits on the first. */
+.lessonRow {
+  animation: lessonIn var(--dur-state) var(--ease-settle) both;
+  animation-delay: calc(min(var(--i, 0) * 35ms, 280ms));
+  /* Reordering moves a lesson under the hand, so the row carries a
+     transform transition as well as its hover colour. */
+  transition:
+    background-color var(--dur-feedback) var(--ease-settle),
+    transform var(--dur-state) var(--ease-settle);
+}
+
+@keyframes lessonIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-travel) * 0.375rem));
+  }
+}
+
+.nudge {
+  transition:
+    color var(--dur-feedback) var(--ease-settle),
+    border-color var(--dur-feedback) var(--ease-settle),
+    background-color var(--dur-feedback) var(--ease-settle);
+}
+
+.nudge:active:not(:disabled) {
+  transform: translateY(calc(var(--motion-travel) * 1px));
+}
+
+/* The proposal banner is the page's argument: it lands last and stays. */
+.proposal {
+  animation: proposalIn var(--dur-settle) var(--ease-settle) both;
+}
+
+@keyframes proposalIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-travel) * 0.5rem));
+  }
+}
+
+.action,
+.quietAction {
+  transition:
+    background-color var(--dur-feedback) var(--ease-settle),
+    color var(--dur-feedback) var(--ease-settle),
+    transform var(--dur-feedback) var(--ease-settle);
+}
+
+.action:active:not(:disabled),
+.quietAction:active:not(:disabled) {
+  transform: translateY(calc(var(--motion-travel) * 1px));
 }

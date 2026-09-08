@@ -70,7 +70,7 @@ export default async function Home() {
             </div>
 
             <ul className={styles.listing}>
-              {data.subjects.map(subject => {
+              {data.subjects.map((subject, index) => {
                 const state = stockState(subject.freshness, subject.lastExposureAt)
                 const slug = slugify(subject.title)
                 // Larger holdings take more of the sheet.
@@ -84,7 +84,7 @@ export default async function Home() {
                     <Link
                       href={`/graph?subject=${subject.id}`}
                       className={styles.entry}
-                      style={{ '--weight': weight } as React.CSSProperties}
+                      style={{ '--weight': weight, '--i': index } as React.CSSProperties}
                     >
                       <Emblem
                         slug={slug}

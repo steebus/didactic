@@ -274,3 +274,60 @@
     justify-self: start;
   }
 }
+
+/* --- Motion --------------------------------------------------- */
+
+/* A row that has been sown or set aside is seen leaving its section
+   before the list reshuffles, so the reader knows what moved rather
+   than having to find it again. */
+.rowLeaving {
+  opacity: 0;
+  transform: translateX(calc(var(--motion-travel) * 1.5rem));
+  transition:
+    opacity var(--dur-state) var(--ease-exit),
+    transform var(--dur-state) var(--ease-exit);
+  pointer-events: none;
+}
+
+/* The depth prompt is a question arriving, not a layout jump. */
+.prompt {
+  animation: promptIn var(--dur-state) var(--ease-settle) both;
+}
+
+@keyframes promptIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-travel) * -0.375rem));
+  }
+}
+
+/* Feedback on press: the control acknowledges before the request
+   returns, so a slow network does not read as a dead button. */
+.button {
+  transition:
+    background-color var(--dur-feedback) var(--ease-settle),
+    color var(--dur-feedback) var(--ease-settle),
+    border-color var(--dur-feedback) var(--ease-settle),
+    transform var(--dur-feedback) var(--ease-settle);
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(calc(var(--motion-travel) * 1px));
+}
+
+.button:disabled {
+  opacity: 0.55;
+}
+
+/* The adjudication queue is the loudest thing on the sheet; its arrival
+   should be seen rather than simply present. */
+.decisions {
+  animation: decisionsIn var(--dur-settle) var(--ease-settle) both;
+}
+
+@keyframes decisionsIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-travel) * 0.5rem));
+  }
+}

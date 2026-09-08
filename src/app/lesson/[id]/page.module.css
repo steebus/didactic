@@ -113,8 +113,10 @@
 /* --- Unmet prerequisites ---------------------------------------- */
 
 .gate {
-  border: 1px solid var(--plate-mustard);
-  border-left-width: 5px;
+  border: 1px solid var(--rule);
+  /* A printed rule across the head, the catalogue's own way of
+     marking a notice. A thick side tab is the category tell. */
+  border-top: 4px solid var(--plate-mustard);
   padding: var(--space-4);
   display: grid;
   gap: var(--space-2);
@@ -292,4 +294,48 @@
 .quietAction:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* --- Motion --------------------------------------------------- */
+
+/* The depth choices are a question about work just finished, so they
+   arrive together rather than snapping into place. */
+.depth {
+  animation: depthIn var(--dur-state) var(--ease-settle) both;
+  animation-delay: calc(min(var(--i, 0) * 60ms, 180ms));
+  transition:
+    background-color var(--dur-feedback) var(--ease-settle),
+    border-color var(--dur-feedback) var(--ease-settle),
+    transform var(--dur-feedback) var(--ease-settle);
+}
+
+@keyframes depthIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-travel) * 0.375rem));
+  }
+}
+
+.depth:active:not(:disabled) {
+  transform: translateY(calc(var(--motion-travel) * 1px));
+}
+
+/* The gate explains why a lesson is not open yet; it should be seen
+   arriving, not discovered. */
+.gate {
+  animation: gateIn var(--dur-settle) var(--ease-settle) both;
+}
+
+@keyframes gateIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-travel) * 0.375rem));
+  }
+}
+
+.quietAction,
+.back {
+  transition:
+    color var(--dur-feedback) var(--ease-settle),
+    border-color var(--dur-feedback) var(--ease-settle);
 }
