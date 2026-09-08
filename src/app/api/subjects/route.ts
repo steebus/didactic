@@ -301,7 +301,7 @@ async function sow(req: Request) {
 
   const res = await client.messages.create({
     model: 'claude-sonnet-5',
-    max_tokens: 4000,
+    max_tokens: 8000,
     tools: [TOOL],
     tool_choice: { type: 'tool', name: 'record_subject_topics' },
     messages: [{
@@ -333,6 +333,22 @@ ${
     return NextResponse.json({ error: 'no structured output' }, { status: 502 })
   }
 
+  // A tool call cut off at the token ceiling still arrives as a
+  // tool_use block, but its input is whatever parsed out of half a
+  // JSON document -- topics as a bare string, or absent. Reading that
+  // as a list is where "(k.topics ?? []).filter is not a function"
+  // came from. The cause is named here rather than discovered in a
+  // stack trace.
+  if (res.stop_reason === 'max_tokens') {
+    return NextResponse.json(
+      {
+        error:
+          'The map came back half-written: the model hit its length ceiling part way through the list. Try a shallower scope, or a subject cut into two.',
+      },
+      { status: 502 }
+    )
+  }
+
   const raw = tool.input as {
     topics?: Array<{ name?: string; summary?: string; estimated_level?: number }>
     assessment?: { level?: number; note?: string; shown?: unknown; missing?: unknown }
@@ -341,7 +357,7 @@ ${
   // The model's shape is a promise, not a guarantee. Anything without a
   // usable name cannot be embedded or resolved, so it is dropped rather
   // than crashing the request.
-  const proposed = (raw.topics ?? [])
+  const proposed = (Array.isArray(raw.topics) ? raw.topics : [])
     .filter(t => typeof t?.name === 'string' && t.name.trim().length > 0)
     .map(t => ({
       name: t.name!.trim(),
