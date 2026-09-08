@@ -1,0 +1,276 @@
+/* The roots gauge: a slider and its specimen plate, printed side by
+   side the way a catalogue prints a variety against its figure. */
+
+/* No rule of its own: the gauge is the first field of the sowing sheet
+   and the field set above it is already ruled off. A second rule here
+   printed an empty band between the two. */
+.gauge {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.control {
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+}
+
+.label {
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 40;
+  letter-spacing: -0.015em;
+  line-height: 1.05;
+  color: var(--ink);
+}
+
+.hint {
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+  font-style: italic;
+  margin: 0 0 var(--space-2);
+  max-width: 46ch;
+}
+
+/* --- The slider ------------------------------------------------ */
+
+/* A ruled bar with a mustard block riding it: a printed scale, not a
+   pill. The filled portion is the ground already held. */
+.slider {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 1.75rem;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-runnable-track {
+  height: 8px;
+  border: 1px solid var(--rule-strong);
+  background: linear-gradient(
+    90deg,
+    var(--plate-green) 0 calc(var(--fraction) * 100%),
+    var(--paper-edge) calc(var(--fraction) * 100%) 100%
+  );
+}
+
+.slider::-moz-range-track {
+  height: 8px;
+  border: 1px solid var(--rule-strong);
+  background: linear-gradient(
+    90deg,
+    var(--plate-green) 0 calc(var(--fraction) * 100%),
+    var(--paper-edge) calc(var(--fraction) * 100%) 100%
+  );
+}
+
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 15px;
+  height: 26px;
+  margin-top: -10px;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--plate-mustard);
+  transition: background-color var(--dur-feedback) var(--ease-settle);
+}
+
+.slider::-moz-range-thumb {
+  width: 15px;
+  height: 26px;
+  border: 1px solid var(--ink);
+  border-radius: 0;
+  background: var(--plate-mustard);
+  transition: background-color var(--dur-feedback) var(--ease-settle);
+}
+
+.slider:hover::-webkit-slider-thumb,
+.slider:active::-webkit-slider-thumb {
+  background: var(--plate-terracotta);
+}
+
+.slider:hover::-moz-range-thumb,
+.slider:active::-moz-range-thumb {
+  background: var(--plate-terracotta);
+}
+
+.notches {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  list-style: none;
+  margin: calc(var(--space-2) * -1) 0 0;
+  padding: 0;
+}
+
+.notch {
+  width: 100%;
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  color: var(--ink-faint);
+  background: none;
+  border: none;
+  border-top: 1px solid var(--rule);
+  border-radius: 0;
+  padding: var(--space-1) 0 0;
+  cursor: pointer;
+}
+
+/* The notches sit under the track, so their rules read as tick marks
+   rather than as a row of buttons. */
+.notches li:first-child .notch {
+  text-align: left;
+}
+
+.notches li:last-child .notch {
+  text-align: right;
+}
+
+.notchOn {
+  color: var(--ink);
+  border-top: 2px solid var(--plate-mustard);
+  font-weight: 600;
+}
+
+.reading {
+  margin: var(--space-2) 0 0;
+  display: grid;
+  gap: var(--space-1);
+  border-left: 2px solid var(--plate-mustard);
+  padding-left: var(--space-3);
+}
+
+.readingName {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1, 'opsz' 24;
+  color: var(--ink);
+}
+
+.readingNote {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+/* --- The plate -------------------------------------------------- */
+
+/* Reversed out of a saturated field, like every other specimen in this
+   catalogue. A line drawing on the paper ground would be the
+   antiques-shop version of this world. */
+.plate {
+  margin: 0;
+  width: 9.5rem;
+  display: grid;
+  gap: 0;
+}
+
+.specimen {
+  display: block;
+  width: 100%;
+  height: auto;
+  background: var(--plate-green);
+}
+
+.caption {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  text-align: center;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--rule);
+}
+
+.soil {
+  fill: rgba(36, 29, 22, 0.22);
+}
+
+.stratum {
+  stroke: rgba(239, 231, 214, 0.22);
+  stroke-width: 1;
+}
+
+.soilLine {
+  stroke: var(--plate-mustard);
+  stroke-width: 3;
+}
+
+.plant {
+  fill: var(--paper);
+}
+
+/* Growth is drawn on: the path is dashed to its own length and the gap
+   is pulled back as the notch rises, so the line travels the way a root
+   travels rather than fading in. */
+.root,
+.stem {
+  fill: none;
+  stroke: var(--paper);
+  stroke-linecap: round;
+  transition: stroke-dashoffset var(--dur-settle) var(--ease-settle);
+}
+
+/* Roots are underground, so they are printed a shade back from the
+   shoot — the same ink, less of it. */
+.root {
+  stroke: rgba(239, 231, 214, 0.82);
+}
+
+.leaf {
+  fill: var(--paper);
+  transform-origin: 0 0;
+  transition: transform var(--dur-settle) var(--ease-settle);
+}
+
+.midrib {
+  fill: none;
+  stroke: var(--plate-green);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
+.crown {
+  transition: transform var(--dur-settle) var(--ease-settle);
+}
+
+.bud,
+.petal {
+  fill: var(--paper);
+}
+
+.heart {
+  fill: var(--plate-green);
+}
+
+.seed {
+  transition: opacity var(--dur-state) var(--ease-settle);
+}
+
+.seedHalf {
+  fill: var(--paper);
+  transition: transform var(--dur-settle) var(--ease-settle);
+}
+
+/* --- Narrow ----------------------------------------------------- */
+
+/* The figure stays beside the slider at every width — it is the answer
+   to the question, not an illustration of it — but it gives up room
+   first. */
+@media (max-width: 40rem) {
+  .gauge {
+    gap: var(--space-4);
+  }
+
+  .plate {
+    width: 6.5rem;
+  }
+
+  .label {
+    font-size: var(--step-1);
+  }
+}

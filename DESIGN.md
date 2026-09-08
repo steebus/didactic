@@ -187,7 +187,7 @@ block shadow, and this world does not use one.
 
 | Measure | Surfaces |
 | --- | --- |
-| `var(--sheet-max)` = `1240px` | Stock list, inbox, topic |
+| `var(--sheet-max)` = `1240px` | Stock list, inbox, topic, subject |
 | `68rem` | Curriculum |
 | `62rem` | Lesson, refresher |
 | `52rem` | Sow a subject |
@@ -268,6 +268,22 @@ Nothing in this world is rounded.
 the action commits something (`.tend`, the inbox action): `--plate-green` fill,
 paper text, square, hovering to `--plate-terracotta`.
 
+### The fixed tree
+
+The subject sheet prints its bed as an outline, nested by `specialises` first
+and `prereq` second, and by nothing else — `related` and `alternative` are
+sideways and nest nothing. Nesting is drawn with rules rather than indentation
+alone: a `1px solid var(--rule)` down the branch and a `var(--space-3)` tick
+out to each entry.
+
+**Rule — the outline is fixed and the graph is not.** Siblings sort by title
+at every depth, a topic takes at most one parent, and the strongest single
+relationship wins with ties broken by title, so the same data prints the same
+way twice. This is the whole reason the sheet exists beside the canvas: the
+graph is where position is emergent, which is good for shape and useless for
+finding the same topic again. Adding and removing topics therefore belongs on
+this sheet, not on the bed.
+
 ### The spread
 
 The home surface is a two-column spread: `minmax(0, 1fr) 20rem` with
@@ -341,6 +357,33 @@ padding: calc(var(--space-2) + var(--weight) * 2.75rem) var(--space-2);
 move together, so the shape of the listing is readable before any figure is.
 On phones this is dropped: `--plate-size` is pinned to `3rem` and padding to
 `var(--space-4)`, because at 390px a weighted row reads as a layout accident.
+
+### A self-reported level → a specimen that grows
+
+The roots gauge (`RootsGauge`) is the one place the user states a figure
+rather than the app inferring one, and it is the only device in the build whose
+drawing changes with its value. A 0–5 slider sits beside a plate: at 0 a
+dormant seed on bare ground, and at each notch the seed splits, the taproot
+deepens, the stem rises, a leaf pair opens, and at 5 the crown flowers.
+
+Growth is drawn on rather than faded in. The stem and taproot are one path
+each with `pathLength={1}` and `strokeDasharray="1"`; the notch sets
+`strokeDashoffset`, so the line travels the way a root travels. Laterals,
+leaves and the crown scale from their own attachment point, delayed by the
+notch they belong to, so the figure grows base-first and retracts in one
+movement.
+
+**Rule — the plate carries the same three carriers as every other state in
+this world.** The notch number, the stage name in words ("Bare ground",
+"Seedling", "In full flower"), and the drawing. The slider carries
+`aria-valuetext` with both the number and the name; the plate carries the same
+as its `aria-label`. Colour carries nothing here on its own — the whole plate
+is one ink.
+
+**Rule — depth is drawn, not implied.** Roots below the soil line are set a
+shade back from the shoot (`rgba(239,231,214,0.82)` against solid paper) and
+run against three dotted strata, because the question asks how *deep* the
+roots go and a shoot alone cannot answer it.
 
 ### Subject plates
 

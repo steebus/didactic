@@ -8,6 +8,29 @@ import { config } from '@/lib/config'
 
 const PLATE_INKS = ['#b8482a', '#2f5233', '#c8871a', '#2a4a7c', '#6b3550', '#6b7233']
 
+/** The same rungs the roots slider prints, so the model reads the
+ *  figure the way the user set it. */
+const ROOT_STAGES = [
+  'bare ground, no prior knowledge at all',
+  'just germinated: knows the words, nothing has taken hold',
+  'seedling: can follow a conversation about it',
+  'in leaf: uses it with the documentation open',
+  'well rooted: works in it without looking much up',
+  'in full flower: mastery, could teach it',
+]
+
+interface Qualifier {
+  prompt: string
+  level: number
+  answer: string
+}
+
+interface Evidence {
+  resourceId?: string
+  title: string
+  kind: string
+}
+
 const TOOL = {
   name: 'record_subject_topics',
   description: 'Record the topics within a subject and an estimated starting level for each.',
@@ -38,9 +61,109 @@ export async function GET() {
   return NextResponse.json({ subjects: data })
 }
 
+/**
+ * Everything the user said on the sowing sheet, as one brief for the
+ * model. All of it is optional: a subject named and nothing else still
+ * lays out a bed, it just rests on the subject's name alone.
+ */
+function buildBrief(input: {
+  subject: string
+  roots: number | null
+  confident: string
+  gaps: string
+  depth: string
+  qualifiers: Qualifier[]
+  evidence: Evidence[]
+}) {
+  const parts: string[] = []
+
+  if (input.roots !== null) {
+    parts.push(
+      `They put their own roots in this subject at ${input.roots} out of 5 — ${ROOT_STAGES[input.roots]}.`
+    )
+  }
+  if (input.confident) parts.push(`What they say they already hold:\n${input.confident}`)
+  if (input.gaps) parts.push(`What they say they have bounced off or avoided:\n${input.gaps}`)
+  if (input.evidence.length) {
+    parts.push(
+      `Evidence they handed over for the above — books read, courses done, qualifications held:\n${
+        input.evidence.map(e => `- ${e.title} (${e.kind})`).join('\n')
+      }`
+    )
+  }
+
+  // The qualifying set is the only evidence here that is about the
+  // subject rather than about how they feel, so it is worth more than
+  // the rest. An unanswered question is evidence too: skipping the
+  // hard end of a graded set says something.
+  const answered = input.qualifiers.filter(q => q.answer.trim())
+  if (answered.length) {
+    parts.push(
+      `Their answers to the qualifying questions, easiest first. These are the strongest evidence here — they are about the subject rather than about how they feel — so weigh them above the self-report:\n${
+        answered
+          .map(q => `- [rung ${q.level}/5] ${q.prompt}\n  ${q.answer.trim()}`)
+          .join('\n')
+      }`
+    )
+    const skipped = input.qualifiers.length - answered.length
+    if (skipped > 0) {
+      parts.push(
+        `They left ${skipped} of the ${input.qualifiers.length} qualifying questions unanswered. Unanswered is not wrong, but do not read it as held either.`
+      )
+    }
+  }
+
+  return parts.join('\n\n')
+}
+
+/**
+ * How far the user said they want to take the subject decides the shape
+ * of the bed, not just its labels: an overview is broad and shallow, a
+ * mastery run is narrow and finely cut.
+ */
+function scopeInstruction(depth: string) {
+  if (!depth.trim()) {
+    return 'They said nothing about how far they want to take it, so cut 10 to 16 topics at an ordinary working grain.'
+  }
+  return `How far they want to take it, in their words:\n${depth}\n\nLet that set both the number of topics and how finely they are cut. Someone who wants an overview or is merely curious gets 6 to 10 broad topics and no specialist corners. Someone who wants a working knowledge gets 10 to 16. Someone who wants to master it gets 16 to 24, cut fine enough that each one is a real piece of work, including the awkward corners a survey would skip.`
+}
+
 export async function POST(req: Request) {
-  const { subject, answers, userId } = await req.json()
+  const body = await req.json()
+  const subject: string = typeof body.subject === 'string' ? body.subject.trim() : ''
+  const userId: string = body.userId
   if (!subject) return NextResponse.json({ error: 'subject is required' }, { status: 400 })
+
+  // Everything below the subject name is optional, so each field is
+  // normalised to something printable rather than trusted.
+  const roots =
+    typeof body.roots === 'number' && Number.isFinite(body.roots)
+      ? Math.min(5, Math.max(0, Math.round(body.roots)))
+      : null
+  const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
+  const confident = text(body.confident)
+  const gaps = text(body.gaps)
+  const depth = text(body.depth)
+
+  const rawQualifiers: unknown[] = Array.isArray(body.qualifiers) ? body.qualifiers : []
+  const qualifiers: Qualifier[] = rawQualifiers
+    .filter((q): q is Record<string, unknown> => typeof q === 'object' && q !== null)
+    .map(q => ({
+      prompt: text(q.prompt),
+      level: typeof q.level === 'number' ? Math.min(5, Math.max(1, Math.round(q.level))) : 3,
+      answer: text(q.answer),
+    }))
+    .filter(q => q.prompt)
+
+  const rawEvidence: unknown[] = Array.isArray(body.evidence) ? body.evidence : []
+  const evidence: Evidence[] = rawEvidence
+    .filter((e): e is Record<string, unknown> => typeof e === 'object' && e !== null)
+    .map(e => ({
+      resourceId: typeof e.resourceId === 'string' ? e.resourceId : undefined,
+      title: text(e.title),
+      kind: text(e.kind) || 'note',
+    }))
+    .filter(e => e.title)
 
   // Only one key is needed now: the topics are proposed by Anthropic,
   // and embedding runs on the edge function with no key at all.
@@ -52,6 +175,7 @@ export async function POST(req: Request) {
   }
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  const brief = buildBrief({ subject, roots, confident, gaps, depth, qualifiers, evidence })
 
   const res = await client.messages.create({
     model: 'claude-sonnet-5',
@@ -60,12 +184,19 @@ export async function POST(req: Request) {
     tool_choice: { type: 'tool', name: 'record_subject_topics' },
     messages: [{
       role: 'user',
-      content: `Break the subject "${subject}" into 10-20 learnable topics. Topics are areas within the subject; they need not relate to one another. Use canonical names that would match an existing knowledge graph.
+      content: `Break the subject "${subject}" into learnable topics. Topics are areas within the subject; they need not relate to one another. Use canonical names that would match an existing knowledge graph.
 
-Their answers about current understanding:
-${(answers ?? []).map((a: { q: string; a: string }) => `Q: ${a.q}\nA: ${a.a}`).join('\n\n')}
+${scopeInstruction(depth)}
 
-Estimate a starting level of 1-5 per topic from those answers. Be conservative: this is a low-confidence prior that real evidence will overwrite.`,
+${brief ? `What they told us about where they stand:\n\n${brief}` : 'They said nothing about where they stand, so assume nothing.'}
+
+Estimate a starting level of 1-5 per topic${
+        roots !== null ? `, anchored on their own figure of ${roots}` : ''
+      }. Vary it: what they named as solid should sit above what they named as a gap, and a topic nobody mentioned sits at the anchor or below. Be conservative throughout — this is a low-confidence prior that real evidence will overwrite.${
+        roots === 0
+          ? ' They have said outright that they have no prior knowledge, so every level is 1.'
+          : ''
+      }`,
     }],
   })
 
@@ -107,6 +238,26 @@ Estimate a starting level of 1-5 per topic from those answers. Be conservative: 
     return NextResponse.json({ error: subjectError.message }, { status: 500 })
   }
 
+  // What the figures below rest on, kept so they can be read back.
+  // A failure here loses the account but not the bed, so it does not
+  // abort the sowing.
+  await db.from('subject_sowings').insert({
+    subject_id: row!.id,
+    user_id: row!.user_id,
+    roots,
+    confident: confident || null,
+    gaps: gaps || null,
+    depth: depth || null,
+    qualifiers,
+    evidence,
+  })
+
+  const rootsNote =
+    roots !== null ? ` — roots ${roots} of 5` : ''
+  const evidenceNote = evidence.length
+    ? `, with ${evidence.length} ${evidence.length === 1 ? 'piece' : 'pieces'} of evidence filed`
+    : ''
+
   let created = 0
   let linked = 0
 
@@ -140,6 +291,13 @@ Estimate a starting level of 1-5 per topic from those answers. Be conservative: 
     }).select('id').single()
 
     if (!topic) continue
+    created++
+
+    // Roots of nought is a stated fact, not a missing answer: nothing
+    // has been sown here, so nothing is recorded. Writing a floor
+    // exposure anyway would give the topic a history it does not have
+    // and a confidence it has not earned.
+    if (roots === 0) continue
 
     // The only place a self-declared figure enters the record. It is
     // written as a real exposure so the number can still explain itself,
@@ -151,10 +309,9 @@ Estimate a starting level of 1-5 per topic from those answers. Be conservative: 
       source: 'manual',
       depth: level >= 4 ? 'applied' : level >= 2 ? 'read' : 'skim',
       ability_delta: (level / 5) * config.DEPTH_WEIGHTS.read,
-      reason: `your own estimate when adding "${subject}"`,
+      reason: `your own account when sowing "${subject}"${rootsNote}${evidenceNote}`,
     })
     await recomputeAbility(db, topic.id)
-    created++
   }
 
   // An empty subject is worse than no subject: it would print on the

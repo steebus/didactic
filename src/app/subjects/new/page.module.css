@@ -240,3 +240,393 @@
     color var(--dur-feedback) var(--ease-settle),
     border-bottom-color var(--dur-feedback) var(--ease-settle);
 }
+
+/* --- The named subject ------------------------------------------ */
+
+/* Once named, the subject stops being a field and becomes the sheet's
+   heading: the agent is already writing against it, so quietly editing
+   it in place would put the questions and the subject out of step. */
+.namedRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  border-bottom: 2px solid var(--plate-mustard);
+  padding-bottom: var(--space-2);
+}
+
+.named {
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 36;
+  color: var(--ink);
+}
+
+.amend {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  padding: 0 0 2px;
+  cursor: pointer;
+}
+
+.amend:hover {
+  color: var(--plate-terracotta);
+  border-bottom-color: var(--plate-terracotta);
+}
+
+.nameRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-top: var(--space-2);
+}
+
+/* --- Quick picks ------------------------------------------------- */
+
+.picks,
+.proofModes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.chip {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--plate-terracotta);
+  color: var(--plate-terracotta);
+}
+
+.chipOn {
+  background: var(--plate-green);
+  border-color: var(--plate-green);
+  color: var(--paper);
+}
+
+.chipOn:hover {
+  background: var(--plate-terracotta);
+  border-color: var(--plate-terracotta);
+  color: var(--paper);
+}
+
+/* --- Proof of roots ---------------------------------------------- */
+
+/* A footnote to the field above it, ruled off rather than boxed: this
+   is supporting evidence for an answer, not a section of its own. */
+.proof {
+  display: grid;
+  gap: var(--space-3);
+  border-left: 1px solid var(--rule-strong);
+  padding-left: var(--space-4);
+  margin-top: var(--space-2);
+}
+
+.proofLead {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  max-width: 52ch;
+}
+
+.proofHint {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.proofList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-1);
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: var(--space-3);
+}
+
+.proofRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--step--1);
+}
+
+.proofName {
+  color: var(--ink);
+}
+
+.leaders {
+  flex: 1;
+  border-bottom: 1px dotted var(--rule);
+  transform: translateY(-0.2em);
+  min-width: var(--space-4);
+}
+
+.proofKind {
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.proofDrop {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  padding: 0 0 1px;
+  cursor: pointer;
+}
+
+.proofDrop:hover {
+  color: var(--plate-terracotta);
+  border-bottom-color: var(--plate-terracotta);
+}
+
+.proofFields {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.proofInput,
+.proofArea {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  padding: var(--space-2) var(--space-3);
+  width: 100%;
+}
+
+.proofArea {
+  min-height: 3.5rem;
+  resize: vertical;
+}
+
+.proofFile {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.proofFile::file-selector-button {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--plate-green);
+  border: none;
+  border-radius: 0;
+  padding: var(--space-2) var(--space-3);
+  margin-right: var(--space-3);
+  cursor: pointer;
+}
+
+.proofFile::file-selector-button:hover {
+  background: var(--plate-terracotta);
+}
+
+.proofSubmit {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--plate-green);
+  border: none;
+  border-radius: 0;
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+}
+
+.proofSubmit:hover:not(:disabled) {
+  background: var(--plate-terracotta);
+}
+
+.proofSubmit:disabled {
+  background: var(--rule);
+  cursor: not-allowed;
+}
+
+.proofProblem {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--plate-terracotta);
+}
+
+/* --- The qualifying set ------------------------------------------ */
+
+.qualifying {
+  display: grid;
+  gap: var(--space-3);
+  border-top: 1px solid var(--rule-strong);
+  padding-top: var(--space-4);
+}
+
+.qualifyingHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--rule-strong);
+  padding-bottom: var(--space-2);
+}
+
+.qualifyingTitle {
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 40;
+  margin: 0;
+}
+
+.qualifyingNote {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.qualifyingList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+  counter-reset: qualifier;
+}
+
+.qualifyingRow {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: start;
+}
+
+/* The rung the question sits on, printed as a figure the way every
+   other number in this world is printed. It is the same 1-5 ruler the
+   roots slider uses, so the set can be read against the answer given. */
+.rung {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 10, 'WONK' 0, 'opsz' 24;
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--paper);
+  background: var(--plate-green);
+  width: 1.75rem;
+  height: 1.75rem;
+  display: grid;
+  place-items: center;
+}
+
+.qualifyingBody {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.qualifyingPrompt {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1, 'opsz' 24;
+  color: var(--ink);
+  line-height: 1.25;
+}
+
+.waiting,
+.empty {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.retry {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  font-style: normal;
+  color: var(--ink);
+  background: none;
+  border: none;
+  border-bottom: 2px solid var(--plate-mustard);
+  border-radius: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.retry:hover {
+  color: var(--plate-terracotta);
+}
+
+/* Three dots that fill in turn: the only thing on this sheet that says
+   work is happening somewhere else. */
+.ellipsis {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: 6px;
+}
+
+.ellipsis span {
+  width: 3px;
+  height: 3px;
+  background: var(--ink-faint);
+  animation: pulse 1.2s var(--ease-settle) infinite;
+}
+
+.ellipsis span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.ellipsis span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 40rem) {
+  .qualifyingRow {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+
+  .proof {
+    padding-left: var(--space-3);
+  }
+}

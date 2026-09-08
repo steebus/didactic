@@ -73,6 +73,10 @@ that flatters its owner.
   similarity on every write path, ingestion and skeleton seeding alike.
 - The graph grows to thousands of topics; the home screen exists because a raw
   canvas at that size cannot be glanced at.
+- A subject has its own sheet: the bed as a **fixed outline** — topics nested
+  by what specialises or precedes what, with the material, curricula and
+  lessons filed under each — where topics are added and removed. The graph is
+  the other reading of the same data and is one press away from it.
 
 ## Capabilities and Constraints
 
@@ -83,6 +87,22 @@ that flatters its owner.
   and no pinning. A wrong score is corrected by feeding real evidence, not by
   setting the number. This is a confirmed product decision, not an
   implementation gap.
+- **Sowing a subject is where its first figure comes from.** The user states
+  their own depth on a 0–5 roots scale, says what has taken and where the
+  ground is thin, says how far they want to take it, and may hand over proof
+  — links, books, courses, qualifications, uploaded PDFs — which is filed as
+  read material straight away. Naming the subject also sets the agent writing
+  5–10 qualifying questions about the subject, in difficulty order, answered
+  while the rest of the sheet is filled in. All of it is optional.
+- **How far the user says they want to go sets the shape of the bed**, not
+  just its labels: curiosity gets 6–10 broad topics, a working knowledge
+  10–16, mastery 16–24 finely cut. This is the one input that changes what
+  gets laid out rather than how it is scored.
+- **Roots of nought writes nothing.** "No prior knowledge" is a stated fact,
+  not a missing answer, so no exposure is recorded and the topics sit at the
+  floor with no history and no confidence. The proof filed on the sheet does
+  not write exposures either: it informs the stated estimate, and counting it
+  twice would flatter the map.
 - **Ability is a cache over an append-only exposure log**, never written
   directly, so every number is reconstructible and explainable.
 - **Reading cannot produce expertise.** Consumption-only ability is capped at

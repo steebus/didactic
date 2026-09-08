@@ -75,7 +75,11 @@ export default async function Home() {
                 return (
                   <li key={subject.id}>
                     <Link
-                      href={`/graph?subject=${subject.id}`}
+                      // A holding opens as its own sheet now, not
+                      // straight onto the canvas: the bed is a fixed
+                      // outline you can act on, and the graph is one
+                      // press away from it.
+                      href={`/subjects/${subject.id}`}
                       className={styles.entry}
                       style={{ '--weight': weight, '--i': index } as React.CSSProperties}
                     >

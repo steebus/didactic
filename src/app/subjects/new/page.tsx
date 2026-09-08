@@ -2,34 +2,101 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { SheetNav } from '@/components/SheetNav'
+import { RootsGauge, ROOT_STAGES } from '@/components/RootsGauge'
+import { ProofOfRoots, type ProofEntry } from './ProofOfRoots'
 import styles from './page.module.css'
 
-const QUESTIONS = [
+interface QualifyingQuestion {
+  prompt: string
+  level: number
+  probes: string
+}
+
+const DEPTH_PICKS = [
   {
-    q: 'Have you used this before, and if so for what?',
-    hint: 'Anything counts — a project, a job, an afternoon that went nowhere.',
+    label: 'Just curious',
+    text: 'Just curious. I want the shape of the field and enough to follow a conversation, not the details.',
   },
   {
-    q: 'What parts of it do you already feel solid on?',
-    hint: 'Be honest rather than modest; the map is only useful if it is true.',
+    label: 'Enough to work in it',
+    text: 'Enough to work in it confidently on real projects, without needing the documentation open the whole time.',
   },
   {
-    q: 'What have you bounced off or avoided?',
-    hint: 'The gaps are the point.',
+    label: 'All the way',
+    text: 'All the way. I want to master this, including the awkward corners a survey would skip.',
   },
 ]
 
 // The single-user development identity. Real auth replaces this.
 const USER_ID = '11111111-1111-1111-1111-111111111111'
 
+/**
+ * Sowing a subject. The sheet asks four things in the order they are
+ * worth asking: how deep the roots already go, what has taken, where
+ * the ground is thin, and how far it should be grown. Naming the
+ * subject sets the agent writing a qualifying set in the background, so
+ * by the time the user reaches the bottom of the sheet there are real
+ * questions about the subject waiting rather than a spinner.
+ *
+ * Every field is optional. A subject named and nothing else still lays
+ * out a bed — it just rests on the name alone, and says so.
+ */
 export default function NewSubjectPage() {
   const [subject, setSubject] = useState('')
-  const [answers, setAnswers] = useState(['', '', ''])
+  /** The subject as committed. Null until the main box is submitted. */
+  const [named, setNamed] = useState<string | null>(null)
+
+  const [roots, setRoots] = useState(0)
+  const [rootsSet, setRootsSet] = useState(false)
+  const [confident, setConfident] = useState('')
+  const [gaps, setGaps] = useState('')
+  const [depth, setDepth] = useState('')
+  const [proof, setProof] = useState<ProofEntry[]>([])
+
+  const [questions, setQuestions] = useState<QualifyingQuestion[]>([])
+  const [qualifying, setQualifying] = useState<'idle' | 'writing' | 'ready' | 'failed'>('idle')
+  const [answers, setAnswers] = useState<string[]>([])
+
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+
+  async function writeQuestions(name: string) {
+    setQualifying('writing')
+    try {
+      const res = await fetch('/api/subjects/qualify', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ subject: name }),
+      })
+      const body = await res.json()
+      if (!res.ok || !Array.isArray(body.questions) || body.questions.length === 0) {
+        throw new Error(body.error ?? 'empty set')
+      }
+      setQuestions(body.questions)
+      setAnswers(Array(body.questions.length).fill(''))
+      setQualifying('ready')
+    } catch {
+      // The rest of the sheet stands on its own, so a failure here is a
+      // missing section rather than a broken form.
+      setQualifying('failed')
+    }
+  }
+
+  function name() {
+    const trimmed = subject.trim()
+    if (!trimmed) return
+    setNamed(trimmed)
+    writeQuestions(trimmed)
+  }
+
+  function amend() {
+    setNamed(null)
+    setQuestions([])
+    setAnswers([])
+    setQualifying('idle')
+  }
 
   async function submit() {
     setBusy(true)
@@ -39,19 +106,37 @@ export default function NewSubjectPage() {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
-          subject,
+          subject: named,
           userId: USER_ID,
-          answers: QUESTIONS.map((q, i) => ({ q: q.q, a: answers[i] })),
+          // Untouched is not the same answer as nought: nought says
+          // there is nothing here, and the slider not having been moved
+          // says nothing at all.
+          roots: rootsSet ? roots : null,
+          confident,
+          gaps,
+          depth,
+          evidence: proof.map(p => ({
+            resourceId: p.resourceId,
+            title: p.title,
+            kind: p.kind,
+          })),
+          qualifiers: questions.map((q, i) => ({
+            prompt: q.prompt,
+            level: q.level,
+            answer: answers[i] ?? '',
+          })),
         }),
       })
       const body = await res.json()
       if (!res.ok) throw new Error(body.error ?? 'Could not draw the map.')
-      router.push(`/graph?subject=${body.subjectId}`)
+      router.push(`/subjects/${body.subjectId}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.')
       setBusy(false)
     }
   }
+
+  const answered = answers.filter(a => a.trim()).length
 
   return (
     <main className={styles.sheet}>
@@ -74,34 +159,198 @@ export default function NewSubjectPage() {
           <label className={styles.label} htmlFor="subject">
             The subject
           </label>
-          <input
-            id="subject"
-            className={styles.input}
-            value={subject}
-            onChange={e => setSubject(e.target.value)}
-            placeholder="React, or Milton Friedman, or medium format"
-            autoFocus
-          />
+          {named ? (
+            <div className={styles.namedRow}>
+              <span className={styles.named}>{named}</span>
+              <button type="button" className={styles.amend} onClick={amend}>
+                Amend
+              </button>
+            </div>
+          ) : (
+            <>
+              <input
+                id="subject"
+                className={styles.input}
+                value={subject}
+                onChange={e => setSubject(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && name()}
+                placeholder="React, or Milton Friedman, or medium format"
+                autoFocus
+              />
+              <div className={styles.nameRow}>
+                <button
+                  type="button"
+                  className={styles.submit}
+                  onClick={name}
+                  disabled={!subject.trim()}
+                >
+                  Name it
+                </button>
+                <p className={styles.note}>
+                  Naming it sets the agent writing a set of questions about the
+                  subject while you answer the rest.
+                </p>
+              </div>
+            </>
+          )}
         </div>
 
-        {subject.trim() && (
+        {named && (
           <div className={styles.questions}>
-            {QUESTIONS.map((question, i) => (
-              <div key={question.q} className={styles.field} style={{ '--i': i } as React.CSSProperties}>
-                <label className={styles.label} htmlFor={`q${i}`}>
-                  {question.q}
-                </label>
-                <p className={styles.hint}>{question.hint}</p>
-                <textarea
-                  id={`q${i}`}
-                  className={styles.textarea}
-                  value={answers[i]}
-                  onChange={e =>
-                    setAnswers(a => a.map((v, j) => (j === i ? e.target.value : v)))
-                  }
-                />
+            <div className={styles.field} style={{ '--i': 0 } as React.CSSProperties}>
+              <RootsGauge
+                value={roots}
+                onChange={next => {
+                  setRoots(next)
+                  setRootsSet(true)
+                }}
+              />
+            </div>
+
+            <div className={styles.field} style={{ '--i': 1 } as React.CSSProperties}>
+              <label className={styles.label} htmlFor="confident">
+                What has already taken?
+              </label>
+              <p className={styles.hint}>
+                The parts you could explain to somebody else without looking
+                them up. Be honest rather than modest; the map is only useful
+                if it is true.
+              </p>
+              <textarea
+                id="confident"
+                className={styles.textarea}
+                value={confident}
+                onChange={e => setConfident(e.target.value)}
+              />
+              <ProofOfRoots entries={proof} onChange={setProof} />
+            </div>
+
+            <div className={styles.field} style={{ '--i': 2 } as React.CSSProperties}>
+              <label className={styles.label} htmlFor="gaps">
+                Where is the ground thin?
+              </label>
+              <p className={styles.hint}>
+                What you have bounced off, avoided, or never got round to. The
+                gaps are the point.
+              </p>
+              <textarea
+                id="gaps"
+                className={styles.textarea}
+                value={gaps}
+                onChange={e => setGaps(e.target.value)}
+              />
+            </div>
+
+            <div className={styles.field} style={{ '--i': 3 } as React.CSSProperties}>
+              <label className={styles.label} htmlFor="depth">
+                How far do you want to grow it?
+              </label>
+              <p className={styles.hint}>
+                A window box or an orchard. This decides how broadly the bed is
+                laid out and how finely it is cut — curiosity gets a wide,
+                shallow spread; mastery gets fewer, deeper rows.
+              </p>
+              <div className={styles.picks}>
+                {DEPTH_PICKS.map(pick => (
+                  <button
+                    key={pick.label}
+                    type="button"
+                    className={`${styles.chip} ${depth === pick.text ? styles.chipOn : ''}`}
+                    onClick={() => setDepth(depth === pick.text ? '' : pick.text)}
+                    aria-pressed={depth === pick.text}
+                  >
+                    {pick.label}
+                  </button>
+                ))}
               </div>
-            ))}
+              <textarea
+                id="depth"
+                className={styles.textarea}
+                value={depth}
+                onChange={e => setDepth(e.target.value)}
+                placeholder="Or say it in your own words."
+              />
+            </div>
+
+            <section className={styles.qualifying} style={{ '--i': 4 } as React.CSSProperties}>
+              <div className={styles.qualifyingHead}>
+                <h2 className={styles.qualifyingTitle}>Qualifying questions</h2>
+                <span className={styles.qualifyingNote}>
+                  {qualifying === 'ready'
+                    ? `${questions.length} questions · ${answered} answered · easiest first`
+                    : 'Easiest first'}
+                </span>
+              </div>
+
+              {qualifying === 'writing' && (
+                <p className={styles.waiting}>
+                  Writing questions about {named}
+                  <span className={styles.ellipsis} aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                  </span>
+                </p>
+              )}
+
+              {qualifying === 'failed' && (
+                <p className={styles.empty}>
+                  No questions this time.{' '}
+                  <button
+                    type="button"
+                    className={styles.retry}
+                    onClick={() => writeQuestions(named)}
+                  >
+                    Ask again
+                  </button>
+                  , or carry on without them — everything here is optional.
+                </p>
+              )}
+
+              {qualifying === 'ready' && (
+                <>
+                  <p className={styles.hint}>
+                    Answer what you can and skip what you cannot. Nothing is
+                    marked; where you stop is itself the useful part.
+                  </p>
+                  <ol className={styles.qualifyingList}>
+                    {questions.map((question, i) => (
+                      <li key={question.prompt} className={styles.qualifyingItem}>
+                        <div className={styles.qualifyingRow}>
+                          <span
+                            className={styles.rung}
+                            aria-label={`Difficulty ${question.level} of 5`}
+                          >
+                            {question.level}
+                          </span>
+                          <div className={styles.qualifyingBody}>
+                            <label
+                              className={styles.qualifyingPrompt}
+                              htmlFor={`qualifier-${i}`}
+                            >
+                              {question.prompt}
+                            </label>
+                            {question.probes && (
+                              <p className={styles.hint}>{question.probes}</p>
+                            )}
+                            <textarea
+                              id={`qualifier-${i}`}
+                              className={styles.textarea}
+                              value={answers[i] ?? ''}
+                              onChange={e =>
+                                setAnswers(a =>
+                                  a.map((v, j) => (j === i ? e.target.value : v))
+                                )
+                              }
+                            />
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                </>
+              )}
+            </section>
           </div>
         )}
 
@@ -112,19 +361,18 @@ export default function NewSubjectPage() {
           </div>
         )}
 
-        <div className={styles.actions}>
-          <button
-            className={styles.submit}
-            onClick={submit}
-            disabled={!subject.trim() || busy}
-          >
-            {busy ? 'Laying out the bed…' : 'Lay out the bed'}
-          </button>
-          <p className={styles.note}>
-            Your answers set a first figure only. Real reading and real work
-            overwrite it.
-          </p>
-        </div>
+        {named && (
+          <div className={styles.actions}>
+            <button className={styles.submit} onClick={submit} disabled={busy}>
+              {busy ? 'Laying out the bed…' : 'Lay out the bed'}
+            </button>
+            <p className={styles.note}>
+              {rootsSet
+                ? `Your answers set a first figure only — ${ROOT_STAGES[roots].label.toLowerCase()}, on your own reading. Real reading and real work overwrite it.`
+                : 'Your answers set a first figure only. Real reading and real work overwrite it.'}
+            </p>
+          </div>
+        )}
       </div>
     </main>
   )
