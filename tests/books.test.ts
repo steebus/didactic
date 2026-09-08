@@ -71,6 +71,29 @@ describe('normaliseBooks', () => {
     expect(normaliseBooks({ docs: 'nope' })).toEqual([])
   })
 
+  it('puts the book above the study guides that quote it', () => {
+    // A search for a well-known title returns summaries and analyses on
+    // text relevance alone; edition count is what separates the book
+    // from the things written about it.
+    const books = normaliseBooks({
+      docs: [
+        doc({ key: '/works/OL7W', title: 'Summary of Refactoring', edition_count: 1 }),
+        doc({ key: '/works/OL8W', title: 'Refactoring', edition_count: 34 }),
+      ],
+    })
+    expect(books.map(b => b.title)).toEqual(['Refactoring', 'Summary of Refactoring'])
+  })
+
+  it('keeps the search order where edition counts tie', () => {
+    const books = normaliseBooks({
+      docs: [
+        doc({ key: '/works/OLaW', title: 'First', edition_count: 2 }),
+        doc({ key: '/works/OLbW', title: 'Second', edition_count: 2 }),
+      ],
+    })
+    expect(books.map(b => b.title)).toEqual(['First', 'Second'])
+  })
+
   it('honours the limit', () => {
     const docs = Array.from({ length: 20 }, (_, i) => doc({ key: `/works/OL${i}W`, title: `Book ${i}` }))
     expect(normaliseBooks({ docs }, 5)).toHaveLength(5)

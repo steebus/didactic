@@ -61,6 +61,10 @@ export default function NewSubjectPage() {
 
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  /** A bed that was laid out, but not cleanly. Held here rather than
+   *  navigated past, because a warning nobody reads is a warning that
+   *  may as well not have been written. */
+  const [partial, setPartial] = useState<{ href: string; warnings: string[] } | null>(null)
   const router = useRouter()
 
   async function writeQuestions(name: string) {
@@ -131,15 +135,24 @@ export default function NewSubjectPage() {
       const { ok, body, error: failed } = await readJson<{
         subjectId?: string
         reading?: boolean
+        warnings?: string[]
       }>(res)
       if (!ok || !body.subjectId) throw new Error(failed ?? 'Could not draw the map.')
 
       // Straight to the reading when there is one — the comparison
       // between what they said and what their answers showed is the
       // point of having asked.
-      router.push(
-        body.reading ? `/subjects/${body.subjectId}/reading` : `/subjects/${body.subjectId}`
-      )
+      const href = body.reading
+        ? `/subjects/${body.subjectId}/reading`
+        : `/subjects/${body.subjectId}`
+
+      if (body.warnings?.length) {
+        setPartial({ href, warnings: body.warnings })
+        setBusy(false)
+        return
+      }
+
+      router.push(href)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.')
       setBusy(false)
@@ -365,6 +378,24 @@ export default function NewSubjectPage() {
           <div className={styles.problem}>
             <h2 className={styles.problemTitle}>Could not sow it</h2>
             <p className={styles.problemNote}>{error}</p>
+          </div>
+        )}
+
+        {partial && (
+          <div className={styles.partial}>
+            <h2 className={styles.problemTitle}>Sown, with something to say</h2>
+            <ul className={styles.partialList}>
+              {partial.warnings.map(warning => (
+                <li key={warning}>{warning}</li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              className={styles.submit}
+              onClick={() => router.push(partial.href)}
+            >
+              Go to the bed
+            </button>
           </div>
         )}
 

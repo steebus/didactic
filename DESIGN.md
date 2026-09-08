@@ -496,6 +496,16 @@ What is genuinely systematic today is only this: **hover feedback is a
 background-colour change of 120–140ms `ease-out`, and nothing else moves.** The
 graph's physics is simulation, not authored motion.
 
+**Rule — a surface with an entrance animation needs an explicit stacking
+order.** An element being transformed paints in the same pass as a positioned
+one, so on the sowing sheet a later field painted straight over the book
+lookup list hanging out of an earlier one, and the matches came out with the
+form showing through them. `.questions .field` therefore carries
+`position: relative; z-index: calc(20 - var(--i))` — the same `--i` that
+staggers the animation orders the painting, so an earlier field is always
+above a later one. Any surface that animates fields in and floats anything out
+of one needs the same treatment.
+
 `prefers-reduced-motion: reduce` is honoured globally in `globals.css`, clamping
 all animation and transition duration to `0.01ms`.
 

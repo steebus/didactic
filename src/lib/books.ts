@@ -74,7 +74,16 @@ export function normaliseBooks(payload: unknown, limit = 8): BookMatch[] {
     if (!held || match.editions > held.editions) best.set(fingerprint, match)
   }
 
-  return [...best.values()].slice(0, limit)
+  // Ordered by how many editions a work has, which is the closest
+  // thing Open Library gives to "is this the actual book". A search for
+  // a well-known title otherwise returns study guides and summaries
+  // above the book they summarise, purely on text relevance. Ties keep
+  // the order Open Library gave them.
+  return [...best.values()]
+    .map((book, i) => ({ book, i }))
+    .sort((a, b) => b.book.editions - a.book.editions || a.i - b.i)
+    .map(({ book }) => book)
+    .slice(0, limit)
 }
 
 /**

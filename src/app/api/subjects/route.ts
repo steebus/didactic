@@ -12,13 +12,17 @@ import { ownerId } from '@/lib/auth'
  * similarity search per topic, so it is the longest request the app
  * makes. The platform default cuts it off part way through, and what
  * reaches the browser is an empty body rather than an answer.
+ *
+ * Sixty seconds rather than more: it is the ceiling on the cheapest
+ * plan, and asking for more than the plan allows is refused at deploy
+ * rather than granted at runtime.
  */
-export const maxDuration = 300
+export const maxDuration = 60
 
-/** Embeddings and similarity searches run in parallel, but not all at
- *  once: twenty simultaneous calls to the edge function find its rate
- *  limit rather than its speed. */
-const CONCURRENCY = 6
+/** Embeddings and similarity searches run in parallel, but only a few
+ *  at a time. The embedding function holds a model in memory per
+ *  instance, and six at once finds its limits rather than its speed. */
+const CONCURRENCY = 3
 
 const PLATE_INKS = ['#b8482a', '#2f5233', '#c8871a', '#2a4a7c', '#6b3550', '#6b7233']
 
@@ -106,6 +110,23 @@ export async function GET() {
     .from('subjects').select('id, title, colour').order('title')
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ subjects: data })
+}
+
+/**
+ * Embed one name, with a second go.
+ *
+ * The embedding function is a cold-starting edge instance holding a
+ * model, so the occasional call fails for reasons that have gone by the
+ * time you ask again. One retry costs a moment; not retrying costs the
+ * whole sowing.
+ */
+async function embedOnce(name: string): Promise<number[]> {
+  try {
+    return await embed(name)
+  } catch {
+    await new Promise(resolve => setTimeout(resolve, 400))
+    return embed(name)
+  }
 }
 
 /** Run an async job over a list a few at a time, in order. */
@@ -199,10 +220,30 @@ const phrases = (v: unknown, cap = 5) =>
         .slice(0, cap)
     : []
 
+/**
+ * Anything thrown below this point used to reach the browser as a bare
+ * 500 with no body, which is how "Failed with 500." came to be the most
+ * detailed thing the app could say about its longest and most fragile
+ * request. A thrown error is now answered with what it said.
+ */
 export async function POST(req: Request) {
+  try {
+    return await sow(req)
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e)
+    return NextResponse.json({ error: `Could not lay out the bed: ${message}` }, { status: 500 })
+  }
+}
+
+async function sow(req: Request) {
   const body = await req.json()
   const subject: string = typeof body.subject === 'string' ? body.subject.trim() : ''
   if (!subject) return NextResponse.json({ error: 'subject is required' }, { status: 400 })
+
+  // Things that went wrong without being worth failing over, and topics
+  // that could not be placed. Both are reported rather than hidden.
+  const warnings: string[] = []
+  const dropped: string[] = []
 
   // The owner of everything written below, taken from the session
   // rather than from the request body.
@@ -340,8 +381,11 @@ ${
 
   // What the figures below rest on, kept so they can be read back. A
   // failure here loses the account but not the bed, so it does not
-  // abort the sowing.
-  await db.from('subject_sowings').insert({
+  // abort the sowing -- but it is reported rather than swallowed,
+  // because the usual cause is a migration that has not been applied
+  // and the symptom otherwise is a reading sheet that is silently
+  // always empty.
+  const { error: sowingError } = await db.from('subject_sowings').insert({
     subject_id: row!.id,
     user_id: row!.user_id,
     roots,
@@ -353,6 +397,7 @@ ${
     assessed_level: assessment?.level ?? null,
     assessment,
   })
+  if (sowingError) warnings.push(`the sowing record was not kept: ${sowingError.message}`)
 
   // --- Resolving the proposals against the map ---------------------
   //
@@ -362,10 +407,31 @@ ${
   // decision that follows stays sequential, because two proposals in
   // one batch can be near-duplicates of each other and the second must
   // be able to see the first.
-  const embedded = await inBatches(proposed, CONCURRENCY, async candidate => ({
-    candidate,
-    vector: await embed(candidate.name),
-  }))
+  //
+  // A topic whose embedding cannot be got is dropped rather than
+  // failing the sowing: nineteen topics and a note is a better outcome
+  // than an error and nothing.
+  const embedded = (
+    await inBatches(proposed, CONCURRENCY, async candidate => {
+      try {
+        return { candidate, vector: await embedOnce(candidate.name) }
+      } catch {
+        dropped.push(candidate.name)
+        return null
+      }
+    })
+  ).filter(entry => entry !== null)
+
+  if (embedded.length === 0) {
+    await db.from('subjects').delete().eq('id', row!.id)
+    return NextResponse.json(
+      {
+        error:
+          'Nothing could be embedded, so no topic could be placed on the map. The embedding function is not answering.',
+      },
+      { status: 502 }
+    )
+  }
 
   const searched = await inBatches(embedded, CONCURRENCY, async entry => ({
     ...entry,
@@ -421,7 +487,7 @@ ${
     )
   }
 
-  const { data: created } = toCreate.length
+  const { data: created, error: createError } = toCreate.length
     ? await db.from('topics').insert(
         toCreate.map(t => ({
           user_id: row!.user_id,
@@ -434,7 +500,17 @@ ${
           created_by: 'ai' as const,
         }))
       ).select('id, title')
-    : { data: [] }
+    : { data: [], error: null }
+
+  if (createError) {
+    // Nothing was written, so the empty subject goes with it rather
+    // than printing on the stock list as a bed with nothing in it.
+    await db.from('subjects').delete().eq('id', row!.id)
+    return NextResponse.json(
+      { error: `The topics could not be written: ${createError.message}` },
+      { status: 500 }
+    )
+  }
 
   const rootsNote = roots !== null ? ` — roots ${roots} of 5` : ''
   const evidenceNote = evidence.length
@@ -447,23 +523,36 @@ ${
   // confidence it has not earned.
   if (roots !== 0 && created && created.length > 0) {
     const levelFor = new Map(toCreate.map(t => [t.name, t.level]))
-    // The only place a self-declared figure enters the record. It is
-    // written as a real exposure so the number can still explain
-    // itself, and real evidence will outweigh it.
-    await db.from('exposures').insert(
-      created.map(topic => {
-        const level = levelFor.get(topic.title) ?? 1
-        return {
-          user_id: row!.user_id,
-          topic_id: topic.id,
-          source: 'manual' as const,
-          depth: level >= 4 ? ('applied' as const) : level >= 2 ? ('read' as const) : ('skim' as const),
-          ability_delta: (level / 5) * config.DEPTH_WEIGHTS.read,
-          reason: `your own account when sowing "${subject}"${rootsNote}${evidenceNote}`,
-        }
-      })
-    )
-    await recomputeAbilities(db, created.map(t => t.id))
+    // The bed exists by this point, so nothing below may fail the
+    // request: an error here would send the user back to a form whose
+    // work has already been done, and sowing again would duplicate it.
+    // The figures are a cache over the exposure log and can be rebuilt;
+    // the bed cannot be un-sown.
+    try {
+      // The only place a self-declared figure enters the record. It is
+      // written as a real exposure so the number can still explain
+      // itself, and real evidence will outweigh it.
+      const { error: exposureError } = await db.from('exposures').insert(
+        created.map(topic => {
+          const level = levelFor.get(topic.title) ?? 1
+          return {
+            user_id: row!.user_id,
+            topic_id: topic.id,
+            source: 'manual' as const,
+            depth:
+              level >= 4 ? ('applied' as const) : level >= 2 ? ('read' as const) : ('skim' as const),
+            ability_delta: (level / 5) * config.DEPTH_WEIGHTS.read,
+            reason: `your own account when sowing "${subject}"${rootsNote}${evidenceNote}`,
+          }
+        })
+      )
+      if (exposureError) throw new Error(exposureError.message)
+      await recomputeAbilities(db, created.map(t => t.id))
+    } catch (e) {
+      warnings.push(
+        `the starting figures were not written: ${e instanceof Error ? e.message : String(e)}`
+      )
+    }
   }
 
   // An empty subject is worse than no subject: it would print on the
@@ -476,6 +565,12 @@ ${
     )
   }
 
+  if (dropped.length > 0) {
+    warnings.push(
+      `${dropped.length} could not be placed on the map: ${dropped.join(', ')}`
+    )
+  }
+
   return NextResponse.json({
     subjectId: row!.id,
     topicsCreated: created?.length ?? 0,
@@ -483,5 +578,6 @@ ${
     // Where to send them next: a reading exists only when they gave the
     // app something to read.
     reading: assessment !== null,
+    warnings,
   })
 }
