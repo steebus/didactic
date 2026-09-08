@@ -104,3 +104,12 @@ export async function recomputeAbility(db: SupabaseClient, topicId: string) {
 
   return { ability, confidence }
 }
+
+/**
+ * Ability (1-5) as the percentage the sheet prints. An empty subject
+ * aggregates to 0, below the floor, so the figure is clamped rather
+ * than printing a negative percentage.
+ */
+export function viabilityFigure(ability: number) {
+  return Math.max(0, Math.round(((ability - 1) / 4) * 100))
+}

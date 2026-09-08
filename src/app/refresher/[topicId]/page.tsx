@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
 
 interface PriorResource {
@@ -43,6 +44,7 @@ export default function RefresherPage({
   return (
     <main className={styles.sheet}>
       <header className={styles.head}>
+        <SheetNav />
         <div className={styles.headRow}>
           <h1 className={styles.eyebrowless}>{topic?.title ?? 'Tending'}</h1>
           <Link href="/" className={styles.back}>

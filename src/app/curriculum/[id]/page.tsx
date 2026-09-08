@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { NudgeIcon } from '@/components/NudgeIcon'
+import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
 
 interface Lesson {
@@ -163,6 +164,7 @@ export default function CurriculumPage({
   return (
     <main className={styles.sheet}>
       <header className={styles.head}>
+        <SheetNav />
         <div className={styles.headRow}>
           <div>
             <p className={styles.eyebrow}>

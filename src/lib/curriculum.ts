@@ -181,6 +181,12 @@ export async function completeLesson(
   // concept and so move nothing.
   if (!lesson.topic_id) return { exposureWritten: false }
 
+  // The figure before the work, so the page can show what the work was
+  // worth. Every number in this app explains itself; the moment one
+  // actually moves is the worst possible time to withhold it.
+  const { data: before } = await db.from('topics')
+    .select('title, ability').eq('id', lesson.topic_id).single()
+
   await db.from('exposures').insert({
     user_id: lesson.user_id,
     topic_id: lesson.topic_id,
@@ -190,9 +196,14 @@ export async function completeLesson(
     ability_delta: config.DEPTH_WEIGHTS[depth],
     reason: `${depth === 'applied' ? 'worked through' : 'read'} the lesson "${lesson.title}"`,
   })
-  await recomputeAbility(db, lesson.topic_id)
+  const after = await recomputeAbility(db, lesson.topic_id)
 
-  return { exposureWritten: true }
+  return {
+    exposureWritten: true,
+    topicTitle: before?.title ?? null,
+    abilityBefore: before ? Number(before.ability) : null,
+    abilityAfter: after.ability,
+  }
 }
 
 /** Undo a completion, including the exposure it wrote. The record stays

@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { supabaseAdmin } from '@/lib/supabase'
+import { viabilityFigure } from '@/lib/scoring'
 import { getHomeData } from '@/lib/home'
 import { Emblem, slugify } from '@/components/Emblem'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
@@ -13,14 +14,6 @@ const EDITION_DATE = new Intl.DateTimeFormat('en-GB', {
   month: 'long',
   year: 'numeric',
 })
-
-function viabilityFigure(ability: number) {
-  // Ability is 1-5; the sheet prints it as a percentage of full stock,
-  // which is how a grower reads viability. An empty subject aggregates
-  // to 0, which is below the floor, so the figure is clamped rather
-  // than printing a negative percentage.
-  return Math.max(0, Math.round(((ability - 1) / 4) * 100))
-}
 
 export default async function Home() {
   const data = await getHomeData(supabaseAdmin())

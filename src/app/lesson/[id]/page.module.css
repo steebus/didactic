@@ -339,3 +339,88 @@
     color var(--dur-feedback) var(--ease-settle),
     border-color var(--dur-feedback) var(--ease-settle);
 }
+
+/* --- The ledger entry ------------------------------------------- */
+
+/* Finishing a lesson is the highest-effort moment in the app, and the
+   one time a figure actually moves. Showing the movement is the
+   acknowledgement — the app's premise is that every number explains
+   itself, so withholding it here would be the worst possible place. */
+.entered {
+  border-top: 4px solid var(--plate-mustard);
+  border-bottom: 1px solid var(--rule);
+  padding: var(--space-4) 0;
+  margin-bottom: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+  animation: enteredIn var(--dur-settle) var(--ease-settle) both;
+}
+
+@keyframes enteredIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-travel) * 0.5rem));
+  }
+}
+
+.enteredLabel {
+  font-size: var(--step--2);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.enteredFigure {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin: 0;
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums lining-nums;
+  line-height: 1;
+}
+
+.enteredFrom {
+  font-size: var(--step-2);
+  color: var(--ink-faint);
+}
+
+.enteredArrow {
+  font-size: var(--step-1);
+  color: var(--rule-strong);
+}
+
+/* The new figure lands late and large: it is the thing being reported. */
+.enteredTo {
+  font-size: var(--step-3);
+  font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 60;
+  color: var(--plate-green);
+  animation: enteredFigureIn var(--dur-settle) var(--ease-settle) both;
+  animation-delay: 180ms;
+}
+
+@keyframes enteredFigureIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-travel) * 0.375rem));
+  }
+}
+
+.enteredNote {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  max-width: 54ch;
+}
+
+/* Writing a lesson takes ten to twenty seconds. A pulse says the
+   page is working rather than stuck; it is truthful, not a fake
+   progress bar. */
+.pending {
+  animation: breathe 2.4s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}

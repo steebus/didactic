@@ -1,9 +1,11 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/supabase'
+import { viabilityFigure } from '@/lib/scoring'
 import { getTopicArea } from '@/lib/topic'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
 import { DraftCurriculum } from './DraftCurriculum'
+import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
 
 export const dynamic = 'force-dynamic'
@@ -13,10 +15,6 @@ const EDGE_KIND_LABEL: Record<string, string> = {
   related: 'grows with',
   specialises: 'variety of',
   alternative: 'instead of',
-}
-
-function viabilityFigure(ability: number) {
-  return Math.max(0, Math.round(((ability - 1) / 4) * 100))
 }
 
 export default async function TopicPage({

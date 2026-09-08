@@ -4,6 +4,8 @@ import { use, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Prose } from '@/components/Prose'
 import { useScrollMemory } from '@/lib/useScrollMemory'
+import { viabilityFigure } from '@/lib/scoring'
+import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
 
 interface LessonData {
@@ -51,6 +53,13 @@ export default function LessonPage({
   const [busy, setBusy] = useState(false)
   // Bumped after every write, so re-reading stays the effect's job.
   const [revision, setRevision] = useState(0)
+  // The ledger entry shown right after finishing: what the work was
+  // worth. Cleared on reload; the exposure log is the durable record.
+  const [entry, setEntry] = useState<{
+    topicTitle: string | null
+    before: number | null
+    after: number | null
+  } | null>(null)
 
   // A lesson is long enough to leave halfway. Restore once the body is
   // on the page, or the restore lands on a document too short to scroll.
@@ -105,6 +114,20 @@ export default function LessonPage({
       })
       const payload = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(payload.error ?? 'Could not save that.')
+
+      // What the work was worth, in the figure it moved. Held only for
+      // this visit: it is an acknowledgement, not a record — the record
+      // is the exposure log.
+      if (action === 'complete' && payload.exposureWritten) {
+        setEntry({
+          topicTitle: payload.topicTitle,
+          before: payload.abilityBefore,
+          after: payload.abilityAfter,
+        })
+      } else {
+        setEntry(null)
+      }
+
       setRevision(r => r + 1)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.')
@@ -134,6 +157,7 @@ export default function LessonPage({
   return (
     <main className={styles.sheet}>
       <header className={styles.head}>
+        <SheetNav />
         <div className={styles.headRow}>
           <div>
             <p className={styles.eyebrow}>
@@ -242,6 +266,34 @@ export default function LessonPage({
           {done ? (
             <>
               <h2 className={styles.finishTitle}>Worked</h2>
+
+              {/* What the work was worth, written up the way the sheet
+                  writes any figure. Shown only in the moment it is
+                  earned; a reload returns to the plain record. */}
+              {entry && entry.before !== null && entry.after !== null && (
+                <div className={styles.entered}>
+                  <span className={styles.enteredLabel}>Entered in the ledger</span>
+                  <p className={styles.enteredFigure}>
+                    <span className={styles.enteredFrom}>
+                      {viabilityFigure(entry.before)}
+                    </span>
+                    <span className={styles.enteredArrow} aria-hidden="true">
+                      →
+                    </span>
+                    <span className={styles.enteredTo}>
+                      {viabilityFigure(entry.after)}
+                    </span>
+                  </p>
+                  <p className={styles.enteredNote}>
+                    {entry.after > entry.before
+                      ? `${entry.topicTitle ?? 'This topic'} gained ${
+                          viabilityFigure(entry.after) - viabilityFigure(entry.before)
+                        } points of viability.`
+                      : `${entry.topicTitle ?? 'This topic'} holds where it was — reading alone cannot pass the ceiling.`}
+                  </p>
+                </div>
+              )}
+
               <p className={styles.finishNote}>
                 Recorded on{' '}
                 {new Date(lesson.completed_at!).toLocaleDateString('en-GB', {
