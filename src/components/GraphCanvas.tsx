@@ -370,6 +370,10 @@ export function GraphCanvas({
       const context = renderer.getCanvases().labels.getContext('2d')
       if (!context) return
 
+      // CSS pixels, not device pixels: positions from graphToViewport
+      // are in the same space.
+      const width = context.canvas.width / (window.devicePixelRatio || 1)
+
       // Mean position of each bed's members, in screen coordinates.
       const centres = new Map<string, { x: number; y: number; n: number }>()
       graph.forEachNode((node, attrs) => {
@@ -387,17 +391,27 @@ export function GraphCanvas({
         if (!subject || acc.n === 0) continue
         // Fixed screen size, not scaled by zoom: a name that grows as
         // you pull back ends up filling the frame and overprinting its
-        // neighbours. Bigger beds get a slightly larger name.
-        const size = 16 + Math.min(acc.n, 12) * 1.1
+        // neighbours. Bigger beds get a slightly larger name, and the
+        // whole scale comes down on a narrow canvas where a desktop
+        // size would be wider than the bed it names.
+        const narrow = Math.min(1, width / 900)
+        const size = (16 + Math.min(acc.n, 12) * 1.1) * (0.62 + narrow * 0.38)
         context.font = `600 ${size}px Georgia, serif`
         context.fillStyle = fade(subject.colour, 0.35 + strength * 0.65)
         // A paper halo so a name over a dense bed stays readable.
         context.lineWidth = size * 0.28
         context.strokeStyle = 'rgba(239, 231, 214, 0.9)'
         context.lineJoin = 'round'
+
         // Sit the name above its bed rather than through the middle of
-        // it, so the seeds stay visible underneath.
-        const x = acc.x / acc.n
+        // it, and keep it inside the frame: a bed near the edge would
+        // otherwise have its name half off-screen.
+        const half = context.measureText(subject.title).width / 2
+        const margin = 6
+        const x = Math.min(
+          Math.max(acc.x / acc.n, half + margin),
+          width - half - margin
+        )
         const y = acc.y / acc.n - size * 1.4
         context.strokeText(subject.title, x, y)
         context.fillText(subject.title, x, y)

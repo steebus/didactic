@@ -479,6 +479,18 @@
     align-items: stretch;
   }
 
+  /* flex: 1 1 20rem in a column stretches a one-line field to fill the
+     whole cross axis, which made the URL box about 280px tall. In a
+     column the fields should take their own height. */
+  .captureInput {
+    flex: none;
+  }
+
+  .captureArea {
+    flex: none;
+    min-height: 5rem;
+  }
+
   .captureSubmit {
     width: 100%;
   }

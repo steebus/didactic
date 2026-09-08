@@ -424,3 +424,18 @@
   0%, 100% { opacity: 0.55; }
   50% { opacity: 1; }
 }
+
+@media (max-width: 40rem) {
+  /* The figure row wraps to one item per line on a phone, where a
+     2.25rem gap reads as a page of empty band rather than a rhythm. */
+  .figures {
+    gap: var(--space-2) var(--space-4);
+    margin-top: var(--space-3);
+  }
+
+  .figure {
+    /* Two to a row rather than one, since each is a short label and a
+       short value. */
+    flex: 1 1 45%;
+  }
+}
