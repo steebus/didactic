@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { NudgeIcon } from '@/components/NudgeIcon'
 import styles from './page.module.css'
 
 interface Lesson {
@@ -277,24 +278,33 @@ export default function CurriculumPage({
                             {view.lesson.created_by === 'user' && ' · yours'}
                           </p>
                         </div>
-                        <span className={styles.reorder}>
-                          <button
-                            className={styles.nudge}
-                            aria-label={`Move ${view.lesson.title} earlier`}
-                            disabled={busy}
-                            onClick={() => move(view.lesson.id, -1)}
-                          >
-                            ↑
-                          </button>
-                          <button
-                            className={styles.nudge}
-                            aria-label={`Move ${view.lesson.title} later`}
-                            disabled={busy}
-                            onClick={() => move(view.lesson.id, 1)}
-                          >
-                            ↓
-                          </button>
-                        </span>
+                        {/* Reordering belongs to the draft: once a
+                            curriculum is yours and lessons are being
+                            worked, shuffling the order is disruptive
+                            rather than useful. */}
+                        {draft && (
+                          <span className={styles.reorder}>
+                            <span className={styles.reorderLabel}>Order</span>
+                            <button
+                              className={styles.nudge}
+                              aria-label={`Move ${view.lesson.title} earlier`}
+                              title="Move earlier"
+                              disabled={busy}
+                              onClick={() => move(view.lesson.id, -1)}
+                            >
+                              <NudgeIcon direction="up" />
+                            </button>
+                            <button
+                              className={styles.nudge}
+                              aria-label={`Move ${view.lesson.title} later`}
+                              title="Move later"
+                              disabled={busy}
+                              onClick={() => move(view.lesson.id, 1)}
+                            >
+                              <NudgeIcon direction="down" />
+                            </button>
+                          </span>
+                        )}
                       </li>
                     ))}
                 </ul>

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import Graph from 'graphology'
 import Sigma from 'sigma'
 import forceAtlas2 from 'graphology-layout-forceatlas2'
+import FA2Supervisor from 'graphology-layout-forceatlas2/worker'
 import { SheetNav } from './SheetNav'
 import styles from './GraphCanvas.module.css'
 
@@ -167,19 +168,20 @@ export function GraphCanvas({
       }
     }
 
+    const layoutSettings = {
+      // Lower gravity with a wider scalingRatio lets the beds
+      // separate; strong gravity collapses them into one mass.
+      gravity: 1.2,
+      scalingRatio: 24,
+      slowDown: 14,
+      adjustSizes: true,
+      barnesHutOptimize: graph.order > 80,
+    }
+
     if (graph.order > 0) {
-      forceAtlas2.assign(graph, {
-        iterations: 500,
-        settings: {
-          // Lower gravity with a wider scalingRatio lets the beds
-          // separate; strong gravity collapses them into one mass.
-          gravity: 1.2,
-          scalingRatio: 24,
-          slowDown: 14,
-          adjustSizes: true,
-          barnesHutOptimize: graph.order > 80,
-        },
-      })
+      // Settle the planting before the first paint, so it opens on a
+      // readable bed rather than animating out of a seeded ring.
+      forceAtlas2.assign(graph, { iterations: 400, settings: layoutSettings })
     }
 
     const renderer = new Sigma(graph, holder.current, {
@@ -222,6 +224,59 @@ export function GraphCanvas({
     renderer.on('clickNode', ({ node }) => setSelected(node))
     renderer.on('clickStage', () => setSelected(null))
 
+    // --- Live forces --------------------------------------------------
+    //
+    // The layout keeps running in a worker, so dragging a seed pushes
+    // its neighbours out of the way and the bed settles again. A held
+    // node is pinned: fixed while the drag lasts, released after, which
+    // is what makes the planting feel like it has weight.
+    // Running settings differ from the one-shot pass. Continuous
+    // iteration with the settling values collapses the bed into a clump:
+    // gravity keeps pulling while nothing pushes back hard enough. More
+    // repulsion and far weaker gravity hold the beds open while a drag
+    // still propagates through them.
+    const supervisor = new FA2Supervisor(graph, {
+      settings: {
+        ...layoutSettings,
+        gravity: 0.05,
+        scalingRatio: 80,
+        slowDown: 40,
+      },
+    })
+    let dragging: string | null = null
+    let settleTimer: ReturnType<typeof setTimeout> | undefined
+
+    renderer.on('downNode', ({ node }) => {
+      dragging = node
+      graph.setNodeAttribute(node, 'highlighted', true)
+      // Pin it where the hand is, or the forces fight the drag.
+      graph.setNodeAttribute(node, 'fixed', true)
+      if (!supervisor.isRunning()) supervisor.start()
+    })
+
+    renderer.on('moveBody', ({ event }) => {
+      if (!dragging) return
+      const position = renderer.viewportToGraph(event)
+      graph.setNodeAttribute(dragging, 'x', position.x)
+      graph.setNodeAttribute(dragging, 'y', position.y)
+      // Stop the canvas panning under the finger while a seed is held.
+      event.preventSigmaDefault()
+      event.original.preventDefault()
+      event.original.stopPropagation()
+    })
+
+    const release = () => {
+      if (!dragging) return
+      graph.removeNodeAttribute(dragging, 'highlighted')
+      graph.removeNodeAttribute(dragging, 'fixed')
+      dragging = null
+      // Let the bed settle around where it was dropped, then rest.
+      settleTimer = setTimeout(() => supervisor.stop(), 2500)
+    }
+
+    renderer.on('upNode', release)
+    renderer.on('upStage', release)
+
     // Sit the whole planting in frame rather than leaving the camera
     // wherever the layout happened to finish.
     // ponytail: animatedReset restores Sigma's default camera rather
@@ -233,6 +288,9 @@ export function GraphCanvas({
 
     sigma.current = renderer
     return () => {
+      clearTimeout(settleTimer)
+      // kill() terminates the worker; stop() alone leaves it running.
+      supervisor.kill()
       renderer.kill()
       sigma.current = null
     }

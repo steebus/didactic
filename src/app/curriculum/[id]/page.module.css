@@ -388,3 +388,13 @@
   border-top: 1px solid var(--rule);
   padding-top: var(--space-3);
 }
+
+/* The reorder pair is labelled: two bare arrows beside a lesson do not
+   say what they move. */
+.reorderLabel {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-right: var(--space-1);
+}
