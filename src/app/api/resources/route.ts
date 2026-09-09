@@ -20,10 +20,48 @@ export async function POST(req: Request) {
   }
 
   const db = supabaseAdmin()
+
+  // The same thing filed twice is one thing, not two.
+  //
+  // This inserted unconditionally, so sending a link a second time --
+  // or looking a book up again months later -- made a second row with
+  // its own topic links and its own read state. The map then counted
+  // one book as two pieces of evidence. A URL is the identity where
+  // there is one: Open Library resolves a work to a stable URL, so a
+  // book looked up twice arrives with the same one.
+  //
+  // Filing it again is not an error and does not overwrite anything.
+  // What it does is file the existing row against the topic you were
+  // filing from, which is almost always what was actually meant.
+  const trimmedUrl = typeof url === 'string' && url.trim() ? url.trim() : null
+  if (trimmedUrl) {
+    const { data: already } = await db.from('resources')
+      .select('id, title, status')
+      .eq('user_id', userId)
+      .eq('url', trimmedUrl)
+      .limit(1)
+      .maybeSingle()
+
+    if (already) {
+      if (topicId) {
+        await db.from('resource_topics').upsert(
+          { resource_id: already.id, topic_id: topicId, relevance: 0.9 },
+          { onConflict: 'resource_id,topic_id', ignoreDuplicates: true }
+        )
+      }
+      return NextResponse.json({
+        id: already.id,
+        title: already.title,
+        alreadyFiled: true,
+        filedHereToo: Boolean(topicId),
+      })
+    }
+  }
+
   const { data, error } = await db.from('resources').insert({
     user_id: userId,
-    url: url ?? null,
-    title: title ?? url ?? 'Untitled',
+    url: trimmedUrl,
+    title: title ?? trimmedUrl ?? 'Untitled',
     kind,
     raw_text: text ?? null,
     // Material offered as evidence of what you already hold arrives

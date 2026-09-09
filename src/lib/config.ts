@@ -48,6 +48,24 @@ export const config = {
   // model proposing one topic twice under two names.
   RESOLVER_SIBLING_AMBIGUOUS: 0.9,
 
+  // Two rows that are the same piece of material.
+  //
+  // A URL settles identity where there is one, and the database now
+  // enforces that. What it cannot settle is the same book entered by
+  // hand and later looked up, or entered twice with different
+  // punctuation -- which is how one book came to sit in the library
+  // four times. Measured on those rows: the same book scores 0.988 to
+  // 0.989 across "The Little Book of Common Sense Investing - John C
+  // Bogle" and "The little book of common sense investing — John C.
+  // Bogle", while two different books by different authors score
+  // 0.855. The gap is wide, so this sits well above the wrong pairs
+  // and below the right ones.
+  //
+  // It only ever asks. Merging two resources moves exposures and
+  // cannot be undone, so it is a suggestion on the shelf rather than
+  // something done quietly.
+  DUPLICATE_RESOURCE: 0.94,
+
   // How much each kind of engagement counts toward ability.
   //
   // A marked passage is the lightest thing that counts at all: it is

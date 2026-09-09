@@ -51,6 +51,28 @@ export function LibrarySheet({ resources }: { resources: LibraryRow[] }) {
   }, [resources, term, kind])
 
   const unfiled = resources.filter(r => r.topics.length === 0).length
+  const duplicates = resources.filter(r => r.sameAs.length > 0).length
+
+  /** Fold a near-duplicate into this row. Irreversible, so it is only
+   *  ever offered where two rows genuinely look like one thing. */
+  async function merge(keep: LibraryRow, mergeId: string) {
+    setBusy(keep.id)
+    setError(null)
+    try {
+      const res = await fetch(`/api/resources/${keep.id}/merge`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ mergeId }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(body.error ?? 'Could not merge those.')
+      startTransition(() => router.refresh())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong.')
+    } finally {
+      setBusy(null)
+    }
+  }
 
   async function remove(row: LibraryRow) {
     setBusy(row.id)
@@ -99,6 +121,7 @@ export function LibrarySheet({ resources }: { resources: LibraryRow[] }) {
         {/* Filed against nothing means no lesson can reach it and it
             appears on no topic sheet -- worth saying out loud. */}
         {unfiled > 0 && ` · ${unfiled} filed against no topic`}
+        {duplicates > 0 && ` · ${duplicates} look like duplicates`}
       </p>
 
       {error && <p className={styles.problem}>{error}</p>}
@@ -151,6 +174,31 @@ export function LibrarySheet({ resources }: { resources: LibraryRow[] }) {
                 </p>
 
                 {r.summary && <p className={styles.rowSummary}>{r.summary}</p>}
+
+                {/* Two rows for one thing. Named where the shelf is
+                    already being read rather than in a queue of its
+                    own, and only ever suggested: merging moves the
+                    exposures behind a figure and cannot be undone. */}
+                {r.sameAs.length > 0 && (
+                  <p className={styles.duplicate}>
+                    Looks like the same thing as{' '}
+                    {r.sameAs.map((d, i) => (
+                      <span key={d.id}>
+                        {i > 0 && ', '}
+                        <span className={styles.duplicateTitle}>{d.title}</span>
+                        {' — '}
+                        <button
+                          type="button"
+                          className={styles.mergeAction}
+                          onClick={() => merge(r, d.id)}
+                          disabled={busy === r.id}
+                        >
+                          {busy === r.id ? 'Merging…' : 'fold it into this one'}
+                        </button>
+                      </span>
+                    ))}
+                  </p>
+                )}
               </div>
 
               <div className={styles.rowActions}>
