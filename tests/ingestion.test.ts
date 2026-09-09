@@ -92,7 +92,11 @@ const realFetch = globalThis.fetch
 beforeEach(() => { vi.clearAllMocks() })
 afterEach(() => { globalThis.fetch = realFetch })
 
-describe('ingestResource', () => {
+// Cold runs compile and connect before the first assertion, which has
+// pushed this past the 5s default three times now. The work is a local
+// Postgres round trip, not a hang: the timeout is raised rather than
+// the test being made to do less.
+describe('ingestResource', { timeout: 30_000 }, () => {
   it('links a concept matching an existing topic instead of creating a duplicate', async () => {
     const existingReact = new Array(1536).fill(0)
     existingReact[0] = 1

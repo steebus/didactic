@@ -158,6 +158,16 @@ export function GraphCanvas({
       subjectIds.map((id, i) => [id, (i / Math.max(1, subjectIds.length)) * Math.PI * 2])
     )
 
+    // One pass over the lessons, so the ring is cheap to draw.
+    const lessonTally = new Map<string, { total: number; worked: number }>()
+    for (const lesson of data.lessons) {
+      if (!lesson.topic_id) continue
+      const tally = lessonTally.get(lesson.topic_id) ?? { total: 0, worked: 0 }
+      tally.total += 1
+      if (lesson.completed_at) tally.worked += 1
+      lessonTally.set(lesson.topic_id, tally)
+    }
+
     visible.forEach((t, i) => {
       const home = t.primary_subject_id ?? 'loose'
       const base = seedAngle.get(home) ?? 0
@@ -175,6 +185,11 @@ export function GraphCanvas({
         y: Math.sin(base + jitter * 0.8) * radius,
         freshness: t.freshness,
         ability: t.ability,
+        // The lessons on this topic, tallied for the ring drawn around
+        // it. Counts rather than rows: the ring only needs to know how
+        // many and how many are done.
+        lessonsTotal: lessonTally.get(t.id)?.total ?? 0,
+        lessonsWorked: lessonTally.get(t.id)?.worked ?? 0,
       })
     })
 
@@ -425,7 +440,44 @@ export function GraphCanvas({
     renderer.setSetting('defaultDrawNodeLabel', (context, nodeData, settings) => {
       const d = nodeData as unknown as {
         x: number; y: number; size: number; label: string; freshness: number
+        lessonsTotal?: number; lessonsWorked?: number
       }
+
+      // The lessons on a topic, drawn as a ring of dashes around its
+      // seed: one dash per lesson, filled in the plate green once it
+      // has been worked and left open in the rule ink until then. A
+      // topic with no route has no ring at all, which is itself the
+      // reading -- nothing has been laid out here yet.
+      //
+      // Drawn as marks rather than as a progress arc because the count
+      // is the information: four dashes with one filled says the same
+      // thing at a glance as "1 of 4", and an arc at this size cannot.
+      const total = d.lessonsTotal ?? 0
+      if (total > 0) {
+        // Past a dozen the dashes stop being countable, so they become
+        // a ruling instead: still proportioned, no longer enumerated.
+        const marks = Math.min(total, 24)
+        const worked = Math.round(((d.lessonsWorked ?? 0) / total) * marks)
+        const radius = d.size + 4
+        const gap = marks > 12 ? 0.18 : 0.3
+        const step = (Math.PI * 2) / marks
+
+        context.save()
+        context.lineWidth = 1.5
+        context.lineCap = 'butt'
+        for (let i = 0; i < marks; i++) {
+          // From the top, clockwise, so the first lesson sits where a
+          // reader starts.
+          const from = -Math.PI / 2 + i * step + step * gap * 0.5
+          const to = from + step * (1 - gap)
+          context.beginPath()
+          context.strokeStyle = i < worked ? '#2f5233' : 'rgba(107, 92, 69, 0.45)'
+          context.arc(d.x, d.y, radius, from, to)
+          context.stroke()
+        }
+        context.restore()
+      }
+
       if (!d.label) return
 
       // Seed names give way as you pull back: past this the bed names

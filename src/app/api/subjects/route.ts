@@ -8,6 +8,7 @@ import { config } from '@/lib/config'
 import { ownerId } from '@/lib/auth'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@/lib/tags'
+import { proposeEdges } from '@/lib/llm/edges'
 
 /**
  * Drop what this route just changed.
@@ -618,6 +619,49 @@ ${
     )
     if (fileError) {
       warnings.push(`the evidence was not filed against the topics: ${fileError.message}`)
+    }
+  }
+
+  // How the topics in this bed relate to each other.
+  //
+  // Nothing sown this way had any relationship at all: edges were only
+  // ever proposed by the resource ingester, so a twenty-topic bed
+  // arrived as twenty unconnected nodes and the graph could only
+  // scatter them. The bed is the one moment the whole set is known at
+  // once, which makes it the right place to ask what leads to what.
+  //
+  // A failure here loses the shape, not the bed. Twenty topics with no
+  // edges is what the app did before; it is a worse map, not a broken
+  // one.
+  if (created && created.length > 1) {
+    try {
+      const refs = created.map(t => ({ id: t.id, title: t.title }))
+      // Topics already on the map in the same subjects, so a new bed
+      // can attach to what is already growing rather than floating
+      // beside it.
+      const existing = toLink.length
+        ? (await db.from('topics').select('id, title').in('id', [...new Set(toLink)])).data ?? []
+        : []
+      const edges = await proposeEdges(refs, existing)
+      if (edges.length > 0) {
+        const { error: edgeError } = await db.from('edges').insert(
+          edges.map(e => ({
+            user_id: row!.user_id,
+            from_topic: e.from,
+            to_topic: e.to,
+            kind: e.kind,
+            weight: e.weight,
+            created_by: 'ai' as const,
+          }))
+        )
+        if (edgeError) throw new Error(edgeError.message)
+      }
+    } catch (e) {
+      warnings.push(
+        `the bed was sown but its topics were not related to each other: ${
+          e instanceof Error ? e.message : String(e)
+        }`
+      )
     }
   }
 

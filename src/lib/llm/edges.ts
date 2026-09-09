@@ -49,7 +49,11 @@ export async function proposeEdges(
 
   const res = await getClient().messages.create({
     model: 'claude-sonnet-5',
-    max_tokens: 2000,
+    // A bed is related in one pass, so the ceiling scales with how many
+    // topics were sown. Measured on a twenty-topic bed: 2000 truncated
+    // mid-list and the call came back with nothing at all, while the
+    // same request at 8000 produced thirty-three edges in 2720 tokens.
+    max_tokens: 8000,
     tools: [TOOL],
     tool_choice: { type: 'tool', name: 'record_edges' },
     messages: [{
@@ -69,7 +73,15 @@ ${neighbours.map(n => `${n.id}: ${n.title}`).join('\n')}`,
   const tool = res.content.find(c => c.type === 'tool_use')
   if (!tool || tool.type !== 'tool_use') return []
 
-  const { edges } = tool.input as { edges: Array<{ from: string; to: string; kind: string; weight: number }> }
+  // The model's shape is a promise, not a guarantee. A response that
+  // came back without the array -- truncated, or simply answering in
+  // its own shape -- used to throw here and take the whole sowing with
+  // it, which is the same fault the topic list had.
+  if (res.stop_reason === 'max_tokens') return []
+  const raw = tool.input as {
+    edges?: Array<{ from: string; to: string; kind: string; weight: number }>
+  }
+  const edges = Array.isArray(raw.edges) ? raw.edges : []
 
   return edges.filter(e =>
     validIds.has(e.from) &&

@@ -1,0 +1,16 @@
+/* The bed is not a sheet: it fills the window and lies on the press
+   bed rather than on paper. */
+.bed {
+  height: 100dvh;
+  background: var(--paper);
+  display: grid;
+  place-items: center;
+}
+
+.panel {
+  width: min(28rem, calc(100% - 2rem));
+  padding: var(--space-4) var(--space-5);
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  box-shadow: 0 2px 24px rgba(36, 29, 22, 0.16);
+}
