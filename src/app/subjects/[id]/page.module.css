@@ -189,6 +189,22 @@
   max-width: 58ch;
 }
 
+/* A bed that was sown but never planted. The offer to lay it out again
+   sits where the topics would have been, because that is where the
+   absence is. */
+.bare {
+  border: 1px solid var(--rule-strong);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.bare .empty {
+  margin-bottom: 0;
+}
+
 /* --- The tree ---------------------------------------------------- */
 
 /* Nesting is drawn with rules, the way a planting plan is drawn: a

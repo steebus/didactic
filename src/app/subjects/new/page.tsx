@@ -1,49 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { SheetNav } from '@/components/SheetNav'
 import { RootsGauge, ROOT_STAGES } from '@/components/RootsGauge'
 import { readJson } from '@/lib/http'
+import { useLabour } from '@/components/useLabour'
 import { ProofOfRoots, type ProofEntry } from './ProofOfRoots'
 import styles from './page.module.css'
-
-/**
- * Sowing takes the better part of a minute -- an LLM call, an
- * embedding per topic and a similarity search per topic -- and a
- * button that only says it is busy for that long reads as a button
- * that has died. So it reports the work in the same voice as the rest
- * of the sheet.
- *
- * None of this corresponds to a real step. It is a gardener's rumour
- * of one, and it is deliberately not a progress bar: a bar that cannot
- * know the total lies about how much is left, and this cannot know.
- *
- * The list runs once and holds on the last phrase rather than cycling.
- * Twelve labels at 2.6s wrap in 31 seconds, so on a sowing that takes
- * the better part of a minute the reader watched "Turning the ground"
- * come round a second time and read it as stuck. A label that stops
- * advancing says nearly there; a label that starts again says broken.
- * ponytail: a plain sequence, no easing, no percentage. If the real
- * stages ever become legible, report those instead.
- */
-const LABOURS = [
-  'Turning the ground…',
-  'Sifting the seed…',
-  'Reading the packet…',
-  'Consulting the almanac…',
-  'Squinting at the light…',
-  'Measuring the drills…',
-  'Arguing with the compost…',
-  'Spacing the rows…',
-  'Naming the seedlings…',
-  'Filing the labels…',
-  'Watering in…',
-  'Standing back…',
-  // The last one holds until the bed comes back, so it has to be a
-  // phrase that can be true for a while.
-  'Almost done…',
-]
 
 interface QualifyingQuestion {
   prompt: string
@@ -97,22 +61,13 @@ export default function NewSubjectPage() {
   const [answers, setAnswers] = useState<string[]>([])
 
   const [busy, setBusy] = useState(false)
-  const [labour, setLabour] = useState(0)
+  const labour = useLabour(busy)
   const [error, setError] = useState<string | null>(null)
   /** A bed that was laid out, but not cleanly. Held here rather than
    *  navigated past, because a warning nobody reads is a warning that
    *  may as well not have been written. */
   const [partial, setPartial] = useState<{ href: string; warnings: string[] } | null>(null)
   const router = useRouter()
-
-  // Steps on while the request is out. The reset happens where the
-  // sowing starts rather than here: setting state straight from an
-  // effect costs a second render for a number nobody is looking at.
-  useEffect(() => {
-    if (!busy) return
-    const tick = setInterval(() => setLabour(n => n + 1), 2600)
-    return () => clearInterval(tick)
-  }, [busy])
 
   async function writeQuestions(name: string) {
     setQualifying('writing')
@@ -152,7 +107,6 @@ export default function NewSubjectPage() {
 
   async function submit() {
     setBusy(true)
-    setLabour(0)
     setError(null)
     try {
       const res = await fetch('/api/subjects', {
@@ -450,7 +404,7 @@ export default function NewSubjectPage() {
         {named && (
           <div className={styles.actions}>
             <button className={styles.submit} onClick={submit} disabled={busy}>
-              {busy ? LABOURS[Math.min(labour, LABOURS.length - 1)] : 'Lay out the bed'}
+              {busy ? labour : 'Lay out the bed'}
             </button>
             <p className={styles.note}>
               {rootsSet

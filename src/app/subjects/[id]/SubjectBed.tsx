@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { viabilityFigure } from '@/lib/scoring'
 import { StockBar, stockState, STOCK_LABEL, STOCK_ORDER } from '@/components/StockBar'
+import { readJson } from '@/lib/http'
+import { useLabour } from '@/components/useLabour'
 import type { SubjectTopicRow, TopicTreeNode } from '@/lib/subject'
 import styles from './page.module.css'
 
@@ -23,18 +25,61 @@ export function SubjectBed({
   subjectId,
   tree,
   colour,
+  sown,
 }: {
   subjectId: string
   tree: TopicTreeNode[]
   colour: string
+  /** Whether there is a sowing record to lay the bed out from again.
+   *  Without one the offer still stands, but it rests on the subject's
+   *  name alone and says so. */
+  sown: boolean
 }) {
   const [sort, setSort] = useState<'outline' | 'condition'>('outline')
   const [title, setTitle] = useState('')
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [laying, setLaying] = useState(false)
+  const labour = useLabour(laying)
   const [, startTransition] = useTransition()
   const router = useRouter()
+
+  /**
+   * Lay out a bed that was sown but never planted.
+   *
+   * A sowing that runs out of the platform's minute part way leaves the
+   * subject standing with nothing in it, because the subject is written
+   * before its topics are. Everything it was sown from was kept, so the
+   * remedy is a button rather than filling the sheet in a second time.
+   */
+  async function layOut() {
+    setLaying(true)
+    setError(null)
+    setNote(null)
+    try {
+      const res = await fetch(`/api/subjects/${subjectId}/resow`, { method: 'POST' })
+      const { ok, body, error: failed } = await readJson<{
+        topicsCreated?: number
+        linked?: number
+        warnings?: string[]
+      }>(res)
+      if (!ok) throw new Error(failed ?? 'Could not lay out the bed.')
+
+      const sownCount = (body.topicsCreated ?? 0) + (body.linked ?? 0)
+      setNote(
+        [
+          `${sownCount} ${sownCount === 1 ? 'topic' : 'topics'} sown.`,
+          ...(body.warnings ?? []),
+        ].join(' ')
+      )
+      startTransition(() => router.refresh())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong.')
+    } finally {
+      setLaying(false)
+    }
+  }
 
   async function add() {
     const name = title.trim()
@@ -136,11 +181,31 @@ export function SubjectBed({
       </div>
 
       {tree.length === 0 ? (
-        <p className={styles.empty}>
-          Nothing filed under this subject yet. Name a topic below and it will
-          be sown here — or sent to you to adjudicate if the map already holds
-          something very like it.
-        </p>
+        <div className={styles.bare}>
+          <p className={styles.empty}>
+            Nothing filed under this subject yet — a sowing that runs out of
+            time leaves the bed like this, and so does taking the last topic
+            out of it.
+          </p>
+          <button
+            type="button"
+            className={styles.sowSubmit}
+            onClick={layOut}
+            disabled={laying}
+          >
+            {laying ? labour : 'Lay out the bed'}
+          </button>
+          <p className={styles.sowHint}>
+            {sown
+              ? 'Asks for the map again from what you already said when you sowed it — the answers under “How you sowed it”. Nothing is asked of you a second time.'
+              : 'There is no record of how this one was sown, so the map would rest on the subject’s name alone.'}
+          </p>
+          <p className={styles.sowHint}>
+            Or name a topic below and it will be sown here on its own.
+          </p>
+          {note && <p className={styles.sowNote}>{note}</p>}
+          {error && <p className={styles.sowProblem}>{error}</p>}
+        </div>
       ) : (
         <ul className={styles.tree}>
           {(sort === 'outline' ? tree : byCondition(tree)).map(node => (

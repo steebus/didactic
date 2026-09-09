@@ -85,7 +85,12 @@ export default async function SubjectPage({
       <div className={styles.body}>
         <div className={styles.spread}>
           <div className={styles.main}>
-            <SubjectBed subjectId={subject.id} tree={tree} colour={subject.colour} />
+            <SubjectBed
+              subjectId={subject.id}
+              tree={tree}
+              colour={subject.colour}
+              sown={sowing !== null}
+            />
           </div>
 
           <aside className={styles.margin}>

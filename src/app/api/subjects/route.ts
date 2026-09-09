@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server'
-import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/supabase'
-import { embed } from '@/lib/embedding'
-import { resolveConcept, fetchCandidates, neighboursFor } from '@/lib/resolver'
-import { recomputeAbilities } from '@/lib/scoring'
-import { config } from '@/lib/config'
 import { ownerId } from '@/lib/auth'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@/lib/tags'
-import { proposeEdges } from '@/lib/llm/edges'
+import {
+  proposeMap,
+  plantMap,
+  readAssessment,
+  isReadable,
+  PROBLEM_NOTES,
+  type Brief,
+  type Qualifier,
+  type Evidence,
+} from '@/lib/sowing'
 
 /**
  * Drop what this route just changed.
@@ -35,319 +39,22 @@ function dropCache() {
  */
 export const maxDuration = 60
 
-/** Embeddings and similarity searches run in parallel, but only a few
- *  at a time. The embedding function holds a model in memory per
- *  instance, and six at once finds its limits rather than its speed. */
-const CONCURRENCY = 3
-
 /**
- * How many existing topics a new bed is offered to relate itself to.
- *
- * Nearest by embedding, so the cap keeps the ones most likely to be
- * genuinely related rather than an arbitrary slice. Thirty is enough
- * for a bed to find its neighbours on a map of a few hundred topics
- * and small enough that the prompt stays a prompt.
+ * The clock the sowing runs against, a few seconds inside the
+ * platform's. Reaching it means giving up the edge pass and answering
+ * with the bed that was written; reaching the platform's means the
+ * browser is told the server gave up, which is what it was told the
+ * first time this failed.
  */
-const EDGE_NEIGHBOURS = 30
-
-/**
- * How far into the request a second go at the map is still affordable.
- *
- * Everything after the map -- an embedding and a similarity search per
- * topic, then the writes and the edges -- needs the rest of the minute
- * the platform allows. Asking again at forty seconds would turn a bed
- * that failed into a bed that timed out, which says less and costs
- * more.
- */
-const ASK_AGAIN_BEFORE_MS = 25_000
-
-/** What the model is told on the second go. It is told what it did
- *  rather than asked the same thing twice, because the same question
- *  asked identically tends to be answered identically. */
-const ASK_AGAIN = `
-
-Your previous attempt recorded no topics at all. That is never the right answer: every subject has topics in it. Record the list this time, at least six of them, before anything else.`
+export const BUDGET_MS = 54_000
 
 const PLATE_INKS = ['#b8482a', '#2f5233', '#c8871a', '#2a4a7c', '#6b3550', '#6b7233']
-
-/** The same rungs the roots slider prints, so the model reads and
- *  writes the figure the way the user set it. */
-const ROOT_STAGES = [
-  'bare ground, no prior knowledge at all',
-  'just germinated: knows the words, nothing has taken hold',
-  'seedling: can follow a conversation about it',
-  'in leaf: uses it with the documentation open',
-  'well rooted: works in it without looking much up',
-  'in full flower: mastery, could teach it',
-]
-
-interface Qualifier {
-  prompt: string
-  level: number
-  /** What a good answer shows. Written when the question was, never
-   *  shown to the user, and used here as the rubric to mark against. */
-  probes: string
-  answer: string
-}
-
-interface Evidence {
-  resourceId?: string
-  title: string
-  kind: string
-}
-
-const TOOL = {
-  name: 'record_subject_topics',
-  description:
-    'Record the topics within a subject, an estimated starting level for each, and a reading of what the answers actually showed.',
-  input_schema: {
-    type: 'object' as const,
-    properties: {
-      topics: {
-        type: 'array',
-        minItems: 6,
-        description:
-          'The topics, six at the very least. A subject always has topics in it: recording none is not an answer, and an empty list is never the right one.',
-        items: {
-          type: 'object',
-          properties: {
-            name: { type: 'string' },
-            summary: { type: 'string' },
-            estimated_level: { type: 'number', description: '1-5, based on the answers given.' },
-          },
-          required: ['name', 'summary', 'estimated_level'],
-        },
-      },
-      assessment: {
-        type: 'object',
-        description:
-          'Your reading of where they actually stand, from what they wrote rather than from what they claimed. Omit entirely if they gave you nothing to read.',
-        properties: {
-          level: {
-            type: 'number',
-            description:
-              '1-5 on the same scale as their own figure: what their answers demonstrate, not what they say.',
-          },
-          note: {
-            type: 'string',
-            description:
-              'Two or three sentences addressed to them, saying what the answers showed and what they did not. Plain and specific; no praise, no hedging.',
-          },
-          shown: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Short phrases naming what they demonstrably hold.',
-          },
-          missing: {
-            type: 'array',
-            items: { type: 'string' },
-            description:
-              'Short phrases naming what they did not show — wrong, vague, or skipped.',
-          },
-        },
-        required: ['level', 'note', 'shown', 'missing'],
-      },
-    },
-    required: ['topics'],
-  },
-}
 
 export async function GET() {
   const { data, error } = await supabaseAdmin()
     .from('subjects').select('id, title, colour').order('title')
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ subjects: data })
-}
-
-/**
- * Embed one name, with a second go.
- *
- * The embedding function is a cold-starting edge instance holding a
- * model, so the occasional call fails for reasons that have gone by the
- * time you ask again. One retry costs a moment; not retrying costs the
- * whole sowing.
- */
-async function embedOnce(name: string): Promise<number[]> {
-  try {
-    return await embed(name)
-  } catch {
-    await new Promise(resolve => setTimeout(resolve, 400))
-    return embed(name)
-  }
-}
-
-/** Run an async job over a list a few at a time, in order. */
-async function inBatches<T, R>(
-  items: T[],
-  size: number,
-  job: (item: T) => Promise<R>
-): Promise<R[]> {
-  const out: R[] = []
-  for (let i = 0; i < items.length; i += size) {
-    out.push(...(await Promise.all(items.slice(i, i + size).map(job))))
-  }
-  return out
-}
-
-/**
- * Everything the user said on the sowing sheet, as one brief for the
- * model. All of it is optional: a subject named and nothing else still
- * lays out a bed, it just rests on the subject's name alone.
- */
-function buildBrief(input: {
-  roots: number | null
-  confident: string
-  gaps: string
-  qualifiers: Qualifier[]
-  evidence: Evidence[]
-}) {
-  const parts: string[] = []
-
-  if (input.roots !== null) {
-    parts.push(
-      `They put their own roots in this subject at ${input.roots} out of 5 — ${ROOT_STAGES[input.roots]}.`
-    )
-  }
-  if (input.confident) parts.push(`What they say they already hold:\n${input.confident}`)
-  if (input.gaps) parts.push(`What they say they have bounced off or avoided:\n${input.gaps}`)
-  if (input.evidence.length) {
-    parts.push(
-      `Evidence they handed over for the above — books read, courses done, qualifications held:\n${
-        input.evidence.map(e => `- ${e.title} (${e.kind})`).join('\n')
-      }`
-    )
-  }
-
-  // The qualifying set is the only evidence here that is about the
-  // subject rather than about how they feel, so it is worth more than
-  // the rest. An unanswered question is evidence too: skipping the
-  // hard end of a graded set says something.
-  const answered = input.qualifiers.filter(q => q.answer.trim())
-  if (answered.length) {
-    parts.push(
-      `Their answers to the qualifying questions, easiest first. These are the strongest evidence here — they are about the subject rather than about how they feel — so weigh them above the self-report:\n${
-        answered
-          .map(q =>
-            `- [rung ${q.level}/5] ${q.prompt}${
-              q.probes ? `\n  A good answer shows: ${q.probes}` : ''
-            }\n  They wrote: ${q.answer.trim()}`
-          )
-          .join('\n')
-      }`
-    )
-    const skipped = input.qualifiers.length - answered.length
-    if (skipped > 0) {
-      parts.push(
-        `They left ${skipped} of the ${input.qualifiers.length} qualifying questions unanswered. Unanswered is not wrong, but do not read it as held either.`
-      )
-    }
-  }
-
-  return parts.join('\n\n')
-}
-
-/**
- * How far the user said they want to take the subject decides the shape
- * of the bed, not just its labels: an overview is broad and shallow, a
- * mastery run is narrow and finely cut.
- */
-function scopeInstruction(depth: string) {
-  if (!depth.trim()) {
-    return 'They said nothing about how far they want to take it, so cut 10 to 16 topics at an ordinary working grain.'
-  }
-  return `How far they want to take it, in their words:\n${depth}\n\nLet that set both the number of topics and how finely they are cut. Someone who wants an overview or is merely curious gets 6 to 10 broad topics and no specialist corners. Someone who wants a working knowledge gets 10 to 16. Someone who wants to master it gets 16 to 24, cut fine enough that each one is a real piece of work, including the awkward corners a survey would skip.`
-}
-
-/** Trim a model-written list to something a margin can print. */
-const phrases = (v: unknown, cap = 5) =>
-  Array.isArray(v)
-    ? v
-        .filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
-        .map(x => x.trim())
-        .slice(0, cap)
-    : []
-
-interface Proposal {
-  name: string
-  summary: string
-  estimated_level: number
-}
-
-interface RawMap {
-  topics?: unknown
-  assessment?: { level?: number; note?: string; shown?: unknown; missing?: unknown }
-}
-
-/**
- * The three ways a map fails to arrive, told apart because they have
- * different causes and different remedies -- and because only one of
- * them is worth asking twice.
- *
- * `unstructured` is no tool call at all: the model answered in prose,
- * or refused. `truncated` is a tool call cut off at the token ceiling,
- * whose input is whatever parsed out of half a JSON document -- topics
- * as a bare string, or absent. Reading that as a list is where
- * "(k.topics ?? []).filter is not a function" came from. `empty` is a
- * whole tool call that recorded nothing.
- */
-type MapProblem = 'unstructured' | 'truncated' | 'empty'
-
-const PROBLEM_NOTES: Record<MapProblem, string> = {
-  unstructured:
-    'The model answered without filling the map in at all. Try again in a moment.',
-  truncated:
-    'The map came back half-written: the model hit its length ceiling part way through the list. Try a shallower scope, or a subject cut into two.',
-  empty:
-    'The map came back empty — the model recorded no topics at all. Trying again usually gets one; if it keeps happening, try naming the subject differently.',
-}
-
-interface MapReading {
-  topics: Proposal[]
-  raw: RawMap
-  problem: MapProblem | null
-  /** What actually arrived, in one line. Written for the log and for
-   *  the sentence the user reads, because "the map came back empty"
-   *  with nothing beside it could only ever be guessed at from the
-   *  outside -- which is exactly how the last one was diagnosed. */
-  diagnostic: string
-}
-
-/** Read the model's answer into a list of topics, and say plainly what
- *  came back when it cannot be read. */
-function readMap(res: Anthropic.Message): MapReading {
-  const tool = res.content.find(c => c.type === 'tool_use')
-  const raw: RawMap = tool && tool.type === 'tool_use' ? (tool.input as RawMap) : {}
-  const list = Array.isArray(raw.topics) ? raw.topics : []
-
-  // The model's shape is a promise, not a guarantee. Anything without a
-  // usable name cannot be embedded or resolved, so it is dropped rather
-  // than crashing the request.
-  const topics: Proposal[] = list
-    .filter((t): t is Record<string, unknown> => typeof t === 'object' && t !== null)
-    .filter(t => typeof t.name === 'string' && t.name.trim().length > 0)
-    .map(t => ({
-      name: (t.name as string).trim(),
-      summary: typeof t.summary === 'string' ? t.summary : '',
-      estimated_level: Number.isFinite(t.estimated_level) ? (t.estimated_level as number) : 1,
-    }))
-
-  const shape = Array.isArray(raw.topics)
-    ? `${raw.topics.length} recorded, ${topics.length} usable`
-    : raw.topics === undefined
-      ? 'no topics at all'
-      : `topics arrived as ${typeof raw.topics}`
-
-  const problem: MapProblem | null =
-    !tool ? 'unstructured' : res.stop_reason === 'max_tokens' ? 'truncated' : topics.length === 0 ? 'empty' : null
-
-  return {
-    topics,
-    raw,
-    problem,
-    diagnostic: `stop_reason ${res.stop_reason ?? 'none'}, ${
-      res.usage?.output_tokens ?? '?'
-    } output tokens, ${tool ? shape : 'no tool call'}`,
-  }
 }
 
 /**
@@ -366,17 +73,16 @@ export async function POST(req: Request) {
 }
 
 async function sow(req: Request) {
-  // What the retry budget below is measured from.
-  const started = Date.now()
+  // What the budget above is measured from.
+  const deadline = Date.now() + BUDGET_MS
 
   const body = await req.json()
   const subject: string = typeof body.subject === 'string' ? body.subject.trim() : ''
   if (!subject) return NextResponse.json({ error: 'subject is required' }, { status: 400 })
 
-  // Things that went wrong without being worth failing over, and topics
-  // that could not be placed. Both are reported rather than hidden.
+  // Things that went wrong without being worth failing over. Reported
+  // rather than hidden.
   const warnings: string[] = []
-  const dropped: string[] = []
 
   // The owner of everything written below, taken from the session
   // rather than from the request body.
@@ -390,9 +96,6 @@ async function sow(req: Request) {
       ? Math.min(5, Math.max(0, Math.round(body.roots)))
       : null
   const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
-  const confident = text(body.confident)
-  const gaps = text(body.gaps)
-  const depth = text(body.depth)
 
   const rawQualifiers: unknown[] = Array.isArray(body.qualifiers) ? body.qualifiers : []
   const qualifiers: Qualifier[] = rawQualifiers
@@ -415,6 +118,16 @@ async function sow(req: Request) {
     }))
     .filter(e => e.title)
 
+  const brief: Brief = {
+    subject,
+    roots,
+    confident: text(body.confident),
+    gaps: text(body.gaps),
+    depth: text(body.depth),
+    qualifiers,
+    evidence,
+  }
+
   // Only one key is needed now: the topics are proposed by Anthropic,
   // and embedding runs on the edge function with no key at all.
   if (!process.env.ANTHROPIC_API_KEY) {
@@ -424,89 +137,17 @@ async function sow(req: Request) {
     )
   }
 
-  const answeredCount = qualifiers.filter(q => q.answer).length
-  // A reading needs something to read. Nothing said means no verdict,
-  // rather than a verdict of nought.
-  const readable = answeredCount > 0 || confident.length > 0 || gaps.length > 0
-
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-  const brief = buildBrief({ roots, confident, gaps, qualifiers, evidence })
-
-  const instruction = `Break the subject "${subject}" into learnable topics. Topics are areas within the subject; they need not relate to one another. Use canonical names that would match an existing knowledge graph.
-
-${scopeInstruction(depth)}
-
-${brief ? `What they told us about where they stand:\n\n${brief}` : 'They said nothing about where they stand, so assume nothing.'}
-
-Estimate a starting level of 1-5 per topic${
-        roots !== null ? `, anchored on their own figure of ${roots}` : ''
-      }. Vary it: what they named as solid should sit above what they named as a gap, and a topic nobody mentioned sits at the anchor or below. Be conservative throughout — this is a low-confidence prior that real evidence will overwrite.${
-        roots === 0
-          ? ' They have said outright that they have no prior knowledge, so every level is 1.'
-          : ''
-      }
-
-${
-  readable
-    ? `Then give the assessment: your own reading of where they stand, judged from what they wrote rather than from what they claimed. Mark the answers as a knowledgeable person would — a correct but thin answer at rung 1 is not the same as a fluent one at rung 4, and a confident wrong answer counts against. Say plainly where the answers were vague or absent. This is printed back to them beside their own figure, so it must be specific enough to argue with.`
-    : 'They gave nothing to read, so omit the assessment entirely.'
-}`
-
-  /** Ask for the map. `again` is empty on the first go and carries the
-   *  complaint on the second. */
-  const askForMap = (again: string) =>
-    client.messages.create({
-      model: 'claude-sonnet-5',
-      max_tokens: 4000,
-      tools: [TOOL],
-      tool_choice: { type: 'tool', name: 'record_subject_topics' },
-      messages: [{ role: 'user', content: `${instruction}${again}` }],
-    })
-
-  let map = readMap(await askForMap(''))
-
-  // A map that comes back with nothing on it is not the user's fault,
-  // and it is not usually the subject's either: the same model, the
-  // same key and the same forced tool wrote a qualifying set about
-  // this very subject a minute earlier, on this very sheet. What it is
-  // is a bad roll, and the remedy for a bad roll is to roll again.
-  //
-  // It is worth the seconds because of what the alternative costs: the
-  // user is sent back to a sheet they have just spent ten minutes on,
-  // holding an error that blames the name they chose. Only the empty
-  // case is asked twice -- a call cut off at the ceiling would be cut
-  // off again at the same ceiling, and no tool call at all means the
-  // model answered something else entirely.
-  if (map.problem === 'empty' && Date.now() - started < ASK_AGAIN_BEFORE_MS) {
-    console.error(`sow: an empty map for "${subject}" (${map.diagnostic}); asking once more`)
-    map = readMap(await askForMap(ASK_AGAIN))
-  }
-
+  const map = await proposeMap(brief, { assess: isReadable(brief), deadline })
   if (map.problem) {
-    // Logged in full because the browser only ever showed the sentence,
-    // and a sentence with no figures behind it is a failure that can
-    // only be guessed at. The figures are named to the user too: they
-    // are the one who has to decide whether to press the button again.
-    console.error(`sow: no map for "${subject}" — ${map.problem}: ${map.diagnostic}`)
+    // The figures are named to the user as well as logged: they are the
+    // one who has to decide whether to press the button again.
     return NextResponse.json(
       { error: `${PROBLEM_NOTES[map.problem]} (${map.diagnostic})` },
       { status: 502 }
     )
   }
 
-  const { topics: proposed, raw } = map
-
-  const assessment =
-    readable && raw.assessment && Number.isFinite(raw.assessment.level)
-      ? {
-          level: Math.min(5, Math.max(0, Math.round(raw.assessment.level!))),
-          note: typeof raw.assessment.note === 'string' ? raw.assessment.note.trim() : '',
-          shown: phrases(raw.assessment.shown),
-          missing: phrases(raw.assessment.missing),
-          answered: answeredCount,
-          asked: qualifiers.length,
-        }
-      : null
+  const assessment = readAssessment(map, brief)
 
   const db = supabaseAdmin()
   const { data: existing } = await db.from('subjects').select('id')
@@ -525,13 +166,17 @@ ${
   // because the usual cause is a migration that has not been applied
   // and the symptom otherwise is a reading sheet that is silently
   // always empty.
+  //
+  // It is also what a second attempt is laid out from: written before
+  // the topics are, so a sowing that runs out of time leaves a bed the
+  // sheet can offer to sow again from the same answers.
   const { error: sowingError } = await db.from('subject_sowings').insert({
     subject_id: row!.id,
     user_id: row!.user_id,
     roots,
-    confident: confident || null,
-    gaps: gaps || null,
-    depth: depth || null,
+    confident: brief.confident || null,
+    gaps: brief.gaps || null,
+    depth: brief.depth || null,
     qualifiers,
     evidence,
     assessed_level: assessment?.level ?? null,
@@ -539,292 +184,30 @@ ${
   })
   if (sowingError) warnings.push(`the sowing record was not kept: ${sowingError.message}`)
 
-  // --- Resolving the proposals against the map ---------------------
-  //
-  // Embedding and searching used to run one topic at a time, which put
-  // a twenty-topic bed well past any function timeout. They are
-  // independent per topic, so they now run a few at a time; only the
-  // decision that follows stays sequential, because two proposals in
-  // one batch can be near-duplicates of each other and the second must
-  // be able to see the first.
-  //
-  // A topic whose embedding cannot be got is dropped rather than
-  // failing the sowing: nineteen topics and a note is a better outcome
-  // than an error and nothing.
-  const embedded = (
-    await inBatches(proposed, CONCURRENCY, async candidate => {
-      try {
-        return { candidate, vector: await embedOnce(candidate.name) }
-      } catch {
-        dropped.push(candidate.name)
-        return null
-      }
-    })
-  ).filter(entry => entry !== null)
+  const planting = await plantMap(
+    db,
+    { id: row!.id, user_id: row!.user_id, title: subject },
+    map.topics,
+    brief,
+    deadline
+  )
 
-  if (embedded.length === 0) {
+  if (planting.problem) {
+    // An empty subject is worse than no subject: it would print on the
+    // stock list as a bed with nothing in it. Nothing has been laid out
+    // from it yet either, so there is nothing to keep.
     await db.from('subjects').delete().eq('id', row!.id)
-    return NextResponse.json(
-      {
-        error:
-          'Nothing could be embedded, so no topic could be placed on the map. The embedding function is not answering.',
-      },
-      { status: 502 }
-    )
-  }
-
-  const searched = await inBatches(embedded, CONCURRENCY, async entry => ({
-    ...entry,
-    candidates: await fetchCandidates(db, entry.vector),
-  }))
-
-  const toLink: string[] = []
-  const toCreate: Array<{
-    name: string
-    summary: string
-    level: number
-    vector: number[]
-    pending: boolean
-  }> = []
-  // Proposals already accepted in this pass, so the resolver can see
-  // them before they exist in the database. Their ids are marked so a
-  // match against one is not mistaken for a row to link.
-  const accepted: Array<{ id: string; title: string; embedding: number[] }> = []
-
-  for (const { candidate, vector, candidates } of searched) {
-    // The batch's own proposals are marked as siblings so the resolver
-    // can hold them to the restatement bar rather than the stranger
-    // bar. They are all meant to sit in one bed together.
-    const resolution = resolveConcept(
-      candidate.name,
-      [...candidates, ...accepted],
-      vector,
-      new Set(accepted.map(a => a.id))
-    )
-
-    // An existing topic keeps its own history rather than being
-    // duplicated into the new subject. It is filed under this subject
-    // too: exposure belongs to portrait and to landscape photography,
-    // and JavaScript belongs to front-end and to app development.
-    if (resolution.action === 'link') {
-      // Matching something accepted moments ago means the model
-      // proposed the same topic twice. There is nothing to link and
-      // nothing to create; the first one stands.
-      if (!resolution.topicId.startsWith('batch:')) toLink.push(resolution.topicId)
-      continue
-    }
-
-    toCreate.push({
-      name: candidate.name,
-      summary: candidate.summary,
-      level: Math.min(5, Math.max(1, candidate.estimated_level)),
-      vector,
-      pending: resolution.action === 'pending',
-    })
-    accepted.push({ id: `batch:${accepted.length}`, title: candidate.name, embedding: vector })
-  }
-
-  if (toLink.length > 0) {
-    await db.from('topic_subjects').upsert(
-      [...new Set(toLink)].map(topic_id => ({
-        topic_id,
-        subject_id: row!.id,
-        created_by: 'ai' as const,
-      })),
-      { onConflict: 'topic_id,subject_id', ignoreDuplicates: true }
-    )
-  }
-
-  const { data: created, error: createError } = toCreate.length
-    ? await db.from('topics').insert(
-        toCreate.map(t => ({
-          user_id: row!.user_id,
-          title: t.name,
-          slug: `${t.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${crypto.randomUUID().slice(0, 4)}`,
-          summary: t.summary,
-          embedding: JSON.stringify(t.vector),
-          primary_subject_id: row!.id,
-          state: t.pending ? 'pending' : 'active',
-          created_by: 'ai' as const,
-        }))
-      ).select('id, title')
-    : { data: [], error: null }
-
-  if (createError) {
-    // Nothing was written, so the empty subject goes with it rather
-    // than printing on the stock list as a bed with nothing in it.
-    await db.from('subjects').delete().eq('id', row!.id)
-    return NextResponse.json(
-      { error: `The topics could not be written: ${createError.message}` },
-      { status: 500 }
-    )
-  }
-
-  const rootsNote = roots !== null ? ` — roots ${roots} of 5` : ''
-  const evidenceNote = evidence.length
-    ? `, with ${evidence.length} ${evidence.length === 1 ? 'piece' : 'pieces'} of evidence filed`
-    : ''
-
-  // Roots of nought is a stated fact, not a missing answer: nothing has
-  // been sown here, so nothing is recorded. Writing a floor exposure
-  // anyway would give every topic a history it does not have and a
-  // confidence it has not earned.
-  if (roots !== 0 && created && created.length > 0) {
-    const levelFor = new Map(toCreate.map(t => [t.name, t.level]))
-    // The bed exists by this point, so nothing below may fail the
-    // request: an error here would send the user back to a form whose
-    // work has already been done, and sowing again would duplicate it.
-    // The figures are a cache over the exposure log and can be rebuilt;
-    // the bed cannot be un-sown.
-    try {
-      // The only place a self-declared figure enters the record. It is
-      // written as a real exposure so the number can still explain
-      // itself, and real evidence will outweigh it.
-      const { error: exposureError } = await db.from('exposures').insert(
-        created.map(topic => {
-          const level = levelFor.get(topic.title) ?? 1
-          return {
-            user_id: row!.user_id,
-            topic_id: topic.id,
-            source: 'manual' as const,
-            depth:
-              level >= 4 ? ('applied' as const) : level >= 2 ? ('read' as const) : ('skim' as const),
-            ability_delta: (level / 5) * config.DEPTH_WEIGHTS.read,
-            reason: `your own account when sowing "${subject}"${rootsNote}${evidenceNote}`,
-          }
-        })
-      )
-      if (exposureError) throw new Error(exposureError.message)
-      await recomputeAbilities(db, created.map(t => t.id))
-    } catch (e) {
-      warnings.push(
-        `the starting figures were not written: ${e instanceof Error ? e.message : String(e)}`
-      )
-    }
-  }
-
-  // The proof they handed over is filed against the bed it was offered
-  // as evidence for.
-  //
-  // It was landing in the library attached to nothing: a book named on
-  // the sowing sheet became a resource with no topic, which meant no
-  // lesson could ever point at it and it appeared on no topic sheet. It
-  // is filed against every topic in this bed at a low relevance --
-  // "The Intelligent Investor" is genuinely about the whole subject
-  // rather than about one topic in it, and the ingester will sharpen
-  // that where it can read the thing.
-  const evidenceIds = evidence.flatMap(e => (e.resourceId ? [e.resourceId] : []))
-  if (evidenceIds.length > 0 && (created?.length ?? 0) > 0) {
-    const { error: fileError } = await db.from('resource_topics').upsert(
-      evidenceIds.flatMap(resource_id =>
-        created!.map(topic => ({
-          resource_id,
-          topic_id: topic.id,
-          relevance: 0.3,
-        }))
-      ),
-      { onConflict: 'resource_id,topic_id', ignoreDuplicates: true }
-    )
-    if (fileError) {
-      warnings.push(`the evidence was not filed against the topics: ${fileError.message}`)
-    }
-  }
-
-  // How the topics in this bed relate to each other.
-  //
-  // Nothing sown this way had any relationship at all: edges were only
-  // ever proposed by the resource ingester, so a twenty-topic bed
-  // arrived as twenty unconnected nodes and the graph could only
-  // scatter them. The bed is the one moment the whole set is known at
-  // once, which makes it the right place to ask what leads to what.
-  //
-  // A failure here loses the shape, not the bed. Twenty topics with no
-  // edges is what the app did before; it is a worse map, not a broken
-  // one.
-  if (created && created.length > 1) {
-    try {
-      const refs = created.map(t => ({ id: t.id, title: t.title }))
-
-      // What the new bed can attach to, on the rest of the map.
-      //
-      // Offering only the topics this sowing reused verbatim meant a
-      // new bed could only ever connect to itself: "Options Trading"
-      // would never be told that "Risk, Volatility and Return
-      // Measurement" already exists one subject over, and would float
-      // as an island. Subjects overlap heavily -- that is the premise
-      // of one map rather than several -- so the neighbours offered
-      // are the nearest existing topics by embedding, which is the
-      // same search the resolver already ran per topic on the way in.
-      //
-      // Capped, because every topic on the map will not fit in a
-      // prompt and would stop fitting at a few hundred anyway. Nearest
-      // first, so the cap keeps the ones most likely to be genuinely
-      // related.
-      const newIds = new Set(created.map(t => t.id))
-      const nearest = neighboursFor(searched, newIds, EDGE_NEIGHBOURS)
-
-      // Anything reused verbatim is a neighbour whether or not the
-      // vector search surfaced it: the bed is already standing on it.
-      const byId = new Map(nearest.map(n => [n.id, n.title]))
-      for (const id of new Set(toLink)) if (!byId.has(id)) byId.set(id, '')
-
-      const unnamed = [...byId].filter(([, title]) => !title).map(([id]) => id)
-      if (unnamed.length) {
-        const { data: titles } = await db.from('topics').select('id, title').in('id', unnamed)
-        for (const t of titles ?? []) byId.set(t.id, t.title)
-      }
-
-      const existing = [...byId]
-        .filter(([, title]) => title)
-        .map(([id, title]) => ({ id, title }))
-
-      const edges = await proposeEdges(refs, existing)
-      if (edges.length > 0) {
-        const { error: edgeError } = await db.from('edges').insert(
-          edges.map(e => ({
-            user_id: row!.user_id,
-            from_topic: e.from,
-            to_topic: e.to,
-            kind: e.kind,
-            weight: e.weight,
-            created_by: 'ai' as const,
-          }))
-        )
-        if (edgeError) throw new Error(edgeError.message)
-      }
-    } catch (e) {
-      warnings.push(
-        `the bed was sown but its topics were not related to each other: ${
-          e instanceof Error ? e.message : String(e)
-        }`
-      )
-    }
-  }
-
-  // An empty subject is worse than no subject: it would print on the
-  // stock list as a bed with nothing in it.
-  if ((created?.length ?? 0) === 0 && toLink.length === 0) {
-    await db.from('subjects').delete().eq('id', row!.id)
-    return NextResponse.json(
-      { error: 'Nothing could be sown for that subject.' },
-      { status: 502 }
-    )
-  }
-
-  if (dropped.length > 0) {
-    warnings.push(
-      `${dropped.length} could not be placed on the map: ${dropped.join(', ')}`
-    )
+    return NextResponse.json({ error: planting.problem }, { status: 502 })
   }
 
   dropCache()
   return NextResponse.json({
     subjectId: row!.id,
-    topicsCreated: created?.length ?? 0,
-    linked: toLink.length,
+    topicsCreated: planting.created.length,
+    linked: planting.linked,
     // Where to send them next: a reading exists only when they gave the
     // app something to read.
     reading: assessment !== null,
-    warnings,
+    warnings: [...warnings, ...planting.warnings],
   })
 }
