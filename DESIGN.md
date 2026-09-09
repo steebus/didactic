@@ -1,3 +1,89 @@
+---
+name: Didactic
+description: A living map of what you are learning, printed as a grower's seed catalogue.
+colors:
+  paper: "#efe7d6"
+  paper-deep: "#e3d8c2"
+  paper-edge: "#d5c8ae"
+  press-bed: "#ddd2ba"
+  ink: "#241d16"
+  ink-soft: "#574a3b"
+  ink-faint: "#6b5c45"
+  plate-green: "#2f5233"
+  plate-terracotta: "#b8482a"
+  plate-mustard: "#c8871a"
+  plate-ultramarine: "#2a4a7c"
+  plate-plum: "#6b3550"
+  plate-olive: "#6b7233"
+  rule: "#b9a988"
+  rule-strong: "#6b5c45"
+typography:
+  display:
+    fontFamily: "Fraunces, Georgia, serif"
+    fontSize: "clamp(3rem, 6vw, 5rem)"
+    lineHeight: 0.9
+    letterSpacing: "-0.03em"
+    fontVariation: "'SOFT' 40, 'WONK' 1, 'opsz' 120"
+  headline:
+    fontFamily: "Fraunces, Georgia, serif"
+    fontSize: "2.5rem"
+    lineHeight: 0.95
+    letterSpacing: "-0.02em"
+    fontVariation: "'SOFT' 40, 'WONK' 1, 'opsz' 72"
+  title:
+    fontFamily: "Fraunces, Georgia, serif"
+    fontSize: "1.75rem"
+    fontVariation: "'SOFT' 30, 'WONK' 1, 'opsz' 40"
+  figure:
+    fontFamily: "Fraunces, Georgia, serif"
+    fontSize: "1.75rem"
+    fontVariation: "'SOFT' 10, 'WONK' 0, 'opsz' 30"
+  body:
+    fontFamily: "Archivo, system-ui, sans-serif"
+    fontSize: "0.9375rem"
+    lineHeight: 1.55
+  label:
+    fontFamily: "Archivo, system-ui, sans-serif"
+    fontSize: "0.6875rem"
+    letterSpacing: "0.1em"
+    textTransform: "uppercase"
+rounded:
+  none: "0"
+spacing:
+  1: "0.25rem"
+  2: "0.5rem"
+  3: "0.875rem"
+  4: "1.375rem"
+  5: "2.25rem"
+  6: "3.5rem"
+components:
+  button-primary:
+    backgroundColor: "{colors.plate-green}"
+    textColor: "{colors.paper}"
+    rounded: "{rounded.none}"
+    padding: "0.875rem 2.25rem"
+    typography: "{typography.label}"
+  button-primary-hover:
+    backgroundColor: "{colors.plate-terracotta}"
+    textColor: "{colors.paper}"
+  masthead:
+    backgroundColor: "{colors.plate-green}"
+    textColor: "{colors.paper}"
+    padding: "2.25rem"
+  sheet:
+    backgroundColor: "{colors.paper}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.none}"
+  block:
+    backgroundColor: "{colors.paper-deep}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.none}"
+    padding: "1.375rem"
+  mark:
+    backgroundColor: "{colors.plate-mustard}"
+    textColor: "{colors.ink}"
+---
+
 # Didactic — Design System
 
 The world is **The Seed Catalogue**: a grower's stock inventory printed at full
@@ -478,44 +564,122 @@ bed on a phone.
 
 ---
 
-## 7. Motion — recorded as it is
+## 7. Motion
 
-**The build has essentially no motion system.** The complete inventory:
+Recorded as it is, which is no longer nothing: **29 `@keyframes` across 17
+stylesheets**, all built on three duration tokens and two curves.
 
-| Where | Declaration |
-| --- | --- |
-| Stock list row hover | `transition: background-color 140ms ease-out` |
-| Sow-subject control hover | `transition: background-color 140ms ease-out` |
-| Inbox action hover | `transition: background-color 120ms ease-out, color 120ms ease-out` |
+| Token | Value | What it is for |
+| --- | --- | --- |
+| `--dur-feedback` | `140ms` | A control acknowledging a pointer. Colour, border, opacity. |
+| `--dur-state` | `300ms` | Something changing what it is: a panel opening, an arrow travelling. |
+| `--dur-settle` | `620ms` | A surface arriving. Sheet and band entrances, staggered rows. |
+| `--ease-settle` | `cubic-bezier(0.16, 1, 0.3, 1)` | Everything arriving. Exponential ease-out, from an already-visible default. |
+| `--ease-exit` | `cubic-bezier(0.4, 0, 1, 1)` | The few things that leave. |
 
-There are **zero `@keyframes` in the codebase**. There is no entrance, no state
-transition, no authored moment on any surface. Every other hover in the build —
-and there are many — snaps.
-
-What is genuinely systematic today is only this: **hover feedback is a
-background-colour change of 120–140ms `ease-out`, and nothing else moves.** The
-graph's physics is simulation, not authored motion.
+**Rule — one authored moment per surface, and the rest is feedback.** A sheet
+settles in (`sheetIn`) and its masthead band arrives with it (`bandIn`); after
+that the surface is still, and every other transition is a control answering a
+pointer at `--dur-feedback`. Where rows are staggered they carry a `--i` index
+and lean on the same curve, so a list arrives as one gesture rather than
+seventeen.
 
 **Rule — a surface with an entrance animation needs an explicit stacking
 order.** An element being transformed paints in the same pass as a positioned
-one, so on the sowing sheet a later field painted straight over the book
-lookup list hanging out of an earlier one, and the matches came out with the
-form showing through them. `.questions .field` therefore carries
-`position: relative; z-index: calc(20 - var(--i))` — the same `--i` that
-staggers the animation orders the painting, so an earlier field is always
-above a later one. Any surface that animates fields in and floats anything out
+one, so on the sowing sheet a later field painted straight over the book lookup
+list hanging out of an earlier one, and the matches came out with the form
+showing through them. `.questions .field` therefore carries `position: relative;
+z-index: calc(20 - var(--i))` — the same `--i` that staggers the animation
+orders the painting. Any surface that animates fields in and floats anything out
 of one needs the same treatment.
 
-`prefers-reduced-motion: reduce` is honoured globally in `globals.css`, clamping
-all animation and transition duration to `0.01ms`.
+**Rule — waiting moves, and the movement is never the information.** The galley
+(§4) inks up line by line and its ellipsis comes up in turn, but the *shape* of
+the galley is what tells the reader what is coming. Under
+`prefers-reduced-motion` both animations stop and the shape remains, which is
+the test for whether a loading state was designed or decorated.
 
-This section describes a floor, not an intention. An animation pass follows this
-document; when it lands, this section is replaced by what that pass actually
-ships, not by what it hopes to.
+`prefers-reduced-motion: reduce` is honoured globally in `globals.css`, clamping
+animation and transition duration to `0.01ms` and flattening `--motion-travel`
+to `0` so staggered entrances arrive without travelling.
 
 ---
 
-## 8. Browser Surfaces
+## 8. Reading and Marking
+
+Three objects that belong to a lesson rather than to a listing, added after the
+first eight sections were written.
+
+### Lesson blocks
+
+A lesson body is markdown, and markdown turns anything that is really a shape or
+a question into a paragraph about one. Four blocks answer that: `chart`,
+`check`, `compare`, `steps`. Each is a fenced region whose body is JSON, lifted
+out before the markdown is parsed.
+
+**Rule — a block reads values, never markup.** The payload is written by a
+model, so it never reaches the HTML pipeline: a component we wrote decides how
+the numbers are drawn. Nothing in `src/components/blocks/` uses
+`dangerouslySetInnerHTML`, and a payload too broken to draw returns `null`
+rather than taking the lesson with it.
+
+| Part | Treatment |
+| --- | --- |
+| Block ground | `--paper-deep` on a `1px solid var(--paper-edge)` edge, `--space-4` padding, `--space-5` clear above and below. |
+| Block title | `--step-1`, `'SOFT' 25, 'WONK' 1` — an entry title, not a section head. |
+| Chart inks | The plate palette in order: green, terracotta, mustard, ultramarine. Series colour is identity, never mood. |
+| Chart axes | `11px` `--font-text`, `--ink-soft` for ticks, `--ink-faint` uppercase for axis labels. |
+| Check accent | `2px` left rule in `--plate-green`, the house weight for an aside (§4). |
+| Right / wrong | `--plate-green` / `--plate-terracotta`, each carrying a mark as well as a colour. |
+
+**Rule — every plot ships its figures.** A `<details>` table under each chart
+carries the numbers, tabular and right-aligned, so the data survives a screen
+reader, a printer, and anyone who would rather read it than a picture of it.
+
+**Rule — a plot scrolls rather than compresses.** `min-width: 22rem` inside an
+`overflow-x: auto` wrapper. Below that width a chart is a smear.
+
+### Marks
+
+A kept passage is drawn back onto the prose it came from, by walking the
+rendered text nodes — never by threading markup past the sanitiser.
+
+| Part | Treatment |
+| --- | --- |
+| Wash | `linear-gradient` from transparent to `rgba(200,135,26,0.26)` at `0.15em`, so the ink sits *under* the words rather than boxing them. |
+| Hover | The same wash at `0.42`. |
+| Carrying a note | `inset 0 -2px 0 var(--plate-mustard)` as well as the wash. |
+| Focus | The app's one focus treatment: `2px solid var(--plate-terracotta)`, offset `2px`. |
+
+**Rule — a mark is stated twice, in wash and in rule.** A noted mark and a bare
+one must not differ only by how dark the wash is; the underscore is what carries
+the difference on a dim screen and under reduced colour vision.
+
+**Rule — a mark that cannot be found is not drawn, and the count says so.** The
+quote is stored verbatim rather than as an offset, because a lesson body is
+regenerable. When a rewritten body no longer contains the words, the sheet
+prints `n no longer in this text` rather than a count that disagrees with the
+page.
+
+### The galley
+
+What a sheet shows while it waits. Type being set: ruled slugs at the measure
+and rhythm the real prose will take, in `--paper-deep` and `--paper-edge` —
+the same stock as the page, without the ink on it yet.
+
+| Shape | Where |
+| --- | --- |
+| `prose` | A lesson or a refresher: heading slugs and ragged line lengths. |
+| `rows` | A route: a numbered run, the shape a curriculum actually takes. |
+| `panel` | The graph, floated on the drill grid, because the bed is not a sheet. |
+
+**Rule — a waiting state states its shape, not its progress.** The galley says
+what is coming and roughly how much of it; it never fakes a percentage it
+cannot know.
+
+---
+
+## 9. Browser Surfaces
 
 The chrome carries the design rather than defaulting:
 
@@ -529,7 +693,7 @@ The chrome carries the design rather than defaulting:
 
 ---
 
-## 9. Responsive
+## 10. Responsive
 
 Four breakpoints, each with a stated reason:
 
@@ -546,12 +710,15 @@ figure column. Plate and name take one line; figures are ruled off beneath with 
 
 ---
 
-## 10. Known Ceilings
+## 11. Known Ceilings
 
 Recorded because the document is a description, not a defence.
 
-- **No authored motion.** §7. The system today is three background-colour
-  transitions.
+- **A mark is found by its words, not by an offset.** §8. A lesson body is
+  regenerable, so a rewritten one can leave a kept passage undrawable; the
+  sheet says how many rather than pretending. A quote spanning a paragraph
+  break is not drawn at all, because the range cannot be wrapped without
+  rewriting the tree.
 - **The graph camera does not fit to content.** `renderer.getCamera().animatedReset()`
   restores Sigma's default camera rather than computing the planting's bounding
   box, so beds can sit off-centre when the layout spreads them unevenly. Named as
@@ -563,7 +730,7 @@ Recorded because the document is a description, not a defence.
 
 ---
 
-## 11. Not the System
+## 12. Not the System
 
 Recorded so future surfaces do not inherit them:
 

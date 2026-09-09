@@ -64,10 +64,74 @@ const PLATES: Record<string, React.ReactNode> = {
   ),
 }
 
-// Unclustered and unknown subjects get a dormant, unsprouted seed.
-const FALLBACK = (
-  <path d="M30 14c10 0 17 8 17 18s-7 18-17 18-17-8-17-18 7-18 17-18z" />
-)
+/**
+ * Specimens for subjects with no plate of their own.
+ *
+ * Every subject the user sows falls here -- the named plates above only
+ * match the slugs written into this file -- so this cannot be one
+ * dormant seed. A catalogue prints a specimen for every line it
+ * carries, and a bed with a blank counter beside it reads as stock
+ * nobody bothered to draw.
+ *
+ * Six forms in the same register as the named plates: one silhouette,
+ * reversed out, legible at 48px. Which one a subject gets is decided by
+ * its title, so it is the same specimen on every sheet and every
+ * reload.
+ */
+const SPECIMENS: React.ReactNode[] = [
+  // Seed, dormant: the original fallback, kept as one of the set.
+  <path key="seed" d="M30 14c10 0 17 8 17 18s-7 18-17 18-17-8-17-18 7-18 17-18z" />,
+  // Pod: three fat beans in a split husk.
+  <g key="pod">
+    <path d="M14 22c0-6 7-10 16-10s16 4 16 10-7 26-16 26-16-20-16-26z" />
+    <circle cx="30" cy="22" r="4" className="plateGround" />
+    <circle cx="30" cy="32" r="4" className="plateGround" />
+    <circle cx="30" cy="42" r="3" className="plateGround" />
+  </g>,
+  // Tuber: a heavy root with two eyes.
+  <g key="tuber">
+    <path d="M30 10c12 0 19 9 19 20s-8 20-19 20-19-9-19-20 7-20 19-20z" />
+    <circle cx="24" cy="26" r="3" className="plateGround" />
+    <circle cx="36" cy="36" r="3" className="plateGround" />
+  </g>,
+  // Cutting: a stem with three leaves off one side.
+  <g key="cutting">
+    <path d="M28 54V12h4v42z" />
+    <path d="M32 20c0-7 6-12 15-12 0 7-6 12-15 12z" />
+    <path d="M32 32c0-7 6-12 15-12 0 7-6 12-15 12z" />
+    <path d="M28 26c0-7-6-12-15-12 0 7 6 12 15 12z" />
+  </g>,
+  // Cone: a scaled seed cone on a short stalk.
+  <g key="cone">
+    <path d="M28 54v-8h4v8z" />
+    <path d="M30 6c9 0 14 10 14 22s-5 18-14 18-14-6-14-18S21 6 30 6z" />
+    <path d="M17 24h26v3H17zM18 34h24v3H18z" className="plateGround" />
+  </g>,
+  // Bud: a tight bulb on a straight stem, about to break.
+  <g key="bud">
+    <path d="M28 54V30h4v24z" />
+    <path d="M30 4c8 0 13 7 13 16s-5 14-13 14-13-5-13-14S22 4 30 4z" />
+  </g>,
+]
+
+/**
+ * A stable index from the title. Not a hash worth defending -- it only
+ * has to be deterministic, so a subject keeps its specimen between
+ * reloads and between sheets.
+ *
+ * Position is folded in rather than only the characters, because
+ * "Shares and Stocks" and "Stocks and Shares" are anagrams and a
+ * sum-of-characters hash handed them the same specimen -- which is
+ * precisely the pair a reader most needs to tell apart.
+ */
+function specimenFor(slug: string): React.ReactNode {
+  let n = 2166136261
+  for (let i = 0; i < slug.length; i++) {
+    n ^= slug.charCodeAt(i)
+    n = Math.imul(n, 16777619) >>> 0
+  }
+  return SPECIMENS[n % SPECIMENS.length]
+}
 
 /**
  * The plate is printed as a solid colour field with the specimen
@@ -84,7 +148,7 @@ export function Emblem({
   colour: string
   size?: number
 }) {
-  const plate = PLATES[slug] ?? FALLBACK
+  const plate = PLATES[slug] ?? specimenFor(slug)
   return (
     <svg
       width={size}
