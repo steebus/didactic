@@ -64,20 +64,24 @@ export function Highlighter({
   }, [pending])
 
   useEffect(() => {
-    // mouseup for a pointer; selectionchange is what a touch device
-    // fires when the handles are let go, and it is debounced because
-    // it also fires for every character of a drag.
-    let timer: ReturnType<typeof setTimeout>
-    const later = () => {
-      clearTimeout(timer)
-      timer = setTimeout(onSelect, 400)
-    }
+    // Only ever on release.
+    //
+    // This used to also watch selectionchange, debounced, so that a
+    // touch device had something to fire on. But selectionchange fires
+    // throughout a drag, and pausing to think about where the passage
+    // should end is not the same as finishing it: the composer opened
+    // mid-selection and took the selection over. Waiting for the
+    // pointer to come up is the only signal that actually means done.
+    // touchend is what a touch device sends when the selection handles
+    // are let go; it does not emit mouseup for a selection drag. The
+    // selection is not always settled by the time it fires, so that
+    // one goes to the back of the queue.
+    const onTouch = () => setTimeout(onSelect, 0)
     document.addEventListener('mouseup', onSelect)
-    document.addEventListener('selectionchange', later)
+    document.addEventListener('touchend', onTouch)
     return () => {
-      clearTimeout(timer)
       document.removeEventListener('mouseup', onSelect)
-      document.removeEventListener('selectionchange', later)
+      document.removeEventListener('touchend', onTouch)
     }
   }, [onSelect])
 
