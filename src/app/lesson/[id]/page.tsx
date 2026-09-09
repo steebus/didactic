@@ -6,6 +6,7 @@ import { Prose } from '@/components/Prose'
 import { Highlighter } from '@/components/Highlighter'
 import type { Highlight as Mark } from '@/lib/types'
 import { useScrollMemory } from '@/lib/useScrollMemory'
+import { readJson } from '@/lib/http'
 import { viabilityFigure } from '@/lib/scoring'
 import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
@@ -53,6 +54,11 @@ export default function LessonPage({
   const [body, setBody] = useState<string | null>(null)
   const [highlights, setHighlights] = useState<Mark[]>([])
   const [writing, setWriting] = useState(false)
+  // Asking for the lesson again, and the press that confirms it. Two
+  // presses because it cannot be undone: the body it replaces is not
+  // kept anywhere.
+  const [rewriting, setRewriting] = useState(false)
+  const [confirming, setConfirming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   // Bumped after every write, so re-reading stays the effect's job.
@@ -107,6 +113,46 @@ export default function LessonPage({
       cancelled = true
     }
   }, [id, revision])
+
+  /**
+   * Write the lesson again.
+   *
+   * The body is written once and cached on the row, which is right --
+   * most of them are read once and never touched again. But a lesson
+   * that came out wrong, or came out cut in half at the token ceiling,
+   * was then the only lesson there would ever be: the route has taken
+   * a `regenerate` flag since it was written and nothing on the page
+   * ever sent it, so the only way to ask for another was to make the
+   * request by hand.
+   *
+   * The old text is not kept. Marks are: they belong to the topic
+   * rather than to the lesson, so they survive the rewrite even where
+   * the new prose no longer holds the words to draw them on.
+   */
+  async function rewrite() {
+    setRewriting(true)
+    setConfirming(false)
+    setError(null)
+    try {
+      const res = await fetch(`/api/lessons/${id}/body`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ regenerate: true }),
+      })
+      const { ok, body: payload, error: failed } = await readJson<{ body?: string }>(res)
+      if (!ok || !payload.body) throw new Error(failed ?? 'Could not write it again.')
+
+      setBody(payload.body)
+      // So the marks are re-read against the new text and the count
+      // beneath it tells the truth about what can still be drawn.
+      setRevision(r => r + 1)
+      window.scrollTo({ top: 0 })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong.')
+    } finally {
+      setRewriting(false)
+    }
+  }
 
   async function mark(action: 'complete' | 'uncomplete', depth?: string) {
     setBusy(true)
@@ -250,6 +296,48 @@ export default function LessonPage({
             >
               <Prose markdown={body} />
             </Highlighter>
+
+            {/* Quiet, and at the end of the reading rather than the
+                top of it: a lesson worth rewriting is usually one the
+                reader has got to the bottom of. */}
+            <div className={styles.rewrite}>
+              {confirming ? (
+                <>
+                  <p className={styles.rewriteNote}>
+                    This asks for the lesson again from scratch and replaces
+                    what is above. The old text is not kept. Passages you
+                    marked are — they belong to the topic — but any whose words
+                    are not in the new text cannot be drawn on it.
+                  </p>
+                  <div className={styles.rewriteRow}>
+                    <button
+                      type="button"
+                      className={styles.quietAction}
+                      onClick={rewrite}
+                      disabled={rewriting}
+                    >
+                      Yes, write it again
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.quietAction}
+                      onClick={() => setConfirming(false)}
+                    >
+                      Leave it
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.quietAction}
+                  onClick={() => setConfirming(true)}
+                  disabled={rewriting}
+                >
+                  {rewriting ? 'Writing it again…' : 'Write this lesson again'}
+                </button>
+              )}
+            </div>
           </article>
         ) : (
           !error && <p className={styles.pending}>Nothing written yet.</p>
