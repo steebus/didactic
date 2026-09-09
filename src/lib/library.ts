@@ -1,5 +1,7 @@
+import { cacheTag } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Resource } from './types'
+import { tags } from './tags'
 
 /**
  * Two rows that look like the same piece of material.
@@ -60,7 +62,15 @@ export interface LibraryRow extends Resource {
  * filed under nothing appeared on no sheet at all, which is how twenty
  * orphaned links went unnoticed.
  */
+/** The shelf, cached. The query is separate so it can be tested
+ *  outside Next's runtime, where `cacheTag` does not exist. */
 export async function getLibrary(db: SupabaseClient): Promise<LibraryRow[]> {
+  'use cache'
+  cacheTag(tags.resources, tags.topics)
+  return readLibrary(db)
+}
+
+export async function readLibrary(db: SupabaseClient): Promise<LibraryRow[]> {
   const [{ data: resources }, { data: links }, { data: exposures }] = await Promise.all([
     db.from('resources').select('*').order('added_at', { ascending: false }),
     db.from('resource_topics').select('resource_id, topics(id, title)'),

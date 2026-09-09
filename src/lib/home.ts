@@ -1,7 +1,9 @@
+import { cacheTag } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { computeFreshness, subjectAggregate } from './scoring'
 import { viewLessons } from './curriculum'
 import type { Resource } from './types'
+import { tags } from './tags'
 
 export interface SubjectCell {
   id: string
@@ -106,7 +108,23 @@ async function getCurriculaInProgress(
   return out.slice(0, 4)
 }
 
+/**
+ * The stock list, cached.
+ *
+ * The query and the caching are separate so the query can be tested
+ * outside Next's runtime, where `cacheTag` does not exist -- and so
+ * the thing under test is the reading of the map rather than the
+ * caching of it.
+ */
 export async function getHomeData(db: SupabaseClient): Promise<HomeData> {
+  'use cache'
+  // Read at a glance, so it is dropped by any write that could move a
+  // figure on it.
+  cacheTag(tags.subjects, tags.topics, tags.resources)
+  return readHomeData(db)
+}
+
+export async function readHomeData(db: SupabaseClient): Promise<HomeData> {
   const [
     { data: topics },
     { data: subjects },

@@ -2,6 +2,21 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { ownerId } from '@/lib/auth'
 import { createHighlight, searchHighlights } from '@/lib/highlights'
+import { revalidateTag } from 'next/cache'
+import { tags } from '@/lib/tags'
+
+/**
+ * Drop what this route just changed.
+ *
+ * The cache is only safe because every write says what it touched.
+ * Erring wide is deliberate: serving a stale map is the one failure
+ * this app cannot afford, and re-reading a sheet costs a few hundred
+ * milliseconds once.
+ */
+function dropCache() {
+  for (const tag of [tags.highlights, tags.topics, tags.subjects]) revalidateTag(tag, 'max')
+}
+
 
 /** Search, or browse when there is nothing to search for. */
 export async function GET(req: Request) {
@@ -92,5 +107,6 @@ export async function DELETE(req: Request) {
     .eq('id', id)
     .eq('user_id', userId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  dropCache()
   return NextResponse.json({ ok: true })
 }

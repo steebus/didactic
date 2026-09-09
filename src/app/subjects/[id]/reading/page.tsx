@@ -4,7 +4,6 @@ import { requireOwner } from '@/lib/auth'
 import { getSowing } from '@/lib/subject'
 import { ReadingSheet } from './ReadingSheet'
 
-export const dynamic = 'force-dynamic'
 
 export default async function ReadingPage({
   params,

@@ -5,7 +5,6 @@ import { SheetNav } from '@/components/SheetNav'
 import { MarkedSheet } from './MarkedSheet'
 import styles from './page.module.css'
 
-export const dynamic = 'force-dynamic'
 
 /**
  * Everything ever marked, searched or simply read down.

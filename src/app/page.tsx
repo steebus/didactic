@@ -8,7 +8,6 @@ import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
 
-export const dynamic = 'force-dynamic'
 
 const EDITION_DATE = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',

@@ -2,6 +2,21 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { proposeCurriculum } from '@/lib/llm/curriculum'
 import { findPrereqCycle } from '@/lib/curriculum'
+import { revalidateTag } from 'next/cache'
+import { tags } from '@/lib/tags'
+
+/**
+ * Drop what this route just changed.
+ *
+ * The cache is only safe because every write says what it touched.
+ * Erring wide is deliberate: serving a stale map is the one failure
+ * this app cannot afford, and re-reading a sheet costs a few hundred
+ * milliseconds once.
+ */
+function dropCache() {
+  for (const tag of [tags.topics]) revalidateTag(tag, 'max')
+}
+
 
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'lesson'
@@ -61,6 +76,7 @@ export async function POST(req: Request) {
     })
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)
+    dropCache()
     return NextResponse.json(
       { error: message },
       { status: message.includes('ANTHROPIC_API_KEY') ? 503 : 502 }
@@ -139,6 +155,7 @@ export async function POST(req: Request) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  dropCache()
   return NextResponse.json({
     curriculumId: curriculum.id,
     lessonsCreated: rows.length,

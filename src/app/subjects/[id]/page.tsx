@@ -12,7 +12,6 @@ import { GrubOut } from './GrubOut'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
 
-export const dynamic = 'force-dynamic'
 
 const DATE = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',

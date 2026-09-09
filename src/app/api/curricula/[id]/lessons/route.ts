@@ -1,6 +1,21 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import type { LessonStage } from '@/lib/types'
+import { revalidateTag } from 'next/cache'
+import { tags } from '@/lib/tags'
+
+/**
+ * Drop what this route just changed.
+ *
+ * The cache is only safe because every write says what it touched.
+ * Erring wide is deliberate: serving a stale map is the one failure
+ * this app cannot afford, and re-reading a sheet costs a few hundred
+ * milliseconds once.
+ */
+function dropCache() {
+  for (const tag of [tags.topics]) revalidateTag(tag, 'max')
+}
+
 
 const STAGES: LessonStage[] = ['introductory', 'core', 'advanced']
 
@@ -62,5 +77,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     }
   }
 
+  dropCache()
   return NextResponse.json({ lesson })
 }

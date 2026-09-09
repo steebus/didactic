@@ -1,6 +1,21 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { ownerId } from '@/lib/auth'
+import { revalidateTag } from 'next/cache'
+import { tags } from '@/lib/tags'
+
+/**
+ * Drop what this route just changed.
+ *
+ * The cache is only safe because every write says what it touched.
+ * Erring wide is deliberate: serving a stale map is the one failure
+ * this app cannot afford, and re-reading a sheet costs a few hundred
+ * milliseconds once.
+ */
+function dropCache() {
+  for (const tag of [tags.resources, tags.topics]) revalidateTag(tag, 'max')
+}
+
 
 export async function POST(req: Request) {
   const { url, title, kind, text, topicId, consumed } = await req.json()
@@ -49,6 +64,7 @@ export async function POST(req: Request) {
           { onConflict: 'resource_id,topic_id', ignoreDuplicates: true }
         )
       }
+      dropCache()
       return NextResponse.json({
         id: already.id,
         title: already.title,
@@ -89,12 +105,14 @@ export async function POST(req: Request) {
   await db.from('ingestion_jobs').insert({ resource_id: data.id })
   const { error: queueError } = await db.rpc('enqueue_ingestion', { p_resource_id: data.id })
   if (queueError) {
+    dropCache()
     return NextResponse.json(
       { id: data.id, title: data.title, warning: `saved but not queued: ${queueError.message}` },
       { status: 202 }
     )
   }
 
+  dropCache()
   return NextResponse.json({ id: data.id, title: data.title })
 }
 

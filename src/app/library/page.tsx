@@ -5,7 +5,6 @@ import { SheetNav } from '@/components/SheetNav'
 import { LibrarySheet } from './LibrarySheet'
 import styles from './page.module.css'
 
-export const dynamic = 'force-dynamic'
 
 /**
  * Everything filed, in one place.

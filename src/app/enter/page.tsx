@@ -4,7 +4,6 @@ import { Emblem } from '@/components/Emblem'
 import { EntryForm } from './EntryForm'
 import styles from './page.module.css'
 
-export const dynamic = 'force-dynamic'
 
 export default async function EnterPage({
   searchParams,

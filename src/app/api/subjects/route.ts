@@ -6,6 +6,21 @@ import { resolveConcept, fetchCandidates } from '@/lib/resolver'
 import { recomputeAbilities } from '@/lib/scoring'
 import { config } from '@/lib/config'
 import { ownerId } from '@/lib/auth'
+import { revalidateTag } from 'next/cache'
+import { tags } from '@/lib/tags'
+
+/**
+ * Drop what this route just changed.
+ *
+ * The cache is only safe because every write says what it touched.
+ * Erring wide is deliberate: serving a stale map is the one failure
+ * this app cannot afford, and re-reading a sheet costs a few hundred
+ * milliseconds once.
+ */
+function dropCache() {
+  for (const tag of [tags.subjects, tags.topics, tags.resources, tags.pending]) revalidateTag(tag, 'max')
+}
+
 
 /**
  * Laying out a bed is an LLM call, one embedding per topic and a
@@ -622,6 +637,7 @@ ${
     )
   }
 
+  dropCache()
   return NextResponse.json({
     subjectId: row!.id,
     topicsCreated: created?.length ?? 0,

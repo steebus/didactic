@@ -2,6 +2,21 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { embed } from '@/lib/embedding'
 import { resolveConcept, fetchCandidates } from '@/lib/resolver'
+import { revalidateTag } from 'next/cache'
+import { tags } from '@/lib/tags'
+
+/**
+ * Drop what this route just changed.
+ *
+ * The cache is only safe because every write says what it touched.
+ * Erring wide is deliberate: serving a stale map is the one failure
+ * this app cannot afford, and re-reading a sheet costs a few hundred
+ * milliseconds once.
+ */
+function dropCache() {
+  for (const tag of [tags.subjects, tags.topics, tags.pending]) revalidateTag(tag, 'max')
+}
+
 
 /**
  * Add a topic to a subject by name.
@@ -38,6 +53,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       .maybeSingle()
 
     if (existing) {
+      dropCache()
       return NextResponse.json(
         { topicId: resolution.topicId, action: 'already-filed' },
         { status: 200 }
@@ -51,6 +67,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     })
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+    dropCache()
     return NextResponse.json({ topicId: resolution.topicId, action: 'linked' })
   }
 
@@ -70,6 +87,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // No exposure is written. Adding a topic says it belongs on the map,
   // not that any of it has been learned: ability stays at the floor
   // until something real is filed against it.
+  dropCache()
   return NextResponse.json({
     topicId: topic.id,
     action: resolution.action === 'pending' ? 'pending' : 'created',
@@ -117,5 +135,6 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     .select('subject_id', { count: 'exact', head: true })
     .eq('topic_id', topicId)
 
+  dropCache()
   return NextResponse.json({ ok: true, loose: (count ?? 0) === 0 })
 }

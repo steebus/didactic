@@ -1,6 +1,21 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { setResourceStatus } from '@/lib/consume'
+import { revalidateTag } from 'next/cache'
+import { tags } from '@/lib/tags'
+
+/**
+ * Drop what this route just changed.
+ *
+ * The cache is only safe because every write says what it touched.
+ * Erring wide is deliberate: serving a stale map is the one failure
+ * this app cannot afford, and re-reading a sheet costs a few hundred
+ * milliseconds once.
+ */
+function dropCache() {
+  for (const tag of [tags.resources, tags.topics, tags.subjects]) revalidateTag(tag, 'max')
+}
+
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -8,11 +23,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   try {
     const result = await setResourceStatus(supabaseAdmin(), id, status, depth)
+    dropCache()
     return NextResponse.json({ ok: true, ...result })
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)
     // Validation failures are the caller's fault; anything else is ours.
     const status4xx = message.includes('invalid status') || message.includes('depth is required')
+    dropCache()
     return NextResponse.json({ error: message }, { status: status4xx ? 400 : 500 })
   }
 }
@@ -52,5 +69,6 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
     await db.storage.from('resources').remove([resource.storage_path])
   }
 
+  dropCache()
   return NextResponse.json({ ok: true })
 }

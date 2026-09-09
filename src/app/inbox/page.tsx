@@ -9,7 +9,6 @@ import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
 import { getPendingTopics } from '@/lib/pending'
 
-export const dynamic = 'force-dynamic'
 
 export default async function InboxPage() {
   await requireOwner()

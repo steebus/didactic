@@ -3,6 +3,21 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { viewLessons, curriculumProgress, findPrereqCycle, linearPrereqs } from '@/lib/curriculum'
 import type { Lesson } from '@/lib/types'
 import { ownerId } from '@/lib/auth'
+import { revalidateTag } from 'next/cache'
+import { tags } from '@/lib/tags'
+
+/**
+ * Drop what this route just changed.
+ *
+ * The cache is only safe because every write says what it touched.
+ * Erring wide is deliberate: serving a stale map is the one failure
+ * this app cannot afford, and re-reading a sheet costs a few hundred
+ * milliseconds once.
+ */
+function dropCache() {
+  for (const tag of [tags.topics]) revalidateTag(tag, 'max')
+}
+
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -131,6 +146,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
   }
 
+  dropCache()
   return NextResponse.json({ ok: true })
 }
 
@@ -151,5 +167,6 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
     .eq('id', id)
     .eq('user_id', userId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  dropCache()
   return NextResponse.json({ ok: true })
 }

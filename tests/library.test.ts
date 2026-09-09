@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getLibrary } from '@/lib/library'
+import { readLibrary as getLibrary } from '@/lib/library'
 
 /**
  * A stub that answers the three queries getLibrary makes, in whatever

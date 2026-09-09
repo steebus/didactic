@@ -1,6 +1,21 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { generateRefresher } from '@/lib/llm/refresher'
+import { revalidateTag } from 'next/cache'
+import { tags } from '@/lib/tags'
+
+/**
+ * Drop what this route just changed.
+ *
+ * The cache is only safe because every write says what it touched.
+ * Erring wide is deliberate: serving a stale map is the one failure
+ * this app cannot afford, and re-reading a sheet costs a few hundred
+ * milliseconds once.
+ */
+function dropCache() {
+  for (const tag of [tags.topics, tags.subjects]) revalidateTag(tag, 'max')
+}
+
 
 export async function POST(_: Request, { params }: { params: Promise<{ topicId: string }> }) {
   const { topicId } = await params
@@ -26,6 +41,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ topicId: 
 
   const stored = (existing?.messages as Array<{ content: string }> | undefined)?.[0]
   if (stored) {
+    dropCache()
     return NextResponse.json({
       content: stored.content,
       resources: consumed,
@@ -43,6 +59,7 @@ export async function POST(_: Request, { params }: { params: Promise<{ topicId: 
     const message = e instanceof Error ? e.message : String(e)
     // No key, or the model failed. Say so plainly rather than showing an
     // empty page: the user's own material below is still worth having.
+    dropCache()
     return NextResponse.json(
       { error: message, resources: consumed },
       { status: message.includes('ANTHROPIC_API_KEY') ? 503 : 502 }
@@ -56,5 +73,6 @@ export async function POST(_: Request, { params }: { params: Promise<{ topicId: 
     conversation_id: convo!.id, role: 'assistant', content,
   })
 
+  dropCache()
   return NextResponse.json({ content, resources: consumed, cached: false })
 }

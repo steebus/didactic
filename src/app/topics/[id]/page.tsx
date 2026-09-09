@@ -10,7 +10,6 @@ import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
 
-export const dynamic = 'force-dynamic'
 
 const EDGE_KIND_LABEL: Record<string, string> = {
   prereq: 'sow first',

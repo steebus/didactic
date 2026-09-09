@@ -1,6 +1,8 @@
+import { cacheTag } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { computeFreshness, subjectAggregate } from './scoring'
 import type { CurriculumStatus, Resource, Subject } from './types'
+import { tags } from './tags'
 
 export interface SubjectTopicRow {
   id: string
@@ -196,6 +198,8 @@ export async function getSubjectArea(
   db: SupabaseClient,
   subjectId: string
 ): Promise<SubjectArea | null> {
+  'use cache'
+  cacheTag(tags.subject(subjectId), tags.subjects)
   const { data: subject } = await db
     .from('subjects').select('id, title, colour').eq('id', subjectId).single()
   if (!subject) return null

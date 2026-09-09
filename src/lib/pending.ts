@@ -1,6 +1,8 @@
+import { cacheTag } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { cosineSimilarity } from './resolver'
 import { config } from './config'
+import { tags } from './tags'
 
 export interface PendingTopic {
   id: string
@@ -23,6 +25,8 @@ export interface PendingTopic {
  * disagree.
  */
 export async function getPendingTopics(db: SupabaseClient): Promise<PendingTopic[]> {
+  'use cache'
+  cacheTag(tags.pending, tags.topics)
   const { data } = await db.from('topics')
     .select('id, title, summary, embedding')
     .eq('state', 'pending')

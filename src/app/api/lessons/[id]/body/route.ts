@@ -1,6 +1,21 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { generateLessonBody } from '@/lib/llm/curriculum'
+import { revalidateTag } from 'next/cache'
+import { tags } from '@/lib/tags'
+
+/**
+ * Drop what this route just changed.
+ *
+ * The cache is only safe because every write says what it touched.
+ * Erring wide is deliberate: serving a stale map is the one failure
+ * this app cannot afford, and re-reading a sheet costs a few hundred
+ * milliseconds once.
+ */
+function dropCache() {
+  for (const tag of [tags.topics]) revalidateTag(tag, 'max')
+}
+
 
 /**
  * Write the lesson, once. Most drafted lessons are never reached and a
@@ -105,6 +120,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     })
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)
+    dropCache()
     return NextResponse.json(
       { error: message },
       { status: message.includes('ANTHROPIC_API_KEY') ? 503 : 502 }
@@ -114,6 +130,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { error } = await db.from('lessons').update({ body }).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  dropCache()
   return NextResponse.json({ body, cached: false })
 }
 

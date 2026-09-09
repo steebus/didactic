@@ -1,6 +1,21 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { ownerId } from '@/lib/auth'
+import { revalidateTag } from 'next/cache'
+import { tags } from '@/lib/tags'
+
+/**
+ * Drop what this route just changed.
+ *
+ * The cache is only safe because every write says what it touched.
+ * Erring wide is deliberate: serving a stale map is the one failure
+ * this app cannot afford, and re-reading a sheet costs a few hundred
+ * milliseconds once.
+ */
+function dropCache() {
+  for (const tag of [tags.resources, tags.topics]) revalidateTag(tag, 'max')
+}
+
 
 /**
  * Fold one resource into another.
@@ -69,6 +84,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     .delete().eq('id', mergeId).eq('user_id', userId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  dropCache()
   return NextResponse.json({
     ok: true,
     keptTitle: keep.title,

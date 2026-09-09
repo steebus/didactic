@@ -1,4 +1,6 @@
+import { cacheTag } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { tags } from './tags'
 import type { HighlightRow } from './highlights'
 import { computeFreshness } from './scoring'
 import { curriculumProgress } from './curriculum'
@@ -57,6 +59,10 @@ export async function getTopicArea(
   db: SupabaseClient,
   topicId: string
 ): Promise<TopicArea | null> {
+  'use cache'
+  // Everything below is built from this one topic, so one tag drops the
+  // whole sheet. The routes that write to it name the same tag.
+  cacheTag(tags.topic(topicId), tags.topics)
   // Two waves, not five.
   //
   // The database is a continent away -- one round trip measures about
