@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import { supabaseAdmin } from '@/lib/supabase'
 import { viabilityFigure } from '@/lib/scoring'
 import { getHomeData } from '@/lib/home'
 import { Emblem, slugify } from '@/components/Emblem'
@@ -20,7 +19,7 @@ export default async function Home() {
   // the check that counts, made where the data is read.
   await requireOwner()
 
-  const data = await getHomeData(supabaseAdmin())
+  const data = await getHomeData()
   const today = EDITION_DATE.format(new Date())
   const largestHolding = Math.max(1, ...data.subjects.map(s => s.count))
 

@@ -1,4 +1,3 @@
-import { supabaseAdmin } from '@/lib/supabase'
 import { requireOwner } from '@/lib/auth'
 import { getLibrary } from '@/lib/library'
 import { SheetNav } from '@/components/SheetNav'
@@ -15,7 +14,7 @@ import styles from './page.module.css'
  */
 export default async function LibraryPage() {
   await requireOwner()
-  const resources = await getLibrary(supabaseAdmin())
+  const resources = await getLibrary()
 
   return (
     <main className={styles.sheet}>

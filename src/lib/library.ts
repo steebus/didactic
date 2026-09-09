@@ -2,6 +2,7 @@ import { cacheTag } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Resource } from './types'
 import { tags } from './tags'
+import { supabaseAdmin } from './supabase'
 
 /**
  * Two rows that look like the same piece of material.
@@ -64,10 +65,14 @@ export interface LibraryRow extends Resource {
  */
 /** The shelf, cached. The query is separate so it can be tested
  *  outside Next's runtime, where `cacheTag` does not exist. */
-export async function getLibrary(db: SupabaseClient): Promise<LibraryRow[]> {
+export async function getLibrary(): Promise<LibraryRow[]> {
   'use cache'
   cacheTag(tags.resources, tags.topics)
-  return readLibrary(db)
+  // The client is built in here rather than passed in: an argument
+  // crossing a `use cache` boundary is serialised, and a Supabase
+  // client does not survive that -- it arrives as a dead reference
+  // and the first `.from()` throws on the server.
+  return readLibrary(supabaseAdmin())
 }
 
 export async function readLibrary(db: SupabaseClient): Promise<LibraryRow[]> {

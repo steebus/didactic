@@ -5,6 +5,7 @@ import type { HighlightRow } from './highlights'
 import { computeFreshness } from './scoring'
 import { curriculumProgress } from './curriculum'
 import type { Curriculum, Resource, Subject, Topic } from './types'
+import { supabaseAdmin } from './supabase'
 
 export interface TopicNeighbour {
   id: string
@@ -55,14 +56,21 @@ export interface TopicArea {
  * Everything the topic area shows: the curriculum and the material,
  * which is what opening a node on the graph is for.
  */
-export async function getTopicArea(
+export async function getTopicArea(topicId: string): Promise<TopicArea | null> {
+  'use cache'
+  // Everything below is built from this one topic, so one tag drops
+  // the whole sheet. The routes that write to it name the same tag.
+  cacheTag(tags.topic(topicId), tags.topics)
+  // The client is built in here rather than passed in: an argument
+  // crossing a `use cache` boundary is serialised, and a Supabase
+  // client does not survive that.
+  return readTopicArea(supabaseAdmin(), topicId)
+}
+
+export async function readTopicArea(
   db: SupabaseClient,
   topicId: string
 ): Promise<TopicArea | null> {
-  'use cache'
-  // Everything below is built from this one topic, so one tag drops the
-  // whole sheet. The routes that write to it name the same tag.
-  cacheTag(tags.topic(topicId), tags.topics)
   // Two waves, not five.
   //
   // The database is a continent away -- one round trip measures about

@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { supabaseAdmin } from '@/lib/supabase'
 import { viabilityFigure } from '@/lib/scoring'
 import { getTopicArea } from '@/lib/topic'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
@@ -25,7 +24,7 @@ export default async function TopicPage({
 }) {
   await requireOwner()
   const { id } = await params
-  const area = await getTopicArea(supabaseAdmin(), id)
+  const area = await getTopicArea(id)
   if (!area) notFound()
 
   const { topic, subjects, curricula, resources, neighbours, exposures, highlights } = area

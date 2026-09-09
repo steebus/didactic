@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { cosineSimilarity } from './resolver'
 import { config } from './config'
 import { tags } from './tags'
+import { supabaseAdmin } from './supabase'
 
 export interface PendingTopic {
   id: string
@@ -24,9 +25,17 @@ export interface PendingTopic {
  * One copy, so what the sheet shows and what the API returns cannot
  * disagree.
  */
-export async function getPendingTopics(db: SupabaseClient): Promise<PendingTopic[]> {
+export async function getPendingTopics(): Promise<PendingTopic[]> {
   'use cache'
   cacheTag(tags.pending, tags.topics)
+  // The client is built in here rather than passed in: an argument
+  // crossing a `use cache` boundary is serialised, and a Supabase
+  // client does not survive that -- it arrives as a dead reference and
+  // the first `.from()` throws on the server.
+  return readPendingTopics(supabaseAdmin())
+}
+
+export async function readPendingTopics(db: SupabaseClient): Promise<PendingTopic[]> {
   const { data } = await db.from('topics')
     .select('id, title, summary, embedding')
     .eq('state', 'pending')

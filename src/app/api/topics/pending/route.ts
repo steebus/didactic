@@ -18,9 +18,8 @@ function dropCache() {
 
 
 export async function GET() {
-  const db = supabaseAdmin()
   try {
-    return NextResponse.json({ pending: await getPendingTopics(db) })
+    return NextResponse.json({ pending: await getPendingTopics() })
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : String(e) },

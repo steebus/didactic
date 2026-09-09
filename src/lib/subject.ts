@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { computeFreshness, subjectAggregate } from './scoring'
 import type { CurriculumStatus, Resource, Subject } from './types'
 import { tags } from './tags'
+import { supabaseAdmin } from './supabase'
 
 export interface SubjectTopicRow {
   id: string
@@ -194,12 +195,19 @@ export function readVerdict(roots: number | null, assessed: number | null): Verd
  * Everything the subject sheet shows: the bed as an outline, with the
  * material and the routes filed under each topic in it.
  */
-export async function getSubjectArea(
+export async function getSubjectArea(subjectId: string): Promise<SubjectArea | null> {
+  'use cache'
+  cacheTag(tags.subject(subjectId), tags.subjects)
+  // The client is built in here rather than passed in: an argument
+  // crossing a `use cache` boundary is serialised, and a Supabase
+  // client does not survive that.
+  return readSubjectArea(supabaseAdmin(), subjectId)
+}
+
+export async function readSubjectArea(
   db: SupabaseClient,
   subjectId: string
 ): Promise<SubjectArea | null> {
-  'use cache'
-  cacheTag(tags.subject(subjectId), tags.subjects)
   const { data: subject } = await db
     .from('subjects').select('id, title, colour').eq('id', subjectId).single()
   if (!subject) return null

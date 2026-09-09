@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { supabaseAdmin } from '@/lib/supabase'
 import { viabilityFigure } from '@/lib/scoring'
 import { getSubjectArea } from '@/lib/subject'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
@@ -26,7 +25,7 @@ export default async function SubjectPage({
 }) {
   await requireOwner()
   const { id } = await params
-  const area = await getSubjectArea(supabaseAdmin(), id)
+  const area = await getSubjectArea(id)
   if (!area) notFound()
 
   const { subject, tree, topics, counts, sowing } = area

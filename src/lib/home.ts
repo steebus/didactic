@@ -4,6 +4,7 @@ import { computeFreshness, subjectAggregate } from './scoring'
 import { viewLessons } from './curriculum'
 import type { Resource } from './types'
 import { tags } from './tags'
+import { supabaseAdmin } from './supabase'
 
 export interface SubjectCell {
   id: string
@@ -116,12 +117,16 @@ async function getCurriculaInProgress(
  * the thing under test is the reading of the map rather than the
  * caching of it.
  */
-export async function getHomeData(db: SupabaseClient): Promise<HomeData> {
+export async function getHomeData(): Promise<HomeData> {
   'use cache'
   // Read at a glance, so it is dropped by any write that could move a
   // figure on it.
   cacheTag(tags.subjects, tags.topics, tags.resources)
-  return readHomeData(db)
+  // The client is built in here rather than passed in: an argument
+  // crossing a `use cache` boundary is serialised, and a Supabase
+  // client does not survive that -- it arrives as a dead reference
+  // and the first `.from()` throws on the server.
+  return readHomeData(supabaseAdmin())
 }
 
 export async function readHomeData(db: SupabaseClient): Promise<HomeData> {

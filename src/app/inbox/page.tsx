@@ -16,7 +16,7 @@ export default async function InboxPage() {
   const db = supabaseAdmin()
   const [{ data: resources }, pending] = await Promise.all([
     db.from('resources').select('*').order('added_at', { ascending: false }),
-    getPendingTopics(db),
+    getPendingTopics(),
   ])
 
   const all = (resources ?? []) as Resource[]
