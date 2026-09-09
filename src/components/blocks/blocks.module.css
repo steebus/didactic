@@ -1,0 +1,322 @@
+/* Lesson blocks.
+   Set on the same paper as the prose around them, one shade deeper so
+   a block reads as an inset rather than as a panel bolted on. */
+
+.figure {
+  margin: var(--space-5) 0;
+  padding: var(--space-4);
+  background: var(--paper-deep);
+  border: 1px solid var(--paper-edge);
+}
+
+.figureTitle {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1;
+  margin-bottom: var(--space-3);
+}
+
+.caption {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin: var(--space-3) 0 0;
+}
+
+/* --- Chart ------------------------------------------------------ */
+
+/* A plot has a minimum width below which it is a smear, so on a narrow
+   sheet it scrolls rather than compressing. */
+.plotWrap {
+  overflow-x: auto;
+}
+
+.plot {
+  display: block;
+  width: 100%;
+  min-width: 22rem;
+  height: auto;
+}
+
+.rule {
+  stroke: var(--rule);
+  stroke-width: 1;
+  opacity: 0.45;
+}
+
+.crosshair {
+  stroke: var(--ink-faint);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.tick {
+  font-family: var(--font-text);
+  font-size: 11px;
+  fill: var(--ink-soft);
+}
+
+.axis {
+  font-family: var(--font-text);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  fill: var(--ink-faint);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  font-size: var(--step--1);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.swatch {
+  width: 0.75rem;
+  height: 0.75rem;
+  flex: none;
+}
+
+.legendValue {
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.dataTable {
+  margin-top: var(--space-3);
+  font-size: var(--step--1);
+}
+
+.dataSummary {
+  cursor: pointer;
+  color: var(--ink-soft);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: var(--step--2);
+}
+
+.dataTable table {
+  border-collapse: collapse;
+  margin-top: var(--space-2);
+  width: 100%;
+}
+
+.dataTable th,
+.dataTable td {
+  border-bottom: 1px solid var(--rule);
+  padding: var(--space-1) var(--space-2);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.dataTable thead th:first-child,
+.dataTable tbody th {
+  text-align: left;
+  font-weight: 500;
+}
+
+/* --- Check ------------------------------------------------------ */
+
+.check {
+  margin: var(--space-5) 0;
+  padding: var(--space-4);
+  background: var(--paper-deep);
+  border-left: 3px solid var(--plate-green);
+}
+
+.checkQuestion {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1;
+  margin: 0 0 var(--space-3);
+}
+
+.checkOptions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.checkOption {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  padding: var(--space-2) var(--space-3);
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  cursor: pointer;
+}
+
+.checkOption:hover:not(:disabled) {
+  border-color: var(--rule-strong);
+}
+
+.checkOption:disabled {
+  cursor: default;
+  /* The browser's own disabled grey drops the text below a readable
+     contrast, and every option still has to be legible after answering
+     -- the explanations refer to them. */
+  opacity: 1;
+  color: var(--ink);
+}
+
+.checkOption:disabled:not(.check_right):not(.check_wrong) {
+  color: var(--ink-soft);
+}
+
+.checkMark {
+  flex: none;
+  color: var(--ink-faint);
+}
+
+/* Right and wrong carry a mark as well as a colour, so the answer
+   survives a monochrome screen or reduced colour vision. */
+.check_right {
+  border-color: var(--plate-green);
+  box-shadow: inset 2px 0 0 var(--plate-green);
+}
+
+.check_right .checkMark {
+  color: var(--plate-green);
+}
+
+.check_wrong {
+  border-color: var(--plate-terracotta);
+  box-shadow: inset 2px 0 0 var(--plate-terracotta);
+}
+
+.check_wrong .checkMark {
+  color: var(--plate-terracotta);
+}
+
+.checkWhy {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin: var(--space-2) 0 0 var(--space-4);
+}
+
+.checkFoot {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  margin: var(--space-3) 0 0;
+}
+
+.checkAgain {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* --- Compare ---------------------------------------------------- */
+
+.compareWrap {
+  overflow-x: auto;
+}
+
+.compare {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: var(--step--1);
+}
+
+.compare th,
+.compare td {
+  border-bottom: 1px solid var(--rule);
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.45;
+}
+
+.compare thead th {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border-bottom-color: var(--rule-strong);
+}
+
+.compare tbody th {
+  font-weight: 500;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* --- Steps ------------------------------------------------------ */
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: step;
+}
+
+.step {
+  display: flex;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  position: relative;
+}
+
+/* The line joining one step to the next, which is what makes it a
+   sequence rather than a list. */
+.step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: 0.75rem;
+  top: 1.75rem;
+  bottom: 0;
+  width: 1px;
+  background: var(--rule);
+}
+
+.stepNumber {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  display: grid;
+  place-items: center;
+  background: var(--plate-green);
+  color: var(--paper);
+  font-size: var(--step--2);
+  position: relative;
+  z-index: 1;
+}
+
+.stepBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stepLabel {
+  font-weight: 500;
+}
+
+.stepDetail {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  line-height: 1.5;
+}

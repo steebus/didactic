@@ -2,7 +2,9 @@
 
 import { useMemo } from 'react'
 import { marked } from 'marked'
-import DOMPurify from 'dompurify'
+import createDOMPurify from 'dompurify'
+import { parseBlocks } from '@/lib/blocks'
+import { Block } from './blocks/Block'
 import styles from './Prose.module.css'
 
 /**
@@ -12,8 +14,52 @@ import styles from './Prose.module.css'
  * The source is model output, so it is sanitised rather than trusted:
  * an LLM can be steered by an ingested page into emitting markup.
  */
+/**
+ * A lesson body: prose, and the blocks set into it.
+ *
+ * The blocks are lifted out before the markdown is parsed, so their
+ * payloads never reach the HTML pipeline at all -- what a block
+ * renders is a component reading values, not markup that had to be
+ * sanitised into safety. The prose around them is handled exactly as
+ * it was.
+ */
 export function Prose({ markdown }: { markdown: string }) {
+  const parts = useMemo(() => parseBlocks(markdown), [markdown])
+
+  return (
+    <>
+      {parts.map((part, i) =>
+        part.kind === 'block' ? (
+          <Block key={i} name={part.name} data={part.data} />
+        ) : (
+          <ProseText key={i} markdown={part.text} />
+        )
+      )}
+    </>
+  )
+}
+
+/**
+ * DOMPurify needs a DOM, and a client component is still rendered once
+ * on the server to produce the initial HTML. Returning nothing from
+ * that pass leaves the prose blank until hydration and makes the two
+ * renders disagree, which React reports as a hydration mismatch.
+ *
+ * jsdom is already a dependency -- the ingester parses fetched pages
+ * with it -- so the server pass gets a window of its own and sanitises
+ * exactly as the browser does.
+ */
+function purifier() {
+  if (typeof window !== 'undefined') return createDOMPurify(window)
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { JSDOM } = require('jsdom') as typeof import('jsdom')
+  return createDOMPurify(new JSDOM('').window as unknown as Window & typeof globalThis)
+}
+
+function ProseText({ markdown }: { markdown: string }) {
   const html = useMemo(() => {
+    const DOMPurify = purifier()
+
     const raw = marked.parse(markdown, { async: false, gfm: true, breaks: false })
     // A lesson links out to the reader's own material, which should
     // open beside the lesson rather than replacing it.

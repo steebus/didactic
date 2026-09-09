@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { CurriculumShape, LessonStage } from '../types'
+import { blockPromptSection } from '../blocks'
 
 /** A lesson as the model proposes it, before it has an id. Branching is
  *  expressed with the model's own keys so it never has to invent uuids. */
@@ -213,7 +214,9 @@ ${input.library.length
     }`
   : ''}
 
-Use markdown headings and prose. Explain the idea, show one worked example, and finish with something concrete to try. No preamble, no "in this lesson we will".`,
+Use markdown headings and prose. Explain the idea, show one worked example, and finish with something concrete to try. No preamble, no "in this lesson we will".
+
+${blockPromptSection()}`,
     }],
   })
 
