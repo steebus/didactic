@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { resolveConcept, cosineSimilarity } from '@/lib/resolver'
+import { resolveConcept, cosineSimilarity, neighboursFor } from '@/lib/resolver'
 import cases from './fixtures/resolver-cases.json'
 import { config } from '@/lib/config'
 
@@ -130,5 +130,62 @@ describe('topics proposed together for one subject', () => {
   it('keeps the sibling bar below the auto-merge bar', () => {
     expect(config.RESOLVER_SIBLING_AMBIGUOUS).toBeLessThan(config.RESOLVER_MATCH)
     expect(config.RESOLVER_SIBLING_AMBIGUOUS).toBeGreaterThan(config.RESOLVER_AMBIGUOUS)
+  })
+})
+
+describe('neighbours offered to a freshly sown bed', () => {
+  const vec = (a: number, b: number) => {
+    const v = new Array(1536).fill(0)
+    v[0] = a
+    v[1] = b
+    return v
+  }
+  // Unit vectors at known angles, so scores are predictable.
+  const near = vec(1, 0)
+  const mid = vec(0.8, 0.6)
+  const far = vec(0, 1)
+
+  const searched = [
+    {
+      vector: near,
+      candidates: [
+        { id: 'close', title: 'Risk and Volatility', embedding: near },
+        { id: 'middling', title: 'Dividends', embedding: mid },
+        { id: 'distant', title: 'Ballet', embedding: far },
+      ],
+    },
+  ]
+
+  it('offers the nearest existing topics first', () => {
+    const out = neighboursFor(searched, new Set(), 3)
+    expect(out.map(n => n.id)).toEqual(['close', 'middling', 'distant'])
+  })
+
+  it('never offers a topic this sowing just created', () => {
+    // The whole point: a new bed relates to the map, not to itself
+    // twice over.
+    const out = neighboursFor(searched, new Set(['close']), 3)
+    expect(out.map(n => n.id)).toEqual(['middling', 'distant'])
+  })
+
+  it('caps the list, keeping the nearest', () => {
+    const out = neighboursFor(searched, new Set(), 1)
+    expect(out.map(n => n.id)).toEqual(['close'])
+  })
+
+  it('keeps a topic once, at its best score across the whole bed', () => {
+    // The same existing topic surfaces for several new topics; being
+    // close to any one of them is what makes it worth offering.
+    const twice = [
+      { vector: far, candidates: [{ id: 'close', title: 'Risk', embedding: near }] },
+      { vector: near, candidates: [{ id: 'close', title: 'Risk', embedding: near }] },
+    ]
+    const out = neighboursFor(twice, new Set(), 5)
+    expect(out).toHaveLength(1)
+    expect(out[0].score).toBeCloseTo(1)
+  })
+
+  it('returns nothing when the map is empty', () => {
+    expect(neighboursFor([], new Set(), 30)).toEqual([])
   })
 })

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { supabaseAdmin } from '@/lib/supabase'
 import { embed } from '@/lib/embedding'
-import { resolveConcept, fetchCandidates } from '@/lib/resolver'
+import { resolveConcept, fetchCandidates, neighboursFor } from '@/lib/resolver'
 import { recomputeAbilities } from '@/lib/scoring'
 import { config } from '@/lib/config'
 import { ownerId } from '@/lib/auth'
@@ -39,6 +39,16 @@ export const maxDuration = 60
  *  at a time. The embedding function holds a model in memory per
  *  instance, and six at once finds its limits rather than its speed. */
 const CONCURRENCY = 3
+
+/**
+ * How many existing topics a new bed is offered to relate itself to.
+ *
+ * Nearest by embedding, so the cap keeps the ones most likely to be
+ * genuinely related rather than an arbitrary slice. Thirty is enough
+ * for a bed to find its neighbours on a map of a few hundred topics
+ * and small enough that the prompt stays a prompt.
+ */
+const EDGE_NEIGHBOURS = 30
 
 const PLATE_INKS = ['#b8482a', '#2f5233', '#c8871a', '#2a4a7c', '#6b3550', '#6b7233']
 
@@ -636,12 +646,40 @@ ${
   if (created && created.length > 1) {
     try {
       const refs = created.map(t => ({ id: t.id, title: t.title }))
-      // Topics already on the map in the same subjects, so a new bed
-      // can attach to what is already growing rather than floating
-      // beside it.
-      const existing = toLink.length
-        ? (await db.from('topics').select('id, title').in('id', [...new Set(toLink)])).data ?? []
-        : []
+
+      // What the new bed can attach to, on the rest of the map.
+      //
+      // Offering only the topics this sowing reused verbatim meant a
+      // new bed could only ever connect to itself: "Options Trading"
+      // would never be told that "Risk, Volatility and Return
+      // Measurement" already exists one subject over, and would float
+      // as an island. Subjects overlap heavily -- that is the premise
+      // of one map rather than several -- so the neighbours offered
+      // are the nearest existing topics by embedding, which is the
+      // same search the resolver already ran per topic on the way in.
+      //
+      // Capped, because every topic on the map will not fit in a
+      // prompt and would stop fitting at a few hundred anyway. Nearest
+      // first, so the cap keeps the ones most likely to be genuinely
+      // related.
+      const newIds = new Set(created.map(t => t.id))
+      const nearest = neighboursFor(searched, newIds, EDGE_NEIGHBOURS)
+
+      // Anything reused verbatim is a neighbour whether or not the
+      // vector search surfaced it: the bed is already standing on it.
+      const byId = new Map(nearest.map(n => [n.id, n.title]))
+      for (const id of new Set(toLink)) if (!byId.has(id)) byId.set(id, '')
+
+      const unnamed = [...byId].filter(([, title]) => !title).map(([id]) => id)
+      if (unnamed.length) {
+        const { data: titles } = await db.from('topics').select('id, title').in('id', unnamed)
+        for (const t of titles ?? []) byId.set(t.id, t.title)
+      }
+
+      const existing = [...byId]
+        .filter(([, title]) => title)
+        .map(([id, title]) => ({ id, title }))
+
       const edges = await proposeEdges(refs, existing)
       if (edges.length > 0) {
         const { error: edgeError } = await db.from('edges').insert(

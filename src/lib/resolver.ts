@@ -84,3 +84,45 @@ export async function fetchCandidates(
     embedding: typeof row.embedding === 'string' ? JSON.parse(row.embedding) : row.embedding,
   }))
 }
+
+/**
+ * The existing topics a freshly sown bed should be offered to relate
+ * itself to.
+ *
+ * Offering only what the sowing reused verbatim meant a new bed could
+ * only connect to itself -- "Options Trading" would never be told that
+ * "Risk, Volatility and Return Measurement" already sits one subject
+ * over, and would float as an island. Subjects overlap heavily, which
+ * is the premise of one map rather than several.
+ *
+ * So the neighbours are the nearest existing topics by embedding,
+ * taken from the search the resolver already ran on the way in. A
+ * topic keeps its best score across the whole bed, because being close
+ * to any one of the new topics is what makes it worth offering.
+ */
+export function neighboursFor(
+  searched: Array<{
+    vector: number[]
+    candidates: Array<{ id: string; title: string; embedding: number[] }>
+  }>,
+  /** Ids created by this sowing: new topics are not existing neighbours. */
+  exclude: ReadonlySet<string>,
+  limit: number
+): Array<{ id: string; title: string; score: number }> {
+  const best = new Map<string, { id: string; title: string; score: number }>()
+
+  for (const { vector, candidates } of searched) {
+    for (const candidate of candidates) {
+      if (exclude.has(candidate.id)) continue
+      const score = cosineSimilarity(vector, candidate.embedding)
+      const held = best.get(candidate.id)
+      if (!held || score > held.score) {
+        best.set(candidate.id, { id: candidate.id, title: candidate.title, score })
+      }
+    }
+  }
+
+  // Nearest first, so a cap keeps the ones most likely to be genuinely
+  // related rather than an arbitrary slice.
+  return [...best.values()].sort((a, b) => b.score - a.score).slice(0, limit)
+}
