@@ -49,7 +49,18 @@ export const config = {
   RESOLVER_SIBLING_AMBIGUOUS: 0.9,
 
   // How much each kind of engagement counts toward ability.
-  DEPTH_WEIGHTS: { skim: 0.2, read: 0.5, applied: 1.0 },
+  //
+  // A marked passage is the lightest thing that counts at all: it is
+  // evidence you were there and thought something, not evidence you
+  // read the piece. One is nearly nothing and they compound through
+  // the log curve, but the weight has to stay small enough that a
+  // spree of highlighting cannot out-score reading the thing --
+  // measured at 0.05, ten highlights drew exactly level with one read,
+  // which would make marking sentences the cheapest way to move the
+  // map. At 0.01 it takes fifty of them to reach one read, and fifty
+  // marked passages is a real amount of attention rather than a way
+  // round the figure.
+  DEPTH_WEIGHTS: { marked: 0.01, skim: 0.2, read: 0.5, applied: 1.0 },
 
   // You cannot read your way to expert.
   CONSUMPTION_CEILING: 3.5,

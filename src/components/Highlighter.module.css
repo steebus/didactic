@@ -1,0 +1,92 @@
+.holder {
+  position: relative;
+}
+
+.count {
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: var(--space-4) 0 0;
+}
+
+/* The note box sits against the passage it is about, so the sentence
+   stays in view while something is written about it. */
+.composer {
+  position: absolute;
+  z-index: 5;
+  width: min(24rem, calc(100vw - 2rem));
+  padding: var(--space-3);
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  box-shadow: 0 6px 18px rgba(36, 29, 22, 0.18);
+}
+
+.quote {
+  margin: 0 0 var(--space-3);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--plate-mustard);
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink-soft);
+  /* A long passage should not push the buttons off the screen. */
+  max-height: 6.5rem;
+  overflow-y: auto;
+}
+
+.note {
+  width: 100%;
+  font: inherit;
+  font-size: var(--step--1);
+  padding: var(--space-2);
+  background: var(--paper-deep);
+  border: 1px solid var(--paper-edge);
+  resize: vertical;
+}
+
+.note:focus {
+  outline: 2px solid var(--plate-green);
+  outline-offset: -2px;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.keep {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--plate-green);
+  border: none;
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+}
+
+.keep:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.cancel {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: none;
+  border: none;
+  padding: var(--space-2);
+  cursor: pointer;
+}
+
+.problem {
+  font-size: var(--step--1);
+  color: var(--plate-terracotta);
+  margin: var(--space-2) 0 0;
+}

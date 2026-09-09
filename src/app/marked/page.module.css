@@ -1,0 +1,222 @@
+/* The marked sheet wears the same chrome as the inbox: it is another
+   list of things waiting to be useful. */
+
+.sheet {
+  max-width: var(--sheet-max);
+  margin: 0 auto;
+  padding: 0 0 var(--space-6);
+  background-color: var(--paper);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(90, 70, 45, 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(90, 70, 45, 0.03) 0 1px, transparent 1px 4px);
+  min-height: 100dvh;
+}
+
+.head {
+  background: var(--plate-green);
+  color: var(--paper);
+  padding: var(--space-5);
+}
+
+.headRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: var(--step-3);
+  font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 72;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.headRule {
+  height: 5px;
+  background: var(--plate-mustard);
+  margin-bottom: var(--space-5);
+}
+
+.body {
+  padding: 0 var(--space-5);
+}
+
+@media (max-width: 48rem) {
+  .body {
+    padding: 0 var(--space-4);
+  }
+}
+
+/* --- Search ------------------------------------------------------ */
+
+.searchRow {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+
+.search {
+  flex: 1 1 16rem;
+  font: inherit;
+  padding: var(--space-3);
+  background: var(--paper-deep);
+  border: 1px solid var(--paper-edge);
+}
+
+.search:focus {
+  outline: 2px solid var(--plate-green);
+  outline-offset: -2px;
+}
+
+.searchButton {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--plate-green);
+  border: none;
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+}
+
+.clear {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid var(--paper-edge);
+  padding: var(--space-3);
+  cursor: pointer;
+}
+
+.count {
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 var(--space-4);
+}
+
+.empty {
+  font-size: var(--step-0);
+  color: var(--ink-soft);
+  line-height: 1.5;
+  font-style: italic;
+  max-width: 46ch;
+}
+
+/* --- The marks --------------------------------------------------- */
+
+.marks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mark {
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--rule);
+}
+
+.quote {
+  margin: 0;
+  padding-left: var(--space-4);
+  border-left: 2px solid var(--plate-mustard);
+  font-size: var(--step-0);
+  line-height: 1.55;
+  color: var(--ink-soft);
+  max-width: 60ch;
+}
+
+.note {
+  font-size: var(--step-0);
+  line-height: 1.5;
+  margin: var(--space-3) 0 0;
+  max-width: 60ch;
+}
+
+.meta {
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: var(--space-3) 0 0;
+}
+
+.inlineLink {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.quiet {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.quiet:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* --- Editing a note ---------------------------------------------- */
+
+.editor {
+  margin-top: var(--space-3);
+}
+
+.noteInput {
+  width: 100%;
+  max-width: 60ch;
+  font: inherit;
+  font-size: var(--step-0);
+  padding: var(--space-3);
+  background: var(--paper-deep);
+  border: 1px solid var(--paper-edge);
+  resize: vertical;
+}
+
+.noteInput:focus {
+  outline: 2px solid var(--plate-green);
+  outline-offset: -2px;
+}
+
+.editorActions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.keep {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--plate-green);
+  border: none;
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+}
+
+.keep:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

@@ -3,8 +3,8 @@ export type CreatedBy = 'ai' | 'user' | 'skeleton'
 export type EdgeKind = 'prereq' | 'related' | 'specialises' | 'alternative'
 export type ResourceKind = 'article' | 'pdf' | 'book' | 'note'
 export type ResourceStatus = 'queued' | 'reading' | 'consumed' | 'abandoned'
-export type ExposureSource = 'resource' | 'quiz' | 'agent' | 'manual' | 'lesson'
-export type ExposureDepth = 'skim' | 'read' | 'applied'
+export type ExposureSource = 'resource' | 'quiz' | 'agent' | 'manual' | 'lesson' | 'highlight'
+export type ExposureDepth = 'marked' | 'skim' | 'read' | 'applied'
 export type CurriculumShape = 'linear' | 'branching'
 export type CurriculumStatus = 'draft' | 'active' | 'archived'
 export type LessonStage = 'introductory' | 'core' | 'advanced'
@@ -115,4 +115,17 @@ export interface Lesson {
 export interface LessonPrereq {
   lesson_id: string
   requires_lesson_id: string
+}
+
+/** A passage marked in a lesson, and what was written about it. */
+export interface Highlight {
+  id: string
+  user_id: string
+  lesson_id: string
+  topic_id: string | null
+  quote: string
+  prefix: string | null
+  note: string | null
+  created_at: string
+  updated_at: string
 }

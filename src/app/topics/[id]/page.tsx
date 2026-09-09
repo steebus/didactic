@@ -29,7 +29,7 @@ export default async function TopicPage({
   const area = await getTopicArea(supabaseAdmin(), id)
   if (!area) notFound()
 
-  const { topic, subjects, curricula, resources, neighbours, exposures } = area
+  const { topic, subjects, curricula, resources, neighbours, exposures, highlights } = area
   const vague = topic.ability_confidence < 0.4
   const state = stockState(topic.freshness, topic.last_exposure_at)
   const colour = subjects[0]?.colour ?? 'var(--plate-green)'
@@ -167,6 +167,35 @@ export default async function TopicPage({
                 />
               )}
             </section>
+
+            {/* Marked passages, gathered from whichever lesson they were
+                taken in. A quote is worth keeping past the lesson that
+                happened to contain it. */}
+            {highlights.length > 0 && (
+              <section>
+                <div className={styles.sectionHead}>
+                  <h2 className={styles.sectionTitle}>Marked</h2>
+                  <span className={styles.sectionNote}>
+                    {highlights.length} {highlights.length === 1 ? 'passage' : 'passages'}
+                  </span>
+                </div>
+                <ul className={styles.marks}>
+                  {highlights.map(h => (
+                    <li key={h.id} className={styles.mark}>
+                      <blockquote className={styles.markQuote}>{h.quote}</blockquote>
+                      {h.note && <p className={styles.markNote}>{h.note}</p>}
+                      {h.lesson && (
+                        <p className={styles.markFrom}>
+                          <Link href={`/lesson/${h.lesson.id}`} className={styles.inlineLink}>
+                            {h.lesson.title}
+                          </Link>
+                        </p>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
             <section>
               <div className={styles.sectionHead}>

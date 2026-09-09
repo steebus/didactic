@@ -3,6 +3,8 @@
 import { use, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Prose } from '@/components/Prose'
+import { Highlighter } from '@/components/Highlighter'
+import type { Highlight as Mark } from '@/lib/types'
 import { useScrollMemory } from '@/lib/useScrollMemory'
 import { viabilityFigure } from '@/lib/scoring'
 import { SheetNav } from '@/components/SheetNav'
@@ -48,6 +50,7 @@ export default function LessonPage({
   const { id } = use(params)
   const [data, setData] = useState<LessonData | null>(null)
   const [body, setBody] = useState<string | null>(null)
+  const [highlights, setHighlights] = useState<Mark[]>([])
   const [writing, setWriting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -78,6 +81,7 @@ export default function LessonPage({
         }
         setData(payload)
         setBody(payload.lesson.body)
+        setHighlights(payload.highlights ?? [])
         if (payload.lesson.body) return
 
         // The body is written on first open rather than at draft time:
@@ -235,7 +239,16 @@ export default function LessonPage({
           <p className={styles.pending}>Writing the lesson…</p>
         ) : body ? (
           <article>
-            <Prose markdown={body} />
+            {/* Selecting inside here offers to keep the passage. The
+                marks belong to the topic rather than to the lesson, so
+                they outlive a regenerated body. */}
+            <Highlighter
+              lessonId={id}
+              existing={highlights}
+              onSaved={() => setRevision(r => r + 1)}
+            >
+              <Prose markdown={body} />
+            </Highlighter>
           </article>
         ) : (
           !error && <p className={styles.pending}>Nothing written yet.</p>

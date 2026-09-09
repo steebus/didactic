@@ -35,7 +35,10 @@ export function computeAbility(exposures: Exposure[]): { ability: number; confid
   // yields a low-confidence guess, not a confident one.
   const distinctDepths = new Set(exposures.map(e => e.depth)).size
   const countTerm = Math.min(exposures.length / 10, 1)
-  const diversityTerm = distinctDepths / 3
+  // Over the kinds of engagement there are, rather than over a literal
+  // three: adding 'marked' made a hard-coded divisor able to exceed
+  // one, which would have let highlights alone report full confidence.
+  const diversityTerm = distinctDepths / Object.keys(config.DEPTH_WEIGHTS).length
   const confidence = Math.min(1, 0.7 * countTerm + 0.3 * diversityTerm)
 
   return {

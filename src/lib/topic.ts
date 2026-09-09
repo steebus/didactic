@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { HighlightRow } from './highlights'
 import { computeFreshness } from './scoring'
 import { curriculumProgress } from './curriculum'
 import type { Curriculum, Resource, Subject, Topic } from './types'
@@ -39,6 +40,10 @@ export interface TopicArea {
   resources: Array<{ relevance: number; resource: Resource }>
   neighbours: TopicNeighbour[]
   exposures: Array<{ id: string; reason: string; depth: string; created_at: string }>
+  /** Passages marked in this topic's lessons, newest first. The lesson
+   *  they came from stops mattering quickly; the topic is what makes
+   *  them worth keeping. */
+  highlights: HighlightRow[]
 }
 
 /**
@@ -77,6 +82,11 @@ export async function getTopicArea(
         .order('position')
     : { data: [] }
 
+  const { data: highlights } = await db.from('highlights')
+    .select('*, lesson:lessons(id, title), topic:topics(id, title)')
+    .eq('topic_id', topicId)
+    .order('created_at', { ascending: false })
+
   const neighbourIds = [
     ...new Set((edges ?? []).map(e => (e.from_topic === topicId ? e.to_topic : e.from_topic))),
   ]
@@ -111,6 +121,7 @@ export async function getTopicArea(
         })),
       }
     }),
+    highlights: (highlights ?? []) as unknown as HighlightRow[],
     resources: (links ?? []).map(l => ({
       relevance: Number(l.relevance),
       resource: l.resources as unknown as Resource,

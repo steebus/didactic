@@ -13,13 +13,15 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const { data: lesson } = await db.from('lessons').select('*').eq('id', id).single()
   if (!lesson) return NextResponse.json({ error: 'not found' }, { status: 404 })
 
-  const [{ data: curriculum }, { data: prereqs }, { data: resources }] = await Promise.all([
-    db.from('curricula').select('id, title, goal, topic_id, status')
-      .eq('id', lesson.curriculum_id).single(),
-    db.from('lesson_prereqs').select('requires_lesson_id').eq('lesson_id', id),
-    db.from('lesson_resources').select('relevance, resources(id, title, kind, url, status)')
-      .eq('lesson_id', id),
-  ])
+  const [{ data: curriculum }, { data: prereqs }, { data: resources }, { data: highlights }] =
+    await Promise.all([
+      db.from('curricula').select('id, title, goal, topic_id, status')
+        .eq('id', lesson.curriculum_id).single(),
+      db.from('lesson_prereqs').select('requires_lesson_id').eq('lesson_id', id),
+      db.from('lesson_resources').select('relevance, resources(id, title, kind, url, status)')
+        .eq('lesson_id', id),
+      db.from('highlights').select('*').eq('lesson_id', id).order('created_at'),
+    ])
 
   const requiredIds = (prereqs ?? []).map(p => p.requires_lesson_id)
   const { data: required } = requiredIds.length
@@ -35,6 +37,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     curriculum,
     topic,
     resources: resources ?? [],
+    highlights: highlights ?? [],
     requires: required ?? [],
     // Availability is derived, so the page never has to trust a stored flag.
     available: (required ?? []).every(r => r.completed_at !== null),

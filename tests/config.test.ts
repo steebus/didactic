@@ -11,7 +11,19 @@ describe('config', () => {
   })
 
   it('weights depth so applied counts five times a skim', () => {
-    expect(config.DEPTH_WEIGHTS).toEqual({ skim: 0.2, read: 0.5, applied: 1.0 })
+    expect(config.DEPTH_WEIGHTS).toEqual({
+      marked: 0.01,
+      skim: 0.2,
+      read: 0.5,
+      applied: 1.0,
+    })
+  })
+
+  it('keeps a marked passage well below a skim', () => {
+    // Marking a sentence is evidence of attention, not of reading. If
+    // this ever creeps up to a skim, highlighting becomes the cheapest
+    // way to move a figure.
+    expect(config.DEPTH_WEIGHTS.marked).toBeLessThan(config.DEPTH_WEIGHTS.skim / 10)
   })
 
   it('caps consumption-only ability below expert', () => {

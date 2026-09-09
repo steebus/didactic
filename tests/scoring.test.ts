@@ -136,3 +136,39 @@ describe('subjectAggregate', () => {
     expect(subjectAggregate([])).toEqual({ ability: 0, freshness: 0 })
   })
 })
+
+describe('marked passages', () => {
+  const marked = (n: number) =>
+    Array.from({ length: n }, () => ({ depth: 'marked' as const })) as Parameters<
+      typeof computeAbility
+    >[0]
+
+  it('moves the figure barely at all for one highlight', () => {
+    const { ability } = computeAbility(marked(1))
+    expect(ability).toBeLessThan(1.2)
+  })
+
+  it('compounds, so a dozen count for more than one', () => {
+    expect(computeAbility(marked(12)).ability).toBeGreaterThan(
+      computeAbility(marked(1)).ability
+    )
+  })
+
+  it('still counts for less than reading the thing', () => {
+    // A lesson's worth of marking must not out-score reading an
+    // article, or highlighting becomes the cheapest way to move the
+    // map. Twenty is a heavy session; fifty is where they draw level,
+    // and fifty marked passages is genuine attention rather than a way
+    // round the figure.
+    const oneRead = computeAbility([{ depth: 'read' }] as Parameters<typeof computeAbility>[0])
+      .ability
+    expect(computeAbility(marked(20)).ability).toBeLessThan(oneRead)
+  })
+
+  it('does not report full confidence from highlights alone', () => {
+    // The diversity term divides by the number of depths there are; a
+    // hard-coded three would have let one kind of exposure claim more
+    // variety than it has.
+    expect(computeAbility(marked(50)).confidence).toBeLessThan(1)
+  })
+})
