@@ -7,7 +7,25 @@ import styles from '@/app/inbox/page.module.css'
 interface PendingTopic {
   id: string
   title: string
-  nearest: { id: string; title: string } | null
+  summary: string | null
+  nearest: {
+    id: string
+    title: string
+    summary: string | null
+    similarity: number
+  } | null
+}
+
+/**
+ * How close, in words. The number is a cosine similarity, which means
+ * nothing to anyone who has not been staring at embeddings, and the
+ * whole difficulty of this queue is being asked to judge a field you
+ * are here precisely because you do not know it.
+ */
+function closeness(similarity: number): string {
+  if (similarity >= 0.92) return 'almost the same wording'
+  if (similarity >= 0.88) return 'very close wording'
+  return 'close wording'
 }
 
 /**
@@ -57,8 +75,11 @@ export function PendingQueue({ topics }: { topics: PendingTopic[] }) {
       </div>
       <p className={styles.decisionsNote}>
         These came in close enough to something you already have that the app
-        would rather ask than guess. Keeping them separate is safe; merging
-        cannot be undone.
+        would rather ask than guess. It is comparing wording, not meaning, so
+        two topics that merely sound alike will land here — read both
+        descriptions and keep them separate unless one genuinely says
+        everything the other does. Keeping them separate is safe and costs one
+        click to undo later; merging cannot be undone.
       </p>
 
       {error && <p className={styles.empty}>{error}</p>}
@@ -68,8 +89,28 @@ export function PendingQueue({ topics }: { topics: PendingTopic[] }) {
           <li key={topic.id} className={styles.pendingRow}>
             <span className={styles.pendingName}>
               {topic.title}
-              {topic.nearest && (
-                <span className={styles.rowMeta}> close to {topic.nearest.title}</span>
+              {topic.summary && <span className={styles.pendingGloss}>{topic.summary}</span>}
+              {topic.nearest ? (
+                <span className={styles.compare}>
+                  <span className={styles.compareHead}>
+                    {closeness(topic.nearest.similarity)} to an existing topic
+                  </span>
+                  <span className={styles.compareName}>{topic.nearest.title}</span>
+                  {topic.nearest.summary && (
+                    <span className={styles.pendingGloss}>{topic.nearest.summary}</span>
+                  )}
+                  <span className={styles.compareAsk}>
+                    Merge only if the second covers everything the first does. If
+                    it goes further, or narrower, keep them separate.
+                  </span>
+                </span>
+              ) : (
+                <span className={styles.compare}>
+                  <span className={styles.compareHead}>nothing close to it on the map</span>
+                  <span className={styles.compareAsk}>
+                    Nothing to merge into, so this is a keep or a discard.
+                  </span>
+                </span>
               )}
             </span>
             <span className={styles.actions}>

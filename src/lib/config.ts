@@ -30,6 +30,24 @@ export const config = {
   RESOLVER_MATCH: 0.94,
   RESOLVER_AMBIGUOUS: 0.81,
 
+  // The same question asked of two topics proposed together for one
+  // subject, where the answer has to be different. Everything under
+  // one subject shares a vocabulary, and this model reads shared
+  // vocabulary as similarity: measured on a stock-market bed, the
+  // siblings ran 0.80 to 0.87 against each other -- "Brokerage
+  // Accounts and Custody" against "Equity Ownership Fundamentals" at
+  // 0.832, "Short Selling Mechanics" at 0.828 -- all of them complements
+  // rather than duplicates, and all of them above RESOLVER_AMBIGUOUS.
+  // Judged by the ordinary bar a freshly sown bed sent nineteen of its
+  // twenty topics to adjudication, which is not a queue anyone can
+  // work through and not a question anyone can answer.
+  //
+  // So a sibling has to be a near restatement before it is worth
+  // asking about. This sits above the observed sibling ceiling and
+  // below MATCH, which leaves a narrow band for the genuine case: the
+  // model proposing one topic twice under two names.
+  RESOLVER_SIBLING_AMBIGUOUS: 0.9,
+
   // How much each kind of engagement counts toward ability.
   DEPTH_WEIGHTS: { skim: 0.2, read: 0.5, applied: 1.0 },
 

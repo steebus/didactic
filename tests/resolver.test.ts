@@ -88,3 +88,47 @@ describe('resolveConcept boundaries', () => {
     expect(result).toMatchObject({ action: 'pending', nearestId: 'n-42' })
   })
 })
+
+describe('topics proposed together for one subject', () => {
+  // The bar for a stranger and the bar for a sibling are different
+  // questions. Everything under one subject shares a vocabulary, and
+  // the embedding model reads that as similarity: a stock-market bed
+  // measured 0.80-0.87 between complementary topics, which is squarely
+  // in the band that would otherwise stop and ask.
+  const sibling = (similarity: number) => {
+    const [a, b] = vectorsWithSimilarity(similarity)
+    return {
+      concept: 'Common vs Preferred Stock',
+      candidates: [{ id: 'batch:0', title: 'Equity Ownership Fundamentals', embedding: a }],
+      embedding: b,
+      siblings: new Set(['batch:0']),
+    }
+  }
+
+  it('creates a sibling that merely shares the subject vocabulary', () => {
+    const { concept, candidates, embedding, siblings } = sibling(0.87)
+    expect(resolveConcept(concept, candidates, embedding, siblings).action).toBe('create')
+  })
+
+  it('still asks when a sibling is a near restatement', () => {
+    const { concept, candidates, embedding, siblings } = sibling(0.92)
+    expect(resolveConcept(concept, candidates, embedding, siblings).action).toBe('pending')
+  })
+
+  it('holds a stranger to the ordinary bar at the same similarity', () => {
+    const { concept, candidates, embedding } = sibling(0.87)
+    // No sibling set: the same vectors that were fine as siblings must
+    // still reach the user when the match is an existing topic.
+    expect(resolveConcept(concept, candidates, embedding).action).toBe('pending')
+  })
+
+  it('links an outright duplicate whoever proposed it', () => {
+    const { concept, candidates, embedding, siblings } = sibling(0.97)
+    expect(resolveConcept(concept, candidates, embedding, siblings).action).toBe('link')
+  })
+
+  it('keeps the sibling bar below the auto-merge bar', () => {
+    expect(config.RESOLVER_SIBLING_AMBIGUOUS).toBeLessThan(config.RESOLVER_MATCH)
+    expect(config.RESOLVER_SIBLING_AMBIGUOUS).toBeGreaterThan(config.RESOLVER_AMBIGUOUS)
+  })
+})

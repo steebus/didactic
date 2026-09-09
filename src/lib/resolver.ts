@@ -20,7 +20,17 @@ export function cosineSimilarity(a: number[], b: number[]): number {
 export function resolveConcept(
   concept: string,
   candidates: Array<{ id: string; title: string; embedding: number[] }>,
-  conceptEmbedding: number[]
+  conceptEmbedding: number[],
+  /**
+   * Candidates proposed in the same breath as this one, rather than
+   * found on the map. A subject is broken into topics that are meant
+   * to sit beside each other, so being close to a sibling is the
+   * design and not a collision: everything under one subject shares
+   * its vocabulary, and gte-small reads that shared vocabulary as
+   * similarity. Judging siblings by the same bar as strangers sent a
+   * whole freshly-sown bed to adjudication.
+   */
+  siblingIds: ReadonlySet<string> = new Set()
 ): Resolution {
   if (candidates.length === 0) return { action: 'create', title: concept }
 
@@ -30,10 +40,17 @@ export function resolveConcept(
     if (similarity > best.similarity) best = { id: c.id, similarity }
   }
 
+  // A sibling has to be an outright restatement before it is worth
+  // asking about. Below that the two are simply neighbours in one
+  // subject, which is what was ordered.
+  const floor = siblingIds.has(best.id)
+    ? config.RESOLVER_SIBLING_AMBIGUOUS
+    : config.RESOLVER_AMBIGUOUS
+
   if (best.similarity >= config.RESOLVER_MATCH) {
     return { action: 'link', topicId: best.id, similarity: best.similarity }
   }
-  if (best.similarity >= config.RESOLVER_AMBIGUOUS) {
+  if (best.similarity >= floor) {
     // Defer to the user. A wrong merge destroys information; a wrong
     // split costs one click. When unsure, ask.
     return {

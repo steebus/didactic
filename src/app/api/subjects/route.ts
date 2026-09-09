@@ -468,7 +468,15 @@ ${
   const accepted: Array<{ id: string; title: string; embedding: number[] }> = []
 
   for (const { candidate, vector, candidates } of searched) {
-    const resolution = resolveConcept(candidate.name, [...candidates, ...accepted], vector)
+    // The batch's own proposals are marked as siblings so the resolver
+    // can hold them to the restatement bar rather than the stranger
+    // bar. They are all meant to sit in one bed together.
+    const resolution = resolveConcept(
+      candidate.name,
+      [...candidates, ...accepted],
+      vector,
+      new Set(accepted.map(a => a.id))
+    )
 
     // An existing topic keeps its own history rather than being
     // duplicated into the new subject. It is filed under this subject

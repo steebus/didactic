@@ -108,10 +108,13 @@
 
 .pendingRow {
   display: flex;
-  align-items: center;
+  /* The row carries two descriptions now, so the buttons sit with the
+     top of the name rather than floating in the middle of a paragraph. */
+  align-items: flex-start;
   gap: var(--space-3);
   flex-wrap: wrap;
   padding-top: var(--space-3);
+  padding-bottom: var(--space-3);
   border-top: 1px solid var(--rule);
 }
 
@@ -119,7 +122,57 @@
   font-family: var(--font-display);
   font-size: var(--step-1);
   font-variation-settings: 'SOFT' 25, 'WONK' 1;
-  flex: 1 1 12rem;
+  flex: 1 1 18rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* What the topic actually covers. The decision is unanswerable from
+   two titles alone, which is all this row used to print. */
+.pendingGloss {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  font-variation-settings: normal;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  max-width: 46ch;
+}
+
+/* The thing it was matched against, set in from the topic itself so
+   the two read as a comparison rather than as one run-on entry. */
+.compare {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--rule);
+}
+
+.compareHead {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-variation-settings: normal;
+  color: var(--ink-soft);
+}
+
+.compareName {
+  font-family: var(--font-display);
+  font-size: var(--step-0);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1;
+}
+
+.compareAsk {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  font-variation-settings: normal;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  font-style: italic;
+  max-width: 46ch;
 }
 
 /* --- Listing -------------------------------------------------- */

@@ -1,40 +1,17 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { getPendingTopics } from '@/lib/pending'
 
 export async function GET() {
   const db = supabaseAdmin()
-  const { data, error } = await db.from('topics')
-    .select('id, title, created_at, primary_subject_id, embedding')
-    .eq('state', 'pending')
-    .order('created_at', { ascending: false })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  // Each pending topic carries the existing topic it was mistaken for,
-  // so the user can merge without hunting for the target themselves.
-  const pending = await Promise.all(
-    (data ?? []).map(async topic => {
-      let nearest: { id: string; title: string } | null = null
-      if (topic.embedding) {
-        const embedding =
-          typeof topic.embedding === 'string' ? JSON.parse(topic.embedding) : topic.embedding
-        const { data: matches } = await db.rpc('match_topics', {
-          query_embedding: embedding,
-          match_count: 1,
-        })
-        const top = matches?.[0]
-        if (top && top.id !== topic.id) nearest = { id: top.id, title: top.title }
-      }
-      return {
-        id: topic.id,
-        title: topic.title,
-        created_at: topic.created_at,
-        primary_subject_id: topic.primary_subject_id,
-        nearest,
-      }
-    })
-  )
-
-  return NextResponse.json({ pending })
+  try {
+    return NextResponse.json({ pending: await getPendingTopics(db) })
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : String(e) },
+      { status: 500 }
+    )
+  }
 }
 
 export async function PATCH(req: Request) {

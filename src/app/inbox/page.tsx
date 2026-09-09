@@ -7,33 +7,9 @@ import type { Resource } from '@/lib/types'
 import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
+import { getPendingTopics } from '@/lib/pending'
 
 export const dynamic = 'force-dynamic'
-
-async function getPending() {
-  const db = supabaseAdmin()
-  const { data } = await db.from('topics')
-    .select('id, title, embedding')
-    .eq('state', 'pending')
-    .order('created_at', { ascending: false })
-
-  return Promise.all(
-    (data ?? []).map(async topic => {
-      let nearest: { id: string; title: string } | null = null
-      if (topic.embedding) {
-        const embedding =
-          typeof topic.embedding === 'string' ? JSON.parse(topic.embedding) : topic.embedding
-        const { data: matches } = await db.rpc('match_topics', {
-          query_embedding: embedding,
-          match_count: 1,
-        })
-        const top = matches?.[0]
-        if (top && top.id !== topic.id) nearest = { id: top.id, title: top.title }
-      }
-      return { id: topic.id, title: topic.title, nearest }
-    })
-  )
-}
 
 export default async function InboxPage() {
   await requireOwner()
@@ -41,7 +17,7 @@ export default async function InboxPage() {
   const db = supabaseAdmin()
   const [{ data: resources }, pending] = await Promise.all([
     db.from('resources').select('*').order('added_at', { ascending: false }),
-    getPending(),
+    getPendingTopics(db),
   ])
 
   const all = (resources ?? []) as Resource[]
