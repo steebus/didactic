@@ -40,6 +40,22 @@ export const LABOURS = [
 ]
 
 /**
+ * Drawing the connections is one model call over the whole bed rather
+ * than the sowing's several, so the list is shorter -- it holds on the
+ * last phrase sooner, which is honest about there being one thing
+ * happening rather than twelve.
+ */
+export const DRAWINGS = [
+  'Walking the bed…',
+  'Looking for what leads to what…',
+  'Following the paths…',
+  'Tying in the runners…',
+  'Ruling the lines…',
+  'Standing back…',
+  'Almost done…',
+]
+
+/**
  * The phrase to print on a button while a bed is being laid out.
  *
  * Two sheets lay out beds now -- the sowing sheet and the offer to try
@@ -47,7 +63,7 @@ export const LABOURS = [
  * dead button on one of them is a wait that reads as a dead button on
  * both.
  */
-export function useLabour(busy: boolean): string {
+export function useLabour(busy: boolean, phrases: string[] = LABOURS): string {
   const [step, setStep] = useState(0)
   const [running, setRunning] = useState(busy)
 
@@ -66,5 +82,5 @@ export function useLabour(busy: boolean): string {
     return () => clearInterval(tick)
   }, [busy])
 
-  return LABOURS[Math.min(step, LABOURS.length - 1)]
+  return phrases[Math.min(step, phrases.length - 1)]
 }

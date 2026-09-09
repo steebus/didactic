@@ -90,6 +90,7 @@ export default async function SubjectPage({
               tree={tree}
               colour={subject.colour}
               sown={sowing !== null}
+              related={counts.edges}
             />
           </div>
 

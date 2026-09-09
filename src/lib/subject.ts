@@ -147,7 +147,16 @@ export interface SubjectArea {
   freshness: number
   confidence: number
   lastExposureAt: string | null
-  counts: { topics: number; resources: number; unread: number; curricula: number }
+  counts: {
+    topics: number
+    resources: number
+    unread: number
+    curricula: number
+    /** Connections with both ends inside this bed. Nought on a bed the
+     *  sowing never got to relate, which is what the sheet offers to
+     *  put right. */
+    edges: number
+  }
   /** What the user said when they sowed it, if it was sown here. */
   sowing: Sowing | null
 }
@@ -225,7 +234,7 @@ export async function readSubjectArea(
       freshness: 0,
       confidence: 0,
       lastExposureAt: null,
-      counts: { topics: 0, resources: 0, unread: 0, curricula: 0 },
+      counts: { topics: 0, resources: 0, unread: 0, curricula: 0, edges: 0 },
       sowing: await getSowing(db, subjectId),
     }
   }
@@ -336,6 +345,7 @@ export async function readSubjectArea(
       resources: uniqueResources.size,
       unread: unread.size,
       curricula: rows.reduce((sum, r) => sum + r.curricula.length, 0),
+      edges: edges?.length ?? 0,
     },
     sowing: await getSowing(db, subjectId),
     ...subjectAggregate(active),

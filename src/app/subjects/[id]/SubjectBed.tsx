@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { viabilityFigure } from '@/lib/scoring'
 import { StockBar, stockState, STOCK_LABEL, STOCK_ORDER } from '@/components/StockBar'
 import { readJson } from '@/lib/http'
-import { useLabour } from '@/components/useLabour'
+import { useLabour, DRAWINGS } from '@/components/useLabour'
 import type { SubjectTopicRow, TopicTreeNode } from '@/lib/subject'
 import styles from './page.module.css'
 
@@ -26,6 +26,7 @@ export function SubjectBed({
   tree,
   colour,
   sown,
+  related,
 }: {
   subjectId: string
   tree: TopicTreeNode[]
@@ -34,6 +35,9 @@ export function SubjectBed({
    *  Without one the offer still stands, but it rests on the subject's
    *  name alone and says so. */
   sown: boolean
+  /** Connections with both ends inside this bed. Nought means the
+   *  sowing never got to relate it, or it was grown by hand. */
+  related: number
 }) {
   const [sort, setSort] = useState<'outline' | 'condition'>('outline')
   const [title, setTitle] = useState('')
@@ -42,6 +46,8 @@ export function SubjectBed({
   const [error, setError] = useState<string | null>(null)
   const [laying, setLaying] = useState(false)
   const labour = useLabour(laying)
+  const [drawing, setDrawing] = useState(false)
+  const drawn = useLabour(drawing, DRAWINGS)
   const [, startTransition] = useTransition()
   const router = useRouter()
 
@@ -114,6 +120,47 @@ export function SubjectBed({
       setError(e instanceof Error ? e.message : 'Something went wrong.')
     } finally {
       setBusy(false)
+    }
+  }
+
+  /**
+   * Ask what leads to what across the whole bed.
+   *
+   * The sowing's last step, on its own. It is given up when the
+   * platform's minute runs short, and a bed grown by hand never had it
+   * at all -- adding a topic by name files it without ever asking what
+   * it follows. Either way the graph can only scatter what it is given,
+   * so this is how a bed gets its shape after the fact.
+   */
+  async function draw() {
+    setDrawing(true)
+    setError(null)
+    setNote(null)
+    try {
+      const res = await fetch(`/api/subjects/${subjectId}/relate`, { method: 'POST' })
+      const { ok, body, error: failed } = await readJson<{
+        drawn?: number
+        considered?: number
+        warnings?: string[]
+      }>(res)
+      if (!ok) throw new Error(failed ?? 'Could not draw the connections.')
+
+      const count = body.drawn ?? 0
+      setNote(
+        [
+          count === 0
+            ? 'Nothing new to draw — everything the model would relate here is already related.'
+            : `${count} ${count === 1 ? 'connection' : 'connections'} drawn across ${
+                body.considered ?? 0
+              } topics.`,
+          ...(body.warnings ?? []),
+        ].join(' ')
+      )
+      startTransition(() => router.refresh())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong.')
+    } finally {
+      setDrawing(false)
     }
   }
 
@@ -218,6 +265,26 @@ export function SubjectBed({
             />
           ))}
         </ul>
+      )}
+
+      {count > 1 && (
+        <div className={styles.draw}>
+          <button
+            type="button"
+            className={styles.sowSubmit}
+            onClick={draw}
+            disabled={drawing}
+          >
+            {drawing ? drawn : 'Draw connections'}
+          </button>
+          <p className={styles.sowHint}>
+            {related === 0
+              ? 'Nothing here leads to anything yet, so the outline is flat and the graph can only scatter it. This asks what follows what across the whole bed, and what it attaches to elsewhere on the map.'
+              : `${related} ${related === 1 ? 'connection' : 'connections'} drawn so far. Asking again looks for what was missed; anything already drawn is left as it is.`}
+          </p>
+          {note && <p className={styles.sowNote}>{note}</p>}
+          {error && <p className={styles.sowProblem}>{error}</p>}
+        </div>
       )}
 
       <div className={styles.sow}>

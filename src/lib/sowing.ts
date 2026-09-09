@@ -707,8 +707,6 @@ export async function plantMap(
       )
     } else {
       try {
-        const refs = created.map(t => ({ id: t.id, title: t.title }))
-
         // What the new bed can attach to, on the rest of the map.
         //
         // Offering only the topics this sowing reused verbatim meant a
@@ -719,11 +717,6 @@ export async function plantMap(
         // of one map rather than several -- so the neighbours offered
         // are the nearest existing topics by embedding, which is the
         // same search the resolver already ran per topic on the way in.
-        //
-        // Capped, because every topic on the map will not fit in a
-        // prompt and would stop fitting at a few hundred anyway. Nearest
-        // first, so the cap keeps the ones most likely to be genuinely
-        // related.
         const newIds = new Set(created.map(t => t.id))
         const nearest = neighboursFor(searched, newIds, EDGE_NEIGHBOURS)
 
@@ -738,24 +731,12 @@ export async function plantMap(
           for (const t of titles ?? []) byId.set(t.id, t.title)
         }
 
-        const existing = [...byId]
-          .filter(([, title]) => title)
-          .map(([id, title]) => ({ id, title }))
-
-        const edges = await proposeEdges(refs, existing)
-        if (edges.length > 0) {
-          const { error: edgeError } = await db.from('edges').insert(
-            edges.map(e => ({
-              user_id: subject.user_id,
-              from_topic: e.from,
-              to_topic: e.to,
-              kind: e.kind,
-              weight: e.weight,
-              created_by: 'ai' as const,
-            }))
-          )
-          if (edgeError) throw new Error(edgeError.message)
-        }
+        await drawConnections(
+          db,
+          subject.user_id,
+          created.map(t => ({ id: t.id, title: t.title })),
+          [...byId].filter(([, title]) => title).map(([id, title]) => ({ id, title }))
+        )
       } catch (e) {
         warnings.push(
           `the bed was sown but its topics were not related to each other: ${
@@ -782,4 +763,68 @@ export async function plantMap(
         ? 'Nothing could be sown for that subject.'
         : null,
   }
+}
+
+/**
+ * Ask what leads to what, and write the answer.
+ *
+ * Drawn separately from the sowing because the sowing is not the only
+ * moment it can happen. A bed laid out against a short clock gives the
+ * edge pass up to finish the request, and a bed that lost it that way
+ * is a bed of unconnected nodes until something asks again -- which is
+ * what the sheet's own button now does.
+ *
+ * Written with the unique key rather than a plain insert: asking twice
+ * over a bed that is already half related is an ordinary thing to do
+ * here, and the second answer will repeat some of the first. The count
+ * that comes back is what was actually new.
+ */
+export async function drawConnections(
+  db: SupabaseClient,
+  userId: string,
+  topics: Array<{ id: string; title: string }>,
+  neighbours: Array<{ id: string; title: string }>
+): Promise<number> {
+  const edges = await proposeEdges(topics, neighbours)
+  if (edges.length === 0) return 0
+
+  const { data, error } = await db.from('edges').upsert(
+    edges.map(e => ({
+      user_id: userId,
+      from_topic: e.from,
+      to_topic: e.to,
+      kind: e.kind,
+      weight: e.weight,
+      created_by: 'ai' as const,
+    })),
+    { onConflict: 'from_topic,to_topic,kind', ignoreDuplicates: true }
+  ).select('id')
+
+  if (error) throw new Error(error.message)
+  return data?.length ?? 0
+}
+
+/**
+ * The nearest existing topics to a bed that is already planted.
+ *
+ * The sowing gets these for nothing: it has just run a similarity
+ * search per topic on the way in, and the neighbours fall out of it.
+ * A bed being related after the fact has no such search behind it, so
+ * it runs one -- from the embeddings the topics already carry, which
+ * is why this costs searches rather than embeddings.
+ */
+export async function neighboursOfBed(
+  db: SupabaseClient,
+  bed: Array<{ id: string; title: string; embedding: number[] }>,
+  limit = EDGE_NEIGHBOURS
+): Promise<Array<{ id: string; title: string }>> {
+  const searched = await inBatches(bed, CONCURRENCY, async topic => ({
+    vector: topic.embedding,
+    candidates: await fetchCandidates(db, topic.embedding),
+  }))
+
+  return neighboursFor(searched, new Set(bed.map(t => t.id)), limit).map(n => ({
+    id: n.id,
+    title: n.title,
+  }))
 }
