@@ -18,6 +18,18 @@ function dropCache() {
 
 
 /**
+ * Writing a lesson is a model call, and a lesson that runs into the
+ * token ceiling is a second one to finish it. The platform's default
+ * cuts that off part way through and what reaches the browser is an
+ * empty body rather than a lesson.
+ *
+ * Sixty seconds rather than more: it is the ceiling on the cheapest
+ * plan, and asking for more than the plan allows is refused at deploy
+ * rather than granted at runtime.
+ */
+export const maxDuration = 60
+
+/**
  * Write the lesson, once. Most drafted lessons are never reached and a
  * reshaped curriculum invalidates anything written early, so the body is
  * generated on first open and cached on the row. Pass `regenerate` to

@@ -165,6 +165,19 @@ ${brief.sources.length
 }
 
 /**
+ * What one lesson is allowed to run to.
+ *
+ * Three thousand was the old figure and it was too low: a lesson is a
+ * thousand words of prose plus whatever blocks it uses, and a block is
+ * a JSON payload written out in full. A chart and a check together are
+ * most of a thousand tokens before the prose starts, which is how a
+ * lesson came to be printed with its last sentence cut in half. Output
+ * is paid for by what is written rather than by what is allowed, so
+ * the headroom costs nothing on a lesson that does not need it.
+ */
+const LESSON_TOKENS = 8000
+
+/**
  * Write one lesson. Called when the lesson is first opened rather than
  * at generation time: most drafted lessons are never reached, and a
  * curriculum the user reshapes would waste every word written early.
@@ -187,12 +200,7 @@ export async function generateLessonBody(input: {
    *  explains what this lesson leans on often sits one topic over. */
   nearby?: Array<{ title: string; summary: string | null; url: string | null; status: string }>
 }): Promise<string> {
-  const res = await getClient().messages.create({
-    model: 'claude-sonnet-5',
-    max_tokens: 3000,
-    messages: [{
-      role: 'user',
-      content: `Write the lesson "${input.lesson.title}" from the curriculum "${input.curriculumTitle}" on the topic "${input.topicTitle}".
+  const prompt = `Write the lesson "${input.lesson.title}" from the curriculum "${input.curriculumTitle}" on the topic "${input.topicTitle}".
 ${input.lesson.summary ? `\nWhat it should cover: ${input.lesson.summary}` : ''}
 It is a ${input.lesson.stage} lesson${
         input.lesson.estimatedMinutes ? ` and should take about ${input.lesson.estimatedMinutes} minutes to work through` : ''
@@ -231,11 +239,49 @@ Never announce a block or label it in the prose -- no "steps:", no "here is a ch
 
 Use markdown headings and prose. Explain the idea, show one worked example, and finish with something concrete to try. No preamble, no "in this lesson we will".
 
-${blockPromptSection()}`,
-    }],
+${blockPromptSection()}`
+
+  const client = getClient()
+  const res = await client.messages.create({
+    model: 'claude-sonnet-5',
+    max_tokens: LESSON_TOKENS,
+    messages: [{ role: 'user', content: prompt }],
   })
 
   const block = res.content.find(c => c.type === 'text')
   if (!block || block.type !== 'text') throw new Error('curriculum: no text returned')
-  return block.text
+
+  if (res.stop_reason !== 'max_tokens') return block.text
+
+  // The lesson ran into the ceiling, and what came back stops mid
+  // sentence. It used to be stored exactly like that -- a lesson whose
+  // last paragraph breaks off in the middle of a word, cached on the
+  // row, printed to the reader as the finished article.
+  //
+  // So it is asked to finish. Handing the model its own half a lesson
+  // back as the start of its turn is how the API is told to carry on
+  // from there rather than begin again, and what comes back is the
+  // rest of the same sentence. One continuation only: a lesson that
+  // cannot be finished in two goes at this ceiling is not a lesson
+  // that a third would finish either.
+  console.error(
+    `curriculum: "${input.lesson.title}" hit the token ceiling at ${
+      res.usage?.output_tokens ?? '?'
+    }; asking it to finish`
+  )
+
+  // The API refuses a turn that ends in whitespace, and the model
+  // continues from the last character either way.
+  const carried = block.text.trimEnd()
+  const rest = await client.messages.create({
+    model: 'claude-sonnet-5',
+    max_tokens: LESSON_TOKENS,
+    messages: [
+      { role: 'user', content: prompt },
+      { role: 'assistant', content: carried },
+    ],
+  })
+
+  const more = rest.content.find(c => c.type === 'text')
+  return more && more.type === 'text' ? carried + more.text : carried
 }

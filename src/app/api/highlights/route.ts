@@ -60,6 +60,12 @@ export async function POST(req: Request) {
       prefix: text(body.prefix) || null,
       note: text(body.note) || null,
     })
+    // A mark writes an exposure and moves the topic's figure, so every
+    // sheet that prints either is out of date until this is said. It
+    // was only ever said when a mark was removed, which meant marking
+    // a passage and then looking at the topic showed the figure it had
+    // before.
+    dropCache()
     return NextResponse.json(result)
   } catch (e) {
     return NextResponse.json(
@@ -84,6 +90,7 @@ export async function PATCH(req: Request) {
     .eq('id', id)
     .eq('user_id', userId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  dropCache()
   return NextResponse.json({ ok: true })
 }
 
