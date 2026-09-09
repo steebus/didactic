@@ -121,7 +121,9 @@ export interface LessonPrereq {
 export interface Highlight {
   id: string
   user_id: string
-  lesson_id: string
+  /** Null once the lesson it was taken from is gone. The passage and
+   *  the note are the record; where it came from is a caption. */
+  lesson_id: string | null
   topic_id: string | null
   quote: string
   prefix: string | null

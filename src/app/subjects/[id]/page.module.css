@@ -732,3 +732,118 @@
 .sortButton:hover {
   opacity: 1;
 }
+
+/* --- Grubbing out ------------------------------------------------ */
+
+/* Past the whole sheet, under a rule: the last thing anyone does to a
+   bed, and never beside the things they do daily. */
+.foot {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--rule);
+}
+
+.grubAsk {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: none;
+  border: none;
+  padding: var(--space-2) 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.grubAsk:hover:not(:disabled) {
+  color: var(--plate-terracotta);
+}
+
+/* Asked, and now answering. The terracotta edge is the one the
+   catalogue uses wherever a decision is wanted. */
+.grubOpen {
+  border-left: 2px solid var(--plate-terracotta);
+  padding-left: var(--space-4);
+  max-width: 60ch;
+}
+
+.grubTitle {
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 40;
+  margin: 0 0 var(--space-3);
+}
+
+.grubNote {
+  font-size: var(--step-0);
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin: 0 0 var(--space-2);
+}
+
+.grubList,
+.grubKeeps {
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0 0 var(--space-4);
+  padding-left: var(--space-4);
+}
+
+/* What survives is set in the plate the app uses for a healthy figure,
+   because it is the reassurance the question exists to give. */
+.grubKeeps {
+  color: var(--plate-green);
+}
+
+.grubActions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-top: var(--space-4);
+}
+
+/* Leaving it be is the safe answer, so it is the one that looks like
+   the button. */
+.grubKeep {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--plate-green);
+  border: none;
+  padding: var(--space-3) var(--space-5);
+  cursor: pointer;
+}
+
+.grubGo {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--plate-terracotta);
+  background: none;
+  border: 1px solid var(--plate-terracotta);
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+}
+
+.grubGo:hover:not(:disabled) {
+  background: var(--plate-terracotta);
+  color: var(--paper);
+}
+
+.grubGo:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.grubProblem {
+  font-size: var(--step--1);
+  color: var(--plate-terracotta);
+  margin: var(--space-2) 0 0;
+}

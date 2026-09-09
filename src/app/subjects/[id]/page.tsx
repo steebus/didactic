@@ -8,6 +8,7 @@ import { Emblem, slugify } from '@/components/Emblem'
 import { SheetNav } from '@/components/SheetNav'
 import { ROOT_STAGES } from '@/components/RootsSpecimen'
 import { SubjectBed } from './SubjectBed'
+import { GrubOut } from './GrubOut'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
 
@@ -222,6 +223,13 @@ export default async function SubjectPage({
               )}
             </section>
           </aside>
+        </div>
+
+        {/* At the foot, past everything the bed holds. Grubbing one out
+            is the last thing anyone does to a subject and should never
+            sit beside the things they do daily. */}
+        <div className={styles.foot}>
+          <GrubOut subjectId={subject.id} title={subject.title} />
         </div>
       </div>
     </main>

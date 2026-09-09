@@ -80,9 +80,14 @@ export function MarkedSheet({
     }
   }
 
-  /** Put back exactly what was removed, on the lesson it came from. */
+  /** Put back exactly what was removed, on the lesson it came from.
+   *
+   *  A mark whose lesson has been grubbed out with its subject has
+   *  nothing to be put back onto, so it is not offered: the passage is
+   *  still readable above, and re-filing it against a lesson that no
+   *  longer exists would fail at the server. */
   async function putBack() {
-    if (!undo) return
+    if (!undo?.lesson_id) return
     setBusy(true)
     try {
       const res = await fetch('/api/highlights', {
@@ -153,9 +158,15 @@ export function MarkedSheet({
         <p className={styles.undo}>
           Removed the passage from{' '}
           <span className={styles.undoQuote}>{undo.lesson?.title ?? 'that lesson'}</span>.{' '}
-          <button type="button" className={styles.quiet} onClick={putBack} disabled={busy}>
-            Put it back
-          </button>
+          {undo.lesson_id ? (
+            <button type="button" className={styles.quiet} onClick={putBack} disabled={busy}>
+              Put it back
+            </button>
+          ) : (
+            <span className={styles.undoQuote}>
+              The lesson it came from is gone, so it cannot be put back.
+            </span>
+          )}
         </p>
       )}
 
