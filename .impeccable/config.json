@@ -1,3 +1,18 @@
 {
-  "buildPath": "code"
+  "buildPath": "code",
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/components/blocks/blocks.module.css"
+        ],
+        "createdAt": "2026-09-09T04:15:46.412Z",
+        "reason": "Existing house pattern, not an AI tell: the sheet already marks an aside with a 2px plate-ink left rule in 7 places (Prose blockquote, inbox note, RootsGauge, GraphCanvas, enter sheet, subject sheet). The check block is the same kind of aside and was matched to that convention; the flagged 3px was reduced to 2px to fit it."
+      }
+    ]
+  }
 }

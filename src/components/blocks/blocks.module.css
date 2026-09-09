@@ -130,7 +130,10 @@
   margin: var(--space-5) 0;
   padding: var(--space-4);
   background: var(--paper-deep);
-  border-left: 3px solid var(--plate-green);
+  /* The sheet marks an aside with a 2px rule in a plate ink -- the
+     blockquote in Prose, the note on the inbox, the roots gauge. A
+     question set into the prose is the same kind of thing. */
+  border-left: 2px solid var(--plate-green);
 }
 
 .checkQuestion {
