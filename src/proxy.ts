@@ -58,5 +58,5 @@ export async function proxy(request: NextRequest) {
 export const config = {
   // Everything except Next's own asset routes, which have no session to
   // check and are needed to print the sign-in sheet.
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|icon.png).*)'],
 }

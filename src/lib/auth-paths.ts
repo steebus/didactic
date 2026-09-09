@@ -18,7 +18,11 @@ const OPEN = [
   // Framework and asset routes. A gate in front of these locks the
   // sign-in sheet out of its own stylesheet.
   '/_next/',
-  '/favicon.ico',
+  // The app icon. Next.js serves it from the icon.png file convention
+  // rather than from public/, so it is a route like any other and the
+  // gate would otherwise send the browser's icon request to the
+  // sign-in sheet.
+  '/icon.png',
 ]
 
 export function isOpenPath(pathname: string): boolean {
