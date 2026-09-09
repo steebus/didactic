@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { computeFreshness } from '@/lib/scoring'
+import { ownerId } from '@/lib/auth'
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -101,8 +102,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 }
 
 export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  // The owner comes from the session, never from the request. Every
+  // route is behind the gate, but a delete that does not say whose row
+  // it is deleting is one refactor away from being wrong.
+  const userId = await ownerId()
+  if (!userId) return NextResponse.json({ error: 'not signed in' }, { status: 401 })
+
   const { id } = await params
-  const { error } = await supabaseAdmin().from('topics').delete().eq('id', id)
+  // Everything filed against the topic goes with it. The exposure log
+  // is append-only and keeps its account of what was read.
+  const { error } = await supabaseAdmin()
+    .from('topics')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

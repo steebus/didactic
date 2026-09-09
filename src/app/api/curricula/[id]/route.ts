@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { viewLessons, curriculumProgress, findPrereqCycle, linearPrereqs } from '@/lib/curriculum'
 import type { Lesson } from '@/lib/types'
+import { ownerId } from '@/lib/auth'
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -134,8 +135,21 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 }
 
 export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  // The owner comes from the session, never from the request. Every
+  // route is behind the gate, but a delete that does not say whose row
+  // it is deleting is one refactor away from being wrong.
+  const userId = await ownerId()
+  if (!userId) return NextResponse.json({ error: 'not signed in' }, { status: 401 })
+
   const { id } = await params
-  const { error } = await supabaseAdmin().from('curricula').delete().eq('id', id)
+  // The lessons go with it: a lesson is a step in one route and
+  // means nothing outside it. What was worked stays in the exposure
+  // log, which is append-only and is where the figures come from.
+  const { error } = await supabaseAdmin()
+    .from('curricula')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }

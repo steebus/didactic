@@ -13,11 +13,12 @@ export function SheetNav({
   /** Where "back" goes, and what it is called. */
   back?: { href: string; label: string }
   /** Which sheet is showing, so its link is marked rather than offered. */
-  current?: 'stock' | 'bed' | 'marked' | 'inbox' | 'sow'
+  current?: 'stock' | 'bed' | 'library' | 'marked' | 'inbox' | 'sow'
 }) {
   const sheets = [
     { key: 'stock', href: '/', label: 'Stock list' },
     { key: 'bed', href: '/graph', label: 'The bed' },
+    { key: 'library', href: '/library', label: 'Library' },
     { key: 'marked', href: '/marked', label: 'Marked' },
     { key: 'inbox', href: '/inbox', label: 'Inbox' },
     { key: 'sow', href: '/subjects/new', label: 'Sow' },

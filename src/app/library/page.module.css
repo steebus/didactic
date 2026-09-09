@@ -1,0 +1,230 @@
+/* The marked sheet wears the same chrome as the inbox: it is another
+   list of things waiting to be useful. */
+
+.sheet {
+  max-width: var(--sheet-max);
+  margin: 0 auto;
+  padding: 0 0 var(--space-6);
+  background-color: var(--paper);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(90, 70, 45, 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(90, 70, 45, 0.03) 0 1px, transparent 1px 4px);
+  min-height: 100dvh;
+}
+
+.head {
+  background: var(--plate-green);
+  color: var(--paper);
+  padding: var(--space-5);
+  /* The band is a saturated plate, so the terracotta focus ring
+     disappears into it. Controls in here state their own. */
+  --focus-ink: var(--paper);
+}
+
+.headRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: var(--step-3);
+  font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 72;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.headRule {
+  height: 5px;
+  background: var(--plate-mustard);
+  margin-bottom: var(--space-5);
+}
+
+.body {
+  padding: 0 var(--space-5);
+}
+
+@media (max-width: 48rem) {
+  .body {
+    padding: 0 var(--space-4);
+  }
+}
+
+/* --- Controls ---------------------------------------------------- */
+
+.controls {
+  display: grid;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.search {
+  font: inherit;
+  padding: var(--space-3);
+  background: var(--paper-deep);
+  border: 1px solid var(--paper-edge);
+}
+
+.search:focus {
+  outline: 2px solid var(--plate-green);
+  outline-offset: -2px;
+}
+
+.kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/* Set as text in the section-note register rather than as a row of
+   chips: they narrow a list, they do not commit anything. */
+.kind {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: var(--space-2) 0;
+  cursor: pointer;
+}
+
+.kind[aria-pressed='true'] {
+  color: var(--ink);
+  border-bottom-color: var(--plate-mustard);
+}
+
+.kind:hover {
+  color: var(--ink);
+}
+
+.count {
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 var(--space-4);
+}
+
+.empty {
+  font-size: var(--step-0);
+  color: var(--ink-soft);
+  line-height: 1.5;
+  font-style: italic;
+  max-width: 46ch;
+}
+
+.problem {
+  font-size: var(--step--1);
+  color: var(--plate-terracotta);
+  margin: 0 0 var(--space-3);
+}
+
+/* --- Rows -------------------------------------------------------- */
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--rule);
+}
+
+.rowBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.rowTitle {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1;
+  margin: 0;
+}
+
+.rowLink {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: var(--rule);
+}
+
+.rowLink:hover {
+  text-decoration-color: var(--plate-terracotta);
+}
+
+.rowMeta {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  margin: var(--space-1) 0 0;
+}
+
+/* A resource filed against nothing can be reached by no lesson and
+   appears on no topic sheet, so it is flagged rather than left to be
+   noticed. */
+.unfiled {
+  color: var(--plate-terracotta);
+}
+
+.rowSummary {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin: var(--space-2) 0 0;
+  max-width: 60ch;
+}
+
+.rowActions {
+  flex: none;
+}
+
+.remove {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid var(--paper-edge);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+}
+
+.remove:hover:not(:disabled) {
+  border-color: var(--plate-terracotta);
+  color: var(--plate-terracotta);
+}
+
+.remove:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.held {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+@media (max-width: 40rem) {
+  .row {
+    flex-wrap: wrap;
+  }
+
+  .rowActions {
+    flex-basis: 100%;
+  }
+}

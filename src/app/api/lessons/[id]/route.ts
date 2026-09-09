@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { completeLesson, uncompleteLesson } from '@/lib/curriculum'
 import { VALID_DEPTHS } from '@/lib/consume'
 import type { ExposureDepth, LessonStage } from '@/lib/types'
+import { ownerId } from '@/lib/auth'
 
 const STAGES: LessonStage[] = ['introductory', 'core', 'advanced']
 
@@ -98,8 +99,20 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 }
 
 export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  // The owner comes from the session, never from the request. Every
+  // route is behind the gate, but a delete that does not say whose row
+  // it is deleting is one refactor away from being wrong.
+  const userId = await ownerId()
+  if (!userId) return NextResponse.json({ error: 'not signed in' }, { status: 401 })
+
   const { id } = await params
-  const { error } = await supabaseAdmin().from('lessons').delete().eq('id', id)
+  // Marks taken in the lesson go with it, and the exposure it wrote
+  // stays: it records that the work happened, which is still true.
+  const { error } = await supabaseAdmin()
+    .from('lessons')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', userId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
