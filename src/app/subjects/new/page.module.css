@@ -172,6 +172,10 @@
   padding: var(--space-3) var(--space-5);
   cursor: pointer;
   transition: background-color 140ms ease-out;
+  /* The label changes while the bed is being laid out, and a button
+     that resizes on every phrase reads as a fault. Wide enough for the
+     longest of them. */
+  min-width: 22ch;
 }
 
 .submit:hover:not(:disabled) {

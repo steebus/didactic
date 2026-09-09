@@ -41,10 +41,20 @@ export default async function TopicPage({
       <header className={styles.head} style={{ background: colour }}>
         <div className={styles.headRow}>
           <div>
+            {/* The subject names were already printed here; they are
+                the way back to the bed the topic was sown in, so they
+                are links rather than a label. */}
             <p className={styles.eyebrow}>
               {subjects.length === 0
                 ? 'Unfiled'
-                : subjects.map(s => s.title).join(' · ')}
+                : subjects.map((s, i) => (
+                    <span key={s.id}>
+                      {i > 0 && ' · '}
+                      <Link href={`/subjects/${s.id}`} className={styles.eyebrowLink}>
+                        {s.title}
+                      </Link>
+                    </span>
+                  ))}
             </p>
             <h1 className={styles.title}>{topic.title}</h1>
           </div>

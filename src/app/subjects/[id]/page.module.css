@@ -250,6 +250,16 @@
   text-transform: uppercase;
   color: var(--plate-terracotta);
   margin-left: var(--space-2);
+  /* It goes to the inbox, so it is underlined like the other things
+     that go somewhere. */
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+  white-space: nowrap;
+}
+
+.pending:hover {
+  background: var(--plate-terracotta);
+  color: var(--paper);
 }
 
 .topicMeta {

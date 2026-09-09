@@ -186,8 +186,13 @@ function TreeRow({
           <Link href={`/topics/${topic.id}`} className={styles.topicName}>
             {topic.title}
           </Link>
+          {/* The decision itself is made in the inbox, which the label
+              never said -- it read as a status, so there was nowhere to
+              go and nothing to press. It is the way there now. */}
           {topic.state === 'pending' && (
-            <span className={styles.pending}>awaiting your decision</span>
+            <Link href="/inbox" className={styles.pending}>
+              awaiting your decision
+            </Link>
           )}
           <p className={styles.topicMeta}>
             {topic.resources.length}{' '}
