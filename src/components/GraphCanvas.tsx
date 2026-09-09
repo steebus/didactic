@@ -115,6 +115,11 @@ export function GraphCanvas({
   const [centre, setCentre] = useState(1.2)
   const [linkDistance, setLinkDistance] = useState(1)
 
+  // Bumped when the bed changes under us -- grubbing a topic out takes
+  // its node and every edge into it, so the planting has to be read
+  // again rather than patched.
+  const [reload, setReload] = useState(0)
+
   useEffect(() => {
     Promise.all([
       fetch('/api/topics').then(r => r.json()),
@@ -122,7 +127,7 @@ export function GraphCanvas({
     ]).then(([graph, subjects]) => {
       setData({ ...graph, subjects: subjects.subjects ?? [] })
     })
-  }, [])
+  }, [reload])
 
   const colourFor = useCallback(
     (topic: GraphTopic) => {
@@ -710,6 +715,10 @@ export function GraphCanvas({
           topic={selectedTopic}
           colour={colourFor(selectedTopic)}
           onClose={() => setSelected(null)}
+          onRemoved={() => {
+            setSelected(null)
+            setReload(n => n + 1)
+          }}
         />
       )}
     </div>
@@ -720,11 +729,33 @@ function TopicPanel({
   topic,
   colour,
   onClose,
+  onRemoved,
 }: {
   topic: GraphTopic
   colour: string
   onClose: () => void
+  /** The bed has to be read again: the node and its edges are gone. */
+  onRemoved: () => void
 }) {
+  const [asked, setAsked] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function grub() {
+    setBusy(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/topics/${topic.id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body.error ?? 'Could not grub that out.')
+      }
+      onRemoved()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong.')
+      setBusy(false)
+    }
+  }
   const [detail, setDetail] = useState<{
     exposures: Array<{ id: string; reason: string; created_at: string; depth: string }>
     resources: Array<{ relevance: number; resources: { title: string; status: string } }>
@@ -846,9 +877,43 @@ function TopicPanel({
         </section>
       )}
 
-      <a className={styles.tend} href={`/topics/${topic.id}`}>
-        Open the topic
-      </a>
+      <div className={styles.panelFoot}>
+        <a className={styles.tend} href={`/topics/${topic.id}`}>
+          Open the topic
+        </a>
+
+        {/* Grubbing out from the bed itself.
+            The subject sheet takes a topic out of one subject; here you
+            are looking at the whole map, so this takes the topic off it
+            entirely. Two presses, and the second states what goes --
+            the same shape the subject sheet uses, because it is the
+            same kind of irreversible act. */}
+        {asked ? (
+          <span className={styles.grub}>
+            <span className={styles.grubNote}>
+              Takes the topic off the map, with its routes and lessons.
+              {(detail?.resources.length ?? 0) > 0 && ' Material stays in the library.'}
+            </span>
+            <button
+              type="button"
+              className={styles.grubKeep}
+              onClick={() => setAsked(false)}
+              disabled={busy}
+            >
+              Leave it
+            </button>
+            <button type="button" className={styles.grubGo} onClick={grub} disabled={busy}>
+              {busy ? 'Grubbing out…' : 'Grub it out'}
+            </button>
+          </span>
+        ) : (
+          <button type="button" className={styles.grubAsk} onClick={() => setAsked(true)}>
+            Grub it out
+          </button>
+        )}
+      </div>
+
+      {error && <p className={styles.grubProblem}>{error}</p>}
     </aside>
   )
 }

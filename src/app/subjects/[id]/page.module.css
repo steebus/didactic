@@ -664,6 +664,27 @@
 /* --- Narrow ------------------------------------------------------ */
 
 @media (max-width: 40rem) {
+  /* The outline still nests on a phone, but it cannot pay the desktop
+     indent to do it.
+     Each level cost space-3 plus space-4, about 36px, and the bed runs
+     three deep -- so a third-level topic started a third of the way
+     across a 390px screen, its title wrapped to two lines, and the
+     stacked rails read as an artefact rather than as structure. The
+     rule alone carries the nesting here: it is the thing that says
+     "under", and the gap was only ever making room for it. */
+  .children {
+    margin-left: var(--space-2);
+    padding-left: var(--space-3);
+  }
+
+  /* The elbow joining a child to its parent's rule is drawn from the
+     desktop indent, so it is redrawn to the shorter one rather than
+     reaching back past where the rule now sits. */
+  .children > .branch::before {
+    left: calc(var(--space-3) * -1);
+    width: var(--space-2);
+  }
+
   /* Below this the three-column topic row cannot hold: the name takes
      the line, and the figures rule off beneath it the way the stock
      row does. */

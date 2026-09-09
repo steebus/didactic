@@ -370,3 +370,95 @@
   border: 1px solid var(--paper-edge);
   box-shadow: 0 2px 24px rgba(36, 29, 22, 0.16);
 }
+
+/* --- Grubbing a topic out from the bed --------------------------- */
+
+/* The way in and the way out, on one line: opening the topic is the
+   thing you do daily and keeps the fill, grubbing it out is stated
+   quietly beside it until asked for. */
+.panelFoot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.grubAsk {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: none;
+  border: none;
+  padding: var(--space-2) 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.grubAsk:hover {
+  color: var(--plate-terracotta);
+}
+
+/* Asked. The terracotta edge is the one this world uses wherever a
+   decision is wanted, and the note says what survives before the
+   button that cannot be undone. */
+.grub {
+  display: grid;
+  gap: var(--space-2);
+  border-left: 2px solid var(--plate-terracotta);
+  padding-left: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.grubNote {
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.grubKeep {
+  justify-self: start;
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--plate-green);
+  border: none;
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+}
+
+.grubGo {
+  justify-self: start;
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--plate-terracotta);
+  background: none;
+  border: 1px solid var(--plate-terracotta);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+}
+
+.grubGo:hover:not(:disabled) {
+  background: var(--plate-terracotta);
+  color: var(--paper);
+}
+
+.grubGo:disabled,
+.grubKeep:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.grubProblem {
+  font-size: var(--step--1);
+  color: var(--plate-terracotta);
+  margin: var(--space-2) 0 0;
+}
