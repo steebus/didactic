@@ -34,6 +34,12 @@ export default async function TopicPage({
   const state = stockState(topic.freshness, topic.last_exposure_at)
   const colour = subjects[0]?.colour ?? 'var(--plate-green)'
   const unread = resources.filter(r => r.resource.status === 'queued')
+  // One route is shown, because in practice there is one. An archived
+  // route is history rather than a plan, so it is not the one offered.
+  const route =
+    curricula.find(c => c.status === 'active') ??
+    curricula.find(c => c.status === 'draft') ??
+    null
   const read = resources.filter(r => r.resource.status !== 'queued')
 
   return (
@@ -84,59 +90,82 @@ export default async function TopicPage({
       <div className={styles.body}>
         <div className={styles.spread}>
           <div className={styles.main}>
+            {/* Lessons, not curricula. A topic has one route through it
+                in practice, and naming that route above its own lessons
+                was a level with nothing in it -- the draft even took the
+                topic's own title, so the sheet read "Brokerage Accounts
+                and Custody / Brokerage Accounts and Custody". The route
+                still exists and still has a page: it is where the order
+                is reshaped and the draft approved, which is a different
+                job from working through it. */}
             <section>
               <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>Curriculum</h2>
-                <span className={styles.sectionNote}>Introductory to advanced</span>
+                <h2 className={styles.sectionTitle}>Lessons</h2>
+                <span className={styles.sectionNote}>
+                  {route
+                    ? `${route.complete}/${route.total} worked${
+                        route.status === 'draft' ? ' · awaiting your approval' : ''
+                      }`
+                    : 'None yet'}
+                </span>
               </div>
 
-              {curricula.length === 0 ? (
+              {!route ? (
                 <p className={styles.empty}>
-                  No route laid out yet. Draft one and reshape it until it is
-                  the one you actually want to follow.
+                  No lessons yet. Draft a route through this topic and reshape
+                  it until it is the one you actually want to follow.
                 </p>
               ) : (
-                <ul className={styles.routes}>
-                  {curricula.map(c => (
-                    <li key={c.id}>
-                      <Link href={`/curriculum/${c.id}`} className={styles.route}>
-                        <div className={styles.routeBody}>
-                          <h3 className={styles.routeTitle}>{c.title}</h3>
-                          <p className={styles.routeMeta}>
-                            {c.shape === 'branching' ? 'Branching' : 'Linear'}
-                            {' · '}
-                            {c.total} {c.total === 1 ? 'lesson' : 'lessons'}
-                            {c.status === 'draft' && ' · awaiting your approval'}
-                            {c.status === 'archived' && ' · archived'}
-                          </p>
-                          {c.goal && <p className={styles.routeGoal}>{c.goal}</p>}
-                        </div>
-                        <div className={styles.routeFigure}>
-                          <span className={styles.figureLabel}>Worked</span>
-                          <span className={styles.routeCount}>
-                            {c.complete}/{c.total}
-                          </span>
-                          <span
-                            className={styles.routeBar}
-                            aria-hidden="true"
-                            style={{ '--fraction': c.fraction } as React.CSSProperties}
-                          />
-                        </div>
+                <>
+                  {route.status === 'draft' && (
+                    <p className={styles.draftNote}>
+                      These are a proposal. Nothing counts toward the map until
+                      you{' '}
+                      <Link href={`/curriculum/${route.id}`} className={styles.inlineLink}>
+                        reshape and approve the route
                       </Link>
-                    </li>
-                  ))}
-                </ul>
+                      .
+                    </p>
+                  )}
+                  <ol className={styles.lessons}>
+                    {route.lessons.map(lesson => (
+                      <li key={lesson.id}>
+                        <Link href={`/lesson/${lesson.id}`} className={styles.lesson}>
+                          <span className={styles.lessonMark} aria-hidden="true">
+                            {lesson.completed_at ? '●' : '○'}
+                          </span>
+                          <span className={styles.lessonBody}>
+                            <span className={styles.lessonTitle}>{lesson.title}</span>
+                            <span className={styles.lessonMeta}>
+                              {lesson.stage}
+                              {lesson.minutes ? ` · about ${lesson.minutes} min` : ''}
+                              {lesson.completed_at ? ' · worked' : ''}
+                            </span>
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ol>
+                  <p className={styles.routeLink}>
+                    <Link href={`/curriculum/${route.id}`} className={styles.inlineLink}>
+                      Reshape the route
+                    </Link>
+                    {route.goal ? ` — ${route.goal}` : ''}
+                  </p>
+                </>
               )}
 
-              <DraftCurriculum
-                topicId={topic.id}
-                topicTitle={topic.title}
-                candidates={resources.map(r => ({
-                  id: r.resource.id,
-                  title: r.resource.title,
-                  kind: r.resource.kind,
-                }))}
-              />
+              {!route && (
+                <DraftCurriculum
+                  topicId={topic.id}
+                  topicTitle={topic.title}
+                  candidates={resources.map(r => ({
+                    id: r.resource.id,
+                    title: r.resource.title,
+                    kind: r.resource.kind,
+                  }))}
+                />
+              )}
             </section>
 
             <section>

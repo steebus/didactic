@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { viabilityFigure } from '@/lib/scoring'
-import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
+import { StockBar, stockState, STOCK_LABEL, STOCK_ORDER } from '@/components/StockBar'
 import type { SubjectTopicRow, TopicTreeNode } from '@/lib/subject'
 import styles from './page.module.css'
 
@@ -28,6 +28,7 @@ export function SubjectBed({
   tree: TopicTreeNode[]
   colour: string
 }) {
+  const [sort, setSort] = useState<'outline' | 'condition'>('outline')
   const [title, setTitle] = useState('')
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<string | null>(null)
@@ -99,9 +100,38 @@ export function SubjectBed({
   return (
     <section>
       <div className={styles.sectionHead}>
-        <h2 className={styles.sectionTitle}>The bed</h2>
+        <h2 className={styles.sectionTitle}>Topics</h2>
         <span className={styles.sectionNote}>
-          {count === 0 ? 'Nothing sown' : `${count} ${count === 1 ? 'topic' : 'topics'} · fixed order`}
+          {count === 0 ? (
+            'Nothing sown'
+          ) : (
+            <>
+              {count} {count === 1 ? 'topic' : 'topics'}
+              {' · '}
+              {/* Two readings of one bed. The outline is the fixed one --
+                  same topic in the same place every time, nested under
+                  what it follows. Condition throws the nesting away on
+                  purpose: what needs tending is a flat question, and a
+                  parent is not more urgent than its child. */}
+              <button
+                type="button"
+                className={styles.sortButton}
+                aria-pressed={sort === 'outline'}
+                onClick={() => setSort('outline')}
+              >
+                outline
+              </button>
+              {' · '}
+              <button
+                type="button"
+                className={styles.sortButton}
+                aria-pressed={sort === 'condition'}
+                onClick={() => setSort('condition')}
+              >
+                condition
+              </button>
+            </>
+          )}
         </span>
       </div>
 
@@ -113,7 +143,7 @@ export function SubjectBed({
         </p>
       ) : (
         <ul className={styles.tree}>
-          {tree.map(node => (
+          {(sort === 'outline' ? tree : byCondition(tree)).map(node => (
             <TreeRow
               key={node.topic.id}
               node={node}
@@ -160,6 +190,37 @@ export function SubjectBed({
 
 function countTopics(nodes: TopicTreeNode[]): number {
   return nodes.reduce((sum, n) => sum + 1 + countTopics(n.children), 0)
+}
+
+/**
+ * The bed flattened and ordered by what needs tending first.
+ *
+ * Nesting cannot survive this: a topic's parent has no claim to being
+ * more urgent than the topic itself, so keeping the outline would
+ * scatter the ordering it is meant to show. Worst condition first, and
+ * within one condition the weakest figure, because a topic you barely
+ * hold is worth more of your attention than one you nearly do.
+ */
+function byCondition(tree: TopicTreeNode[]): TopicTreeNode[] {
+  const flat: TopicTreeNode[] = []
+  const walk = (nodes: TopicTreeNode[]) => {
+    for (const n of nodes) {
+      flat.push({ ...n, children: [] })
+      walk(n.children)
+    }
+  }
+  walk(tree)
+
+  const rank = (n: TopicTreeNode) =>
+    STOCK_ORDER.indexOf(stockState(n.topic.freshness, n.topic.last_exposure_at))
+
+  return flat.sort((a, b) => {
+    const condition = rank(a) - rank(b)
+    if (condition !== 0) return condition
+    const ability = a.topic.ability - b.topic.ability
+    if (ability !== 0) return ability
+    return a.topic.title.localeCompare(b.topic.title)
+  })
 }
 
 function TreeRow({

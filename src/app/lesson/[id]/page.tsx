@@ -160,13 +160,17 @@ export default function LessonPage({
         <SheetNav />
         <div className={styles.headRow}>
           <div>
+            {/* A route drafted from a topic takes the topic's own name,
+                so printing both read "Brokerage Accounts and Custody ·
+                Brokerage Accounts and Custody". The route is only worth
+                naming when it says something the topic did not. */}
             <p className={styles.eyebrow}>
               {topic && (
                 <Link href={`/topics/${topic.id}`} className={styles.eyebrowLink}>
                   {topic.title}
                 </Link>
               )}
-              {curriculum && (
+              {curriculum && curriculum.title !== topic?.title && (
                 <>
                   {topic && ' · '}
                   <Link href={`/curriculum/${curriculum.id}`} className={styles.eyebrowLink}>

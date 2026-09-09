@@ -15,6 +15,21 @@ export interface CurriculumCard extends Curriculum {
   total: number
   complete: number
   fraction: number
+  /** The lessons themselves, in the order they are meant to be worked.
+   *  The topic sheet lists these directly: a topic has one route
+   *  through it in practice, and printing the route's name above its
+   *  own lessons was a level of indirection that said nothing. */
+  lessons: LessonRow[]
+}
+
+export interface LessonRow {
+  id: string
+  title: string
+  summary: string | null
+  position: number
+  stage: string
+  minutes: number | null
+  completed_at: string | null
 }
 
 export interface TopicArea {
@@ -56,8 +71,10 @@ export async function getTopicArea(
 
   const curriculumIds = (curricula ?? []).map(c => c.id)
   const { data: lessons } = curriculumIds.length
-    ? await db.from('lessons').select('curriculum_id, completed_at')
+    ? await db.from('lessons')
+        .select('id, curriculum_id, title, summary, position, stage, estimated_minutes, completed_at')
         .in('curriculum_id', curriculumIds)
+        .order('position')
     : { data: [] }
 
   const neighbourIds = [
@@ -78,10 +95,22 @@ export async function getTopicArea(
     subjects: (memberships ?? []).flatMap(m =>
       m.subjects ? [m.subjects as unknown as Subject] : []
     ),
-    curricula: (curricula ?? []).map(c => ({
-      ...c,
-      ...curriculumProgress((lessons ?? []).filter(l => l.curriculum_id === c.id)),
-    })),
+    curricula: (curricula ?? []).map(c => {
+      const mine = (lessons ?? []).filter(l => l.curriculum_id === c.id)
+      return {
+        ...c,
+        ...curriculumProgress(mine),
+        lessons: mine.map(l => ({
+          id: l.id,
+          title: l.title,
+          summary: l.summary ?? null,
+          position: l.position,
+          stage: l.stage,
+          minutes: l.estimated_minutes ?? null,
+          completed_at: l.completed_at ?? null,
+        })),
+      }
+    }),
     resources: (links ?? []).map(l => ({
       relevance: Number(l.relevance),
       resource: l.resources as unknown as Resource,

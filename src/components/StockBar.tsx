@@ -15,6 +15,12 @@ export function stockState(freshness: number, lastExposureAt: string | null): St
   return 'dormant'
 }
 
+/**
+ * Worst first: what has never been touched, then what has decayed
+ * furthest. The order a bed is walked when deciding what to tend.
+ */
+export const STOCK_ORDER: StockState[] = ['unsown', 'dormant', 'holding', 'in-season']
+
 export const STOCK_LABEL: Record<StockState, string> = {
   'in-season': 'In season',
   holding: 'Holding',
