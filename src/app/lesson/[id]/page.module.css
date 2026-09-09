@@ -17,6 +17,9 @@
   background: var(--plate-green);
   color: var(--paper);
   padding: var(--space-5);
+  /* The band is a saturated plate, so the terracotta focus ring
+     disappears into it. Controls in here state their own. */
+  --focus-ink: var(--paper);
 }
 
 .headRow {
@@ -103,6 +106,11 @@
 .body {
   padding: 0 var(--space-5);
   display: grid;
+  /* An implicit grid track is `auto`, which refuses to shrink below its
+     widest child's min-content -- so one wide table stretched the whole
+     column to 491px and the sheet scrolled sideways on a phone. The
+     topic sheet already states this; the lesson sheet had not. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-5);
 }
 

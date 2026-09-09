@@ -117,7 +117,10 @@
   border: none;
   border-top: 1px solid var(--rule);
   border-radius: 0;
-  padding: var(--space-1) 0 0;
+  /* Six notches at 35x17 were the smallest targets in the build, on the
+     one control the sowing sheet is built around. The rule stays on the
+     top edge; the padding beneath it is what the thumb gets. */
+  padding: var(--space-1) 0 var(--space-3);
   cursor: pointer;
 }
 

@@ -18,7 +18,13 @@ import styles from './page.module.css'
  * None of this corresponds to a real step. It is a gardener's rumour
  * of one, and it is deliberately not a progress bar: a bar that cannot
  * know the total lies about how much is left, and this cannot know.
- * ponytail: a plain rotation, no easing, no percentage. If the real
+ *
+ * The list runs once and holds on the last phrase rather than cycling.
+ * Twelve labels at 2.6s wrap in 31 seconds, so on a sowing that takes
+ * the better part of a minute the reader watched "Turning the ground"
+ * come round a second time and read it as stuck. A label that stops
+ * advancing says nearly there; a label that starts again says broken.
+ * ponytail: a plain sequence, no easing, no percentage. If the real
  * stages ever become legible, report those instead.
  */
 const LABOURS = [
@@ -34,6 +40,9 @@ const LABOURS = [
   'Filing the labels…',
   'Watering in…',
   'Standing back…',
+  // The last one holds until the bed comes back, so it has to be a
+  // phrase that can be true for a while.
+  'Almost done…',
 ]
 
 interface QualifyingQuestion {
@@ -441,7 +450,7 @@ export default function NewSubjectPage() {
         {named && (
           <div className={styles.actions}>
             <button className={styles.submit} onClick={submit} disabled={busy}>
-              {busy ? LABOURS[labour % LABOURS.length] : 'Lay out the bed'}
+              {busy ? LABOURS[Math.min(labour, LABOURS.length - 1)] : 'Lay out the bed'}
             </button>
             <p className={styles.note}>
               {rootsSet

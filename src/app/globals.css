@@ -131,8 +131,33 @@ a:hover {
   color: var(--paper);
 }
 
+/* Nothing in the build broke a long unbroken string, so one pasted URL
+   or a long identifier pushed a whole sheet sideways -- measured at
+   546px in a 390px viewport. Lessons link out to the reader's own
+   material and marks quote whatever was on the page, so both are real
+   inputs rather than hypothetical ones.
+
+   overflow-wrap only breaks a word that would otherwise overflow, so
+   ordinary prose is untouched. */
+body {
+  overflow-wrap: break-word;
+}
+
+/* The browser's own placeholder grey is #757575, which measures 3.75:1
+   on this paper and belongs to no design system. One sheet styled its
+   own and passed; the rest inherited the default and failed. Stated
+   once, for every field. */
+::placeholder {
+  color: var(--ink-faint);
+  opacity: 1;
+}
+
+/* One focus treatment, in two inks.
+   Terracotta on paper is 4.27:1 and reads well; on the green masthead
+   it falls to 1.68:1, which is invisible -- so every control in the
+   band lost its focus ring, on every page. The band states its own. */
 :focus-visible {
-  outline: 2px solid var(--plate-terracotta);
+  outline: 2px solid var(--focus-ink, var(--plate-terracotta));
   outline-offset: 2px;
 }
 

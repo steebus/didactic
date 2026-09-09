@@ -61,7 +61,12 @@ export function StockBar({
       height={height}
       viewBox={`0 0 ${width} ${height}`}
       role="img"
-      aria-label={`${STOCK_LABEL[state]}, viability ${Math.round(freshness * 100)} per cent`}
+      /* The bar carries freshness; the figure printed beside it carries
+         ability. Announcing freshness as "viability" gave the two
+         channels one name, so a screen reader heard 100 where the sheet
+         printed 11 -- collapsing the distinction the product exists to
+         make. The bar says what it actually shows. */
+      aria-label={`${STOCK_LABEL[state]}, freshness ${Math.round(freshness * 100)} per cent`}
       style={{ display: 'block' }}
     >
       {hatch.gap > 0 && (

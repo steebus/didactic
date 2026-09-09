@@ -35,6 +35,9 @@
   color: var(--paper);
   padding: var(--space-5) var(--space-5) var(--space-5);
   margin-bottom: var(--space-2);
+  /* The band is a saturated plate, so the terracotta focus ring
+     disappears into it. Controls in here state their own. */
+  --focus-ink: var(--paper);
 }
 
 .masthead {

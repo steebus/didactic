@@ -35,7 +35,12 @@ export default async function SubjectPage({
 
   return (
     <main className={styles.sheet}>
-      <header className={styles.head} style={{ background: subject.colour }}>
+      <header
+        className={styles.head}
+        style={
+          { background: subject.colour, '--focus-ink': 'var(--paper)' } as React.CSSProperties
+        }
+      >
         <SheetNav back={{ href: '/', label: 'Stock list' }} />
 
         <div className={styles.headRow}>

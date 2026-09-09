@@ -392,9 +392,32 @@
 
 /* --- Margin column --------------------------------------------- */
 
+/* The same margin the stock list prints, and for the same reasons.
+
+   It was static and had lost its rule, so on a long topic the rail ran
+   out a third of the way down and took "Read a refresher" -- the one
+   act-on-a-cold-area click the product is measured by -- off the screen
+   for the rest of the scroll. A margin that loses its rule stops being
+   a margin. */
 .margin {
+  border-left: 1px solid var(--rule-strong);
+  padding-left: var(--space-4);
   display: grid;
   gap: var(--space-5);
+  align-content: start;
+  position: sticky;
+  top: var(--space-4);
+  align-self: stretch;
+}
+
+@media (max-width: 60rem) {
+  .margin {
+    border-left: none;
+    border-top: 2px solid var(--rule-strong);
+    padding-left: 0;
+    padding-top: var(--space-4);
+    position: static;
+  }
 }
 
 .block {

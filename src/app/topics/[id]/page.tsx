@@ -44,7 +44,13 @@ export default async function TopicPage({
 
   return (
     <main className={styles.sheet}>
-      <header className={styles.head} style={{ background: colour }}>
+      <header
+        className={styles.head}
+        // The band takes the subject's own plate, so the focus ring in
+        // here states its own ink rather than vanishing into whichever
+        // colour the subject happens to carry.
+        style={{ background: colour, '--focus-ink': 'var(--paper)' } as React.CSSProperties}
+      >
         <div className={styles.headRow}>
           <div>
             {/* The subject names were already printed here; they are

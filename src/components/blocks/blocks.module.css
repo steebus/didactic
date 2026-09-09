@@ -233,8 +233,13 @@
 
 /* --- Compare ---------------------------------------------------- */
 
+/* The wrapper is what scrolls, so it must be allowed to be narrower
+   than its table. Without min-width:0 a grid or flex child takes its
+   min-content as a floor and the overflow never engages -- the
+   ancestor stretches instead and the whole sheet scrolls. */
 .compareWrap {
   overflow-x: auto;
+  min-width: 0;
 }
 
 .compare {
@@ -264,7 +269,14 @@
 .compare tbody th {
   font-weight: 500;
   color: var(--ink-soft);
-  white-space: nowrap;
+}
+
+/* A table is wider than a phone and scrolls rather than compressing --
+   the same rule the charts already carry. Set on the table itself
+   rather than nowrap on a cell: nowrap put the floor on the row head,
+   which pushed the sheet sideways instead of the table. */
+.compare {
+  min-width: 26rem;
 }
 
 /* --- Steps ------------------------------------------------------ */

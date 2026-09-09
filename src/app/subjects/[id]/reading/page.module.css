@@ -116,7 +116,9 @@
 /* --- The verdict ------------------------------------------------- */
 
 .verdict {
-  border-left: 5px solid var(--plate-mustard);
+  /* 2px is the weight this sheet marks an aside with everywhere else;
+     5px was drift, and read as decoration rather than as the house mark. */
+  border-left: 2px solid var(--plate-mustard);
   padding-left: var(--space-4);
   display: grid;
   gap: var(--space-3);

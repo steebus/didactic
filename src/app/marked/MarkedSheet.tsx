@@ -26,6 +26,9 @@ export function MarkedSheet({
   const [editing, setEditing] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  /** The last passage removed, held so it can be put back. */
+  const [undo, setUndo] = useState<HighlightRow | null>(null)
   const [, startTransition] = useTransition()
   const router = useRouter()
 
@@ -48,15 +51,55 @@ export function MarkedSheet({
     }
   }
 
-  async function remove(id: string) {
+  /**
+   * Removing is undoable rather than confirmed.
+   *
+   * A mark is hand-picked and there is no second copy of it, but a
+   * confirm dialog would be a modal in a world that has no modals --
+   * and it makes the safe case slower without making the unsafe case
+   * safer. So the row goes, and what it held is kept in hand until the
+   * sheet is left: the passage and its note come back exactly as they
+   * were, on the same lesson.
+   */
+  async function remove(mark: HighlightRow) {
     setBusy(true)
+    setUndo(null)
     try {
-      await fetch('/api/highlights', {
+      const res = await fetch('/api/highlights', {
         method: 'DELETE',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id: mark.id }),
       })
+      if (!res.ok) throw new Error('Could not remove that.')
+      setUndo(mark)
       startTransition(() => router.refresh())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not remove that.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  /** Put back exactly what was removed, on the lesson it came from. */
+  async function putBack() {
+    if (!undo) return
+    setBusy(true)
+    try {
+      const res = await fetch('/api/highlights', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          lessonId: undo.lesson_id,
+          quote: undo.quote,
+          prefix: undo.prefix,
+          note: undo.note,
+        }),
+      })
+      if (!res.ok) throw new Error('Could not put that back.')
+      setUndo(null)
+      startTransition(() => router.refresh())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not put that back.')
     } finally {
       setBusy(false)
     }
@@ -100,6 +143,21 @@ export function MarkedSheet({
           ? `${highlights.length} ${highlights.length === 1 ? 'passage' : 'passages'} matching "${query}"`
           : `${highlights.length} ${highlights.length === 1 ? 'passage' : 'passages'} marked`}
       </p>
+
+      {error && <p className={styles.problem}>{error}</p>}
+
+      {/* What was just removed, kept in hand. A passage is hand-picked
+          and there is no second copy of it, so the way back stays on
+          the sheet rather than expiring on a timer nobody is watching. */}
+      {undo && (
+        <p className={styles.undo}>
+          Removed the passage from{' '}
+          <span className={styles.undoQuote}>{undo.lesson?.title ?? 'that lesson'}</span>.{' '}
+          <button type="button" className={styles.quiet} onClick={putBack} disabled={busy}>
+            Put it back
+          </button>
+        </p>
+      )}
 
       {highlights.length === 0 ? (
         <p className={styles.empty}>
@@ -171,11 +229,15 @@ export function MarkedSheet({
                     </button>
                   </>
                 )}
-                {' · '}
+                {/* Removing is set apart from the benign actions by a
+                    rule rather than a colour -- the same way leaving is
+                    set apart from the sheets in the running head. It
+                    used to sit in the same dot-separated run as "Edit
+                    note", identical in size, weight and underline. */}
                 <button
                   type="button"
-                  className={styles.quiet}
-                  onClick={() => remove(h.id)}
+                  className={`${styles.quiet} ${styles.destructive}`}
+                  onClick={() => remove(h)}
                   disabled={busy}
                 >
                   Remove

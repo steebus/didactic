@@ -26,12 +26,16 @@
 }
 
 .sheet {
-  color: rgba(239, 231, 214, 0.7);
+  /* 0.7 measured 4.45:1 on the green band -- under the 4.5 floor by a
+     hair. Every link in the running head failed it. */
+  color: rgba(239, 231, 214, 0.82);
   text-decoration: none;
   /* The underline is drawn rather than switched on, so the set does not
      shift by a pixel when one of them is pointed at. */
   border-bottom: 1px solid transparent;
-  padding-bottom: 2px;
+  /* The head is the one control set on every page, and it was 12 to 19
+     pixels tall. The padding is what makes it reachable on a phone. */
+  padding: var(--space-2) 0;
 }
 
 .sheet:hover {
@@ -40,12 +44,18 @@
   border-bottom-color: var(--plate-mustard);
 }
 
-/* The sheet you are on is stated, not offered. */
+/* The sheet you are on is stated, not offered.
+
+   Mustard on the green band measured 2.92:1 -- the worst contrast in
+   the build, on the one item that most needs to be read. It is stated
+   in full-strength paper now, and the mustard moves to a rule beneath
+   it, so the marker is carried by weight and position rather than by a
+   colour that cannot hold on this ground. */
 .here {
-  color: var(--plate-mustard);
+  color: var(--paper);
   font-weight: 600;
-  border-bottom: 1px solid transparent;
-  padding-bottom: 2px;
+  border-bottom: 2px solid var(--plate-mustard);
+  padding: var(--space-2) 0;
 }
 
 /* Leaving is not one of the sheets, so it is set apart from them by a
@@ -55,12 +65,12 @@
   font-size: var(--step--2);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(239, 231, 214, 0.7);
+  color: rgba(239, 231, 214, 0.82);
   background: none;
   border: none;
   border-left: 1px solid rgba(239, 231, 214, 0.35);
   border-radius: 0;
-  padding: 0 0 0 var(--space-4);
+  padding: var(--space-2) 0 var(--space-2) var(--space-4);
   cursor: pointer;
 }
 
