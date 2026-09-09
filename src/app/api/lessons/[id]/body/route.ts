@@ -39,6 +39,30 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         .eq('topic_id', curriculum.topic_id),
     ])
 
+  // Material filed against the topic's neighbours in the same subjects.
+  // A reader's library is not sorted the way the map is: the article
+  // that explains settlement may be filed under custody, and a lesson
+  // that can only see its own topic cannot reach it. These are offered
+  // as the further shelf rather than as the near one, so the prompt can
+  // prefer what was filed here.
+  const { data: memberships } = await db.from('topic_subjects')
+    .select('subject_id').eq('topic_id', curriculum.topic_id)
+  const subjectIds = (memberships ?? []).map(m => m.subject_id)
+
+  const { data: siblingTopics } = subjectIds.length
+    ? await db.from('topic_subjects').select('topic_id').in('subject_id', subjectIds)
+    : { data: [] }
+  const nearbyIds = [
+    ...new Set((siblingTopics ?? []).map(t => t.topic_id)),
+  ].filter(t => t !== curriculum.topic_id)
+
+  const { data: nearby } = nearbyIds.length
+    ? await db.from('resource_topics')
+        .select('resources(title, summary, url, status)')
+        .in('topic_id', nearbyIds)
+        .limit(40)
+    : { data: [] }
+
   let body: string
   try {
     body = await generateLessonBody({
@@ -66,6 +90,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             }]
           : []
       ),
+      nearby: dedupe(
+        (nearby ?? []).flatMap(r =>
+          r.resources
+            ? [r.resources as unknown as {
+                title: string; summary: string | null; url: string | null; status: string
+              }]
+            : []
+        ),
+        (filed ?? []).flatMap(r =>
+          r.resources ? [(r.resources as unknown as { title: string }).title] : []
+        )
+      ),
     })
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)
@@ -79,4 +115,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ body, cached: false })
+}
+
+/** Drop anything already offered on the near shelf, and any repeat. */
+function dedupe<T extends { title: string }>(rows: T[], already: string[]): T[] {
+  const seen = new Set(already)
+  const out: T[] = []
+  for (const row of rows) {
+    if (seen.has(row.title)) continue
+    seen.add(row.title)
+    out.push(row)
+  }
+  return out
 }

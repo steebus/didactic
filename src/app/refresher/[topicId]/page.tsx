@@ -4,6 +4,7 @@ import { use, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
+import { Setting } from '@/components/Setting'
 
 interface PriorResource {
   title: string
@@ -71,7 +72,7 @@ export default function RefresherPage({
       <div className={styles.body}>
         <section>
           {!state ? (
-            <p className={styles.pending}>Bringing it back into season…</p>
+            <Setting label="Bringing it back into season" shape="prose" />
           ) : state.error ? (
             <div className={styles.problem}>
               <h2 className={styles.problemTitle}>No refresher this time</h2>

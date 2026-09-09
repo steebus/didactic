@@ -75,6 +75,8 @@
   display: flex;
   gap: var(--space-2);
   align-items: baseline;
+  /* A label and its figure are one object; the pair must not break. */
+  white-space: nowrap;
 }
 
 .figureLabel {

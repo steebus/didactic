@@ -31,6 +31,9 @@ export interface LessonRow {
   stage: string
   minutes: number | null
   completed_at: string | null
+  /** How many passages were marked while reading it. A lesson you
+   *  argued with is worth finding again. */
+  marks: number
 }
 
 export interface TopicArea {
@@ -82,6 +85,10 @@ export async function getTopicArea(
         .order('position')
     : { data: [] }
 
+  const { data: lessonMarks } = await db.from('highlights')
+    .select('lesson_id')
+    .eq('topic_id', topicId)
+
   const { data: highlights } = await db.from('highlights')
     .select('*, lesson:lessons(id, title), topic:topics(id, title)')
     .eq('topic_id', topicId)
@@ -118,6 +125,7 @@ export async function getTopicArea(
           stage: l.stage,
           minutes: l.estimated_minutes ?? null,
           completed_at: l.completed_at ?? null,
+          marks: (lessonMarks ?? []).filter(m => m.lesson_id === l.id).length,
         })),
       }
     }),

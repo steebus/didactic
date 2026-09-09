@@ -1,46 +1,51 @@
 /* The running head: printed into the masthead band, so it reads as part
-   of the sheet rather than a floating toolbar. */
+   of the sheet rather than a floating toolbar.
+
+   Two rows by construction. The sheets are a fixed set and sit on the
+   first; the way back is one item and sits beneath them. They used to
+   share a line — back link left, sheets pushed right by an auto margin
+   — and a long label broke the row into a ragged second line that read
+   as an accident rather than a decision. */
 
 .nav {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-3) var(--space-4);
-  flex-wrap: wrap;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
   font-size: var(--step--2);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
-.back {
-  color: rgba(239, 231, 214, 0.9);
-  text-decoration: none;
-  border-bottom: 1px solid rgba(239, 231, 214, 0.4);
-  padding-bottom: 2px;
-  font-weight: 600;
-}
-
-.back:hover {
-  color: var(--paper);
-  border-bottom-color: var(--plate-mustard);
-  text-decoration: none;
-}
-
 .sheets {
   display: flex;
+  align-items: baseline;
   gap: var(--space-4);
   flex-wrap: wrap;
-  margin-left: auto;
+  justify-content: flex-end;
 }
 
 .sheet {
   color: rgba(239, 231, 214, 0.7);
   text-decoration: none;
+  /* The underline is drawn rather than switched on, so the set does not
+     shift by a pixel when one of them is pointed at. */
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
 }
 
 .sheet:hover {
   color: var(--paper);
   text-decoration: none;
+  border-bottom-color: var(--plate-mustard);
+}
+
+/* The sheet you are on is stated, not offered. */
+.here {
+  color: var(--plate-mustard);
+  font-weight: 600;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
 }
 
 /* Leaving is not one of the sheets, so it is set apart from them by a
@@ -68,28 +73,34 @@
   opacity: 0.6;
 }
 
-@media (max-width: 40rem) {
-  .leave {
-    border-left: none;
-    padding-left: 0;
-  }
-}
-
-/* The sheet you are on is stated, not offered. */
-.here {
-  color: var(--plate-mustard);
+/* The way back. Set as a phrase rather than a button, with the arrow
+   held clear of the label so it does not read as punctuation. */
+.back {
+  color: rgba(239, 231, 214, 0.9);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(239, 231, 214, 0.4);
+  padding-bottom: 2px;
   font-weight: 600;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
 }
 
-@media (max-width: 40rem) {
-  .nav {
-    gap: var(--space-2) var(--space-3);
-  }
+.back:hover {
+  color: var(--paper);
+  border-bottom-color: var(--plate-mustard);
+  text-decoration: none;
+}
 
-  .sheets {
-    gap: var(--space-3);
-    margin-left: 0;
-  }
+/* The arrow travels a little on hover, which is the only motion in the
+   running head and the only one it needs. */
+.arrow {
+  display: inline-block;
+  transition: transform var(--dur-state) var(--ease-settle);
+}
+
+.back:hover .arrow {
+  transform: translateX(-3px);
 }
 
 /* Motion: the running head is a link set, so it acknowledges hover
@@ -103,19 +114,30 @@
 }
 
 @media (max-width: 40rem) {
-  /* The sheet links take their own line rather than sharing one with a
-     back link that then wraps mid-phrase. */
+  /* On a phone the head reads left to right like the rest of the
+     sheet, and the sheets wrap rather than being pushed to an edge. */
   .nav {
-    flex-direction: column;
     align-items: flex-start;
-    gap: var(--space-2);
-  }
-
-  .back {
-    order: 2;
+    gap: var(--space-3);
   }
 
   .sheets {
-    order: 1;
+    gap: var(--space-3);
+    justify-content: flex-start;
+  }
+
+  .leave {
+    border-left: none;
+    padding-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arrow {
+    transition: none;
+  }
+
+  .back:hover .arrow {
+    transform: none;
   }
 }

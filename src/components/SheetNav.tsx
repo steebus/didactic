@@ -25,11 +25,13 @@ export function SheetNav({
 
   return (
     <nav className={styles.nav} aria-label="Sheets">
-      {back && (
-        <Link href={back.href} className={styles.back}>
-          <span aria-hidden="true">←</span> {back.label}
-        </Link>
-      )}
+      {/* The sheets first, the way back beneath them.
+          They were competing for one line: a back link left, the sheets
+          pushed right by an auto margin, and a long label like "back to
+          the curriculum" breaking the row into a ragged second line
+          that read as an accident. The set of sheets is fixed and the
+          way back is one item, so they are two lines by construction
+          rather than by whatever the labels happen to measure. */}
       <span className={styles.sheets}>
         {sheets
           // A back link to the same place as a sheet link is one link
@@ -50,6 +52,14 @@ export function SheetNav({
             out of it. */}
         <SignOut />
       </span>
+      {back && (
+        <Link href={back.href} className={styles.back}>
+          <span className={styles.arrow} aria-hidden="true">
+            ←
+          </span>
+          {back.label}
+        </Link>
+      )}
     </nav>
   )
 }

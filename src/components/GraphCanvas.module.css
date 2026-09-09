@@ -356,3 +356,17 @@
     width: 4.5rem;
   }
 }
+
+/* The bed is not a sheet, so its waiting state is a panel floated on
+   the drill grid rather than a galley filling the canvas. */
+.reading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(28rem, calc(100% - 2rem));
+  padding: var(--space-4) var(--space-5);
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  box-shadow: 0 2px 24px rgba(36, 29, 22, 0.16);
+}

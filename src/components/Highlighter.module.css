@@ -90,3 +90,56 @@
   color: var(--plate-terracotta);
   margin: var(--space-2) 0 0;
 }
+
+/* --- Marks drawn back onto the prose ----------------------------- */
+
+/* A kept passage is printed, not selected: a mustard wash the colour of
+   the head rule, under the words rather than over them. The browser's
+   own <mark> yellow belongs to no design system. */
+.holder :global(mark[data-mark]) {
+  background: linear-gradient(
+    to bottom,
+    transparent 0 0.15em,
+    rgba(200, 135, 26, 0.26) 0.15em 100%
+  );
+  color: inherit;
+  padding: 0 0.05em;
+  cursor: pointer;
+  border-radius: 0;
+  transition: background var(--dur-feedback) var(--ease-settle);
+}
+
+.holder :global(mark[data-mark]:hover) {
+  background: linear-gradient(
+    to bottom,
+    transparent 0 0.15em,
+    rgba(200, 135, 26, 0.42) 0.15em 100%
+  );
+}
+
+.holder :global(mark[data-mark]:focus-visible) {
+  outline: 2px solid var(--plate-terracotta);
+  outline-offset: 2px;
+}
+
+/* A mark carrying a note is underscored as well as washed, so the two
+   read apart without relying on the wash being darker. */
+.holder :global(mark[data-noted]) {
+  box-shadow: inset 0 -2px 0 var(--plate-mustard);
+}
+
+/* --- Reading a mark ---------------------------------------------- */
+
+.reading {
+  font-size: var(--step-0);
+  line-height: 1.5;
+  margin: 0 0 var(--space-2);
+}
+
+.unnoted {
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink-faint);
+  font-style: italic;
+  margin: 0 0 var(--space-2);
+}

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { NudgeIcon } from '@/components/NudgeIcon'
 import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
+import { Setting } from '@/components/Setting'
 
 interface Lesson {
   id: string
@@ -151,7 +152,7 @@ export default function CurriculumPage({
     return (
       <main className={styles.sheet}>
         <div className={styles.body}>
-          <p className={styles.pending}>Reading the route…</p>
+          <Setting label="Reading the route" shape="rows" />
         </div>
       </main>
     )

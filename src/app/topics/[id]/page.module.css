@@ -77,6 +77,10 @@
   display: flex;
   gap: var(--space-2);
   align-items: baseline;
+  /* A label and its figure are one object. Letting the pair break put
+     "CONDITION" on one line and "In season" on the next, which reads as
+     two facts rather than one. */
+  white-space: nowrap;
 }
 
 .figureLabel {
@@ -552,19 +556,41 @@
   display: flex;
   align-items: baseline;
   gap: var(--space-3);
-  padding: var(--space-3) 0;
+  padding: var(--space-3) var(--space-2);
+  /* Negative inset so the hover wash reaches past the text without
+     moving it, the way a stock row lights under the finger. */
+  margin: 0 calc(var(--space-2) * -1);
   border-top: 1px solid var(--rule);
   text-decoration: none;
   color: inherit;
+  transition:
+    background-color var(--dur-feedback) var(--ease-settle),
+    box-shadow var(--dur-feedback) var(--ease-settle);
 }
 
 .lesson:hover {
-  background: var(--paper-shade, rgba(0, 0, 0, 0.02));
+  background: var(--paper-deep);
+  box-shadow: inset 3px 0 0 var(--plate-mustard);
 }
 
-.lessonMark {
-  font-size: var(--step--1);
+/* A worked lesson is set back: the ink lightens and the rule beneath it
+   fills, so the list reads as a run of progress rather than a list with
+   badges on some rows. */
+.lesson[data-worked] .lessonTitle {
   color: var(--ink-soft);
+}
+
+.lessonNumber {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums lining-nums;
+  min-width: 1.75rem;
+}
+
+.lesson[data-worked] .lessonNumber {
+  color: var(--plate-green);
 }
 
 .lessonBody {
@@ -583,6 +609,54 @@
   font-size: var(--step--1);
   color: var(--ink-soft);
   text-transform: lowercase;
+}
+
+/* The flags sit at the far end of the row, in the margin where a
+   catalogue prints its stock notes. */
+.lessonFlags {
+  margin-left: auto;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex: none;
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* A marked lesson carries the same mustard as the marks themselves, so
+   the count and the wash on the passage read as one thing. */
+.lessonMarks {
+  color: var(--ink-faint);
+  border-bottom: 2px solid var(--plate-mustard);
+  padding-bottom: 1px;
+  white-space: nowrap;
+}
+
+.lessonWorked {
+  color: var(--plate-green);
+  white-space: nowrap;
+}
+
+@media (max-width: 40rem) {
+  /* On a narrow sheet the number takes its own line above the title,
+     for every row rather than only the rows that carry a flag. Letting
+     it wrap made row 01 sit inline and rows 02 and 03 break, which read
+     as three different row designs in one list. */
+  .lesson {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+  }
+
+  .lessonNumber {
+    min-width: 0;
+  }
+
+  .lessonFlags {
+    margin-left: 0;
+  }
 }
 
 .draftNote {

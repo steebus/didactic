@@ -579,6 +579,33 @@ ${
     }
   }
 
+  // The proof they handed over is filed against the bed it was offered
+  // as evidence for.
+  //
+  // It was landing in the library attached to nothing: a book named on
+  // the sowing sheet became a resource with no topic, which meant no
+  // lesson could ever point at it and it appeared on no topic sheet. It
+  // is filed against every topic in this bed at a low relevance --
+  // "The Intelligent Investor" is genuinely about the whole subject
+  // rather than about one topic in it, and the ingester will sharpen
+  // that where it can read the thing.
+  const evidenceIds = evidence.flatMap(e => (e.resourceId ? [e.resourceId] : []))
+  if (evidenceIds.length > 0 && (created?.length ?? 0) > 0) {
+    const { error: fileError } = await db.from('resource_topics').upsert(
+      evidenceIds.flatMap(resource_id =>
+        created!.map(topic => ({
+          resource_id,
+          topic_id: topic.id,
+          relevance: 0.3,
+        }))
+      ),
+      { onConflict: 'resource_id,topic_id', ignoreDuplicates: true }
+    )
+    if (fileError) {
+      warnings.push(`the evidence was not filed against the topics: ${fileError.message}`)
+    }
+  }
+
   // An empty subject is worse than no subject: it would print on the
   // stock list as a bed with nothing in it.
   if ((created?.length ?? 0) === 0 && toLink.length === 0) {

@@ -128,19 +128,41 @@ export default async function TopicPage({
                     </p>
                   )}
                   <ol className={styles.lessons}>
-                    {route.lessons.map(lesson => (
+                    {route.lessons.map((lesson, i) => (
                       <li key={lesson.id}>
-                        <Link href={`/lesson/${lesson.id}`} className={styles.lesson}>
-                          <span className={styles.lessonMark} aria-hidden="true">
-                            {lesson.completed_at ? '●' : '○'}
+                        <Link
+                          href={`/lesson/${lesson.id}`}
+                          className={styles.lesson}
+                          data-worked={lesson.completed_at ? 'true' : undefined}
+                        >
+                          {/* The position is the sequence, printed as a
+                              catalogue prints a line number. It replaces
+                              a bullet that carried no information. */}
+                          <span className={styles.lessonNumber} aria-hidden="true">
+                            {String(i + 1).padStart(2, '0')}
                           </span>
                           <span className={styles.lessonBody}>
                             <span className={styles.lessonTitle}>{lesson.title}</span>
                             <span className={styles.lessonMeta}>
                               {lesson.stage}
                               {lesson.minutes ? ` · about ${lesson.minutes} min` : ''}
-                              {lesson.completed_at ? ' · worked' : ''}
                             </span>
+                          </span>
+                          <span className={styles.lessonFlags}>
+                            {lesson.marks > 0 && (
+                              <span
+                                className={styles.lessonMarks}
+                                title={`${lesson.marks} passage${
+                                  lesson.marks === 1 ? '' : 's'
+                                } marked here`}
+                              >
+                                {lesson.marks}{' '}
+                                {lesson.marks === 1 ? 'mark' : 'marks'}
+                              </span>
+                            )}
+                            {lesson.completed_at && (
+                              <span className={styles.lessonWorked}>Worked</span>
+                            )}
                           </span>
                         </Link>
                       </li>

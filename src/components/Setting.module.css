@@ -1,0 +1,148 @@
+/* Type being set: what the sheet shows while it waits.
+
+   The lines are the paper one step deeper, not grey — a galley is the
+   same stock as the page, just without the ink on it yet. Nothing here
+   pulses white or shimmers; the movement is a slow ink-up, left to
+   right, the way a line comes off a press. */
+
+.setting {
+  padding: var(--space-2) 0 var(--space-5);
+}
+
+.label {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 20, 'WONK' 0;
+  font-style: italic;
+  color: var(--ink-faint);
+  margin: 0 0 var(--space-4);
+  display: flex;
+  align-items: baseline;
+  gap: 0.15em;
+}
+
+/* Three points that come up in turn, so the line reads as working
+   rather than stuck. */
+.ellipsis {
+  display: inline-flex;
+  gap: 0.12em;
+}
+
+.ellipsis span {
+  width: 0.2em;
+  height: 0.2em;
+  background: var(--ink-faint);
+  border-radius: 50%;
+  opacity: 0.25;
+  animation: ink 1.4s var(--ease-settle) infinite;
+}
+
+.ellipsis span:nth-child(2) {
+  animation-delay: 0.18s;
+}
+
+.ellipsis span:nth-child(3) {
+  animation-delay: 0.36s;
+}
+
+@keyframes ink {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+  }
+  30% {
+    opacity: 1;
+  }
+}
+
+.galley {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 62ch;
+}
+
+.line,
+.head {
+  display: block;
+  width: var(--w, 100%);
+  height: 0.7em;
+  background: var(--paper-deep);
+  position: relative;
+  overflow: hidden;
+}
+
+/* A heading's galley slug is taller and darker, so the shape of the
+   piece is legible before a word of it exists. */
+.head {
+  height: 1.15em;
+  width: var(--w, 58%);
+  background: var(--paper-edge);
+  margin-top: var(--space-3);
+}
+
+/* The ink-up: a soft band crossing each line, staggered down the galley
+   so the page sets top to bottom rather than flashing at once. */
+.line::after,
+.head::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(90, 70, 45, 0.09) 45%,
+    transparent 90%
+  );
+  transform: translateX(-100%);
+  animation: press 1.9s var(--ease-settle) infinite;
+}
+
+.galley > *:nth-child(2n)::after {
+  animation-delay: 0.12s;
+}
+
+.galley > *:nth-child(3n)::after {
+  animation-delay: 0.24s;
+}
+
+@keyframes press {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/* Rows: a numbered run, the shape a route actually takes. */
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.rowNumber {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  color: var(--paper-edge);
+  font-variant-numeric: tabular-nums lining-nums;
+  min-width: 1.75rem;
+}
+
+.row .line {
+  flex: 1;
+}
+
+/* Reduced motion keeps the galley and drops the travel: the shape is
+   the information, the movement is only reassurance. */
+@media (prefers-reduced-motion: reduce) {
+  .line::after,
+  .head::after,
+  .ellipsis span {
+    animation: none;
+  }
+
+  .ellipsis span {
+    opacity: 0.6;
+  }
+}

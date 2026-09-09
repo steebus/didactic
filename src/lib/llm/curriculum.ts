@@ -182,6 +182,10 @@ export async function generateLessonBody(input: {
    *  lesson can point at it rather than sending the reader looking for
    *  material they already have. */
   library: Array<{ title: string; summary: string | null; url: string | null; status: string }>
+  /** Filed against neighbouring topics in the same subjects. A reader's
+   *  library is not sorted the way the map is, so the piece that
+   *  explains what this lesson leans on often sits one topic over. */
+  nearby?: Array<{ title: string; summary: string | null; url: string | null; status: string }>
 }): Promise<string> {
   const res = await getClient().messages.create({
     model: 'claude-sonnet-5',
@@ -205,7 +209,7 @@ ${input.sources.length
     }`
   : ''}
 ${input.library.length
-  ? `\nMaterial already filed against this topic. Where a point genuinely connects to one of these, link it inline as a markdown link so the reader can go straight to something they already have. Do not force connections, do not list them at the end, and never invent a URL:\n${
+  ? `\nTheir own material, filed against this very topic. This is the shelf to reach for first. Where a point genuinely connects to one of these, link it inline as a markdown link on the words that make the point, so the reader can go straight to something they already have, and say in passing what it gives them that this lesson does not. Prefer something they have read when building on a point, and something they have not when pointing further on. Do not force connections, do not list them at the end, and never invent a URL:\n${
       input.library.map(r =>
         `- ${r.title}${r.url ? ` (${r.url})` : ' (no link)'} — ${
           r.status === 'consumed' ? 'they have read this' : 'unread'
@@ -213,6 +217,17 @@ ${input.library.length
       ).join('\n')
     }`
   : ''}
+${input.nearby?.length
+  ? `\nAlso theirs, filed one topic over in the same subjects. A reader's library is not sorted the way the map is, and the piece that explains what this lesson leans on is often filed under a neighbour. Reach for these where the connection is real and worth the detour, and name the topic it sits under so the detour is signposted:\n${
+      input.nearby.map(r =>
+        `- ${r.title}${r.url ? ` (${r.url})` : ' (no link)'} — ${
+          r.status === 'consumed' ? 'they have read this' : 'unread'
+        }${r.summary ? `: ${r.summary}` : ''}`
+      ).join('\n')
+    }`
+  : ''}
+
+Never announce a block or label it in the prose -- no "steps:", no "here is a chart", no "see the table below". Each block prints its own title, so a line introducing one is a line printed twice.
 
 Use markdown headings and prose. Explain the idea, show one worked example, and finish with something concrete to try. No preamble, no "in this lesson we will".
 

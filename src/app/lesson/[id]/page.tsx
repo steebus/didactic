@@ -9,6 +9,7 @@ import { useScrollMemory } from '@/lib/useScrollMemory'
 import { viabilityFigure } from '@/lib/scoring'
 import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
+import { Setting } from '@/components/Setting'
 
 interface LessonData {
   lesson: {
@@ -147,7 +148,7 @@ export default function LessonPage({
           {error ? (
             <p className={styles.problem}>{error}</p>
           ) : (
-            <p className={styles.pending}>Turning to the lesson…</p>
+            <Setting label="Turning to the lesson" shape="prose" />
           )}
         </div>
       </main>
@@ -236,7 +237,7 @@ export default function LessonPage({
         {error && <p className={styles.problem}>{error}</p>}
 
         {writing && !body ? (
-          <p className={styles.pending}>Writing the lesson…</p>
+          <Setting label="Writing the lesson" shape="prose" />
         ) : body ? (
           <article>
             {/* Selecting inside here offers to keep the passage. The
@@ -245,7 +246,7 @@ export default function LessonPage({
             <Highlighter
               lessonId={id}
               existing={highlights}
-              onSaved={() => setRevision(r => r + 1)}
+              onChanged={() => setRevision(r => r + 1)}
             >
               <Prose markdown={body} />
             </Highlighter>

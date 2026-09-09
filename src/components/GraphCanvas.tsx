@@ -7,6 +7,7 @@ import forceAtlas2 from 'graphology-layout-forceatlas2'
 import FA2Supervisor from 'graphology-layout-forceatlas2/worker'
 import { SheetNav } from './SheetNav'
 import styles from './GraphCanvas.module.css'
+import { Setting } from '@/components/Setting'
 
 interface GraphTopic {
   id: string
@@ -639,7 +640,11 @@ export function GraphCanvas({
         style={{ '--controls-height': showForces ? '8.5rem' : '4.5rem' } as React.CSSProperties}
       />
 
-      {!data && <p className={styles.pending}>Reading the bed…</p>}
+      {!data && (
+        <div className={styles.reading}>
+          <Setting label="Reading the bed" shape="panel" />
+        </div>
+      )}
 
       {data && data.topics.filter(t => t.state === 'active').length === 0 && (
         <p className={styles.pending}>Nothing sown yet.</p>
