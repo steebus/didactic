@@ -50,6 +50,24 @@ const CONCURRENCY = 3
  */
 const EDGE_NEIGHBOURS = 30
 
+/**
+ * How far into the request a second go at the map is still affordable.
+ *
+ * Everything after the map -- an embedding and a similarity search per
+ * topic, then the writes and the edges -- needs the rest of the minute
+ * the platform allows. Asking again at forty seconds would turn a bed
+ * that failed into a bed that timed out, which says less and costs
+ * more.
+ */
+const ASK_AGAIN_BEFORE_MS = 25_000
+
+/** What the model is told on the second go. It is told what it did
+ *  rather than asked the same thing twice, because the same question
+ *  asked identically tends to be answered identically. */
+const ASK_AGAIN = `
+
+Your previous attempt recorded no topics at all. That is never the right answer: every subject has topics in it. Record the list this time, at least six of them, before anything else.`
+
 const PLATE_INKS = ['#b8482a', '#2f5233', '#c8871a', '#2a4a7c', '#6b3550', '#6b7233']
 
 /** The same rungs the roots slider prints, so the model reads and
@@ -87,6 +105,9 @@ const TOOL = {
     properties: {
       topics: {
         type: 'array',
+        minItems: 6,
+        description:
+          'The topics, six at the very least. A subject always has topics in it: recording none is not an answer, and an empty list is never the right one.',
         items: {
           type: 'object',
           properties: {
@@ -246,6 +267,89 @@ const phrases = (v: unknown, cap = 5) =>
         .slice(0, cap)
     : []
 
+interface Proposal {
+  name: string
+  summary: string
+  estimated_level: number
+}
+
+interface RawMap {
+  topics?: unknown
+  assessment?: { level?: number; note?: string; shown?: unknown; missing?: unknown }
+}
+
+/**
+ * The three ways a map fails to arrive, told apart because they have
+ * different causes and different remedies -- and because only one of
+ * them is worth asking twice.
+ *
+ * `unstructured` is no tool call at all: the model answered in prose,
+ * or refused. `truncated` is a tool call cut off at the token ceiling,
+ * whose input is whatever parsed out of half a JSON document -- topics
+ * as a bare string, or absent. Reading that as a list is where
+ * "(k.topics ?? []).filter is not a function" came from. `empty` is a
+ * whole tool call that recorded nothing.
+ */
+type MapProblem = 'unstructured' | 'truncated' | 'empty'
+
+const PROBLEM_NOTES: Record<MapProblem, string> = {
+  unstructured:
+    'The model answered without filling the map in at all. Try again in a moment.',
+  truncated:
+    'The map came back half-written: the model hit its length ceiling part way through the list. Try a shallower scope, or a subject cut into two.',
+  empty:
+    'The map came back empty — the model recorded no topics at all. Trying again usually gets one; if it keeps happening, try naming the subject differently.',
+}
+
+interface MapReading {
+  topics: Proposal[]
+  raw: RawMap
+  problem: MapProblem | null
+  /** What actually arrived, in one line. Written for the log and for
+   *  the sentence the user reads, because "the map came back empty"
+   *  with nothing beside it could only ever be guessed at from the
+   *  outside -- which is exactly how the last one was diagnosed. */
+  diagnostic: string
+}
+
+/** Read the model's answer into a list of topics, and say plainly what
+ *  came back when it cannot be read. */
+function readMap(res: Anthropic.Message): MapReading {
+  const tool = res.content.find(c => c.type === 'tool_use')
+  const raw: RawMap = tool && tool.type === 'tool_use' ? (tool.input as RawMap) : {}
+  const list = Array.isArray(raw.topics) ? raw.topics : []
+
+  // The model's shape is a promise, not a guarantee. Anything without a
+  // usable name cannot be embedded or resolved, so it is dropped rather
+  // than crashing the request.
+  const topics: Proposal[] = list
+    .filter((t): t is Record<string, unknown> => typeof t === 'object' && t !== null)
+    .filter(t => typeof t.name === 'string' && t.name.trim().length > 0)
+    .map(t => ({
+      name: (t.name as string).trim(),
+      summary: typeof t.summary === 'string' ? t.summary : '',
+      estimated_level: Number.isFinite(t.estimated_level) ? (t.estimated_level as number) : 1,
+    }))
+
+  const shape = Array.isArray(raw.topics)
+    ? `${raw.topics.length} recorded, ${topics.length} usable`
+    : raw.topics === undefined
+      ? 'no topics at all'
+      : `topics arrived as ${typeof raw.topics}`
+
+  const problem: MapProblem | null =
+    !tool ? 'unstructured' : res.stop_reason === 'max_tokens' ? 'truncated' : topics.length === 0 ? 'empty' : null
+
+  return {
+    topics,
+    raw,
+    problem,
+    diagnostic: `stop_reason ${res.stop_reason ?? 'none'}, ${
+      res.usage?.output_tokens ?? '?'
+    } output tokens, ${tool ? shape : 'no tool call'}`,
+  }
+}
+
 /**
  * Anything thrown below this point used to reach the browser as a bare
  * 500 with no body, which is how "Failed with 500." came to be the most
@@ -262,6 +366,9 @@ export async function POST(req: Request) {
 }
 
 async function sow(req: Request) {
+  // What the retry budget below is measured from.
+  const started = Date.now()
+
   const body = await req.json()
   const subject: string = typeof body.subject === 'string' ? body.subject.trim() : ''
   if (!subject) return NextResponse.json({ error: 'subject is required' }, { status: 400 })
@@ -325,14 +432,7 @@ async function sow(req: Request) {
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   const brief = buildBrief({ roots, confident, gaps, qualifiers, evidence })
 
-  const res = await client.messages.create({
-    model: 'claude-sonnet-5',
-    max_tokens: 4000,
-    tools: [TOOL],
-    tool_choice: { type: 'tool', name: 'record_subject_topics' },
-    messages: [{
-      role: 'user',
-      content: `Break the subject "${subject}" into learnable topics. Topics are areas within the subject; they need not relate to one another. Use canonical names that would match an existing knowledge graph.
+  const instruction = `Break the subject "${subject}" into learnable topics. Topics are areas within the subject; they need not relate to one another. Use canonical names that would match an existing knowledge graph.
 
 ${scopeInstruction(depth)}
 
@@ -350,53 +450,51 @@ ${
   readable
     ? `Then give the assessment: your own reading of where they stand, judged from what they wrote rather than from what they claimed. Mark the answers as a knowledgeable person would — a correct but thin answer at rung 1 is not the same as a fluent one at rung 4, and a confident wrong answer counts against. Say plainly where the answers were vague or absent. This is printed back to them beside their own figure, so it must be specific enough to argue with.`
     : 'They gave nothing to read, so omit the assessment entirely.'
-}`,
-    }],
-  })
+}`
 
-  const tool = res.content.find(c => c.type === 'tool_use')
-  if (!tool || tool.type !== 'tool_use') {
-    return NextResponse.json({ error: 'no structured output' }, { status: 502 })
+  /** Ask for the map. `again` is empty on the first go and carries the
+   *  complaint on the second. */
+  const askForMap = (again: string) =>
+    client.messages.create({
+      model: 'claude-sonnet-5',
+      max_tokens: 4000,
+      tools: [TOOL],
+      tool_choice: { type: 'tool', name: 'record_subject_topics' },
+      messages: [{ role: 'user', content: `${instruction}${again}` }],
+    })
+
+  let map = readMap(await askForMap(''))
+
+  // A map that comes back with nothing on it is not the user's fault,
+  // and it is not usually the subject's either: the same model, the
+  // same key and the same forced tool wrote a qualifying set about
+  // this very subject a minute earlier, on this very sheet. What it is
+  // is a bad roll, and the remedy for a bad roll is to roll again.
+  //
+  // It is worth the seconds because of what the alternative costs: the
+  // user is sent back to a sheet they have just spent ten minutes on,
+  // holding an error that blames the name they chose. Only the empty
+  // case is asked twice -- a call cut off at the ceiling would be cut
+  // off again at the same ceiling, and no tool call at all means the
+  // model answered something else entirely.
+  if (map.problem === 'empty' && Date.now() - started < ASK_AGAIN_BEFORE_MS) {
+    console.error(`sow: an empty map for "${subject}" (${map.diagnostic}); asking once more`)
+    map = readMap(await askForMap(ASK_AGAIN))
   }
 
-  // A tool call cut off at the token ceiling still arrives as a
-  // tool_use block, but its input is whatever parsed out of half a
-  // JSON document -- topics as a bare string, or absent. Reading that
-  // as a list is where "(k.topics ?? []).filter is not a function"
-  // came from. The cause is named here rather than discovered in a
-  // stack trace.
-  if (res.stop_reason === 'max_tokens') {
+  if (map.problem) {
+    // Logged in full because the browser only ever showed the sentence,
+    // and a sentence with no figures behind it is a failure that can
+    // only be guessed at. The figures are named to the user too: they
+    // are the one who has to decide whether to press the button again.
+    console.error(`sow: no map for "${subject}" — ${map.problem}: ${map.diagnostic}`)
     return NextResponse.json(
-      {
-        error:
-          'The map came back half-written: the model hit its length ceiling part way through the list. Try a shallower scope, or a subject cut into two.',
-      },
+      { error: `${PROBLEM_NOTES[map.problem]} (${map.diagnostic})` },
       { status: 502 }
     )
   }
 
-  const raw = tool.input as {
-    topics?: Array<{ name?: string; summary?: string; estimated_level?: number }>
-    assessment?: { level?: number; note?: string; shown?: unknown; missing?: unknown }
-  }
-
-  // The model's shape is a promise, not a guarantee. Anything without a
-  // usable name cannot be embedded or resolved, so it is dropped rather
-  // than crashing the request.
-  const proposed = (Array.isArray(raw.topics) ? raw.topics : [])
-    .filter(t => typeof t?.name === 'string' && t.name.trim().length > 0)
-    .map(t => ({
-      name: t.name!.trim(),
-      summary: typeof t.summary === 'string' ? t.summary : '',
-      estimated_level: Number.isFinite(t.estimated_level) ? t.estimated_level! : 1,
-    }))
-
-  if (proposed.length === 0) {
-    return NextResponse.json(
-      { error: 'The map came back empty. Try naming the subject differently.' },
-      { status: 502 }
-    )
-  }
+  const { topics: proposed, raw } = map
 
   const assessment =
     readable && raw.assessment && Number.isFinite(raw.assessment.level)
