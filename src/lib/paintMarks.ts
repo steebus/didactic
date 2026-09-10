@@ -28,14 +28,16 @@ const normalise = (s: string) => s.replace(/\s+/g, ' ')
 /**
  * Wrap every findable mark in the container.
  *
- * Returns the ids it managed to draw, so the caller can say how many
- * marks are on this page without claiming ones it could not place.
+ * Returns the ids it managed to draw, in the order they come in the
+ * reading rather than the order they were handed over -- the caller can
+ * then say how many marks are on the page without claiming ones it
+ * could not place, and list them the way the lesson reads.
  */
 export function paintMarks(
   root: HTMLElement,
   marks: PaintableMark[],
   onOpen: (id: string, at: { top: number; left: number; above: boolean }) => void
-): Set<string> {
+): string[] {
   const drawn = new Set<string>()
 
   // Existing marks come off first, so a repaint after a save does not
@@ -197,7 +199,15 @@ export function paintMarks(
     }
   }
 
-  return drawn
+  // Read back off the page rather than kept as they were painted: a
+  // mark is drawn where its words are, which has nothing to do with the
+  // order the sheet handed them over in.
+  const order: string[] = []
+  for (const piece of Array.from(root.querySelectorAll<HTMLElement>('[data-mark]'))) {
+    const id = piece.dataset.mark
+    if (id && drawn.has(id) && !order.includes(id)) order.push(id)
+  }
+  return order
 }
 
 /**

@@ -9,6 +9,9 @@ import { paintMarks } from '@/lib/paintMarks'
 import { panelSpot, pinSpot, type Spot } from '@/lib/markAnchor'
 import { NoteEditor } from './NoteEditor'
 import { NoteIcon } from './NoteIcon'
+import { MarksIcon } from './MarksIcon'
+import { MarkList } from './MarkList'
+import { UNSAVED, isUnsaved, inReadingOrder } from '@/lib/marks'
 import { ExpandIcon } from './ExpandIcon'
 import { NoteText } from './NoteText'
 import styles from './Highlighter.module.css'
@@ -32,11 +35,10 @@ const NARROW = '(max-width: 40rem)'
  *  because it is how they read, not a thing they choose per mark. */
 const OPENED_OUT = 'didactic:notes-open'
 
-/** A mark kept in this session but not yet confirmed by the server.
- *  It is drawn like any other; what it cannot do is be edited or
- *  removed, because there is nothing on the other end to edit yet. */
-const UNSAVED = 'unsaved:'
-const isUnsaved = (id: string) => id.startsWith(UNSAVED)
+/** How far a finger has to travel across the page, and how straight,
+ *  before it counts as asking for the marks rather than as a scroll or
+ *  a stray touch while reading. */
+const SWIPE = { far: 60, wander: 45, within: 800 }
 
 /**
  * A passage the reader has selected but not yet kept: the words, the
@@ -83,7 +85,9 @@ export function Highlighter({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [at, setAt] = useState<Spot | null>(null)
-  const [drawn, setDrawn] = useState(0)
+  /** The marks the page managed to draw, in the order they are read. */
+  const [drawn, setDrawn] = useState<string[]>([])
+  const [listing, setListing] = useState(false)
 
   const narrow = useNarrow()
   const [big, setBig] = useState(remembered)
@@ -119,31 +123,42 @@ export function Highlighter({
    */
   const [kept, setKept] = useState<Mark[]>([])
   const [lost, setLost] = useState<string | null>(null)
+  /** Marks removed here, which the sheet has not caught up with yet.
+   *  Without this a removed mark is drawn again on the next paint. */
+  const [gone, setGone] = useState<string[]>([])
 
-  // The server's marks, plus this session's that have not come back in
-  // them yet.
-  //
-  // One that has been written down is matched by id. One still in
-  // flight has no id the server would recognise, so it is matched on
-  // what it says -- the passage, its anchor and the note -- which is
-  // also what keeps two notes on the same lesson apart: they share an
-  // empty quote and nothing else.
-  const marks = useMemo(
-    () => [
-      ...existing,
-      ...kept.filter(k =>
-        isUnsaved(k.id)
-          ? !existing.some(
-              e =>
-                e.quote === k.quote &&
-                (e.prefix ?? '').trim() === (k.prefix ?? '').trim() &&
-                (e.note ?? '') === (k.note ?? '')
-            )
-          : !existing.some(e => e.id === k.id)
-      ),
-    ],
-    [existing, kept]
-  )
+  /**
+   * The marks of this lesson: the sheet's, and what this session has
+   * done to them since.
+   *
+   * Writing a mark, editing its note and removing it all happen behind
+   * the reader -- the sheet is re-read afterwards, and until it comes
+   * back the page would otherwise print what the server last said. So
+   * what is held here wins: an edited note over the sheet's copy of the
+   * same mark, a removed one over its continued presence, and a mark
+   * kept a moment ago over nothing at all.
+   *
+   * A mark written down is matched by id. One still in flight has no id
+   * the server would recognise, so it is matched on what it says -- the
+   * passage, its anchor and the note -- which is also what keeps two
+   * notes on the same lesson apart: they share an empty quote and
+   * nothing else.
+   */
+  const marks = useMemo(() => {
+    const edited = new Map(kept.filter(k => !isUnsaved(k.id)).map(k => [k.id, k]))
+    const merged = existing.map(e => edited.get(e.id) ?? e)
+    const extras = kept.filter(k =>
+      isUnsaved(k.id)
+        ? !existing.some(
+            e =>
+              e.quote === k.quote &&
+              (e.prefix ?? '').trim() === (k.prefix ?? '').trim() &&
+              (e.note ?? '') === (k.note ?? '')
+          )
+        : !existing.some(e => e.id === k.id)
+    )
+    return [...merged, ...extras].filter(m => !gone.includes(m.id))
+  }, [existing, kept, gone])
 
   // --- Marking ---------------------------------------------------
 
@@ -324,7 +339,13 @@ export function Highlighter({
         setError(null)
       }
     )
-    setDrawn(painted.size)
+    // Held by value: the effect runs on every render, and a new array
+    // each time would re-render the list under the reader for nothing.
+    setDrawn(before =>
+      before.length === painted.length && before.every((id, i) => id === painted[i])
+        ? before
+        : painted
+    )
   }, [marks, children])
 
   // --- Writing ---------------------------------------------------
@@ -428,17 +449,23 @@ export function Highlighter({
   // Escape closes whichever panel is up, which is the one keyboard
   // convention a panel like this must not get wrong.
   useEffect(() => {
-    if (!pending && !open && !offer) return
+    if (!pending && !open && !offer && !listing) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
-      setPending(null)
-      setOpen(null)
-      setOffer(null)
-      window.getSelection()?.removeAllRanges()
+      // Whichever is in front: a panel first, and the list only once
+      // there is no panel over it.
+      if (pending || open || offer) {
+        setPending(null)
+        setOpen(null)
+        setOffer(null)
+        window.getSelection()?.removeAllRanges()
+        return
+      }
+      setListing(false)
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [pending, open, offer])
+  }, [pending, open, offer, listing])
 
   /**
    * Whether a panel docks rather than standing against something.
@@ -490,13 +517,123 @@ export function Highlighter({
    * Said on the body because the reading is `main`, and a component
    * inside the sheet cannot narrow the sheet it is inside of.
    */
+  // One strip of the window, and one thing standing in it: a panel
+  // opened out takes the column, and the list yields until it closes
+  // rather than the two drawing over each other.
+  const writing = big && Boolean(pending || open)
+  const showList = listing && !writing
+  const columnOpen = writing || showList
+
   useEffect(() => {
-    if (!big || !(pending || open)) return
+    if (!columnOpen) return
     document.body.dataset.notes = 'open'
     return () => {
       delete document.body.dataset.notes
     }
-  }, [big, pending, open])
+  }, [columnOpen])
+
+  // A finger asking for the marks: a swipe leftward across the reading,
+  // and a swipe back to send them away again. Kept off anything that
+  // scrolls sideways of its own accord -- a wide table, a plot -- and
+  // off a selection being made, which is a drag of its own.
+  useEffect(() => {
+    if (!narrow) return
+    let from: { x: number; y: number; at: number; sideways: boolean } | null = null
+
+    const start = (e: TouchEvent) => {
+      if (e.touches.length !== 1) return
+      const touch = e.touches[0]
+      from = {
+        x: touch.clientX,
+        y: touch.clientY,
+        at: Date.now(),
+        sideways: scrollsSideways(e.target),
+      }
+    }
+
+    const end = (e: TouchEvent) => {
+      const start = from
+      from = null
+      if (!start || start.sideways) return
+      if (pending || open || offer) return
+      if (!window.getSelection()?.isCollapsed) return
+
+      const touch = e.changedTouches[0]
+      if (!touch) return
+      const across = touch.clientX - start.x
+      if (
+        Math.abs(touch.clientY - start.y) > SWIPE.wander ||
+        Date.now() - start.at > SWIPE.within
+      ) {
+        return
+      }
+      if (across <= -SWIPE.far) setListing(true)
+      else if (across >= SWIPE.far) setListing(false)
+    }
+
+    document.addEventListener('touchstart', start, { passive: true })
+    document.addEventListener('touchend', end, { passive: true })
+    return () => {
+      document.removeEventListener('touchstart', start)
+      document.removeEventListener('touchend', end)
+    }
+  }, [narrow, pending, open, offer])
+
+  /**
+   * Go to a marked passage in the reading.
+   *
+   * The point of the list is that the mark is still on the page it was
+   * taken from, so pressing one travels there rather than showing the
+   * quote again. On a phone the list is over the reading, so it gets
+   * out of the way first.
+   */
+  function travelTo(id: string) {
+    const root = holder.current
+    if (!root) return
+    const piece = root.querySelector<HTMLElement>(
+      `[data-mark="${typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(id) : id}"]`
+    )
+    if (!piece) return
+    if (narrow) setListing(false)
+    piece.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    // Arriving somewhere in the middle of a page of prose, the mark
+    // says which of the words on it was the one asked for.
+    piece.dataset.found = ''
+    setTimeout(() => delete piece.dataset.found, 1600)
+  }
+
+  /** Save a note against a mark from the list beside the reading. */
+  async function saveNoteFor(id: string, text: string) {
+    const res = await fetch('/api/highlights', {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ id, note: text }),
+    })
+    if (!res.ok) throw new Error('Could not save that note.')
+    // Kept in hand as well as re-read, so the list does not sit with
+    // the old note while the sheet comes back.
+    setKept(k => {
+      const held = k.find(m => m.id === id)
+      const from = held ?? marks.find(m => m.id === id)
+      if (!from) return k
+      const next = { ...from, note: text.trim() || null }
+      return held ? k.map(m => (m.id === id ? next : m)) : [...k, next]
+    })
+    onChanged?.()
+  }
+
+  /** Remove a mark from the list beside the reading. */
+  async function removeMark(id: string) {
+    const res = await fetch('/api/highlights', {
+      method: 'DELETE',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ id }),
+    })
+    if (!res.ok) throw new Error('Could not remove that.')
+    setGone(g => [...g, id])
+    if (open?.mark.id === id) setOpen(null)
+    onChanged?.()
+  }
 
   /** The control that opens the notes out to a page of their own. */
   const opener = (
@@ -522,7 +659,7 @@ export function Highlighter({
   // passage that could not be found.
   const passages = marks.filter(m => m.quote.trim()).length
   const notes = marks.length - passages
-  const unplaced = passages - drawn
+  const unplaced = passages - drawn.length
 
   return (
     <div className={styles.holder} ref={holder}>
@@ -535,6 +672,19 @@ export function Highlighter({
           to keep in step with the layout. */}
       {!pending && !open && !offer && (
         <div className={styles.desk}>
+          {marks.length > 0 && (
+            <button
+              type="button"
+              className={`${styles.deskNote} ${styles.deskQuiet}`}
+              onClick={() => setListing(l => !l)}
+              aria-label="What you have marked in this lesson"
+              aria-expanded={showList}
+              title="What you have marked in this lesson"
+            >
+              <MarksIcon />
+              <span className={styles.deskTally}>{marks.length}</span>
+            </button>
+          )}
           <button
             type="button"
             className={styles.deskNote}
@@ -547,8 +697,16 @@ export function Highlighter({
         </div>
       )}
 
+      {/* The tally under the reading is also the way into the list:
+          it is the sentence a reader looks at when they wonder what
+          they marked, so it may as well answer. */}
       {marks.length > 0 && (
-        <p className={styles.count}>
+        <button
+          type="button"
+          className={styles.count}
+          onClick={() => setListing(l => !l)}
+          aria-expanded={showList}
+        >
           {passages > 0 && `${passages} ${passages === 1 ? 'passage' : 'passages'} marked here`}
           {passages > 0 && notes > 0 && ' · '}
           {notes > 0 && `${notes} ${notes === 1 ? 'note' : 'notes'} on the lesson`}
@@ -556,7 +714,7 @@ export function Highlighter({
               drawn. Saying so beats a count that does not match what is
               visibly on the page. */}
           {unplaced > 0 && ` · ${unplaced} no longer in this text`}
-        </p>
+        </button>
       )}
 
       {/* A mark that was drawn and then could not be written. It is
@@ -568,6 +726,17 @@ export function Highlighter({
           {lost}
         </p>
       )}
+
+      {showList &&
+        float(
+          <MarkList
+            marks={inReadingOrder(marks, drawn)}
+            onTravel={travelTo}
+            onSave={saveNoteFor}
+            onRemove={removeMark}
+            onClose={() => setListing(false)}
+          />
+        )}
 
       {offer &&
         !pending &&
@@ -741,6 +910,25 @@ function remembered(): boolean {
   } catch {
     return false
   }
+}
+
+/**
+ * Whether the touch landed on something that scrolls sideways itself.
+ *
+ * A plot and a wide table are put in a scrolling frame rather than
+ * squashed (§8), and a swipe across one of those is the reader looking
+ * along it, not asking for anything.
+ */
+function scrollsSideways(target: EventTarget | null): boolean {
+  let node = target instanceof Element ? target : null
+  while (node) {
+    if (node.scrollWidth > node.clientWidth + 2) {
+      const overflow = getComputedStyle(node).overflowX
+      if (overflow === 'auto' || overflow === 'scroll') return true
+    }
+    node = node.parentElement
+  }
+  return false
 }
 
 /** Whether the sheet is being read on a phone-width screen. */

@@ -2,12 +2,34 @@
   position: relative;
 }
 
+/* The tally is a control -- it opens the list of what is marked -- but
+   it is still the quiet line under the reading, so it is given a button
+   with none of a button on it, and a rule only when asked about. */
 .count {
+  display: block;
+  font-family: var(--font-text);
   font-size: var(--step--2);
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  text-align: left;
   color: var(--ink-faint);
+  background: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: var(--space-1) 0;
   margin: var(--space-4) 0 0;
+  cursor: pointer;
+  transition: color var(--dur-feedback) var(--ease-settle);
+}
+
+.count:hover {
+  color: var(--ink-soft);
+  border-bottom-color: var(--plate-mustard);
+}
+
+.count:focus-visible {
+  outline: 2px solid var(--plate-terracotta);
+  outline-offset: 2px;
 }
 
 /* The note box sits against the passage it is about, so the sentence
@@ -135,10 +157,16 @@
   height: 0;
 }
 
+/* Two buttons, stacked up the edge from the corner: the marks first
+   because it is the one asked for most, the note under the thumb. */
+.desk {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
 .deskNote {
-  position: absolute;
-  right: 0;
-  bottom: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -154,6 +182,39 @@
 
 .deskNote:hover {
   background: var(--plate-terracotta);
+}
+
+/* The way to the list is the quieter of the two: it shows what is
+   already there, where the other one adds to it. */
+.deskQuiet {
+  position: relative;
+  color: var(--ink-soft);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  box-shadow: 0 4px 14px rgba(36, 29, 22, 0.18);
+}
+
+.deskQuiet:hover {
+  color: var(--paper);
+  background: var(--plate-green);
+  border-color: var(--plate-green);
+}
+
+/* How many, printed on the corner of it as a stamp rather than set
+   beside the glyph, so the button stays square. */
+.deskTally {
+  position: absolute;
+  top: -0.4rem;
+  right: -0.4rem;
+  min-width: 1.15rem;
+  padding: 0 0.2rem;
+  font-family: var(--font-text);
+  font-size: 0.625rem;
+  font-weight: 600;
+  line-height: 1.15rem;
+  text-align: center;
+  color: var(--paper);
+  background: var(--plate-mustard);
 }
 
 .deskNote:focus-visible {
@@ -325,6 +386,32 @@
 .holder :global(mark[data-mark]:focus-visible) {
   outline: 2px solid var(--plate-terracotta);
   outline-offset: 2px;
+}
+
+/* Arriving from the list, the passage says which of the words on the
+   page was the one asked for -- twice, and then it is an ordinary mark
+   again. A found passage is not a state, so it does not stay one. */
+.holder :global(mark[data-found]) {
+  animation: found 1.6s var(--ease-settle) both;
+}
+
+@keyframes found {
+  0%,
+  100% {
+    background: linear-gradient(
+      to bottom,
+      transparent 0 0.15em,
+      rgba(200, 135, 26, 0.26) 0.15em 100%
+    );
+  }
+  25%,
+  75% {
+    background: linear-gradient(
+      to bottom,
+      transparent 0 0.15em,
+      rgba(200, 135, 26, 0.62) 0.15em 100%
+    );
+  }
 }
 
 /* A mark carrying a note is underscored as well as washed, so the two

@@ -791,6 +791,44 @@ it is stated on the body because the reading is `main` and cannot narrow itself.
 The width is one token, so the column and the room made for it cannot drift
 apart.
 
+### The marks beside the reading
+
+The index to the page: everything marked in this lesson, down the side of it,
+in the order the lesson reads. It stands in the same column as a note opened
+out, at the same width and on the same ground.
+
+| Part | Treatment |
+| --- | --- |
+| Column | `inset: 0 0 0 auto` at `--notes-width`, full height, `1px solid var(--rule-strong)` on the left. It arrives on `--dur-state`; the head is fixed and the rows scroll under it. |
+| Head | `Marked here` in the label register, the count set beside it as a figure in the display face — a tally, not more label. |
+| Row | `--space-3` all round, parted by `1px solid var(--rule)`. |
+| The passage | A control set as what it is: the `2px` mustard left rule of a marked passage, in `--ink-soft`, going to `--ink` under the pointer. |
+| Remove | Set apart from the benign actions by a rule rather than a colour, as on the marked sheet. |
+| The way in | The tally under the reading, which is already the sentence a reader looks at when they wonder what they marked; and a quieter twin of the note button on the sheet's edge, stamped with how many. |
+
+**Rule — the order is the lesson's, not the reader's.** A list sorted by when each
+mark was kept is a list in the order someone wandered through the text, which is
+no order at all a week later. `paintMarks` says where each mark landed on the
+page, and that is what the list is sorted by. Anything not drawn — a note on the
+lesson, a passage whose words have been rewritten away — keeps the order it
+arrived in and follows.
+
+**Rule — one strip of the window, one thing standing in it.** A note opened out
+and the list want the same column. The panel takes it and the list yields until
+it closes, rather than the two drawing over each other.
+
+**Rule — a mark is on the page it was taken from, so pressing one travels
+there.** The list is an index, not a second copy: pressing a passage scrolls the
+lesson to it and the mark says which of the words on the page was the one asked
+for, twice, and then it is an ordinary mark again. On a phone the list is over
+the reading, so it puts itself away first.
+
+**Rule — a finger asks for it with a swipe, and the swipe stays out of the
+way.** Right to left over the reading opens it, left to right sends it back. It
+is ignored on anything that scrolls sideways of its own accord — a plot, a wide
+table — while a selection is being made, while a panel is open, and when the
+travel is more down the page than across it.
+
 ### The note editor
 
 A box you can bold things in, at every size the panel takes.
@@ -862,7 +900,7 @@ Four breakpoints, each with a stated reason:
 | --- | --- |
 | `60rem` | The spread collapses to one column; the margin unsticks and moves its rule to the top. |
 | `48rem` | Sheet body padding steps `--space-5` → `--space-4`. |
-| `40rem` | The stock row stops being a table row and becomes a stacked card; leader dots are dropped; the graph panel becomes a bottom sheet; the graph canvas inset grows to `7.5rem` for the wrapped control strip; loose stock goes single-column; the contents list goes single-column; every mark panel docks across the foot of the screen, and an opened-out note takes all but the top `12dvh` instead of standing beside the reading. |
+| `40rem` | The stock row stops being a table row and becomes a stacked card; leader dots are dropped; the graph panel becomes a bottom sheet; the graph canvas inset grows to `7.5rem` for the wrapped control strip; loose stock goes single-column; the contents list goes single-column; every mark panel docks across the foot of the screen; an opened-out note takes all but the top `12dvh` instead of standing beside the reading; and the marks list comes in off the right edge over the reading at `min(22rem, 86vw)`, leaving a strip of the lesson showing behind it. |
 
 **Rule — below 40rem a table row becomes a card, it does not shrink.** The
 three-column grid cannot survive 390px without wrapping titles into their own

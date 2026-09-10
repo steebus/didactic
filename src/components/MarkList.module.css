@@ -1,0 +1,237 @@
+/* The index to the page: what was taken out of the reading, down the
+   side of it. Same column, same width and the same ground as the notes
+   opened out (§8) -- one strip of the window, whatever is standing in
+   it. */
+.list {
+  position: fixed;
+  inset: 0 0 0 auto;
+  z-index: 5;
+  width: var(--notes-width);
+  max-width: 100vw;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border-left: 1px solid var(--rule-strong);
+  box-shadow: -6px 0 24px rgba(36, 29, 22, 0.16);
+  /* The list scrolls; the head it sits under does not. */
+  overflow: hidden;
+  animation: slideIn var(--dur-state) var(--ease-settle) both;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(calc(var(--motion-travel) * 1.5rem));
+    opacity: 0;
+  }
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex: none;
+  padding: var(--space-3) var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--rule);
+}
+
+.title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* The count, set as a figure rather than as more label. */
+.tally {
+  font-family: var(--font-display);
+  font-size: var(--step-0);
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+
+.close {
+  flex: none;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  font-size: var(--step--1);
+  line-height: 1;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.close:hover {
+  color: var(--ink);
+  border-color: var(--paper-edge);
+}
+
+.close:focus-visible {
+  outline: 2px solid var(--plate-terracotta);
+  outline-offset: 2px;
+}
+
+.marks {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mark {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--rule);
+}
+
+.mark:last-child {
+  border-bottom: none;
+}
+
+/* The passage is the way back into the reading, so it is a control and
+   reads like the quote it is: the mustard rule of a marked passage,
+   set in the ink of the page rather than a link colour. */
+.passage {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0 0 0 var(--space-3);
+  text-align: left;
+  font: inherit;
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink-soft);
+  background: none;
+  border: none;
+  border-left: 2px solid var(--plate-mustard);
+  cursor: pointer;
+  transition: color var(--dur-feedback) var(--ease-settle);
+}
+
+.passage:hover {
+  color: var(--ink);
+}
+
+.passage:focus-visible {
+  outline: 2px solid var(--plate-terracotta);
+  outline-offset: 2px;
+}
+
+/* What the mark is about, where there is no passage to quote. */
+.about {
+  margin: 0;
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.note {
+  font-size: var(--step--1);
+  line-height: 1.5;
+  margin: var(--space-2) 0 0;
+  color: var(--ink);
+}
+
+.editor {
+  margin-top: var(--space-2);
+}
+
+.waiting {
+  font-size: var(--step--2);
+  font-style: italic;
+  color: var(--ink-faint);
+  margin: var(--space-2) 0 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.keep {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--plate-green);
+  border: none;
+  padding: var(--space-2) var(--space-4);
+  min-height: 2.25rem;
+  cursor: pointer;
+}
+
+.keep:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.quiet {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: none;
+  border: none;
+  padding: var(--space-2) 0;
+  min-height: 2.25rem;
+  cursor: pointer;
+}
+
+.quiet:hover {
+  color: var(--ink);
+}
+
+/* Removing is set apart from the benign actions by a rule rather than a
+   colour, the way it is on the marked sheet. */
+.destructive {
+  margin-left: auto;
+  padding-left: var(--space-3);
+  border-left: 1px solid var(--rule);
+}
+
+.empty {
+  padding: var(--space-4) var(--space-3);
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink-faint);
+  margin: 0;
+}
+
+.problem {
+  font-size: var(--step--2);
+  color: var(--plate-terracotta);
+  margin: var(--space-2) 0 0;
+}
+
+/* On a phone there is no beside: the list comes in off the right edge
+   over the reading, leaving a strip of it showing so it is clear what
+   is underneath and what a swipe back will return to. */
+@media (max-width: 40rem) {
+  .list {
+    width: min(22rem, 86vw);
+    box-shadow: -8px 0 28px rgba(36, 29, 22, 0.28);
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+    }
+  }
+}
