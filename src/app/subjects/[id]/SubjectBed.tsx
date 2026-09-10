@@ -427,13 +427,20 @@ function TreeRow({
               <span className={styles.routeCount}>{route.total} lessons</span>
             )}
           </span>
-          <p className={styles.topicMeta}>
-            {topic.resources.length}{' '}
-            {topic.resources.length === 1 ? 'resource' : 'resources'}
-            {unread > 0 && ` · ${unread} unread`}
-            {topic.alsoIn.length > 0 &&
-              ` · also in ${topic.alsoIn.map(s => s.title).join(', ')}`}
-          </p>
+          {(topic.resources.length > 0 || topic.alsoIn.length > 0) && (
+            <p className={styles.topicMeta}>
+              {topic.resources.length > 0 && (
+                <>
+                  {topic.resources.length}{' '}
+                  {topic.resources.length === 1 ? 'resource' : 'resources'}
+                  {unread > 0 && ` · ${unread} unread`}
+                </>
+              )}
+              {topic.resources.length > 0 && topic.alsoIn.length > 0 && ' · '}
+              {topic.alsoIn.length > 0 &&
+                `also in ${topic.alsoIn.map(s => s.title).join(', ')}`}
+            </p>
+          )}
         </div>
 
         <div className={styles.topicFigures}>
