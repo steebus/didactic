@@ -12,6 +12,12 @@ and what a change to a route has to respect.
 | Mobile app | `Authorization: Bearer <supabase access token>` | `getOwner()` verifies with `auth.getUser(token)` on an anon client; `proxy.ts` passes bearer API requests through and answers 401 for a bad token |
 | Queue worker | `/api/internal/*` with its own shared key | unchanged |
 
+Row-level security (Phase 2.5) sits under all of this. The API's admin
+client bypasses it, so the routes behave as before; what it governs is the
+phone's own supabase-js client, which may read the owner's rows and
+subscribe to Realtime with the owner's token and gets nothing without it.
+Writes never go that way.
+
 Rules:
 
 - The owner id comes from the verified session, never the body.
@@ -68,6 +74,7 @@ the phone's query cache.
 | GET | `/api/lessons/[id]` | — | lesson with body | |
 | GET | `/api/highlights` | `q` | highlights, filtered when `q` is given | |
 | GET | `/api/books/search` | `q` | `BookMatch[]` from Open Library | Falls back to nothing silently. |
+| GET | `/api/settings` | — | nothing yet | **Planned (3).** Exists so the sheet has somewhere to grow. |
 
 ### Writing
 

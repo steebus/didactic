@@ -11,14 +11,18 @@ the web app, it says so.
                  ───────────────────           ──────────────────
   render         CSS modules, DOM, RSC         React Native, react-native-svg, Skia
                         │                              │
-  client         @didactic/api ◄───────────────────────┘
+  reading        @didactic/reader (React DOM) ◄────────┤  in a WebView, for the lesson body
+                        │                              │
+  client         @didactic/api ◄───────────────────────┘  writes and aggregated reads
+                        │                              │
+                        │              Supabase Realtime, RLS-scoped row reads ◄┘
                         │
   shared logic   @didactic/core, @didactic/tokens
                         │
   server         apps/web/src/lib (auth, supabase, llm, ingest, sowing, scoring writes)
                  apps/web/src/app/api/*  ◄──── both apps call these
                         │
-  backend        Supabase: Postgres, pgvector, Auth, Storage, pgmq, edge functions
+  backend        Supabase: Postgres (RLS on every table), pgvector, Auth, Storage, pgmq, edge functions
 ```
 
 Dependencies point down and never up. `core` and `tokens` import nothing
@@ -39,10 +43,12 @@ and native stop being the same thing:
 | Ability, freshness, viability, route progress, the outline order | The stock row, the outline's rules and ticks |
 | The state words: `STOCK_LABEL`, `ROUTE_LABEL`, stage names, the *about* rule | The condition bar's SVG element vs `react-native-svg` |
 | Hatch parameters, specimen path data, emblem silhouettes, graph encoding | The drawing that uses them |
-| Markdown block extraction (`parseBlocks`), sections, contents | HTML through DOMPurify on web; `marked.lexer` to `Text` runs on native |
+| Markdown block extraction (`parseBlocks`), sections, contents | — (the reader renders both) |
+| The reader: prose, marks, the four blocks, contents, the note editor (`@didactic/reader`, React DOM) | Mounted in the page on web; mounted in a WebView on native, with the sheet's band and foot native |
 | Copy: labour phrases, edition date format, empty-state sentences, confirmation wording | Where on the sheet it prints |
 | Design tokens as values | CSS custom properties on web; style objects on native |
 | The API client and what each call invalidates | Cookies on web, bearer on native; the router cache on web, TanStack Query on native |
+| — | Realtime subscriptions on native only, scoped by RLS to the owner's rows |
 
 Three rules keep the line honest:
 
@@ -53,7 +59,9 @@ Three rules keep the line honest:
    globals, `dompurify`, `jsdom` or a live `@supabase/*` client. Type
    imports are fine. An ESLint rule enforces it in the package.
 3. **A hook in a package is a peer of React, never a dependency.** D5 in
-   `PLAN.md`.
+   `PLAN.md`. `reader` is the one package that is React DOM through and
+   through, and it takes `react` and `react-dom` as peers for the same
+   reason.
 
 ## 3. Packages
 
@@ -128,6 +136,7 @@ packages/api/src/
   books.ts      search(q)
   refresher.ts  write(topicId)
   graph.ts      read()
+  settings.ts   (nothing yet; the sheet exists so it can grow)
   auth.ts       signIn, signOut, claim   (web only; the phone signs in against Supabase directly)
 ```
 
@@ -136,7 +145,30 @@ Every function returns `Promise<Result<T>>` where `Result` is what
 on an HTTP error, because the sentences in `http.ts` are the ones the user
 should see.
 
-## 4. Auth
+### `@didactic/reader`
+
+```
+packages/reader/src/
+  Prose.tsx, Highlighter.tsx, Contents.tsx, NoteEditor.tsx, NoteText.tsx
+  blocks/ Block, Chart, Check, Compare, Steps
+  markdown.ts, richText.ts, paintMarks.ts
+  index.ts            what apps/web imports
+packages/reader/embed/
+  main.tsx            mounts the reader on document.body and speaks the message protocol
+  protocol.ts         the message types, exported for the native side
+  fonts/              Fraunces variable and Archivo, inlined at build
+packages/reader/dist/reader.html   one file, built by Vite, copied into apps/mobile/assets
+```
+
+The message protocol, both ways, is the whole native surface of the
+reader: in, `load { body, marks, allowed, topicId }`; out, `height`,
+`select { quote, prefix, rect }`, `mark { quote, prefix, note }`, `edit {
+id, note }`, `delete { id }`, `open { href }`. The native lesson sheet
+turns `mark`, `edit` and `delete` into `@didactic/api` calls and posts the
+resulting mark list back with another `load`. Nothing in the reader knows
+it is on a phone except the class the embed sets on `<html>`.
+
+## 4. Auth, and who may read what
 
 Two ways of proving who is asking, one account either way.
 
@@ -153,6 +185,15 @@ On the server, `getOwner()` sees the header and verifies the token with
 request through to the handler rather than redirecting it, and answers 401
 itself when the token is bad. There is no claim flow on the phone: the
 catalogue is claimed once, from the web.
+
+**Row-level security (Phase 2.5).** Every table has RLS on with an owner
+policy; the join tables reach their owner through the parent row. The web
+and the edge functions use the service role and are unaffected. The phone's
+supabase-js client, carrying the owner's token, may therefore read rows
+directly and subscribe to Realtime, and gets nothing without the token.
+Writes still go through the API without exception: a write has side
+effects the server owns. Which reads go direct is a per-row decision in
+`PARITY.md`; the default is the API.
 
 The owner id every write is stamped with still comes from the verified
 session, never from the request body (`PRODUCT.md`, *The account is also
@@ -174,6 +215,12 @@ the phone's mutation wrapper invalidates those keys. One table of
 invalidations, read by both caches, so a write cannot be forgotten on one
 platform and remembered on the other.
 
+**Realtime (Phase 5).** A change on `resources` or `topics` arriving over
+Realtime invalidates the same tags a write to them would, so an ingestion
+finishing on the server refreshes the tally and the inbox on the phone
+without a poll. Realtime is a signal to refetch, never a second source of
+truth.
+
 ## 6. Routes are addresses, and the same on both
 
 | Address | Web | Mobile (Expo Router) |
@@ -187,12 +234,13 @@ platform and remembered on the other.
 | `/subjects/new` | `app/subjects/new/page.tsx` | `app/subjects/new.tsx` |
 | `/subjects/[id]` | `app/subjects/[id]/page.tsx` | `app/subjects/[id]/index.tsx` |
 | `/subjects/[id]/reading` | `app/subjects/[id]/reading/page.tsx` | `app/subjects/[id]/reading.tsx` |
+| `/settings` | `app/settings/page.tsx` | `app/(sheets)/settings.tsx` |
 | `/topics/[id]` | `app/topics/[id]/page.tsx` | `app/topics/[id].tsx` |
 | `/curriculum/[id]` | `app/curriculum/[id]/page.tsx` | `app/curriculum/[id].tsx` |
 | `/lesson/[id]` | `app/lesson/[id]/page.tsx` | `app/lesson/[id].tsx` |
 | `/refresher/[topicId]` | `app/refresher/[topicId]/page.tsx` | `app/refresher/[topicId].tsx` |
 
-The `(sheets)` group is the five sheets the foot bar carries; everything
+The `(sheets)` group is the six sheets the foot bar carries; everything
 else is pushed on top of them with the band's back link as the way back.
 A universal link to the web origin opens the same address in the app.
 
@@ -214,6 +262,7 @@ definition; the table is the list of what is allowed to be.
 | Layer | Runner | Where |
 | --- | --- | --- |
 | `core`, `tokens`, `api` | Vitest | `packages/*/tests` |
+| `reader` | Vitest with jsdom (the highlighter and mark-paint tests as today) | `packages/reader/tests` |
 | Web unit and integration | Vitest (as today, with the local Postgres) | `apps/web/tests` |
 | Web surface | Screenshots in the PR, `.impeccable` critique | `apps/web/.impeccable` |
 | Mobile components | `jest-expo` + React Native Testing Library, for the prose renderer and the bar | `apps/mobile/__tests__` |
@@ -227,7 +276,8 @@ Turborepo runs the rest.
 - **Web:** Vercel, Root Directory `apps/web`, builds from `main` as today.
 - **Edge functions:** unchanged workflow, unchanged path filter.
 - **Mobile JS:** `eas update` on push to `main` touching `apps/mobile/**`
-  or `packages/**`.
+  or `packages/**`; the reader bundle is rebuilt first, so a reader change
+  reaches phones the same way.
 - **Mobile native:** `eas build` on a `mobile-v*` tag; submitted by hand.
 
 A change that touches `packages/api` or a route's response shape ships to

@@ -6,9 +6,14 @@ The Expo app. It is the same catalogue on a phone, not a companion.
   (`docs/monorepo/ARCHITECTURE.md` §6). A new screen without a web
   counterpart needs an `n/a` row in `docs/monorepo/PARITY.md` with a
   reason.
-- All data comes through `@didactic/api` over `EXPO_PUBLIC_API_URL` with a
-  bearer token. Never a direct table read from Supabase, never the service
-  role key, never an Anthropic key. Supabase-js is used here for auth only.
+- Every write goes through `@didactic/api` over `EXPO_PUBLIC_API_URL`
+  with a bearer token, and so does every aggregated read. Supabase-js is
+  for auth, Realtime, and the direct row reads `PARITY.md` lists with a
+  reason; never a write, never the service role key, never an Anthropic
+  key.
+- The lesson body is `@didactic/reader` in a WebView, speaking the message
+  protocol in `packages/reader/embed/protocol.ts`. Do not rewrite prose,
+  marks, blocks or the note editor natively.
 - Query keys are the tags in `ENDPOINTS`; a mutation invalidates the tags
   the endpoint declares, nothing invented.
 - Figures, words and geometry come from `@didactic/core`; colours, scale

@@ -25,7 +25,7 @@ independent pixels; `@didactic/tokens` carries both.
 | `step-3` | 2.5 | 40 |
 | `step-4` | clamp(3rem, 6vw, 5rem) | 48 (the clamp's floor; 6vw of a phone is under it) |
 | `space-1` … `space-6` | 0.25 · 0.5 · 0.875 · 1.375 · 2.25 · 3.5 | 4 · 8 · 14 · 22 · 36 · 56 |
-| `foot-bar` | 3.25 + inset | 52 + `insets.bottom` |
+| `foot-bar` | 3.75 + inset | 60 + `insets.bottom` |
 
 Tracking is stated in `em` on the web; on the phone `letterSpacing` is in
 px, so multiply by the size: `0.1em` at 11px is `1.1`; `0.14em` at 11px
@@ -47,12 +47,17 @@ web and px on the phone: `0.95` at 40px is `38`.
 
 Fraunces and Archivo load through `expo-font` from `@expo-google-fonts/*`.
 
-**The ceiling.** React Native cannot set `font-variation-settings`, so the
-`SOFT`, `WONK` and `opsz` axes that carry the web's role system are not
-available. Google Fonts ships Fraunces as static instances at three
-optical sizes, and those are what the phone uses. `SOFT` and `WONK` are
-lost; this is recorded in `PARITY.md` and is not to be faked by tracking
-or weight.
+**The ceiling, and where it lifts.** React Native cannot set
+`font-variation-settings`, so on the native sheets the `SOFT`, `WONK` and
+`opsz` axes that carry the web's role system are not available. Google
+Fonts ships Fraunces as static instances at three optical sizes, and those
+are what the native sheets use. `SOFT` and `WONK` are lost there; this is
+recorded in `PARITY.md` and is not to be faked by tracking or weight.
+Inside the reader (§8) the lesson body is a browser engine with the
+variable font inlined, so prose headings keep every axis the web gives
+them. The band above the reader is native and does not; the two sit a
+rule apart and are set from the same family, which is as close as the
+platform allows.
 
 | Web role | Web setting | Phone face | Size |
 | --- | --- | --- | --- |
@@ -138,16 +143,33 @@ would restore it lives in `lib/theme.ts` as a comment, as it does in
 
 ## §8 Reading and marking
 
+The whole section is followed by not re-implementing it. The lesson body,
+the refresher body and the note reader on the marked sheet are
+`@didactic/reader`, the web's own `Prose`, `Highlighter`, `paintMarks`,
+blocks, `Contents` and `NoteEditor`, bundled into one HTML file and loaded
+into a `react-native-webview`. Every rule in §8 is therefore true on the
+phone because it is the same code, including the touch rules (*nothing
+opens on its own under a finger*, the offer floated beside the selection,
+the docked panel), which were written for a phone browser in the first
+place.
+
+What the native side owns around it:
+
 | Part | On the phone |
 | --- | --- |
-| Contents band | Native views in one column; each entry a `Pressable` that scrolls the list to the heading's `y` (measured with `onLayout`). |
-| Lesson blocks | `parseBlocks` from `core` first; chart in `react-native-svg` with the plate palette in order and the figures table under a disclosure; check, compare and steps as views. A payload too broken to draw returns `null`. |
-| Prose | `marked.lexer` on the block-stripped markdown, rendered by `components/prose/` to nested `Text`. No HTML is ever produced on the phone, so no sanitiser is needed; the renderer draws only what the `PROSE_TAGS` list allows and ignores the rest. Links open in `expo-web-browser`. |
-| Marks drawn onto prose | The quote is found in the plain text of each block (the same whitespace-collapsed match as `paintMarks.ts`, extracted to `core`); the `Text` run is split and the piece washed at `rgba(200,135,26,0.26)` with a `2` mustard underline when it carries a note. A mark that cannot be found is not drawn, and the count says so. |
-| Making a mark | Long-press a paragraph: it lifts, and an offer prints beneath it in the label register on green. First release: paragraph or sentence selection only (D9). |
-| The panel | A bottom sheet, always docked, above the foot bar; opened out it takes all but the top 12%. |
-| The note editor | A native `TextInput` writing markdown, with B, I and list controls that insert markdown rather than driving rich text; the box shows the raw markdown. This is a departure from *the box shows the note as it will read*, recorded in `PARITY.md` as `partial`. |
-| The galley | Same three shapes as views. |
+| The band and the filed-under line | Native `Masthead`, fixed above the reader as a header. |
+| Scroll | The reader's. The band does not scroll with the prose; it is the sheet's head, held. |
+| The foot | The reader's view ends at the foot bar; *complete this lesson at a depth* is a native control in a strip above the bar, so it is reachable without scrolling to the end. |
+| Marks in and out | The message protocol in `packages/reader/embed/protocol.ts`; saving through `@didactic/api`; the reader is sent the new mark list after every save. |
+| The note editor's keyboard | `KeyboardAvoidingView` around the WebView; the docked panel inside the reader rises with it. |
+| Links out | The reader posts `open { href }`; the native side opens `expo-web-browser`. |
+| Fonts | Fraunces variable and Archivo inlined in the bundle as data URIs, so the reader is never waiting on a network for the face it is set in. |
+| The tooth | The reader's own CSS, as on the web. |
+| The galley | Native, in the prose shape, shown until the reader posts its first `height`. |
+
+**Rule — the reader is one implementation.** A fix to marks, blocks or
+the note editor is made in `packages/reader` and reaches both platforms.
+Nothing in `apps/mobile` draws prose.
 
 ## §9 Browser surfaces
 

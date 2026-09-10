@@ -27,14 +27,17 @@ start until the layers under it exist.
 5. **`packages/api`.** The typed function and its `ENDPOINTS` entry with
    `invalidates`. The web's client components and the phone both call
    this; neither calls `fetch` on a path directly.
-6. **The web surface.** Server page reading through the `get…` function,
+6. **The reader**, if the change is to prose, marks, blocks or notes:
+   `packages/reader`, once, and both sheets have it. Rebuild the embed
+   bundle; the phone picks it up through EAS Update.
+7. **The web surface.** Server page reading through the `get…` function,
    or a client component through `@didactic/api`. CSS module following
    `DESIGN.md`. If `DESIGN.md` gains or changes a rule, amend it in the
    same PR.
-7. **The mobile surface.** The screen at the same address under
+8. **The mobile surface.** The screen at the same address under
    `apps/mobile/app/`, built to `guides/styling-on-mobile.md`, drawing
    from the same `core` functions. Query keys from the endpoint's tags.
-8. **`PARITY.md` again.** Move the rows to their true status in the same
+9. **`PARITY.md` again.** Move the rows to their true status in the same
    commit as the code.
 
 ## What a pull request carries
@@ -45,7 +48,8 @@ start until the layers under it exist.
 - [ ] Any new or changed route: additive; `revalidateTag` in the handler;
       the same tags in `ENDPOINTS`; a row in `guides/api-contract.md`.
 - [ ] No `fetch('/api/…')` in an app; every call goes through
-      `@didactic/api`.
+      `@didactic/api`. No write from the phone through supabase-js; a
+      direct read has its own `PARITY.md` row with a reason.
 - [ ] Nothing in `packages/` imports `next`, `react-native`, a DOM global,
       or a live Supabase client.
 - [ ] `DESIGN.md` amended if a rule changed; `.impeccable/design-tokens.json`

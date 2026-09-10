@@ -32,20 +32,39 @@ Vercel for web, EAS Build and EAS Update for mobile.
 Each is recorded with the alternative it beat, so the next person can
 reopen it with the reasons in hand rather than from scratch.
 
-### D1. The Next.js API is the backend for both apps
+### D1. The Next.js API is the backend for both apps, and row-level security goes on anyway
 
 Mobile calls the same `/api/*` routes the web's client components call,
 over HTTPS to the Vercel deployment, with a Supabase access token in an
 `Authorization: Bearer` header. Nothing on the phone holds the service
 role key, calls Anthropic, or writes to Postgres directly.
 
-*Rejected:* mobile reading Supabase directly with the anon key. Without
-row-level security the anon key in a shipped binary is a public read of the
-whole catalogue, and turning RLS on is the tenancy work `PRODUCT.md` puts out
-of scope. It would also mean running the `readHomeData` aggregation on the
-phone, which is a second copy of the map's reading. The API already
-expresses every write; it needs a handful of read endpoints added and a
-second way of proving who is asking. See `guides/api-contract.md`.
+Row-level security is turned on for every table in Phase 2, with the
+policy `highlights` already carries (`auth.uid() = user_id`, and an
+`exists` against the parent row for the join tables that have no
+`user_id` of their own). The web and the edge functions use the service
+role, which bypasses RLS, so nothing they do changes. What it buys:
+
+- The anon key in the phone's binary reads nothing without the owner's
+  token, and only the owner's rows with it. The hole D1 was written
+  around is closed rather than avoided.
+- The phone can subscribe to Supabase Realtime on `resources` and
+  `topics`, so the inbox tally and *filed* after an ingestion arrive
+  without polling. Realtime respects RLS.
+- A plain row read can go direct where measured latency justifies it,
+  recorded per row in `PARITY.md`.
+
+What it does not change: every **write** still goes through the API,
+because a write here has side effects (an exposure, a recompute, a cache
+tag, a queue message) that live in server code; and the aggregated reads
+(`readHomeData`, the outline, the topic area) stay in the API until they
+are moved into SQL, because a second copy of the map's reading on the
+phone is a second place for it to be wrong.
+
+*Rejected:* the phone as a direct Supabase client for everything. Without
+the server it cannot sow, ingest, score or draft, so it would be a hybrid
+either way; better to make the API the default and direct reads the
+measured exception than the reverse.
 
 ### D2. Logic, types, tokens, copy and geometry are shared; rendered components are not
 
@@ -86,13 +105,20 @@ candidate, `useLabour`) declares `react` as a peer dependency so each app
 supplies its own copy. Two Reacts in one bundle is the classic monorepo
 failure on native and it is avoided by construction.
 
-### D6. The bottom bar carries five sheets; Sow and Close stay in the band
+### D6. The foot bar carries the five sheets and a settings cell, with glyphs; Sow stays in the band
 
-The five the screenshot shows on its first row: Stock list, The bed,
-Library, Marked, Inbox. Sow is a form you go to on purpose and Close is the
-one navigation that leaves; both print in the masthead's running head beside
-the back link, on both platforms. Five is the ceiling a foot bar can carry at
-390px in this label register. See `guides/bottom-nav.md`.
+Six cells: Stock list, The bed, Library, Marked, Inbox, Settings. Each is
+a glyph over a label in the label register. Close lives inside Settings,
+which is a sheet that can grow (it holds Close alone to begin with). Sow
+is a form you go to on purpose and prints in the masthead's running head
+as an action link with the mustard underline, beside the back link.
+
+The world has no icon set, so the glyphs are drawn in its own idiom:
+single-ink silhouettes of grower's objects, reversed in paper on the green
+band, reading at 24px, no strokes or interior detail, shared as path data
+in `@didactic/core` and drawn by `<svg>` on the web and `react-native-svg`
+on the phone. The label stays under every glyph: a glyph alone is a
+category icon, and the word is the carrier. See `guides/bottom-nav.md`.
 
 ### D7. Expo Router mirrors the web's routes
 
@@ -112,14 +138,38 @@ ability, fill faded by freshness, label side, dormant label ink) move to
 `/graph` was considered for Phase 5 and rejected: it needs the session
 cookie handed to a web view, which is a second auth path for a stopgap.
 
-### D9. Marks on the phone start with paragraph selection
+### D9. The lesson body on the phone is the web's own reader, in a WebView
 
-The web draws a kept passage back onto the prose by walking DOM text nodes
-and lets any range be selected. React Native has no cross-platform selection
-range event. Phase 5 ships existing marks drawn onto native `Text`, a note on
-the lesson (no passage), and a long-press on a paragraph that offers the
-paragraph or a sentence of it as the passage. Arbitrary ranges are Phase 6
-and are recorded as such in `PARITY.md` rather than approximated silently.
+The marking machinery is DOM code by nature: `Highlighter.tsx` measures a
+`Selection`, `paintMarks.ts` walks text nodes, `NoteEditor.tsx` drives
+`execCommand`, and `markdown.ts` needs a DOM for DOMPurify. React Native
+has none of that, and no cross-platform selection-range event on `Text`.
+Rewriting it natively would mean a second, weaker implementation of the
+one surface `DESIGN.md` §8 spends most of its words on.
+
+So the prose is not rewritten. `packages/reader` is a React DOM bundle of
+`Prose`, `Highlighter`, `paintMarks`, the four blocks, `NoteEditor`,
+`Contents`, `markdown` and `richText`, built by Vite into one HTML file
+with the fonts inlined, shipped as an asset in the app and loaded into a
+`react-native-webview`. The native sheet posts the lesson body, its marks
+and the topic in; the reader posts selections, new marks, edits and
+deletions out; the native side saves through `@didactic/api`. `apps/web`
+imports the same package for its lesson, refresher and marked sheets, so
+the reader is one implementation on both platforms rather than a copy.
+
+This gives the phone every mark the web can make, across any elements,
+from Phase 5, with the touch behaviour §8 already designed for a phone
+browser. Two bonuses: Fraunces' variable axes work inside the reader,
+because it is a browser engine; and the note editor comes with it.
+
+The costs are the WebView's: the reader owns its own scroll, so the
+native band sits above it as a header rather than scrolling with it; the
+soft keyboard has to be handled for the note editor inside the view; and
+the bundle has to be rebuilt when the reader changes (a package build
+step, the one exception to D4). If the WebView proves poor on a device,
+the fallback is `react-native-selectable-text` per paragraph, which gives
+ranges within one element and not across them; that would be a `partial`
+row, and it is the fallback, not the plan.
 
 ### D10. Additive API changes only, because phones run old code
 
@@ -216,25 +266,29 @@ deploy from `main` is green before starting Phase 2.
 - [ ] **2.2 `packages/core`.** Move, with their tests: `types.ts`, `config.ts`, `tags.ts`, `scoring.ts` (split: `computeAbility`, `computeFreshness`, `subjectAggregate`, `viabilityFigure` move; `recomputeAbility` and `recomputeAbilities` take a Supabase client and stay in `apps/web`), `progress.ts`, `outline.ts`, `sections.ts`, `blocks.ts`, `curriculum.ts` (the same split: `viewLessons`, `tierLessons`, `curriculumProgress`, `findPrereqCycle`, `linearPrereqs` move; `completeLesson`, `uncompleteLesson` stay), `http.ts`, `markAnchor.ts`, `books.ts` (`normaliseBooks`, `bookNote` move; the fetch stays), the `buildTopicTree` and `readVerdict` halves of `subject.ts`, and the interfaces of `home.ts`, `topic.ts`, `library.ts`, `pending.ts`, `subject.ts`. New in `core`: `stock.ts` (`stockState`, `STOCK_LABEL`, the hatch table from `StockBar.tsx`), `specimens.ts` (the path data and stage names from `Emblem.tsx` and `RootsSpecimen.tsx`, plus `slugify`), `graph.ts` (node size, fade, label ink and label-side rules from `GraphCanvas.tsx`), `copy.ts` (`LABOURS`, `DRAWINGS`, the edition date format, empty-state sentences that both apps print). Each web component then imports its geometry and words from `core` and keeps its rendering. Nothing in `core` may import `next`, `react`, `dompurify`, `jsdom` or `@supabase/*` except as `import type`; an ESLint `no-restricted-imports` rule in the package enforces it.
 - [ ] **2.3 Read endpoints for the sheets the server renders.** Add `GET /api/home` returning `HomeData`, `GET /api/subjects/[id]/area` returning `SubjectArea`, `GET /api/subjects/[id]/sowing` returning `Sowing`, `GET /api/topics/[id]/area` returning `TopicArea` (the existing `GET /api/topics/[id]` stays as it is), `GET /api/library` returning `LibraryRow[]`, `GET /api/inbox` returning `{ pending: PendingTopic[], queued: Resource[] }`, `GET /api/graph` returning what `graph/page.tsx` assembles. Each calls the same `get…` function the page calls, so the cache and its tags are shared with the page. These are thin: a handler, an owner check, a `NextResponse.json`.
 - [ ] **2.4 Bearer auth in the gate.** `getOwner()` in `apps/web/src/lib/auth.ts`: when the request carries `Authorization: Bearer <jwt>`, verify it with `createClient(url, anonKey).auth.getUser(jwt)` instead of the cookie client; `proxy.ts` does the same for API paths so a bearer request is neither redirected nor refreshed. The web keeps cookies. Add `tests/auth-bearer.test.ts`: a valid token passes, an expired one answers 401, a token with no header falls through to the cookie path. Document both modes in `guides/api-contract.md`.
-- [ ] **2.5 `packages/api`.** One module per resource (`home.ts`, `subjects.ts`, `topics.ts`, `resources.ts`, `curricula.ts`, `lessons.ts`, `highlights.ts`, `inbox.ts`, `books.ts`, `refresher.ts`, `auth.ts`), each function typed with `core`'s interfaces, going through `readJson`. `createApi({ baseUrl, headers })` returns the bound set; the web passes `{ baseUrl: '' }` and the phone passes its origin and a header provider. Every function is registered in `ENDPOINTS` with `{ method, path, invalidates: Tag[] }`, read by the phone's query client to drop what a write moved (§ *Caching* in `ARCHITECTURE.md`).
-- [ ] **2.6 The web's client components use the client.** Replace the raw `fetch('/api/…')` calls in `GraphCanvas`, `PendingQueue`, `AddResource`, `InboxTally`, `Highlighter`, `SignOut`, `DraftCurriculum`, `subjects/new/page`, `ProofOfRoots`, `MarkedSheet`, `curriculum/[id]/page`, `lesson/[id]/page`, `refresher/[topicId]/page` with `@didactic/api`. Behaviour identical; the diff is mechanical and the gate is the existing tests plus a click through every sheet.
-- [ ] **2.7 Scripts and edge functions.** `scripts/*.ts` import from `@didactic/core`. Leave `supabase/functions` on their own copies of any maths for now and record the duplication in `PARITY.md` under *Backend*; a Deno import map pointing at `packages/core/src` is a follow-up, not a blocker.
-- [ ] **2.8 Agent files.** `docs/monorepo/agents/packages.CLAUDE.md` to `packages/CLAUDE.md`.
+- [ ] **2.5 Row-level security.** `supabase/migrations/024_row_level_security.sql`: `enable row level security` on every table under `public` that lacks it, an owner policy `for all using (auth.uid() = user_id) with check (auth.uid() = user_id)` on the ten tables that carry `user_id` (subjects, topics, edges, resources, exposures, conversations, curricula, lessons, subject_sowings; highlights already has one), and for the join tables (`topic_subjects`, `resource_topics`, `resource_subjects`, `lesson_prereqs`, `lesson_resources`, `curriculum_sources`, `messages`, `ingestion_jobs`) a policy through `exists (select 1 from <parent> where id = <fk> and user_id = auth.uid())`. A storage policy on the bucket `017_sowings.sql` creates, owner-only. `tests/rls.integration.test.ts`: an anon client with no session reads zero rows from every table; with the owner's JWT it reads the owner's rows; the admin client is unaffected. Publish `resources` and `topics` to the `supabase_realtime` publication.
+- [ ] **2.6 `packages/api`.**- [ ] **2.7 The web's client components use the client.** Replace the raw `fetch('/api/…')` calls in `GraphCanvas`, `PendingQueue`, `AddResource`, `InboxTally`, `Highlighter`, `SignOut`, `DraftCurriculum`, `subjects/new/page`, `ProofOfRoots`, `MarkedSheet`, `curriculum/[id]/page`, `lesson/[id]/page`, `refresher/[topicId]/page` with `@didactic/api`. Behaviour identical; the diff is mechanical and the gate is the existing tests plus a click through every sheet.
+- [ ] **2.8 Scripts and edge functions.** `scripts/*.ts` import from `@didactic/core`. Leave `supabase/functions` on their own copies of any maths for now and record the duplication in `PARITY.md` under *Backend*; a Deno import map pointing at `packages/core/src` is a follow-up, not a blocker.
+- [ ] **2.9 Agent files.** `docs/monorepo/agents/packages.CLAUDE.md` to `packages/CLAUDE.md`.
 
 **Gate:** every test that moved passes in its new home; `turbo run test`
 runs `core`, `tokens`, `api` and `web`; `curl -H "Authorization: Bearer …"
 https://<deploy>/api/home` returns the stock list and the same URL without
-the header returns 401; the web deploy is green and reads identically.
+the header returns 401; a `select` on `topics` with the anon key and no
+session returns nothing; the web deploy is green and reads identically.
 
-**Rollback:** each task is its own commit and reverts on its own; 2.4 is
-the one with a security surface and gets its own review.
+**Rollback:** each task is its own commit and reverts on its own; 2.4 and
+2.5 are the ones with a security surface and get their own review; 2.5 is
+one migration and reverts with a down migration that drops the policies.
 
 ### Phase 3. The foot bar on the web
 
 **Model:** opus. This is the design change, and it touches `DESIGN.md`.
 
-- [ ] **3.1 `FootBar` component** at `apps/web/src/components/FootBar.tsx` + `.module.css`, a client component reading `usePathname()`, rendered from `layout.tsx` outside `main` (the `sheetIn` transform on `main` would otherwise become the containing block for a fixed bar, §8 of `DESIGN.md`). Hidden on `/enter`. Built to `guides/bottom-nav.md`.
-- [ ] **3.2 `SheetNav` slims to the running head:** back link on the left, `Sow` and `Close` on the right, the five sheet links removed. The `current` prop moves to `FootBar`. The inbox tally moves with the inbox link.
+- [ ] **3.1 The six glyphs.** Drawn as 24px silhouettes in the specimen idiom (`guides/bottom-nav.md` § *Glyphs*), path data in `@didactic/core`'s `specimens.ts` beside the emblems, reviewed at 24px on the green band before anything is wired to them. Screenshots of the six at 24 and 48 in the PR.
+- [ ] **3.2 `FootBar` component** at `apps/web/src/components/FootBar.tsx` + `.module.css`, a client component reading `usePathname()`, rendered from `layout.tsx` outside `main` (the `sheetIn` transform on `main` would otherwise become the containing block for a fixed bar, §8 of `DESIGN.md`). Hidden on `/enter`. Six cells: the five sheets and Settings. Built to `guides/bottom-nav.md`.
+- [ ] **3.2a The settings sheet** at `/settings`: a sheet like any other, holding Close for now, laid out so more can be added under ruled sections. `SignOut` moves here from the band.
+- [ ] **3.2b `SheetNav` slims to the running head:** back link on the left, `Sow` on the right, the five sheet links and Close removed. The `current` prop moves to `FootBar`. The inbox tally moves with the inbox cell.
 - [ ] **3.3 Room at the foot.** `--foot-bar: calc(3.25rem + env(safe-area-inset-bottom))` in `globals.css`; `body` gets `padding-bottom: var(--foot-bar)`; every docked panel, the offer, and the graph's bottom sheet stand on `bottom: var(--foot-bar)` rather than `0`; the graph canvas inset accounts for it.
 - [ ] **3.4 Keyboard and reader.** The bar is a `<nav aria-label="Sheets">`; the current sheet is a `<span aria-current="page">`; tab order runs after the sheet's content. Focus ring uses the band's `--focus-ink`.
 - [ ] **3.5 `DESIGN.md`.** Replace *The running head* in §4 with the text in `guides/bottom-nav.md` § *DESIGN.md amendment*; add the `--foot-bar` token to §3; amend §8's docked-panel rows and §10's `40rem` row. Update `.impeccable/design-tokens.json`.
@@ -253,7 +307,7 @@ want to see before it is live" applies to).
 - [ ] **4.2 Environment.** `EXPO_PUBLIC_SUPABASE_URL`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `EXPO_PUBLIC_API_URL` (the Vercel origin, or `http://<lan-ip>:3000` in development). `.env.example` at `apps/mobile`. No service role key, no Anthropic key, ever, in this app.
 - [ ] **4.3 Session.** `lib/supabase.ts`: `createClient` with a storage adapter backed by SecureStore for the key and AsyncStorage for the encrypted session (the Supabase-documented pattern, because SecureStore caps an item at 2 KB), `autoRefreshToken` tied to `AppState`. `lib/api.ts`: `createApi` from `@didactic/api` with a header provider that reads the current access token. `app/enter.tsx`: the entry sheet, email and password, `signInWithPassword`; no claim flow on the phone. An unauthenticated app opens on `enter`; a 401 from any call returns to it.
 - [ ] **4.4 Fonts and tokens.** `lib/theme.ts` from `@didactic/tokens`, with the type roles mapped to static Fraunces cuts per `guides/styling-on-mobile.md`. Fonts loaded before the first sheet; the splash holds until they are.
-- [ ] **4.5 The foot bar and the band.** `app/(sheets)/_layout.tsx` as an Expo Router `Tabs` with a custom tab bar built to `guides/bottom-nav.md`; five tabs: `index` (stock), `graph`, `library`, `marked`, `inbox`. `components/Masthead.tsx`: the plate band with the running head (back, Sow, Close), the filed-under line, the title, the 5 pt mustard rule. `components/Sheet.tsx`: the paper ground with the tooth, at full width (a phone has no press bed to show around a sheet).
+- [ ] **4.5 The foot bar and the band.** `app/(sheets)/_layout.tsx` as an Expo Router `Tabs` with a custom tab bar built to `guides/bottom-nav.md`; six tabs: `index` (stock), `graph`, `library`, `marked`, `inbox`, `settings`, each a glyph from `core/specimens` over its label. `components/Masthead.tsx`: the plate band with the running head (back, Sow), the filed-under line, the title, the 5 pt mustard rule. `components/Sheet.tsx`: the paper ground with the tooth, at full width (a phone has no press bed to show around a sheet).
 - [ ] **4.6 The stock list, read-only.** `app/(sheets)/index.tsx` printing `HomeData` from `GET /api/home`: the masthead with edition line, the stock rows with `Emblem` and `StockBar` drawn from `core`'s geometry through `react-native-svg`, the margin's blocks stacked beneath (the phone is always below `60rem`). Pull-to-refresh invalidates the `subjects` tag.
 - [ ] **4.7 Deep links.** `scheme: "didactic"` in `app.json`; associated domains / intent filters for the web origin so `https://<web>/topics/<id>` opens the topic on the phone when installed. Route names match the web's paths exactly (D7).
 - [ ] **4.8 Build.** `eas.json` with `development`, `preview`, `production` profiles; a development build installed on one iOS device and one Android device. `.github/workflows/mobile.yml`: `eas update --branch production` on push to `main` when `apps/mobile/**` or `packages/**` changed; `eas build` on a `mobile-v*` tag.
@@ -261,8 +315,8 @@ want to see before it is live" applies to).
 
 **Gate:** on both devices: opens on the entry sheet, signs in, prints the
 stock list in the right inks and faces, the tally shows on the inbox tab,
-a deep link to a topic lands on a (placeholder) topic sheet, `Close`
-returns to the entry sheet. `PARITY.md` rows for *Entry*, *Stock list*,
+a deep link to a topic lands on a (placeholder) topic sheet, Settings
+opens and its `Close` returns to the entry sheet. `PARITY.md` rows for *Entry*, *Stock list*,
 *Foot bar* and *Session* read `built` for mobile.
 
 ### Phase 5. The sheets, in the order the phone is used
@@ -277,7 +331,8 @@ inbox, mark something consumed, glance at the bed. That is the order.
 - [ ] **5.3 Topic.** `app/topics/[id].tsx`: the band in the subject's own ink, viability figure (with the *about* rule), condition bar, the material list with *mark consumed* at a stated depth (`PATCH /api/resources/[id]`), neighbours, curricula cards with route progress, the marks filed against it, `AddResource` compact.
 - [ ] **5.4 Subject bed and the reading.** `app/subjects/[id].tsx`: the fixed outline from `buildTopicTree` + `orderSubjectOutline`, the route chip, grub out, add topic, relate. `app/subjects/[id]/reading.tsx`: the two `RootsSpecimen` plates and the verdict.
 - [ ] **5.5 Library and Marked.** Search, the duplicate offer and merge on the library; search and the note reader on marked.
-- [ ] **5.6 Curriculum and lesson.** `app/curriculum/[id].tsx`: lessons tiered and availability derived by `viewLessons`. `app/lesson/[id].tsx`: markdown through `marked.lexer` after `parseBlocks`, rendered to native `Text` runs by a renderer in `apps/mobile/components/prose/`; the four blocks through `react-native-svg` (chart) and native views; contents band from `sections`; existing marks drawn as washed runs; *A note on this lesson*; long-press a paragraph to mark it (D9); complete the lesson at a depth.
+- [ ] **5.6 `packages/reader`.** Move `Prose`, `Highlighter`, `paintMarks`, `Contents`, `NoteEditor`, `NoteText`, the four blocks and `markdown`/`richText` into `packages/reader` (React DOM; `react` and `react-dom` as peers). `apps/web` imports them from there and its lesson, refresher and marked sheets do not change. Add `packages/reader/embed/`: an entry that mounts the reader on `document.body`, listens for `{ type: 'load', body, marks, allowed }` messages, and posts `{ type: 'select' | 'mark' | 'edit' | 'delete' | 'height' }` messages back; Vite builds it to one `reader.html` with Fraunces (variable) and Archivo inlined as data URIs. This is the one package with a build step; `turbo` runs it before the mobile app.
+- [ ] **5.6a Curriculum and lesson.** `app/curriculum/[id].tsx`: lessons tiered and availability derived by `viewLessons`. `app/lesson/[id].tsx`: native band and contents band above a `react-native-webview` loading `reader.html` from the app's assets with the lesson body posted in; the reader owns the scroll below the band; marks arrive through messages and are saved through `@didactic/api`; the keyboard is handled with `KeyboardAvoidingView` around the view for the note editor; complete the lesson at a depth from the native foot of the sheet. Every mark the web can make, the phone can make, including across elements.
 - [ ] **5.7 Refresher and Sow.** `app/refresher/[topicId].tsx`. `app/subjects/new.tsx`: the whole sowing sheet including the roots gauge (a native slider driving the shared specimen, with the stem drawn on through `strokeDashoffset` under Reanimated), qualifying questions answered while the rest is filled in, proof of roots with `expo-document-picker` posting multipart to `/api/resources/upload`.
 - [ ] **5.8 Grub out / delete flows** with the same wording as the web's confirmations.
 
@@ -310,7 +365,9 @@ sits beside the web's at 390px in the PR, and the web sheet was not touched
 | Two copies of React in the native bundle | Phase 4 | D5: shared packages carry no React; `npm ls react` in CI for the mobile workspace must show one. |
 | Variable-font axes are not available natively | Phase 4.4 | Static Fraunces cuts by optical size; the mapping is in `guides/styling-on-mobile.md`, and SOFT/WONK are recorded as a ceiling in `PARITY.md`. |
 | The Vercel function timeout on sowing | Phase 5.7 | Unchanged from the web; `readJson`'s 504 sentence prints on the phone too. A move to a longer-lived worker is a backend change and out of scope here. |
-| Marks cannot be selected as ranges natively | Phase 5.6 | D9: paragraph selection first, recorded as partial. |
+| The reader WebView feels wrong on a device: scroll handoff, keyboard over the note editor, slow first paint | Phase 5.6 | D9: the reader is measured on two devices before the lesson sheet is called built; the per-paragraph native fallback is named and would be a `partial` row. |
+| A row-level policy blocks a read the web never tested, because the web uses the service role | Phase 2.5 | The RLS test reads every table with the owner's JWT; realtime and any direct read on the phone are covered by it. |
+| The glyphs read as an icon set rather than as this world | Phase 3.1 | Drawn and reviewed on the band at 24px before wiring, in the emblem idiom, with the word always beneath. |
 | Old phone builds against a changed API | Always | D10, plus EAS Update for JS-only changes. |
 | Integration tests need a local Postgres in CI | Phase 1.5 | Start `supabase` in CI or skip with a named reason; never delete the tests. |
 | Duplicate maths in the Deno edge functions | Phase 2.7 | Recorded in `PARITY.md` under Backend; a Deno import map is the follow-up. |
