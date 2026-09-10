@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { SignOut } from './SignOut'
+import { InboxTally } from './InboxTally'
 import styles from './SheetNav.module.css'
 
 /**
@@ -42,10 +43,15 @@ export function SheetNav({
           sheet.key === current ? (
             <span key={sheet.key} className={styles.here} aria-current="page">
               {sheet.label}
+              {/* Printed on the sheet you are already on as well: the
+                  figure is what is waiting, not an invitation to go
+                  somewhere. */}
+              {sheet.key === 'inbox' && <InboxTally />}
             </span>
           ) : (
             <Link key={sheet.key} href={sheet.href} className={styles.sheet}>
               {sheet.label}
+              {sheet.key === 'inbox' && <InboxTally />}
             </Link>
           )
         )}
