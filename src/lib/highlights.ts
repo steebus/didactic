@@ -12,13 +12,18 @@ export interface HighlightRow extends Highlight {
 const SELECT = '*, lesson:lessons(id, title), topic:topics(id, title)'
 
 /**
- * Mark a passage.
+ * Mark a passage, or write a note on the lesson.
  *
  * The quote is stored verbatim rather than as an offset into the
  * lesson body, because a body is regenerable and an offset into prose
  * that has been rewritten points at nothing. The highlight is the
  * record; finding it again in the text is a convenience that is
  * allowed to fail.
+ *
+ * An empty quote is a note on the lesson as a whole. It is a highlight
+ * like any other -- it belongs to the topic, it is searched with the
+ * rest and it counts the same -- except that there are no words to
+ * draw it back onto.
  *
  * A highlight writes a very light exposure. Marking a sentence is
  * evidence you were there and thought something, not evidence you read
@@ -70,7 +75,12 @@ export async function createHighlight(
     source_id: highlight.id,
     depth: 'marked',
     ability_delta: config.DEPTH_WEIGHTS.marked,
-    reason: `marked a passage in "${lesson.title}"`,
+    // A mark with no passage is a note on the lesson itself, and the
+    // ledger should say which of the two happened rather than claim a
+    // passage nobody selected.
+    reason: input.quote
+      ? `marked a passage in "${lesson.title}"`
+      : `wrote a note on "${lesson.title}"`,
   })
 
   const after = await recomputeAbility(db, lesson.topic_id)

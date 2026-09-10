@@ -1,0 +1,41 @@
+/* A note is a remark, not a sheet: the first line sits where a plain
+   paragraph would have, and nothing inside it opens up the spacing of
+   the row it is printed in. */
+.body > :first-child {
+  margin-top: 0;
+}
+
+.body > :last-child {
+  margin-bottom: 0;
+}
+
+.body p {
+  margin: 0 0 var(--space-2);
+}
+
+.body ul,
+.body ol {
+  margin: 0 0 var(--space-2);
+  padding-left: var(--space-4);
+}
+
+.body li {
+  margin-bottom: var(--space-1);
+}
+
+.body li::marker {
+  color: var(--ink-faint);
+}
+
+.body code {
+  font-size: 0.9em;
+  background: var(--paper-deep);
+  padding: 0 0.2em;
+}
+
+.body a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--plate-mustard);
+  text-underline-offset: 0.15em;
+}

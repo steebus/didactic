@@ -18,6 +18,9 @@
 .prose h2,
 .prose h3,
 .prose h4 {
+  /* Travelling to a section from the contents list should land with the
+     heading under the top of the window rather than jammed against it. */
+  scroll-margin-top: var(--space-5);
   font-family: var(--font-display);
   font-weight: 600;
   line-height: 1.15;

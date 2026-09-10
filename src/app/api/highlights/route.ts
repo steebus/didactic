@@ -41,15 +41,24 @@ export async function POST(req: Request) {
   const body = await req.json()
   const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
   const quote = text(body.quote)
+  const note = text(body.note)
   const lessonId = text(body.lessonId)
 
   if (!lessonId) return NextResponse.json({ error: 'lessonId is required' }, { status: 400 })
-  // A highlight of nothing is not a highlight. The cap is generous
-  // enough for a long passage and mean enough that the whole lesson
-  // cannot be stored as one mark.
-  if (!quote) return NextResponse.json({ error: 'nothing was selected' }, { status: 400 })
+  // A mark with no passage is a note on the lesson as a whole, which is
+  // a real thing to want: the thought a lesson leaves you with is not
+  // always about one of its sentences. What it cannot be is empty --
+  // with neither a passage nor a note there is nothing to keep.
+  if (!quote && !note) {
+    return NextResponse.json({ error: 'nothing was selected' }, { status: 400 })
+  }
+  // The cap is generous enough for a long passage and mean enough that
+  // the whole lesson cannot be stored as one mark.
   if (quote.length > 2000) {
     return NextResponse.json({ error: 'that passage is too long to mark' }, { status: 400 })
+  }
+  if (note.length > 10000) {
+    return NextResponse.json({ error: 'that note is too long to keep' }, { status: 400 })
   }
 
   try {
@@ -58,7 +67,7 @@ export async function POST(req: Request) {
       lessonId,
       quote,
       prefix: text(body.prefix) || null,
-      note: text(body.note) || null,
+      note: note || null,
     })
     // A mark writes an exposure and moves the topic's figure, so every
     // sheet that prints either is out of date until this is said. It

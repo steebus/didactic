@@ -1,0 +1,120 @@
+/* The note box, and the four marks it can carry. Printed as one field:
+   the controls sit on the same sheet as the writing, parted by a rule
+   rather than by a gap. */
+.editor {
+  border: 1px solid var(--paper-edge);
+  background: var(--paper-deep);
+}
+
+.editor:focus-within {
+  outline: 2px solid var(--plate-green);
+  outline-offset: -2px;
+}
+
+/* Given a height to fill, the box takes what the controls leave rather
+   than growing with the writing: a page of notes, ruled to the bottom. */
+.filling {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.filling .box {
+  flex: 1;
+  max-height: none;
+}
+
+.controls {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-1) 0;
+}
+
+.control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  min-height: 2rem;
+  padding: 0 var(--space-2);
+  font-family: var(--font-display);
+  font-size: var(--step--1);
+  line-height: 1;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.control:hover {
+  color: var(--ink);
+  border-color: var(--paper-edge);
+}
+
+/* A mark the cursor is standing in is pressed, in the ink of the sheet
+   rather than a colour of its own. */
+.on {
+  color: var(--paper);
+  background: var(--plate-green);
+  border-color: var(--plate-green);
+}
+
+.on:hover {
+  color: var(--paper);
+  border-color: var(--plate-green);
+}
+
+.box {
+  /* 16px, or a phone zooms the page to meet the box and leaves the
+     reader scrolled away from the passage they were marking. */
+  font-family: var(--font-text);
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--ink);
+  padding: var(--space-2);
+  min-height: 4.5rem;
+  max-height: 40vh;
+  overflow-y: auto;
+  /* A long word or a pasted URL should not widen the panel. */
+  overflow-wrap: anywhere;
+}
+
+.box:focus {
+  outline: none;
+}
+
+.box[data-empty]::before {
+  content: attr(data-placeholder);
+  color: var(--ink-faint);
+  font-style: italic;
+  pointer-events: none;
+}
+
+/* What is written in the box reads the way it will read once it is
+   kept, which is the whole point of writing it here. */
+.box p {
+  margin: 0 0 var(--space-2);
+}
+
+.box > :last-child {
+  margin-bottom: 0;
+}
+
+.box ul,
+.box ol {
+  margin: 0 0 var(--space-2);
+  padding-left: var(--space-4);
+}
+
+.box code {
+  font-size: 0.9em;
+  background: var(--paper);
+  padding: 0 0.2em;
+}
+
+.box a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--plate-mustard);
+}

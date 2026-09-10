@@ -143,6 +143,33 @@ body {
   overflow-wrap: break-word;
 }
 
+/* --- Reading with the notes open beside it ------------------------ */
+
+/* A maximised note is a page of its own next to the reading rather than
+   a panel over it, so the sheet gives up the strip it stands in. Said
+   on the body because the sheet is `main`: it cannot narrow itself.
+
+   The width is stated here so the panel and the room made for it cannot
+   drift apart. Below the phone breakpoint there is no beside, and the
+   notes take most of the screen instead. */
+:root {
+  --notes-width: min(28rem, 42vw);
+}
+
+body {
+  transition: padding-right var(--dur-settle) var(--ease-settle);
+}
+
+body[data-notes='open'] {
+  padding-right: var(--notes-width);
+}
+
+@media (max-width: 40rem) {
+  body[data-notes='open'] {
+    padding-right: 0;
+  }
+}
+
 /* The browser's own placeholder grey is #757575, which measures 3.75:1
    on this paper and belongs to no design system. One sheet styled its
    own and passed; the rest inherited the default and failed. Stated

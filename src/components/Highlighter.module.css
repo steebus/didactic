@@ -22,6 +22,44 @@
   box-shadow: 0 6px 18px rgba(36, 29, 22, 0.18);
 }
 
+/* The head of a panel: what it is about on the left, the control that
+   opens it out on the right. */
+.panelHead {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.panelHead > :first-child {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.opener {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.opener:hover {
+  color: var(--ink);
+  border-color: var(--paper-edge);
+}
+
+.opener:focus-visible {
+  outline: 2px solid var(--plate-terracotta);
+  outline-offset: 2px;
+}
+
 .quote {
   margin: 0 0 var(--space-3);
   padding-left: var(--space-3);
@@ -34,19 +72,10 @@
   overflow-y: auto;
 }
 
+/* The note field draws itself -- see NoteEditor.module.css. What is
+   set here is only how it sits in the panel. */
 .note {
   width: 100%;
-  font: inherit;
-  font-size: var(--step--1);
-  padding: var(--space-2);
-  background: var(--paper-deep);
-  border: 1px solid var(--paper-edge);
-  resize: vertical;
-}
-
-.note:focus {
-  outline: 2px solid var(--plate-green);
-  outline-offset: -2px;
 }
 
 .actions {
@@ -91,6 +120,58 @@
   margin: var(--space-2) 0 0;
 }
 
+/* --- Writing about the lesson itself ----------------------------- */
+
+/* A zero-height line that sticks to the foot of the window while the
+   lesson body is in view, so the button on it travels down the sheet's
+   own right edge with the reading and stops when the reading does.
+   Sticky rather than fixed: nothing has to measure the sheet, and the
+   transform every sheet arrives under -- which is what a fixed panel
+   would end up fixed to -- does not reach it. */
+.desk {
+  position: sticky;
+  bottom: var(--space-5);
+  z-index: 4;
+  height: 0;
+}
+
+.deskNote {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--paper);
+  background: var(--plate-green);
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(36, 29, 22, 0.3);
+  transition: background var(--dur-feedback) var(--ease-settle);
+}
+
+.deskNote:hover {
+  background: var(--plate-terracotta);
+}
+
+.deskNote:focus-visible {
+  outline: 2px solid var(--plate-terracotta);
+  outline-offset: 3px;
+}
+
+/* What the panel is about, where there is no passage to quote: set
+   like the quote it stands in for, without the rule down its side. */
+.about {
+  margin: 0 0 var(--space-3);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
 /* --- The offer to keep, on a touch screen ------------------------ */
 
 /* A finger selects by long-press and then widens the selection with the
@@ -122,11 +203,15 @@
 
 /* --- The panel, docked ------------------------------------------- */
 
-/* On a phone the panel spans the foot of the screen instead of standing
-   beside the passage: a 24rem panel set against a sentence on a narrow
-   sheet hangs off the side of it, and a page that can be scrolled
-   sideways is a broken page. The measured position is not applied at
-   this width, so nothing here has to out-specify an inline style. */
+/* A docked panel: across the foot of a phone, and at the corner of the
+   window on anything wider.
+
+   On a phone it is every panel -- a 24rem panel set against a sentence
+   on a narrow sheet hangs off the side of it, and a page that can be
+   scrolled sideways is a broken page. On a wide screen it is only the
+   panel that was not opened against anything, which is the note on the
+   lesson. Either way the measured position is not applied, so nothing
+   here has to out-specify an inline style. */
 .docked {
   position: fixed;
   inset: auto 0 0 0;
@@ -141,15 +226,74 @@
   box-shadow: 0 -8px 24px rgba(36, 29, 22, 0.22);
 }
 
-/* Full size, or the phone zooms the page to meet the note and leaves
-   the reader scrolled away from the passage they were marking. */
-.docked .note {
-  font-size: 1rem;
-}
-
 .docked .keep,
 .docked .cancel {
   min-height: 2.75rem;
+}
+
+/* Above the phone breakpoint a docked panel stands at the corner of the
+   window rather than across the foot of it: the sheet is wide, and a
+   note field the width of the screen would be a form, not a note. */
+@media (min-width: 40.0625rem) {
+  .docked {
+    inset: auto var(--space-5) var(--space-5) auto;
+    width: min(24rem, calc(100vw - 2rem));
+    border: 1px solid var(--rule-strong);
+    padding-bottom: var(--space-3);
+    box-shadow: 0 6px 24px rgba(36, 29, 22, 0.24);
+  }
+}
+
+/* --- The notes, open out ----------------------------------------- */
+
+/* A page of notes beside the reading. The sheet gives up the strip this
+   stands in rather than being covered by it -- see globals.css, which
+   states the width and tells the sheet to make room -- so the two read
+   as a book and a notebook open next to each other.
+
+   On a phone there is no beside: it takes most of the screen, leaving
+   the top of the lesson showing so it is clear what is underneath. */
+.big {
+  position: fixed;
+  inset: 0 0 0 auto;
+  width: var(--notes-width);
+  max-width: 100vw;
+  max-height: none;
+  transform: none;
+  display: flex;
+  flex-direction: column;
+  /* The panel scrolls nothing itself; the writing inside it does. */
+  overflow: hidden;
+  border: none;
+  border-left: 1px solid var(--rule-strong);
+  box-shadow: -6px 0 24px rgba(36, 29, 22, 0.16);
+  padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+}
+
+/* The writing takes the height the quote and the buttons leave. */
+.big .note {
+  flex: 1;
+  min-height: 0;
+}
+
+/* A long passage gives up more of the page to the notes than it would
+   in a panel, but never the whole of it. */
+.big .quote {
+  max-height: 30vh;
+}
+
+.big .actions {
+  flex: none;
+}
+
+@media (max-width: 40rem) {
+  .big {
+    inset: 12dvh 0 0 0;
+    width: auto;
+    border-left: none;
+    border-top: 1px solid var(--rule-strong);
+    box-shadow: 0 -6px 24px rgba(36, 29, 22, 0.2);
+  }
 }
 
 /* --- Marks drawn back onto the prose ----------------------------- */

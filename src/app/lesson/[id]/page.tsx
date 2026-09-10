@@ -1,9 +1,10 @@
 'use client'
 
-import { use, useEffect, useState } from 'react'
+import { use, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { Prose } from '@/components/Prose'
 import { Highlighter } from '@/components/Highlighter'
+import { Contents } from '@/components/Contents'
 import type { Highlight as Mark } from '@/lib/types'
 import { useScrollMemory } from '@/lib/useScrollMemory'
 import { readJson } from '@/lib/http'
@@ -50,6 +51,8 @@ export default function LessonPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = use(params)
+  // The rendered body, so the contents list can read its headings.
+  const article = useRef<HTMLElement>(null)
   const [data, setData] = useState<LessonData | null>(null)
   const [body, setBody] = useState<string | null>(null)
   const [highlights, setHighlights] = useState<Mark[]>([])
@@ -312,60 +315,66 @@ export default function LessonPage({
         {writing && !body ? (
           <Setting label="Writing the lesson" shape="prose" />
         ) : body ? (
-          <article>
-            {/* Selecting inside here offers to keep the passage. The
-                marks belong to the topic rather than to the lesson, so
-                they outlive a regenerated body. */}
-            <Highlighter
-              lessonId={id}
-              existing={highlights}
-              onChanged={() => setRevision(r => r + 1)}
-            >
-              <Prose markdown={body} />
-            </Highlighter>
+          <>
+            {/* What the lesson is made of, taken off the headings in
+                the body below once it is on the page. */}
+            <Contents root={article} body={body} />
 
-            {/* Quiet, and at the end of the reading rather than the
-                top of it: a lesson worth rewriting is usually one the
-                reader has got to the bottom of. */}
-            <div className={styles.rewrite}>
-              {confirming ? (
-                <>
-                  <p className={styles.rewriteNote}>
-                    This asks for the lesson again from scratch and replaces
-                    what is above. The old text is not kept. Passages you
-                    marked are — they belong to the topic — but any whose words
-                    are not in the new text cannot be drawn on it.
-                  </p>
-                  <div className={styles.rewriteRow}>
-                    <button
-                      type="button"
-                      className={styles.quietAction}
-                      onClick={rewrite}
-                      disabled={rewriting}
-                    >
-                      Yes, write it again
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.quietAction}
-                      onClick={() => setConfirming(false)}
-                    >
-                      Leave it
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <button
-                  type="button"
-                  className={styles.quietAction}
-                  onClick={() => setConfirming(true)}
-                  disabled={rewriting}
-                >
-                  {rewriting ? 'Writing it again…' : 'Write this lesson again'}
-                </button>
-              )}
-            </div>
-          </article>
+            <article ref={article}>
+              {/* Selecting inside here offers to keep the passage. The
+                  marks belong to the topic rather than to the lesson, so
+                  they outlive a regenerated body. */}
+              <Highlighter
+                lessonId={id}
+                existing={highlights}
+                onChanged={() => setRevision(r => r + 1)}
+              >
+                <Prose markdown={body} />
+              </Highlighter>
+
+              {/* Quiet, and at the end of the reading rather than the
+                  top of it: a lesson worth rewriting is usually one the
+                  reader has got to the bottom of. */}
+              <div className={styles.rewrite}>
+                {confirming ? (
+                  <>
+                    <p className={styles.rewriteNote}>
+                      This asks for the lesson again from scratch and replaces
+                      what is above. The old text is not kept. Passages you
+                      marked are — they belong to the topic — but any whose words
+                      are not in the new text cannot be drawn on it.
+                    </p>
+                    <div className={styles.rewriteRow}>
+                      <button
+                        type="button"
+                        className={styles.quietAction}
+                        onClick={rewrite}
+                        disabled={rewriting}
+                      >
+                        Yes, write it again
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.quietAction}
+                        onClick={() => setConfirming(false)}
+                      >
+                        Leave it
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className={styles.quietAction}
+                    onClick={() => setConfirming(true)}
+                    disabled={rewriting}
+                  >
+                    {rewriting ? 'Writing it again…' : 'Write this lesson again'}
+                  </button>
+                )}
+              </div>
+            </article>
+          </>
         ) : (
           !error && <p className={styles.pending}>Nothing written yet.</p>
         )}

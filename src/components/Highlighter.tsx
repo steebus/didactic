@@ -7,6 +7,10 @@ import { createPortal } from 'react-dom'
 import type { Highlight as Mark } from '@/lib/types'
 import { paintMarks } from '@/lib/paintMarks'
 import { panelSpot, pinSpot, type Spot } from '@/lib/markAnchor'
+import { NoteEditor } from './NoteEditor'
+import { NoteIcon } from './NoteIcon'
+import { ExpandIcon } from './ExpandIcon'
+import { NoteText } from './NoteText'
 import styles from './Highlighter.module.css'
 
 /**
@@ -23,6 +27,10 @@ const SETTLED_MS = 300
 /** The sheet is narrow enough that a panel has to dock. Kept in step
  *  with the phone breakpoint the rest of the stylesheets use. */
 const NARROW = '(max-width: 40rem)'
+
+/** Whether the reader writes with the notes open out. Remembered
+ *  because it is how they read, not a thing they choose per mark. */
+const OPENED_OUT = 'didactic:notes-open'
 
 /** A mark kept in this session but not yet confirmed by the server.
  *  It is drawn like any other; what it cannot do is be edited or
@@ -78,6 +86,18 @@ export function Highlighter({
   const [drawn, setDrawn] = useState(0)
 
   const narrow = useNarrow()
+  const [big, setBig] = useState(remembered)
+
+  /** Open the notes out, or fold them back, and remember which. */
+  function openOut(next: boolean) {
+    setBig(next)
+    try {
+      localStorage.setItem(OPENED_OUT, next ? 'yes' : 'no')
+    } catch {
+      // Site data blocked. The preference is not worth an error on the
+      // page; it just will not outlast the session.
+    }
+  }
 
   /** Whether the last thing to touch the page was a finger. It decides
    *  which of the two ways of marking is in play, and a device can be
@@ -101,18 +121,25 @@ export function Highlighter({
   const [lost, setLost] = useState<string | null>(null)
 
   // The server's marks, plus this session's that have not come back in
-  // them yet. Matched on the passage rather than the id, because the
-  // id the server gives it is not the one it was drawn under.
+  // them yet.
+  //
+  // One that has been written down is matched by id. One still in
+  // flight has no id the server would recognise, so it is matched on
+  // what it says -- the passage, its anchor and the note -- which is
+  // also what keeps two notes on the same lesson apart: they share an
+  // empty quote and nothing else.
   const marks = useMemo(
     () => [
       ...existing,
-      ...kept.filter(
-        k =>
-          !existing.some(
-            e =>
-              e.quote === k.quote &&
-              (e.prefix ?? '').trim() === (k.prefix ?? '').trim()
-          )
+      ...kept.filter(k =>
+        isUnsaved(k.id)
+          ? !existing.some(
+              e =>
+                e.quote === k.quote &&
+                (e.prefix ?? '').trim() === (k.prefix ?? '').trim() &&
+                (e.note ?? '') === (k.note ?? '')
+            )
+          : !existing.some(e => e.id === k.id)
       ),
     ],
     [existing, kept]
@@ -165,6 +192,24 @@ export function Highlighter({
     },
     []
   )
+
+  /**
+   * Write about the lesson rather than about a passage in it.
+   *
+   * The composer opens with nothing quoted, and what is kept is a mark
+   * with no words to draw: it belongs to the lesson's topic like any
+   * other, it is searched with the rest, and it is the only kind of
+   * mark that has to carry a note to exist at all.
+   */
+  function noteOnLesson() {
+    setOffer(null)
+    setOpen(null)
+    setAt(null)
+    setPending({ quote: '', prefix: '' })
+    setNote('')
+    setError(null)
+    window.getSelection()?.removeAllRanges()
+  }
 
   const take = useCallback(() => {
     if (pending || open) return
@@ -396,22 +441,31 @@ export function Highlighter({
   }, [pending, open, offer])
 
   /**
-   * Where a panel goes. On a phone it docks to the foot of the screen
-   * and the measured place is not used: a panel set against a passage
-   * on a narrow sheet hangs off the side of it and widens the page.
+   * Whether a panel docks rather than standing against something.
+   *
+   * On a phone, always: a 24rem panel set against a sentence on a
+   * narrow sheet hangs off the side of it and widens the page. And
+   * anywhere, for a panel that was not opened against a passage at
+   * all -- a note on the lesson has nothing to stand beside, and left
+   * to its own place in the flow it lands under the end of the
+   * reading, half off the bottom of the window.
    */
+  const docked = (spot: Spot | null) => big || narrow || !spot
+
+  /** Where a panel goes, where it goes anywhere in particular. */
   const placed = (spot: Spot | null) =>
-    narrow || !spot
+    docked(spot)
       ? undefined
       : {
-          top: spot.top,
-          left: spot.left,
+          top: spot!.top,
+          left: spot!.left,
           // Lifted clear by its own height when it opens above, so the
           // panel sits over nothing it is describing.
-          transform: spot.above ? 'translateY(-100%)' : undefined,
+          transform: spot!.above ? 'translateY(-100%)' : undefined,
         }
 
-  const panel = `${styles.composer}${narrow ? ` ${styles.docked}` : ''}`
+  const panelClass = (spot: Spot | null) =>
+    `${styles.composer}${big ? ` ${styles.big}` : docked(spot) ? ` ${styles.docked}` : ''}`
 
   /**
    * Anything measured against the window is hung off the body rather
@@ -427,19 +481,77 @@ export function Highlighter({
   const float = (node: React.ReactNode) =>
     typeof document === 'undefined' ? null : createPortal(node, document.body)
 
-  /** A panel stands where it was measured, or hangs off the body when
-   *  it is docked to the foot of the screen. */
-  const stand = (node: React.ReactNode) => (narrow ? float(node) : node)
+  /**
+   * While the notes are open out, the sheet gives up the strip they
+   * stand in rather than being covered by it -- a book with a notebook
+   * open beside it, not a panel over the page. The width is stated in
+   * globals.css, which is also where the sheet is told to make room.
+   *
+   * Said on the body because the reading is `main`, and a component
+   * inside the sheet cannot narrow the sheet it is inside of.
+   */
+  useEffect(() => {
+    if (!big || !(pending || open)) return
+    document.body.dataset.notes = 'open'
+    return () => {
+      delete document.body.dataset.notes
+    }
+  }, [big, pending, open])
 
-  const unplaced = marks.length - drawn
+  /** The control that opens the notes out to a page of their own. */
+  const opener = (
+    <button
+      type="button"
+      className={styles.opener}
+      onClick={() => openOut(!big)}
+      aria-label={big ? 'Fold the notes back' : 'Open the notes out'}
+      aria-pressed={big}
+      title={big ? 'Fold the notes back' : 'Open the notes out'}
+    >
+      <ExpandIcon folding={big} />
+    </button>
+  )
+
+  /** A panel stands where it was measured, or hangs off the body when
+   *  it is docked to the corner of the screen. */
+  const stand = (node: React.ReactNode, spot: Spot | null) =>
+    docked(spot) ? float(node) : node
+
+  // A mark with no passage is a note on the lesson: it is never drawn
+  // on the prose, so it is counted apart rather than reported as a
+  // passage that could not be found.
+  const passages = marks.filter(m => m.quote.trim()).length
+  const notes = marks.length - passages
+  const unplaced = passages - drawn
 
   return (
     <div className={styles.holder} ref={holder}>
       {children}
 
+      {/* Writing about the lesson rather than about a passage in it.
+          Sticky rather than fixed, so it travels down the sheet's own
+          edge with the reading and leaves when the reading is done --
+          and so it needs no measuring, no scroll listener, and nothing
+          to keep in step with the layout. */}
+      {!pending && !open && !offer && (
+        <div className={styles.desk}>
+          <button
+            type="button"
+            className={styles.deskNote}
+            onClick={noteOnLesson}
+            aria-label="Write a note on this lesson"
+            title="A note on this lesson"
+          >
+            <NoteIcon />
+          </button>
+        </div>
+      )}
+
       {marks.length > 0 && (
         <p className={styles.count}>
-          {marks.length} {marks.length === 1 ? 'passage' : 'passages'} marked here
+          {passages > 0 && `${passages} ${passages === 1 ? 'passage' : 'passages'} marked here`}
+          {passages > 0 && notes > 0 && ' · '}
+          {notes > 0 && `${notes} ${notes === 1 ? 'note' : 'notes'} on the lesson`}
           {/* A mark whose words are no longer in the body cannot be
               drawn. Saying so beats a count that does not match what is
               visibly on the page. */}
@@ -482,14 +594,24 @@ export function Highlighter({
 
       {pending &&
         stand(
-          <div className={panel} style={placed(at)} role="dialog">
-            <blockquote className={styles.quote}>{pending.quote}</blockquote>
-            <textarea
+          <div className={panelClass(at)} style={placed(at)} role="dialog">
+            <div className={styles.panelHead}>
+              {pending.quote ? (
+                <blockquote className={styles.quote}>{pending.quote}</blockquote>
+              ) : (
+                <p className={styles.about}>A note on this lesson</p>
+              )}
+              {opener}
+            </div>
+            <NoteEditor
               className={styles.note}
+              fill={big}
               value={note}
-              onChange={e => setNote(e.target.value)}
-              placeholder="What about it? (optional)"
-              rows={2}
+              onChange={setNote}
+              label={pending.quote ? 'What about this passage' : 'A note on this lesson'}
+              placeholder={
+                pending.quote ? 'What about it? (optional)' : 'What the lesson left you with'
+              }
               // Not on a phone: the keyboard would come up over the
               // passage before the reader has decided to write anything.
               autoFocus={!narrow}
@@ -498,7 +620,14 @@ export function Highlighter({
             <div className={styles.actions}>
               {/* Never busy: the mark is drawn and this closes on the
                   press, and the writing goes on behind the reader. */}
-              <button type="button" className={styles.keep} onClick={keep}>
+              <button
+                type="button"
+                className={styles.keep}
+                onClick={keep}
+                // A mark with no passage is only the note: with nothing
+                // written there is nothing to keep.
+                disabled={!pending.quote && !note.trim()}
+              >
                 Keep it
               </button>
               <button
@@ -512,21 +641,27 @@ export function Highlighter({
                 Cancel
               </button>
             </div>
-          </div>
+          </div>,
+          at
         )}
 
       {open &&
         stand(
-          <div className={panel} style={placed(open.at)} role="dialog">
+          <div className={panelClass(open.at)} style={placed(open.at)} role="dialog">
             {editing ? (
               <>
-                <textarea
+                <div className={styles.panelHead}>
+                  <p className={styles.about}>The note</p>
+                  {opener}
+                </div>
+                <NoteEditor
                   className={styles.note}
+                  fill={big}
                   value={note}
-                  onChange={e => setNote(e.target.value)}
+                  onChange={setNote}
+                  label="What about this passage"
                   placeholder="What about it?"
-                  rows={3}
-                  autoFocus
+                  autoFocus={!narrow}
                 />
                 {error && <p className={styles.problem}>{error}</p>}
                 <div className={styles.actions}>
@@ -540,9 +675,16 @@ export function Highlighter({
               </>
             ) : (
               <>
-                <blockquote className={styles.quote}>{open.mark.quote}</blockquote>
+                <div className={styles.panelHead}>
+                  {open.mark.quote ? (
+                    <blockquote className={styles.quote}>{open.mark.quote}</blockquote>
+                  ) : (
+                    <p className={styles.about}>A note on this lesson</p>
+                  )}
+                  {opener}
+                </div>
                 {open.mark.note ? (
-                  <p className={styles.reading}>{open.mark.note}</p>
+                  <NoteText markdown={open.mark.note} className={styles.reading} />
                 ) : (
                   <p className={styles.unnoted}>Kept, with nothing written about it.</p>
                 )}
@@ -578,10 +720,27 @@ export function Highlighter({
                 </div>
               </>
             )}
-          </div>
+          </div>,
+          open.at
         )}
     </div>
   )
+}
+
+/**
+ * Whether the reader last left the notes open out.
+ *
+ * Read as this component first renders rather than in an effect: the
+ * panel it decides the shape of is not on the page until something is
+ * marked, so there is nothing for it to disagree with. On the server,
+ * and anywhere site data is blocked, it is simply no.
+ */
+function remembered(): boolean {
+  try {
+    return localStorage.getItem(OPENED_OUT) === 'yes'
+  } catch {
+    return false
+  }
 }
 
 /** Whether the sheet is being read on a phone-width screen. */

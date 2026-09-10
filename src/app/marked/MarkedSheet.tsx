@@ -4,6 +4,8 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { HighlightRow } from '@/lib/highlights'
+import { NoteEditor } from '@/components/NoteEditor'
+import { NoteText } from '@/components/NoteText'
 import styles from './page.module.css'
 
 /**
@@ -160,9 +162,11 @@ export function MarkedSheet({
       </form>
 
       <p className={styles.count}>
+        {/* "Marks" rather than "passages": some of them are notes on a
+            lesson, with no passage to speak of. */}
         {query
-          ? `${shown.length} ${shown.length === 1 ? 'passage' : 'passages'} matching "${query}"`
-          : `${shown.length} ${shown.length === 1 ? 'passage' : 'passages'} marked`}
+          ? `${shown.length} ${shown.length === 1 ? 'mark' : 'marks'} matching "${query}"`
+          : `${shown.length} ${shown.length === 1 ? 'mark' : 'marks'} kept`}
       </p>
 
       {error && <p className={styles.problem}>{error}</p>}
@@ -172,7 +176,7 @@ export function MarkedSheet({
           the sheet rather than expiring on a timer nobody is watching. */}
       {undo && (
         <p className={styles.undo}>
-          Removed the passage from{' '}
+          Removed the {undo.quote ? 'passage' : 'note'} from{' '}
           <span className={styles.undoQuote}>{undo.lesson?.title ?? 'that lesson'}</span>.{' '}
           {undo.lesson_id ? (
             <button type="button" className={styles.quiet} onClick={putBack} disabled={busy}>
@@ -190,21 +194,29 @@ export function MarkedSheet({
         <p className={styles.empty}>
           {query
             ? 'Nothing matches that. The search covers both the passage and what you wrote about it.'
-            : 'Nothing marked yet. Select any passage while reading a lesson and it will be kept here, filed under the topic that lesson teaches.'}
+            : 'Nothing marked yet. Select any passage while reading a lesson — or write a note on the lesson itself — and it will be kept here, filed under the topic that lesson teaches.'}
         </p>
       ) : (
         <ul className={styles.marks}>
           {shown.map(h => (
             <li key={h.id} className={styles.mark}>
-              <blockquote className={styles.quote}>{h.quote}</blockquote>
+              {/* A mark with no passage is a note on the lesson as a
+                  whole. It says so, rather than printing an empty rule
+                  where a quote would have been. */}
+              {h.quote ? (
+                <blockquote className={styles.quote}>{h.quote}</blockquote>
+              ) : (
+                <p className={styles.about}>A note on this lesson</p>
+              )}
 
               {editing === h.id ? (
                 <div className={styles.editor}>
-                  <textarea
+                  <NoteEditor
                     className={styles.noteInput}
                     value={draft}
-                    onChange={e => setDraft(e.target.value)}
-                    rows={3}
+                    onChange={setDraft}
+                    label={h.quote ? `What about "${h.quote.slice(0, 40)}"` : 'The note'}
+                    placeholder="What about it?"
                     autoFocus
                   />
                   <div className={styles.editorActions}>
@@ -226,7 +238,7 @@ export function MarkedSheet({
                   </div>
                 </div>
               ) : (
-                h.note && <p className={styles.note}>{h.note}</p>
+                h.note && <NoteText markdown={h.note} className={styles.note} />
               )}
 
               <p className={styles.meta}>

@@ -139,6 +139,16 @@
   max-width: 60ch;
 }
 
+/* What a mark is about, where there is no passage to quote. */
+.about {
+  margin: 0;
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
 .note {
   font-size: var(--step-0);
   line-height: 1.5;
@@ -184,20 +194,11 @@
   margin-top: var(--space-3);
 }
 
+/* The note field draws itself -- see NoteEditor.module.css. What is set
+   here is only the measure it is written to. */
 .noteInput {
   width: 100%;
   max-width: 60ch;
-  font: inherit;
-  font-size: var(--step-0);
-  padding: var(--space-3);
-  background: var(--paper-deep);
-  border: 1px solid var(--paper-edge);
-  resize: vertical;
-}
-
-.noteInput:focus {
-  outline: 2px solid var(--plate-green);
-  outline-offset: -2px;
 }
 
 .editorActions {

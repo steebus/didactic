@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { NoteText } from '@/components/NoteText'
 import { notFound } from 'next/navigation'
 import { viabilityFigure } from '@/lib/scoring'
 import { getTopicArea } from '@/lib/topic'
@@ -219,14 +220,23 @@ export default async function TopicPage({
                 <div className={styles.sectionHead}>
                   <h2 className={styles.sectionTitle}>Marked</h2>
                   <span className={styles.sectionNote}>
-                    {highlights.length} {highlights.length === 1 ? 'passage' : 'passages'}
+                    {highlights.length} {highlights.length === 1 ? 'mark' : 'marks'}
                   </span>
                 </div>
                 <ul className={styles.marks}>
                   {highlights.map(h => (
                     <li key={h.id} className={styles.mark}>
-                      <blockquote className={styles.markQuote}>{h.quote}</blockquote>
-                      {h.note && <p className={styles.markNote}>{h.note}</p>}
+                      {/* A mark with no passage is a note on the
+                          lesson as a whole, and says so rather than
+                          printing an empty rule. */}
+                      {h.quote ? (
+                        <blockquote className={styles.markQuote}>{h.quote}</blockquote>
+                      ) : (
+                        <p className={styles.markAbout}>A note on this lesson</p>
+                      )}
+                      {h.note && (
+                        <NoteText markdown={h.note} className={styles.markNote} />
+                      )}
                       {h.lesson && (
                         <p className={styles.markFrom}>
                           <Link href={`/lesson/${h.lesson.id}`} className={styles.inlineLink}>

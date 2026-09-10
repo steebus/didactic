@@ -1,0 +1,65 @@
+/* The contents block is a catalogue index: a ruled band at the head of
+   the sheet, set in the label face, not a sidebar. */
+.contents {
+  margin: 0 0 var(--space-5);
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.label {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 var(--space-2);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  /* Two columns where the sheet is wide enough for them: a lesson runs
+     to a dozen sections and a single column of them pushes the reading
+     off the screen before it starts. */
+  columns: 2;
+  column-gap: var(--space-5);
+}
+
+.item {
+  break-inside: avoid;
+  margin: 0 0 var(--space-1);
+  font-size: var(--step--1);
+  line-height: 1.4;
+}
+
+/* A subsection is stepped in and set quieter, so the shape of the
+   lesson reads at a glance. */
+.under {
+  padding-left: var(--space-3);
+  color: var(--ink-faint);
+}
+
+.link {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-bottom-color var(--dur-feedback) var(--ease-settle);
+}
+
+.link:hover {
+  border-bottom-color: var(--plate-mustard);
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--plate-terracotta);
+  outline-offset: 2px;
+}
+
+@media (max-width: 40rem) {
+  .list {
+    columns: 1;
+  }
+}
