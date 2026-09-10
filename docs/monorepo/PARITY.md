@@ -61,11 +61,12 @@ or `—` when a row is rendering only.
 | Draft, reshape, approve a curriculum | built | planned (5) | `api/curricula`, `core/curriculum` | |
 | Write a lesson body; write it again | built | planned (5) | `api/lessons.writeBody` | |
 | Complete a lesson at a depth | built | planned (5) | `api/lessons.patch` | |
-| Lesson blocks: chart, check, compare, steps | built (SVG + DOM) | planned (5) | `reader` | The same components inside the reader; every plot ships its figures on both. |
+| Lesson blocks: chart, check, compare, steps, flow, picture | built (SVG + DOM) | planned (5) | `reader` | The same components inside the reader; every plot ships its figures on both. |
 | Contents band | built | planned (5) | `reader`, `core/sections` | One column on the phone. |
 | Marks: draw kept passages onto the prose | built (DOM walk) | planned (5) | `reader/paintMarks` | The same walker, in the WebView. |
 | Marks: select any range and keep it, across elements | built | planned (5) | `reader/Highlighter` | Full parity through the reader (D9). The per-paragraph native fallback would be `partial` and is not the plan. |
 | Marks: a note on the lesson with no passage | built | planned (5) | — | *A note on this lesson* wording shared. |
+| Marks: the list beside the reading, in the lesson's order | built | planned (5) | `reader/MarkList`, `core/marks.inReadingOrder` | `DESIGN.md` *The marks beside the reading*. Sorted by where `paintMarks` landed each mark, never by when it was kept. Pressing a passage travels to it. On a phone it is over the reading and puts itself away first; the swipe that opens it is the WebView's to carry (D9). |
 | Note editor with bold, italic, lists | built (`execCommand`) | planned (5) | `reader/NoteEditor` | The same editor, inside the reader; the soft keyboard is the native side's to handle. |
 | Refresher generation | built | planned (5) | `api/refresher.write` | |
 | Grub out a subject or topic; delete flows | built | planned (5) | `core/copy` confirmation wording | |
