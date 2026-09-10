@@ -17,9 +17,14 @@ const EDITION_DATE = new Intl.DateTimeFormat('en-GB', {
 export default async function Home() {
   // The proxy has already turned unauthenticated traffic away; this is
   // the check that counts, made where the data is read.
-  await requireOwner()
-
-  const data = await getHomeData()
+  // The gate and the read start together rather than one after the
+  // other. Neither needs the other's answer, and each is a round trip
+  // to a different continent -- run in sequence they were most of the
+  // wait on every navigation. An unauthenticated request still ends in
+  // the redirect the gate throws; it simply does not wait to find out
+  // what it would otherwise have shown, and the proxy has already
+  // turned nearly all of that traffic away before it reaches here.
+  const [, data] = await Promise.all([requireOwner(), getHomeData()])
   const today = EDITION_DATE.format(new Date())
   const largestHolding = Math.max(1, ...data.subjects.map(s => s.count))
 

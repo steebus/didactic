@@ -11,10 +11,16 @@ import { getPendingTopics } from '@/lib/pending'
 
 
 export default async function InboxPage() {
-  await requireOwner()
-
   const db = supabaseAdmin()
-  const [{ data: resources }, pending] = await Promise.all([
+  // The gate and the read start together rather than one after the
+  // other. Neither needs the other's answer, and each is a round trip
+  // to a different continent -- run in sequence they were most of the
+  // wait on every navigation. An unauthenticated request still ends in
+  // the redirect the gate throws; it simply does not wait to find out
+  // what it would otherwise have shown, and the proxy has already
+  // turned nearly all of that traffic away before it reaches here.
+  const [, { data: resources }, pending] = await Promise.all([
+    requireOwner(),
     db.from('resources').select('*').order('added_at', { ascending: false }),
     getPendingTopics(),
   ])

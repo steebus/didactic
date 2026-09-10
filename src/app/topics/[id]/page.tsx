@@ -22,9 +22,15 @@ export default async function TopicPage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  await requireOwner()
   const { id } = await params
-  const area = await getTopicArea(id)
+  // The gate and the read start together rather than one after the
+  // other. Neither needs the other's answer, and each is a round trip
+  // to a different continent -- run in sequence they were most of the
+  // wait on every navigation. An unauthenticated request still ends in
+  // the redirect the gate throws; it simply does not wait to find out
+  // what it would otherwise have shown, and the proxy has already
+  // turned nearly all of that traffic away before it reaches here.
+  const [, area] = await Promise.all([requireOwner(), getTopicArea(id)])
   if (!area) notFound()
 
   const { topic, subjects, curricula, resources, neighbours, exposures, highlights } = area

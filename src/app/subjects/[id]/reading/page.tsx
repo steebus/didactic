@@ -10,11 +10,17 @@ export default async function ReadingPage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  await requireOwner()
   const { id } = await params
   const db = supabaseAdmin()
-
-  const [{ data: subject }, sowing] = await Promise.all([
+  // The gate and the read start together rather than one after the
+  // other. Neither needs the other's answer, and each is a round trip
+  // to a different continent -- run in sequence they were most of the
+  // wait on every navigation. An unauthenticated request still ends in
+  // the redirect the gate throws; it simply does not wait to find out
+  // what it would otherwise have shown, and the proxy has already
+  // turned nearly all of that traffic away before it reaches here.
+  const [, { data: subject }, sowing] = await Promise.all([
+    requireOwner(),
     db.from('subjects').select('id, title, colour').eq('id', id).single(),
     getSowing(db, id),
   ])

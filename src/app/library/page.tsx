@@ -13,8 +13,14 @@ import styles from './page.module.css'
  * filed against nothing appeared on no sheet at all.
  */
 export default async function LibraryPage() {
-  await requireOwner()
-  const resources = await getLibrary()
+  // The gate and the read start together rather than one after the
+  // other. Neither needs the other's answer, and each is a round trip
+  // to a different continent -- run in sequence they were most of the
+  // wait on every navigation. An unauthenticated request still ends in
+  // the redirect the gate throws; it simply does not wait to find out
+  // what it would otherwise have shown, and the proxy has already
+  // turned nearly all of that traffic away before it reaches here.
+  const [, resources] = await Promise.all([requireOwner(), getLibrary()])
 
   return (
     <main className={styles.sheet}>

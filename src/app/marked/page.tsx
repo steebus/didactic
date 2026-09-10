@@ -19,10 +19,19 @@ export default async function MarkedPage({
 }: {
   searchParams: Promise<{ q?: string }>
 }) {
-  await requireOwner()
   const { q } = await searchParams
   const query = q ?? ''
-  const highlights = await searchHighlights(supabaseAdmin(), query)
+  // The gate and the read start together rather than one after the
+  // other. Neither needs the other's answer, and each is a round trip
+  // to a different continent -- run in sequence they were most of the
+  // wait on every navigation. An unauthenticated request still ends in
+  // the redirect the gate throws; it simply does not wait to find out
+  // what it would otherwise have shown, and the proxy has already
+  // turned nearly all of that traffic away before it reaches here.
+  const [, highlights] = await Promise.all([
+    requireOwner(),
+    searchHighlights(supabaseAdmin(), query),
+  ])
 
   return (
     <main className={styles.sheet}>
