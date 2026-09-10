@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { viabilityFigure } from '@/lib/scoring'
@@ -8,6 +9,7 @@ import { AddResource } from '@/components/AddResource'
 import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
+import { HeadGalley, TopicGalley } from './Galley'
 
 
 const EDGE_KIND_LABEL: Record<string, string> = {
@@ -17,37 +19,55 @@ const EDGE_KIND_LABEL: Record<string, string> = {
   alternative: 'instead of',
 }
 
-export default async function TopicPage({
+/**
+ * A topic sheet: the routes through it, what is filed against it, and
+ * what has been marked in it.
+ *
+ * Split in two so neither half waits on the other. The band takes the
+ * plate colour of whichever subject the topic sits in, which is not
+ * known until it is read, so it stands in the sheet's default ground
+ * until it arrives. Both halves read the same cached area, which is
+ * one read however many ask for it.
+ */
+export default function TopicPage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
+  // Not awaited here: which topic this is is a runtime answer, and
+  // reading it in the page body would make the rule and the measure
+  // wait on the request along with everything else.
+  return (
+    <main className={styles.sheet}>
+      <Suspense fallback={<HeadGalley />}>
+        <Head params={params} />
+      </Suspense>
+      <div className={styles.headRule} />
+
+      <div className={styles.body}>
+        <Suspense fallback={<TopicGalley />}>
+          <Sheet params={params} />
+        </Suspense>
+      </div>
+    </main>
+  )
+}
+
+/** The band: what this topic is, and how it is doing. */
+async function Head({ params }: { params: Promise<{ id: string } > }) {
   const { id } = await params
   // The gate and the read start together rather than one after the
   // other. Neither needs the other's answer, and each is a round trip
-  // to a different continent -- run in sequence they were most of the
-  // wait on every navigation. An unauthenticated request still ends in
-  // the redirect the gate throws; it simply does not wait to find out
-  // what it would otherwise have shown, and the proxy has already
-  // turned nearly all of that traffic away before it reaches here.
+  // to a different continent.
   const [, area] = await Promise.all([requireOwner(), getTopicArea(id)])
   if (!area) notFound()
 
-  const { topic, subjects, curricula, resources, neighbours, exposures, highlights } = area
+  const { topic, subjects } = area
   const vague = topic.ability_confidence < 0.4
   const state = stockState(topic.freshness, topic.last_exposure_at)
   const colour = subjects[0]?.colour ?? 'var(--plate-green)'
-  const unread = resources.filter(r => r.resource.status === 'queued')
-  // One route is shown, because in practice there is one. An archived
-  // route is history rather than a plan, so it is not the one offered.
-  const route =
-    curricula.find(c => c.status === 'active') ??
-    curricula.find(c => c.status === 'draft') ??
-    null
-  const read = resources.filter(r => r.resource.status !== 'queued')
 
   return (
-    <main className={styles.sheet}>
       <header
         className={styles.head}
         // The band takes the subject's own plate, so the focus ring in
@@ -98,9 +118,31 @@ export default async function TopicPage({
           </span>
         </div>
       </header>
-      <div className={styles.headRule} />
+  )
+}
 
-      <div className={styles.body}>
+/** Everything under the rule. */
+async function Sheet({ params }: { params: Promise<{ id: string } > }) {
+  const { id } = await params
+  const [, area] = await Promise.all([requireOwner(), getTopicArea(id)])
+  if (!area) notFound()
+
+  const { topic, subjects, curricula, resources, neighbours, exposures, highlights } = area
+  const vague = topic.ability_confidence < 0.4
+  // The margin's condition bar takes the same plate as the band above
+  // it, so the sheet reads as one thing rather than two.
+  const colour = subjects[0]?.colour ?? 'var(--plate-green)'
+  const unread = resources.filter(r => r.resource.status === 'queued')
+  // One route is shown, because in practice there is one. An archived
+  // route is history rather than a plan, so it is not the one offered.
+  const route =
+    curricula.find(c => c.status === 'active') ??
+    curricula.find(c => c.status === 'draft') ??
+    null
+  const read = resources.filter(r => r.resource.status !== 'queued')
+
+  return (
+    <>
         <div className={styles.spread}>
           <div className={styles.main}>
             {/* Lessons, not curricula. A topic has one route through it
@@ -341,7 +383,6 @@ export default async function TopicPage({
             )}
           </aside>
         </div>
-      </div>
-    </main>
+    </>
   )
 }

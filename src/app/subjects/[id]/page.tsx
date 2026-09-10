@@ -10,7 +10,8 @@ import { SubjectBed } from './SubjectBed'
 import { GrubOut } from './GrubOut'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
-
+import { Suspense } from 'react'
+import { HeadGalley, BedGalley } from './Galley'
 
 const DATE = new Intl.DateTimeFormat('en-GB', {
   day: 'numeric',
@@ -18,28 +19,58 @@ const DATE = new Intl.DateTimeFormat('en-GB', {
   year: 'numeric',
 })
 
-export default async function SubjectPage({
+/**
+ * A bed: the topics in a subject, what is filed against them, and the
+ * account of how it was sown.
+ *
+ * Split in two so neither half waits on the other's rendering. The
+ * band cannot be printed ahead of the data -- it carries the subject's
+ * own plate colour and its title -- so it stands in the sheet's
+ * default ground until it arrives, and the outline streams in
+ * separately beneath the rule. Both halves read the same cached area,
+ * which is one read however many ask for it.
+ */
+export default function SubjectPage({
   params,
 }: {
   params: Promise<{ id: string }>
 }) {
+  // The id is not read here. Which subject this is is a runtime
+  // answer, and awaiting it in the page body would make the whole
+  // sheet wait for the request -- including the rule and the measure,
+  // which are the same for every bed there will ever be. The promise
+  // goes down to the halves that actually need it.
+  return (
+    <main className={styles.sheet}>
+      <Suspense fallback={<HeadGalley />}>
+        <Head params={params} />
+      </Suspense>
+      <div className={styles.headRule} />
+
+      <div className={styles.body}>
+        <Suspense fallback={<BedGalley />}>
+          <Bed params={params} />
+        </Suspense>
+      </div>
+    </main>
+  )
+}
+
+/** The band: what this bed is, and how it is doing. */
+async function Head({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   // The gate and the read start together rather than one after the
   // other. Neither needs the other's answer, and each is a round trip
-  // to a different continent -- run in sequence they were most of the
-  // wait on every navigation. An unauthenticated request still ends in
-  // the redirect the gate throws; it simply does not wait to find out
-  // what it would otherwise have shown, and the proxy has already
-  // turned nearly all of that traffic away before it reaches here.
+  // to a different continent. An unauthenticated request still ends in
+  // the redirect the gate throws.
   const [, area] = await Promise.all([requireOwner(), getSubjectArea(id)])
   if (!area) notFound()
 
-  const { subject, tree, topics, counts, sowing } = area
+  const { subject, counts } = area
   const state = stockState(area.freshness, area.lastExposureAt)
   const vague = area.confidence < 0.4
 
   return (
-    <main className={styles.sheet}>
       <header
         className={styles.head}
         style={
@@ -86,9 +117,20 @@ export default async function SubjectPage({
           </Link>
         </div>
       </header>
-      <div className={styles.headRule} />
+  )
+}
 
-      <div className={styles.body}>
+/** The bed itself, and the margin beside it. */
+async function Bed({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const [, area] = await Promise.all([requireOwner(), getSubjectArea(id)])
+  if (!area) notFound()
+
+  const { subject, tree, topics, counts, sowing } = area
+  const vague = area.confidence < 0.4
+
+  return (
+    <>
         <div className={styles.spread}>
           <div className={styles.main}>
             <SubjectBed
@@ -241,7 +283,6 @@ export default async function SubjectPage({
         <div className={styles.foot}>
           <GrubOut subjectId={subject.id} title={subject.title} />
         </div>
-      </div>
-    </main>
+    </>
   )
 }

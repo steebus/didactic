@@ -1,8 +1,10 @@
+import { Suspense } from 'react'
 import { supabaseAdmin } from '@/lib/supabase'
 import { requireOwner } from '@/lib/auth'
 import { searchHighlights } from '@/lib/highlights'
 import { SheetNav } from '@/components/SheetNav'
 import { MarkedSheet } from './MarkedSheet'
+import { MarksGalley } from './Galley'
 import styles from './page.module.css'
 
 
@@ -14,11 +16,36 @@ import styles from './page.module.css'
  * state that evaporates. With no query it browses, because a sheet
  * that shows nothing until typed into hides everything you have.
  */
-export default async function MarkedPage({
+export default function MarkedPage({
   searchParams,
 }: {
   searchParams: Promise<{ q?: string }>
 }) {
+  return (
+    <main className={styles.sheet}>
+      <header className={styles.head}>
+        <SheetNav current="marked" />
+        <div className={styles.headRow}>
+          <h1 className={styles.title}>Marked</h1>
+        </div>
+      </header>
+      <div className={styles.headRule} />
+
+      <div className={styles.body}>
+        {/* The search runs on the server against the query in the URL,
+            so the sheet cannot be printed until the URL is read. What
+            can be printed is everything around it, which is the head
+            above and the galley below. */}
+        <Suspense fallback={<MarksGalley />}>
+          <Marks searchParams={searchParams} />
+        </Suspense>
+      </div>
+    </main>
+  )
+}
+
+/** The part that needs the session, the query and the database. */
+async function Marks({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams
   const query = q ?? ''
   // The gate and the read start together rather than one after the
@@ -33,19 +60,5 @@ export default async function MarkedPage({
     searchHighlights(supabaseAdmin(), query),
   ])
 
-  return (
-    <main className={styles.sheet}>
-      <header className={styles.head}>
-        <SheetNav current="marked" />
-        <div className={styles.headRow}>
-          <h1 className={styles.title}>Marked</h1>
-        </div>
-      </header>
-      <div className={styles.headRule} />
-
-      <div className={styles.body}>
-        <MarkedSheet highlights={highlights} query={query} />
-      </div>
-    </main>
-  )
+  return <MarkedSheet highlights={highlights} query={query} />
 }

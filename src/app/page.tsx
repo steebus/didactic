@@ -1,9 +1,11 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { viabilityFigure } from '@/lib/scoring'
 import { getHomeData } from '@/lib/home'
 import { Emblem, slugify } from '@/components/Emblem'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
 import { SheetNav } from '@/components/SheetNav'
+import { EditionGalley, StockGalley } from './Galley'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
 
@@ -14,32 +16,26 @@ const EDITION_DATE = new Intl.DateTimeFormat('en-GB', {
   year: 'numeric',
 })
 
-export default async function Home() {
-  // The proxy has already turned unauthenticated traffic away; this is
-  // the check that counts, made where the data is read.
-  // The gate and the read start together rather than one after the
-  // other. Neither needs the other's answer, and each is a round trip
-  // to a different continent -- run in sequence they were most of the
-  // wait on every navigation. An unauthenticated request still ends in
-  // the redirect the gate throws; it simply does not wait to find out
-  // what it would otherwise have shown, and the proxy has already
-  // turned nearly all of that traffic away before it reaches here.
-  const [, data] = await Promise.all([requireOwner(), getHomeData()])
-  const today = EDITION_DATE.format(new Date())
-  const largestHolding = Math.max(1, ...data.subjects.map(s => s.count))
-
+/**
+ * The stock list.
+ *
+ * The masthead, the strapline and the rule under them are the same on
+ * every visit and need neither the session nor the database, so they
+ * are printed the moment the route is reached. The edition line and
+ * the holdings stream into them: two boundaries rather than one,
+ * because the figure at the top of the sheet should not hold up the
+ * sheet, and the sheet should not hold up the figure.
+ */
+export default function Home() {
   return (
     <main className={styles.sheet}>
       <header className={styles.head}>
         <SheetNav current="stock" />
         <div className={styles.masthead}>
           <h1 className={styles.title}>Didactic</h1>
-          <div className={styles.edition}>
-            <span className={styles.editionRule}>Stock list · {today}</span>
-            <span className={styles.editionRule}>
-              {data.totals.topics} topics · {data.totals.subjects} subjects
-            </span>
-          </div>
+          <Suspense fallback={<EditionGalley />}>
+            <Edition />
+          </Suspense>
         </div>
         <p className={styles.strapline}>
           Everything you are growing, with its viability and what has gone
@@ -49,6 +45,40 @@ export default async function Home() {
       <div className={styles.headRule} />
 
       <div className={styles.sheetBody}>
+        <Suspense fallback={<StockGalley />}>
+          <Stock />
+        </Suspense>
+      </div>
+    </main>
+  )
+}
+
+/** What edition this is: the date, and what the catalogue holds. */
+async function Edition() {
+  const [, data] = await Promise.all([requireOwner(), getHomeData()])
+  const today = EDITION_DATE.format(new Date())
+
+  return (
+    <div className={styles.edition}>
+      <span className={styles.editionRule}>Stock list · {today}</span>
+      <span className={styles.editionRule}>
+        {data.totals.topics} topics · {data.totals.subjects} subjects
+      </span>
+    </div>
+  )
+}
+
+/** The holdings themselves. */
+async function Stock() {
+  // The proxy has already turned unauthenticated traffic away; this is
+  // the check that counts, made where the data is read. It starts
+  // together with the read rather than before it: neither needs the
+  // other's answer, and each is a round trip to a different continent.
+  const [, data] = await Promise.all([requireOwner(), getHomeData()])
+  const largestHolding = Math.max(1, ...data.subjects.map(s => s.count))
+
+  return (
+    <>
       {data.totals.topics === 0 ? (
         <div className={styles.blank}>
           <h2 className={styles.blankTitle}>Nothing sown yet</h2>
@@ -279,7 +309,6 @@ export default async function Home() {
           <Link href="/subjects/new">Sow a subject</Link>
         </nav>
       </footer>
-      </div>
-    </main>
+    </>
   )
 }
