@@ -660,30 +660,28 @@ export async function plantMap(
     }
   }
 
-  // The proof they handed over is filed against the bed it was offered
-  // as evidence for.
+  // The proof they handed over is filed against the subject it was
+  // offered as evidence for, not against the topics in it.
   //
-  // It was landing in the library attached to nothing: a book named on
-  // the sowing sheet became a resource with no topic, which meant no
-  // lesson could ever point at it and it appeared on no topic sheet. It
-  // is filed against every topic in this bed at a low relevance --
-  // "The Intelligent Investor" is genuinely about the whole subject
-  // rather than about one topic in it, and the ingester will sharpen
-  // that where it can read the thing.
+  // It used to be fanned across every topic in the bed at a low
+  // relevance, which meant a twenty-topic bed printed the same book on
+  // all twenty sheets -- redundant, and rarely true, since a book named
+  // while sowing is about the whole subject rather than any one topic.
+  // It is filed against the subject now; the reader files it onto the
+  // particular topics it informs by hand. Filed whether or not any new
+  // topic was created, because the subject is what it belongs to.
   const evidenceIds = brief.evidence.flatMap(e => (e.resourceId ? [e.resourceId] : []))
-  if (evidenceIds.length > 0 && (created?.length ?? 0) > 0) {
-    const { error: fileError } = await db.from('resource_topics').upsert(
-      evidenceIds.flatMap(resource_id =>
-        created!.map(topic => ({
-          resource_id,
-          topic_id: topic.id,
-          relevance: 0.3,
-        }))
-      ),
-      { onConflict: 'resource_id,topic_id', ignoreDuplicates: true }
+  if (evidenceIds.length > 0) {
+    const { error: fileError } = await db.from('resource_subjects').upsert(
+      evidenceIds.map(resource_id => ({
+        resource_id,
+        subject_id: subject.id,
+        relevance: 0.3,
+      })),
+      { onConflict: 'resource_id,subject_id', ignoreDuplicates: true }
     )
     if (fileError) {
-      warnings.push(`the evidence was not filed against the topics: ${fileError.message}`)
+      warnings.push(`the evidence was not filed against the subject: ${fileError.message}`)
     }
   }
 

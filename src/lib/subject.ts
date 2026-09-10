@@ -142,6 +142,10 @@ export interface SubjectArea {
   subject: Subject
   tree: TopicTreeNode[]
   topics: SubjectTopicRow[]
+  /** Resources filed against the subject as a whole rather than any one
+   *  topic — sow-time evidence, mainly. Named here so the reader can see
+   *  what a subject stands on and file it onto topics by hand. */
+  resources: Array<Pick<Resource, 'id' | 'title' | 'kind' | 'status' | 'url'>>
   /** The subject's own figures, aggregated from its members. */
   ability: number
   freshness: number
@@ -221,6 +225,8 @@ export async function readSubjectArea(
     .from('subjects').select('id, title, colour').eq('id', subjectId).single()
   if (!subject) return null
 
+  const subjectResources = await getSubjectResources(db, subjectId)
+
   const { data: memberships } = await db
     .from('topic_subjects').select('topic_id').eq('subject_id', subjectId)
   const topicIds = (memberships ?? []).map(m => m.topic_id)
@@ -230,6 +236,7 @@ export async function readSubjectArea(
       subject,
       tree: [],
       topics: [],
+      resources: subjectResources,
       ability: 0,
       freshness: 0,
       confidence: 0,
@@ -337,6 +344,7 @@ export async function readSubjectArea(
     subject,
     tree: buildTopicTree(rows, edges ?? []) as unknown as TopicTreeNode[],
     topics: rows,
+    resources: subjectResources,
     confidence: active.length
       ? active.reduce((sum, r) => sum + r.ability_confidence, 0) / active.length
       : 0,
@@ -351,6 +359,27 @@ export async function readSubjectArea(
     sowing: await getSowing(db, subjectId),
     ...subjectAggregate(active),
   }
+}
+
+/** Resources filed against the subject as a whole — sow-time evidence,
+ *  mainly. Sorted by title so the list is stable. */
+async function getSubjectResources(
+  db: SupabaseClient,
+  subjectId: string
+): Promise<Array<Pick<Resource, 'id' | 'title' | 'kind' | 'status' | 'url'>>> {
+  const { data } = await db
+    .from('resource_subjects')
+    .select('resources(id, title, kind, status, url)')
+    .eq('subject_id', subjectId)
+
+  return (data ?? [])
+    .flatMap(row => {
+      const resource = row.resources as unknown as
+        | Pick<Resource, 'id' | 'title' | 'kind' | 'status' | 'url'>
+        | null
+      return resource ? [resource] : []
+    })
+    .sort((a, b) => a.title.localeCompare(b.title))
 }
 
 export async function getSowing(

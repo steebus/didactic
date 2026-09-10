@@ -35,7 +35,7 @@ export default async function SubjectPage({
   const [, area] = await Promise.all([requireOwner(), getSubjectArea(id)])
   if (!area) notFound()
 
-  const { subject, tree, topics, counts, sowing } = area
+  const { subject, tree, topics, counts, sowing, resources } = area
   const state = stockState(area.freshness, area.lastExposureAt)
   const vague = area.confidence < 0.4
   // The bed's routes folded into one figure, so the band's plant grows
@@ -201,6 +201,33 @@ export default async function SubjectPage({
                     See the reading
                   </Link>
                 )}
+              </section>
+            )}
+
+            {resources.length > 0 && (
+              <section className={styles.block}>
+                <h2 className={styles.blockTitle}>Filed against the subject</h2>
+                <p className={styles.blockNote}>
+                  Evidence for the subject as a whole. File it onto the
+                  particular topics it informs from their own sheets.
+                </p>
+                <ul className={styles.blockList}>
+                  {resources.map(resource => (
+                    <li key={resource.id} className={styles.blockRow}>
+                      <span className={styles.blockRowName}>
+                        {resource.url ? (
+                          <a href={resource.url} target="_blank" rel="noreferrer">
+                            {resource.title}
+                          </a>
+                        ) : (
+                          resource.title
+                        )}
+                      </span>
+                      <span className={styles.leaders} aria-hidden="true" />
+                      <span className={styles.blockFigure}>{resource.kind}</span>
+                    </li>
+                  ))}
+                </ul>
               </section>
             )}
 
