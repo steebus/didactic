@@ -9,30 +9,28 @@ import styles from './RouteSpecimen.module.css'
  * where the growing device earns its place.
  *
  * The plate takes the band's own ink and reads as an inset window in it,
- * with the figure printed under it in paper. The caption is the carrier;
- * the plant is the quick read.
+ * with the figure printed under it in paper. One caption carries the
+ * whole reading — "1 of 18 worked", "No route yet" — so the plant never
+ * needs a label repeating the word beneath it.
  */
 export function RouteSpecimen({
   progress,
   ink,
-  label = 'Progress',
 }: {
   progress: RouteProgress
   /** The band's plate ink, so the window sits in it rather than on it. */
   ink: string
-  label?: string
 }) {
   return (
-    <div className={styles.plate}>
-      <span className={styles.label}>{label}</span>
-      <div className={styles.window} style={{ '--band': ink } as React.CSSProperties}>
+    <figure className={styles.plate}>
+      <div className={styles.window}>
         <RootsSpecimen
           level={routeLevel(progress)}
           ink={ink}
           ariaLabel={`Route progress: ${routeCaption(progress)}`}
         />
       </div>
-      <span className={styles.caption}>{routeCaption(progress)}</span>
-    </div>
+      <figcaption className={styles.caption}>{routeCaption(progress)}</figcaption>
+    </figure>
   )
 }

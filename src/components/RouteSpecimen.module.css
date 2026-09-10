@@ -4,19 +4,13 @@
    printed chip. */
 
 .plate {
+  margin: 0;
   display: grid;
   justify-items: center;
-  gap: var(--space-1);
-  /* Sized against the Emblem beside it (72px): a touch wider, because the
-     specimen is portrait where the emblem is square. */
-  width: 5.5rem;
-}
-
-.label {
-  font-size: var(--step--2);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: rgba(239, 231, 214, 0.6);
+  gap: var(--space-2);
+  /* Sized to read as a specimen without lifting the band into a void:
+     the plant is portrait, so a little width buys a lot of height. */
+  width: 6rem;
 }
 
 /* The plate matches the band, so a paper hairline is what gives it an
@@ -28,9 +22,10 @@
 
 .caption {
   font-size: var(--step--2);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: rgba(239, 231, 214, 0.85);
   font-variant-numeric: tabular-nums lining-nums;
   text-align: center;
+  line-height: 1.3;
 }

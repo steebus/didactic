@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation'
 import { viabilityFigure } from '@/lib/scoring'
 import { getSubjectArea } from '@/lib/subject'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
-import { Emblem, slugify } from '@/components/Emblem'
 import { SheetNav } from '@/components/SheetNav'
 import { RouteSpecimen } from '@/components/RouteSpecimen'
 import { routeProgress, aggregateRoutes } from '@/lib/progress'
@@ -65,9 +64,13 @@ export default async function SubjectPage({
             </p>
           </div>
 
+          {/* The subject's own plate is the growing specimen now, not a
+              second static emblem stacked above it: on its own sheet the
+              title and the band's ink already name the subject, so the
+              right of the band is given to the one thing that changes —
+              how far the bed has been worked. */}
           <div className={styles.headAside}>
-            <Emblem slug={slugify(subject.title)} colour="rgba(239,231,214,0.16)" size={72} />
-            <RouteSpecimen progress={routes} ink={subject.colour} label="Worked" />
+            <RouteSpecimen progress={routes} ink={subject.colour} />
           </div>
         </div>
 
