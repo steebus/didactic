@@ -652,8 +652,31 @@ to `0` so staggered entrances arrive without travelling.
 
 ## 8. Reading and Marking
 
-Three objects that belong to a lesson rather than to a listing, added after the
-first eight sections were written.
+What belongs to a lesson rather than to a listing, added after the first eight
+sections were written and extended since.
+
+### Contents
+
+A lesson opens with what it is made of: a ruled band at the head of the sheet,
+set in the label register, in two columns where there is room for them.
+
+| Part | Treatment |
+| --- | --- |
+| Band | `1px solid var(--rule)` top and bottom, `--space-3` padding, `--space-5` clear beneath. Not a sidebar. |
+| Label | The label register (§2): `--step--2`, `600`, `0.1em`, uppercase, `--ink-faint`. |
+| Entry | `--step--1` at `1.4`, `break-inside: avoid` in a two-column run with a `--space-5` gutter. One column below `40rem`. |
+| Subsection | Stepped in `--space-3` and set in `--ink-faint`, so the shape of the lesson reads at a glance. |
+| Entry at rest / hover | No rule; `1px` bottom border in `--plate-mustard` on hover. |
+| Landing | `scroll-margin-top: var(--space-5)` on every prose heading, so a section arrives under the top of the window rather than jammed against it. |
+
+**Rule — the list and the sections it names are one reading.** The headings are
+parsed out of the markdown through the same block-stripping the renderer does,
+and the ids stamped on the rendered headings come from that same list in that
+same order. Two sections of one name are numbered apart rather than left to
+collide. Nothing is derived twice, so the list and the page cannot disagree.
+
+**Rule — a contents list shorter than two entries is not a contents list.**
+Below that it is longer than what it lists, and it is not printed.
 
 ### Lesson blocks
 
@@ -706,6 +729,86 @@ regenerable. When a rewritten body no longer contains the words, the sheet
 prints `n no longer in this text` rather than a count that disagrees with the
 page.
 
+**Rule — a mark with no passage is a note on the lesson, and says so.** It is a
+mark like any other — same topic, same search, same weight — with nothing to
+draw it back onto. Everywhere marks are printed, an empty quote prints
+`A note on this lesson` in the label register rather than an empty blockquote
+with a mustard rule down the side of it.
+
+### Making a mark
+
+The furniture that puts a mark on the page: what offers to keep a passage, and
+where the panel that keeps it stands.
+
+| Part | Treatment |
+| --- | --- |
+| The offer | `Add mark`, in the label register on `--plate-green`, `min-height: 2.5rem`, `0 4px 14px rgba(36,29,22,0.3)`. Placed below the selection: the phone draws its own callout above one. |
+| The note button | `2.75rem` square on `--plate-green`, hovering to `--plate-terracotta`, riding the sheet's right edge on a zero-height `position: sticky` line at `bottom: var(--space-5)`. |
+| The opener | `2rem` square, quiet until hovered, at the head of any panel. Four corners pointing out, or the same four pointing in. |
+
+| Panel state | Where it stands |
+| --- | --- |
+| Against the passage | Measured from the selection, below it unless the window would cut the panel off, held inside the sheet horizontally. |
+| Docked | Across the foot of the screen below `40rem`; at the corner of the window above it (`inset: auto var(--space-5) var(--space-5) auto`). Every panel on a phone, and at any width the panel that was opened against nothing. |
+| Open out | A page of its own: `inset: 0 0 0 auto` at `--notes-width` (`min(28rem, 42vw)`), full height, beside the reading. Below `40rem` there is no beside, so it takes all but the top `12dvh`. |
+
+**Rule — nothing opens on its own under a finger.** A phone selects by
+long-press and then hands the reader pins to widen the selection with, and
+dragging those pins sends the page no events at all. A panel that opened on the
+first settled selection took the passage over while it was still one word long.
+Touch gets the offer floated beside the selection instead, and the selection
+stays the reader's until they take it. A mouse still opens the panel on the
+release, because a release is a decision.
+
+**Rule — anything measured against the window hangs off the body.** Every sheet
+arrives under an animation on `main` (§7), and an animation that touches
+`transform` leaves `main` the containing block for everything fixed inside it —
+so a docked panel came to rest at the foot of the article rather than the foot
+of the screen. The offer, the docked panel and the opened-out notes are
+therefore rendered into `document.body`. A panel measured against the prose is
+not: it belongs to the sheet it was measured in. The note button is sticky
+rather than fixed for the same reason from the other side — sticky is not caught
+by the transform, and needs no measuring.
+
+**Rule — a maximised note is beside the reading, not over it.** The sheet gives
+up the strip the notes stand in (`body[data-notes='open']` takes
+`padding-right: var(--notes-width)`), rather than being covered by them. That is
+the difference between a panel over the page and a notebook open next to it, and
+it is stated on the body because the reading is `main` and cannot narrow itself.
+The width is one token, so the column and the room made for it cannot drift
+apart.
+
+### The note editor
+
+A box you can bold things in, at every size the panel takes.
+
+| Part | Treatment |
+| --- | --- |
+| Field | `--paper-deep` on `1px solid var(--paper-edge)`; `2px solid var(--plate-green)` inset on `focus-within`. The house field. |
+| Controls | `2rem` minimum, parted from the writing by nothing but their own row. `B` and `I` in the display face; both lists drawn, never set as glyphs. |
+| A mark the cursor stands in | `--plate-green` ground, `--paper` glyph — pressed, in the ink of the sheet rather than a colour of its own. |
+| The writing | `1rem`, flat: below 16px a phone zooms the page to meet the field and leaves the reader scrolled away from what they were marking. |
+| Opened out | The box takes the height the controls and the buttons leave, and scrolls on its own. The panel never scrolls; the writing does. |
+
+**Rule — the box shows the note as it will read.** What is typed is drawn in the
+box with the same marks, spacing and list indents it will carry on the lesson,
+the topic sheet and the marked sheet. There is no preview, because there is
+nothing to preview.
+
+**Rule — a note is kept as markdown, not as what the box produced.** The search
+column indexes the note verbatim, and a note kept as HTML fills that index with
+its own tags. Keeping it as text also means one pipeline renders both a lesson
+and a note, and that every note written before the editor existed is already
+valid markdown with nothing to migrate.
+
+**Rule — a note is allowed less than a lesson.** The same sanitiser, a much
+shorter allowlist: emphasis, lists, links, code. No headings and no tables — a
+remark that needs an `<h2>` is a lesson.
+
+**Rule — a paste is taken as words.** The clipboard arrives as `text/plain`,
+because a paste out of another page carries its styling, its links and whatever
+else was in it.
+
 ### The galley
 
 What a sheet shows while it waits. Type being set: ruled slugs at the measure
@@ -746,7 +849,7 @@ Four breakpoints, each with a stated reason:
 | --- | --- |
 | `60rem` | The spread collapses to one column; the margin unsticks and moves its rule to the top. |
 | `48rem` | Sheet body padding steps `--space-5` → `--space-4`. |
-| `40rem` | The stock row stops being a table row and becomes a stacked card; leader dots are dropped; the graph panel becomes a bottom sheet; the graph canvas inset grows to `7.5rem` for the wrapped control strip; loose stock goes single-column. |
+| `40rem` | The stock row stops being a table row and becomes a stacked card; leader dots are dropped; the graph panel becomes a bottom sheet; the graph canvas inset grows to `7.5rem` for the wrapped control strip; loose stock goes single-column; the contents list goes single-column; every mark panel docks across the foot of the screen, and an opened-out note takes all but the top `12dvh` instead of standing beside the reading. |
 
 **Rule — below 40rem a table row becomes a card, it does not shrink.** The
 three-column grid cannot survive 390px without wrapping titles into their own
@@ -768,6 +871,15 @@ Recorded because the document is a description, not a defence.
   restores Sigma's default camera rather than computing the planting's bounding
   box, so beds can sit off-centre when the layout spreads them unevenly. Named as
   a `ponytail:` comment in `GraphCanvas.tsx`.
+- **The note editor is driven by `document.execCommand`.** Deprecated for years
+  and implemented by every browser, because the alternative is writing a text
+  editor. For four commands over a paragraph or two it is the right amount of
+  machinery, and `NoteEditor.tsx` is the only thing that would have to change
+  if it ever goes.
+- **A break inside a note becomes a paragraph.** Markdown's own hard break is
+  two trailing spaces, which no editor preserves and no reader can see, so the
+  serialiser parts paragraphs instead of keeping a line break the note cannot
+  say.
 - **No dark mode**, by construction. See §1.
 - **Screenshots in `.impeccable/review/` are stale** — they predate several
   surfaces and the rename of clusters/nodes to subjects/topics. The code is
