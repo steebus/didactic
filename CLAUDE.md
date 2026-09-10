@@ -14,3 +14,14 @@ Say what was pushed, in the first line of the reply rather than the last.
 
 The exceptions are the ordinary ones: work the user has said to hold, and
 anything they would want to see before it is live.
+
+# The second front end
+
+A React Native edition on the same backend, in a monorepo, is planned and
+documented under `docs/monorepo/`. Start at `docs/monorepo/README.md`;
+the execution plan is `docs/monorepo/PLAN.md` and the parity record is
+`docs/monorepo/PARITY.md`. Until Phase 1 of that plan lands, this
+repository is still the web app alone and everything above applies as
+written. Any change to what a user can see or do should move its row in
+the parity record in the same commit; the `parity` skill checks a diff
+against it.
