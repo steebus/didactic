@@ -189,6 +189,37 @@
   color: var(--ink-faint);
 }
 
+/* The reorder toggle is a mode: full-strength ink at rest, stamped in
+   mustard when it is on, so it does not read as more of the note. */
+.editToggle {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: var(--ink);
+  background: none;
+  border: none;
+  border-bottom: 2px solid var(--plate-mustard);
+  padding: 0 0 2px;
+  cursor: pointer;
+}
+
+.editToggle[aria-pressed='true'] {
+  background: var(--plate-mustard);
+  color: var(--ink);
+  border-bottom-color: transparent;
+  padding: 0.1em 0.45em;
+}
+
+.editToggle:hover {
+  color: var(--plate-terracotta);
+  border-bottom-color: var(--plate-terracotta);
+}
+
+.editToggle[aria-pressed='true']:hover {
+  background: var(--plate-terracotta);
+  color: var(--paper);
+}
+
 /* --- Tiers and lessons ------------------------------------------ */
 
 .tier {

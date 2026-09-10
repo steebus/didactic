@@ -294,65 +294,64 @@
   color: var(--ink-faint);
 }
 
-/* The route chip: the third channel, printed as a stock table prints a
-   flag. The word is the carrier; the colour and the mark beside it are
-   redundant, so it survives a monochrome screen. */
+/* The route chip: the third channel, printed as a stamp on its own line
+   under the title. The word is the carrier; the fill or outline is a
+   redundant second reading, so it survives a monochrome screen. A route
+   being worked is stamped in full ink and reads first; a bed with no
+   route yet is a quiet outline that recedes. */
 .route {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
+  align-items: baseline;
   gap: var(--space-2);
+  width: max-content;
+  max-width: 100%;
   margin-top: var(--space-2);
-  font-size: var(--step--2);
-  letter-spacing: 0.1em;
+  padding: 0.15em 0.5em;
+  font-size: var(--step--1);
+  font-weight: 600;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ink-soft);
 }
 
-/* A solid tick that fills as the route is worked; hollow when there is no
-   route at all, so an empty plan reads differently from a started one
-   without leaning on colour. */
-.routeMark {
-  width: 0.5rem;
-  height: 0.5rem;
-  border: 1px solid currentColor;
-  background: currentColor;
-  flex: none;
+.routeLabel {
+  white-space: nowrap;
 }
 
 .routeCount {
   font-family: var(--font-display);
   font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: 0;
-  color: var(--ink);
+  /* The figure is the same ink as the stamp it sits in. */
+  color: inherit;
 }
 
-.route[data-route='no-route'] {
-  color: var(--ink-faint);
-}
-
-.route[data-route='no-route'] .routeMark {
-  background: none;
-}
-
-.route[data-route='drafted'] {
-  color: var(--plate-terracotta);
-}
-
-.route[data-route='unstarted'] {
-  color: var(--ink-soft);
-}
-
-.route[data-route='unstarted'] .routeMark {
-  /* Ground prepared, nothing worked: the tick is only an outline. */
-  background: none;
+/* Filled, loud: the two states that mean work is happening or done. */
+.route[data-route='worked'] {
+  background: var(--plate-green);
+  color: var(--paper);
 }
 
 .route[data-route='in-progress'] {
-  color: var(--plate-mustard);
+  background: var(--plate-mustard);
+  color: var(--ink);
 }
 
-.route[data-route='worked'] {
-  color: var(--plate-green);
+/* Outlined, quiet: a plan exists or is proposed, but nothing is worked. */
+.route[data-route='unstarted'] {
+  border: 1px solid var(--rule-strong);
+  color: var(--ink-soft);
+}
+
+.route[data-route='drafted'] {
+  border: 1px solid var(--plate-terracotta);
+  color: var(--plate-terracotta);
+}
+
+/* No route at all: the quietest, an outline in the faint ink so an empty
+   topic sits back from one that has a plan. */
+.route[data-route='no-route'] {
+  border: 1px solid var(--rule);
+  color: var(--ink-faint);
 }
 
 .topicFigures {
@@ -848,6 +847,37 @@
 
 .sortButton:hover {
   opacity: 1;
+}
+
+/* The edit toggle is a mode, not a reading, so it is set apart from the
+   two sorts: full-strength ink, and stamped in mustard when it is on. */
+.editToggle {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: var(--ink);
+  background: none;
+  border: none;
+  border-bottom: 2px solid var(--plate-mustard);
+  padding: 0 0 2px;
+  cursor: pointer;
+}
+
+.editToggle[aria-pressed='true'] {
+  background: var(--plate-mustard);
+  color: var(--ink);
+  border-bottom-color: transparent;
+  padding: 0.1em 0.45em;
+}
+
+.editToggle:hover {
+  color: var(--plate-terracotta);
+  border-bottom-color: var(--plate-terracotta);
+}
+
+.editToggle[aria-pressed='true']:hover {
+  background: var(--plate-terracotta);
+  color: var(--paper);
 }
 
 /* --- Grubbing out ------------------------------------------------ */

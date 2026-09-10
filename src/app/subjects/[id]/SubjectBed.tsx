@@ -42,6 +42,10 @@ export function SubjectBed({
   related: number
 }) {
   const [sort, setSort] = useState<'outline' | 'condition'>('outline')
+  // Editing is off by default: taking a topic out of a bed is a rare,
+  // deliberate act, and a "Remove" against every row read as an
+  // invitation to prune a map that is mostly meant to be read.
+  const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState('')
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<string | null>(null)
@@ -224,6 +228,18 @@ export function SubjectBed({
               >
                 condition
               </button>
+              {'  ·  '}
+              {/* A mode, not a sort: it turns the row's edit controls on
+                  rather than reordering the bed. Set apart from the two
+                  readings by weight so it does not read as a third one. */}
+              <button
+                type="button"
+                className={styles.editToggle}
+                aria-pressed={editing}
+                onClick={() => setEditing(e => !e)}
+              >
+                {editing ? 'Done' : 'Edit'}
+              </button>
             </>
           )}
         </span>
@@ -263,6 +279,7 @@ export function SubjectBed({
               node={node}
               depth={0}
               colour={colour}
+              editing={editing}
               onRemove={remove}
             />
           ))}
@@ -361,11 +378,13 @@ function TreeRow({
   node,
   depth,
   colour,
+  editing,
   onRemove,
 }: {
   node: TopicTreeNode
   depth: number
   colour: string
+  editing: boolean
   onRemove: (topic: SubjectTopicRow) => void
 }) {
   const { topic } = node
@@ -394,9 +413,11 @@ function TreeRow({
               awaiting your decision
             </Link>
           )}
+          {/* The route channel as a printed stamp: loud and filled where
+              a route is being worked, a quiet outline where there is none
+              yet, so the bed's active rows read first. */}
           <span className={styles.route} data-route={route.state}>
-            <span className={styles.routeMark} aria-hidden="true" />
-            {ROUTE_LABEL[route.state]}
+            <span className={styles.routeLabel}>{ROUTE_LABEL[route.state]}</span>
             {route.total > 0 && route.state !== 'drafted' && (
               <span className={styles.routeCount}>
                 {route.complete}/{route.total}
@@ -430,14 +451,16 @@ function TreeRow({
           <span className={styles.topicState}>{STOCK_LABEL[state]}</span>
         </div>
 
-        <button
-          type="button"
-          className={styles.remove}
-          onClick={() => onRemove(topic)}
-          aria-label={`Remove ${topic.title} from this subject`}
-        >
-          Remove
-        </button>
+        {editing && (
+          <button
+            type="button"
+            className={styles.remove}
+            onClick={() => onRemove(topic)}
+            aria-label={`Remove ${topic.title} from this subject`}
+          >
+            Remove
+          </button>
+        )}
       </div>
 
       {hasDetail && (
@@ -511,6 +534,7 @@ function TreeRow({
               node={child}
               depth={depth + 1}
               colour={colour}
+              editing={editing}
               onRemove={onRemove}
             />
           ))}

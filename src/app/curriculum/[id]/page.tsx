@@ -68,6 +68,9 @@ export default function CurriculumPage({
   // Bumped after every write. Re-reading is the effect's job, so the
   // mutation handlers never have to set the whole payload themselves.
   const [revision, setRevision] = useState(0)
+  // Reordering is off until asked for, so a draft reads as a route to
+  // work through rather than a row of controls to fiddle with.
+  const [editing, setEditing] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -202,7 +205,13 @@ export default function CurriculumPage({
   return (
     <main className={styles.sheet}>
       <header className={styles.head}>
-        <SheetNav />
+        <SheetNav
+          back={
+            topic
+              ? { href: `/topics/${topic.id}`, label: 'The topic' }
+              : { href: '/', label: 'Stock list' }
+          }
+        />
         <div className={styles.headRow}>
           <div>
             <p className={styles.eyebrow}>
@@ -217,9 +226,6 @@ export default function CurriculumPage({
             <h1 className={styles.title}>{curriculum.title}</h1>
           </div>
           <div className={styles.headAside}>
-            <Link href={topic ? `/topics/${topic.id}` : '/'} className={styles.back}>
-              Back to the topic
-            </Link>
             <RouteSpecimen progress={route} ink="var(--plate-ultramarine)" />
           </div>
         </div>
@@ -282,7 +288,22 @@ export default function CurriculumPage({
         <section>
           <div className={styles.sectionHead}>
             <h2 className={styles.sectionTitle}>Lessons</h2>
-            <span className={styles.sectionNote}>Introductory to advanced</span>
+            <span className={styles.sectionNote}>
+              Introductory to advanced
+              {draft && lessons.length > 1 && (
+                <>
+                  {'  ·  '}
+                  <button
+                    type="button"
+                    className={styles.editToggle}
+                    aria-pressed={editing}
+                    onClick={() => setEditing(e => !e)}
+                  >
+                    {editing ? 'Done' : 'Reorder'}
+                  </button>
+                </>
+              )}
+            </span>
           </div>
 
           {lessons.length === 0 ? (
@@ -321,11 +342,11 @@ export default function CurriculumPage({
                             {view.lesson.created_by === 'user' && ' · yours'}
                           </p>
                         </div>
-                        {/* Reordering belongs to the draft: once a
-                            curriculum is yours and lessons are being
-                            worked, shuffling the order is disruptive
-                            rather than useful. */}
-                        {draft && (
+                        {/* Reordering belongs to the draft, and only when
+                            asked for: once a curriculum is yours and
+                            lessons are being worked, shuffling the order is
+                            disruptive rather than useful. */}
+                        {draft && editing && (
                           <span className={styles.reorder}>
                             <span className={styles.reorderLabel}>Order</span>
                             <button

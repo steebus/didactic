@@ -1,28 +1,30 @@
 /* The running head: printed into the masthead band, so it reads as part
    of the sheet rather than a floating toolbar.
 
-   Two rows by construction. The sheets are a fixed set and sit on the
-   first; the way back is one item and sits beneath them. They used to
-   share a line — back link left, sheets pushed right by an auto margin
-   — and a long label broke the row into a ragged second line that read
-   as an accident rather than a decision. */
+   The way back sits top-left, where a reader looks first to leave; the
+   fixed set of sheets keeps the right. They share one row and wrap to a
+   second only when the width genuinely runs out. */
 
 .nav {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--space-2);
+  flex-direction: row;
+  align-items: baseline;
+  gap: var(--space-3) var(--space-5);
+  flex-wrap: wrap;
   font-size: var(--step--2);
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
+/* The sheets take the right whether or not a back link is present, so
+   the head reads the same from page to page. */
 .sheets {
   display: flex;
   align-items: baseline;
   gap: var(--space-4);
   flex-wrap: wrap;
   justify-content: flex-end;
+  margin-left: auto;
 }
 
 .sheet {
@@ -158,9 +160,10 @@
 }
 
 @media (max-width: 40rem) {
-  /* On a phone the head reads left to right like the rest of the
-     sheet, and the sheets wrap rather than being pushed to an edge. */
+  /* On a phone the head stacks: the way back on top, the sheets beneath
+     it, both reading from the left like the rest of the sheet. */
   .nav {
+    flex-direction: column;
     align-items: flex-start;
     gap: var(--space-3);
   }
@@ -168,6 +171,7 @@
   .sheets {
     gap: var(--space-3);
     justify-content: flex-start;
+    margin-left: 0;
   }
 
   .leave {
