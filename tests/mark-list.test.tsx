@@ -52,6 +52,9 @@ beforeEach(() => {
     addListener: () => {}, removeListener: () => {}, dispatchEvent: () => false,
   })) as unknown as typeof window.matchMedia
   Element.prototype.scrollIntoView = vi.fn()
+  // Only the timers: React schedules its own work through microtasks,
+  // and faking those stalls the renderer rather than the page.
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
@@ -60,6 +63,7 @@ beforeEach(() => {
 afterEach(() => {
   act(() => root.unmount())
   container.remove()
+  vi.useRealTimers()
   vi.restoreAllMocks()
 })
 
@@ -84,6 +88,19 @@ const tally = () =>
 const press = (el: Element) =>
   act(() => {
     el.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
+
+/**
+ * The list leaves under its own animation, so it is still on the page
+ * until it has finished going.
+ *
+ * In a browser that is the animation ending; here it is the backstop
+ * the component keeps for the case where the animation never runs at
+ * all, which is exactly the case a headless DOM is in.
+ */
+const finishLeaving = () =>
+  act(() => {
+    vi.advanceTimersByTime(900)
   })
 
 describe('opening the list', () => {
@@ -112,12 +129,28 @@ describe('opening the list', () => {
     render()
     press(tally())
     press(tally())
+    // Still there while it goes, and gone once it has gone.
+    expect(list()).not.toBeNull()
+    finishLeaving()
     expect(list()).toBeNull()
 
     press(tally())
     act(() => {
       document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
     })
+    finishLeaving()
+    expect(list()).toBeNull()
+  })
+
+  it('leaves under its own animation rather than vanishing', () => {
+    render()
+    press(tally())
+    press(tally())
+    expect(list()).not.toBeNull()
+    // The tally stops claiming the list is open the moment it starts
+    // going, rather than when it has gone.
+    expect(tally().getAttribute('aria-expanded')).toBe('false')
+    finishLeaving()
     expect(list()).toBeNull()
   })
 
@@ -198,24 +231,38 @@ describe('editing and removing from the list', () => {
     expect(JSON.parse(init.body).id).toBe('first')
   })
 
-  it('removes the mark, and stops drawing it at once', async () => {
-    const fetched = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: true }) })
+  it('removes the mark, and the wash on the words, without waiting for the server', () => {
+    // The request never answers: what is under test is that the page
+    // does not wait for it.
+    const fetched = vi.fn().mockReturnValue(new Promise(() => {}))
     vi.stubGlobal('fetch', fetched)
     render()
     press(tally())
     expect(container.querySelectorAll('mark[data-mark]').length).toBe(2)
 
-    const row = rows()[0]
-    await act(async () => {
-      Array.from(row.querySelectorAll('button'))
-        .find(b => b.textContent === 'Remove')!
-        .dispatchEvent(new MouseEvent('click', { bubbles: true }))
-    })
+    press(
+      Array.from(rows()[0].querySelectorAll('button')).find(b => b.textContent === 'Remove')!
+    )
 
     const [, init] = fetched.mock.calls[0]
     expect(init.method).toBe('DELETE')
     expect(rows().length).toBe(2)
     expect(container.querySelectorAll('mark[data-mark]').length).toBe(1)
+  })
+
+  it('puts the mark back when the server refuses to remove it', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }))
+    render()
+    press(tally())
+
+    await act(async () => {
+      Array.from(rows()[0].querySelectorAll('button'))
+        .find(b => b.textContent === 'Remove')!
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    expect(rows().length).toBe(3)
+    expect(container.textContent).toContain('was not removed')
   })
 })
 
@@ -270,6 +317,7 @@ describe('asking for the list with a finger', () => {
     swipe(320, 120)
     expect(list()).not.toBeNull()
     swipe(120, 320)
+    finishLeaving()
     expect(list()).toBeNull()
   })
 
@@ -278,6 +326,7 @@ describe('asking for the list with a finger', () => {
     swipe(320, 120, 200)
     expect(list()).not.toBeNull()
     swipe(120, 320, 200)
+    finishLeaving()
 
     // A scroll: across a little, down a lot.
     swipe(320, 220, 100, 400)

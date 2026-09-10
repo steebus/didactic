@@ -19,18 +19,25 @@ import styles from './MarkList.module.css'
  */
 export function MarkList({
   marks,
+  leaving,
   onTravel,
   onSave,
   onRemove,
   onClose,
+  onGone,
 }: {
   /** Already in reading order. */
   marks: Mark[]
+  /** On its way out: it draws itself leaving, and says when it has. */
+  leaving?: boolean
   /** Travel to the passage in the lesson. */
   onTravel: (id: string) => void
   onSave: (id: string, note: string) => Promise<void>
-  onRemove: (id: string) => Promise<void>
+  /** Removal is not waited on -- the mark leaves the page at once and
+   *  is written down behind the reader. */
+  onRemove: (id: string) => void
   onClose: () => void
+  onGone: () => void
 }) {
   const [editing, setEditing] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
@@ -50,21 +57,21 @@ export function MarkList({
     }
   }
 
-  async function remove(id: string) {
-    setBusy(true)
-    setError(null)
-    try {
-      await onRemove(id)
-      if (editing === id) setEditing(null)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not remove that.')
-    } finally {
-      setBusy(false)
-    }
+  function remove(id: string) {
+    if (editing === id) setEditing(null)
+    onRemove(id)
   }
 
   return (
-    <aside className={styles.list} aria-label="What you have marked in this lesson">
+    <aside
+      className={leaving ? `${styles.list} ${styles.leaving}` : styles.list}
+      aria-label="What you have marked in this lesson"
+      // It is gone when it has finished going. Its own animation only:
+      // a row inside it flashing is not the list leaving.
+      onAnimationEnd={e => {
+        if (leaving && e.target === e.currentTarget) onGone()
+      }}
+    >
       <div className={styles.head}>
         <p className={styles.title}>
           Marked here
@@ -149,7 +156,6 @@ export function MarkList({
                         type="button"
                         className={`${styles.quiet} ${styles.destructive}`}
                         onClick={() => remove(mark.id)}
-                        disabled={busy}
                       >
                         Remove
                       </button>

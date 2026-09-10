@@ -25,6 +25,23 @@
   }
 }
 
+/* And leaves the way it came. A panel that vanishes has not closed, it
+   has been taken away: the column is wide enough that its going is
+   worth seeing, and the sheet takes its width back as it goes. */
+.leaving {
+  animation: slideOut var(--dur-state) var(--ease-exit) both;
+  /* Nothing on the way out is worth pressing, and a stuck panel must
+     not sit invisibly over the reading. */
+  pointer-events: none;
+}
+
+@keyframes slideOut {
+  to {
+    transform: translateX(calc(var(--motion-travel) * 1.5rem));
+    opacity: 0;
+  }
+}
+
 .head {
   display: flex;
   align-items: baseline;
@@ -231,6 +248,13 @@
 
   @keyframes slideIn {
     from {
+      transform: translateX(100%);
+    }
+  }
+
+  /* Off the edge it came in over, rather than a hand's width sideways. */
+  @keyframes slideOut {
+    to {
       transform: translateX(100%);
     }
   }

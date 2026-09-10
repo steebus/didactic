@@ -685,9 +685,9 @@ Below that it is longer than what it lists, and it is not printed.
 ### Lesson blocks
 
 A lesson body is markdown, and markdown turns anything that is really a shape or
-a question into a paragraph about one. Four blocks answer that: `chart`,
-`check`, `compare`, `steps`. Each is a fenced region whose body is JSON, lifted
-out before the markdown is parsed.
+a question into a paragraph about one. Six blocks answer that: `chart`, `check`,
+`compare`, `steps`, `flow` and `picture`. Each is a fenced region whose body is
+JSON, lifted out before the markdown is parsed.
 
 **Rule — a block reads values, never markup.** The payload is written by a
 model, so it never reaches the HTML pipeline: a component we wrote decides how
@@ -710,6 +710,30 @@ reader, a printer, and anyone who would rather read it than a picture of it.
 
 **Rule — a plot scrolls rather than compresses.** `min-width: 22rem` inside an
 `overflow-x: auto` wrapper. Below that width a chart is a smear.
+
+| Part | Treatment |
+| --- | --- |
+| Flow step | A `--paper` box on a `1px` rule with a `3px` left tab in `--plate-green`, `max-width: 26rem`, centred, joined to the next by a `1px` rule down the middle. |
+| A step that parts | The same box with a `--plate-mustard` tab: the catalogue's colour for a decision to be made. |
+| Branch lanes | Side by side under a `1px` rule, each headed by its label in the label register. Stacked below `40rem`. |
+| Picture | Printed like a plate: `--paper` ground, `1px solid var(--paper-edge)`, `max-height: 60vh` with `object-fit: contain`. Credit under it in the label register, linked to where it lives. |
+
+**Rule — a flow is drawn in the sheet's furniture, not as a picture of a
+flowchart.** Boxes, rules and lanes, because a lane that stacks on a phone still
+reads as a flow and an SVG of routed arrows does not. A branch that leads
+somewhere else in the flow *says where it goes* rather than dragging a line
+across the drawing to get there.
+
+**Rule — a picture is pointed at, never kept.** Nothing is uploaded, copied,
+cached or optimised: optimising it would mean fetching it through this app,
+which is hosting it by another name. Two consequences are designed for rather
+than hidden. The picture may not be there — a model cannot check a link — so a
+picture that will not load is not an error state: the block prints what the
+picture was of, keeps the caption that said the thing the picture was there to
+say, and links out for anyone who wants to try. And fetching it tells its host
+that somebody is reading; the request goes out `referrerPolicy="no-referrer"`,
+so the host learns that a browser asked, not which page asked. A picture with no
+`alt` is not drawn at all.
 
 ### Marks
 
@@ -933,6 +957,11 @@ Recorded because the document is a description, not a defence.
   two trailing spaces, which no editor preserves and no reader can see, so the
   serialiser parts paragraphs instead of keeping a line break the note cannot
   say.
+- **A picture in a lesson is somebody else's, and may not be there.** §8. The
+  writing agent is told to write the paragraph instead where it is not sure the
+  address is real, but it cannot check one, and a link that worked in March can
+  be gone in June. The block is built to fail readably rather than to promise
+  the picture will hold.
 - **No dark mode**, by construction. See §1.
 - **No reduced-motion guard**, by decision rather than by oversight. See §7.
 - **Screenshots in `.impeccable/review/` are stale** — they predate several

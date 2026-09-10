@@ -95,6 +95,48 @@ export const BLOCKS: BlockSpec[] = [
   ]
 }`,
   },
+  {
+    name: 'flow',
+    when:
+      'the reader has to decide something and the decision has branches -- which tool to reach for, what to do when a check fails. A sequence with no decision in it is `steps`, not this',
+    example: `{
+  "title": "Which measurement to reach for",
+  "steps": [
+    { "text": "Something is slow" },
+    {
+      "text": "Do you know which page?",
+      "branches": [
+        {
+          "label": "Yes",
+          "steps": [
+            { "text": "Run Lighthouse on it", "detail": "A prioritised list of what is likely wrong." }
+          ]
+        },
+        {
+          "label": "No",
+          "steps": [
+            { "text": "Read the field data first", "detail": "Real visits say which page to open." },
+            { "text": "Then run Lighthouse on that page" }
+          ]
+        }
+      ]
+    },
+    { "text": "Confirm it on a realistic connection", "detail": "Yours is faster than your readers'." },
+    { "text": "Open DevTools on the one request that is slow" }
+  ]
+}`,
+  },
+  {
+    name: 'picture',
+    when:
+      'the thing has to be seen to be understood -- a diagram, a photograph of the object itself -- AND you know a real, stable https address for it. The picture is not copied or hosted here, only pointed at, so a guessed address is a blank space in the lesson: if you are not sure the address is real, write the paragraph instead',
+    example: `{
+  "url": "https://upload.wikimedia.org/wikipedia/commons/2/2c/Bean_seed_diagram.svg",
+  "alt": "A bean seed cut lengthways, with the seed coat, cotyledon, plumule and radicle labelled",
+  "caption": "The radicle is the first thing out, and the cotyledon is the packed lunch it lives on until there are leaves.",
+  "source": "Wikimedia Commons"
+}`,
+  },
 ]
 
 /** Fence for a block of this name, at the start of a line. */

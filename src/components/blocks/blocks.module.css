@@ -335,3 +335,152 @@
   color: var(--ink-soft);
   line-height: 1.5;
 }
+
+/* --- A flow ------------------------------------------------------- */
+
+/* Boxes down the page with a rule between them, and a parting drawn as
+   two lanes side by side that come back together underneath. Drawn in
+   the sheet's own furniture rather than as a picture of a flowchart:
+   the lanes stack on a phone and it still reads as a flow. */
+.flow {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.flowPart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.flowBox {
+  width: 100%;
+  max-width: 26rem;
+  padding: var(--space-2) var(--space-3);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  /* The tell of a step, on the side where a plate's tab would be. */
+  border-left: 3px solid var(--plate-green);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* A step that parts is asking something, and is stamped in the colour
+   the catalogue uses for a decision to be made. */
+.flowAsk {
+  border-left-color: var(--plate-mustard);
+}
+
+.flowText {
+  font-size: var(--step-0);
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.flowDetail {
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+/* The rule from one step to the next. */
+.flowJoin {
+  width: 1px;
+  height: var(--space-4);
+  background: var(--rule-strong);
+}
+
+.flowBranches {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  width: 100%;
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  /* The rule the branches hang from, so the parting is visible before
+     the labels are read. */
+  border-top: 1px solid var(--rule);
+}
+
+.flowBranch {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.flowLabel {
+  margin: 0 0 var(--space-2);
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* A branch that leaves the drawing says where it goes rather than
+   dragging a line across the page to get there. */
+.flowGoes {
+  margin: var(--space-2) 0 0;
+  font-size: var(--step--1);
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 40rem) {
+  /* No side by side on a phone: the lanes stack, each still labelled,
+     which is the same flow read one branch at a time. */
+  .flowBranches {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+}
+
+/* --- A picture ---------------------------------------------------- */
+
+/* Somebody else's picture, on somebody else's server. It is printed on
+   the sheet like a plate: white ground, ruled edge, credit under it. */
+.picture {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* Tall pictures are common and a lesson is not a gallery. */
+  max-height: 60vh;
+  object-fit: contain;
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+}
+
+.pictureCaption {
+  margin-top: var(--space-2);
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.pictureCredit {
+  font-size: var(--step--2);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.pictureGone {
+  margin: 0;
+  font-size: var(--step--1);
+  line-height: 1.5;
+  font-style: italic;
+  color: var(--ink-faint);
+}
+
+.pictureLink {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--plate-mustard);
+  text-underline-offset: 0.15em;
+}

@@ -88,6 +88,10 @@ export function Highlighter({
   /** The marks the page managed to draw, in the order they are read. */
   const [drawn, setDrawn] = useState<string[]>([])
   const [listing, setListing] = useState(false)
+  /** The list is on its way out. It stays on the page until it has
+   *  finished going: a panel that vanishes has not closed, it has been
+   *  taken away. */
+  const [leaving, setLeaving] = useState(false)
 
   const narrow = useNarrow()
   const [big, setBig] = useState(remembered)
@@ -461,7 +465,7 @@ export function Highlighter({
         window.getSelection()?.removeAllRanges()
         return
       }
-      setListing(false)
+      showMarks(false)
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
@@ -517,12 +521,52 @@ export function Highlighter({
    * Said on the body because the reading is `main`, and a component
    * inside the sheet cannot narrow the sheet it is inside of.
    */
+  /**
+   * Ask for the list, or send it away. Everything that opens or shuts
+   * it goes through here, so it only ever leaves one way.
+   *
+   * Neither half reads the current state, which is what lets the swipe
+   * call it: that listener is registered once and would otherwise hold
+   * whatever `listing` was when it was, and a swipe back would find a
+   * list that had been shut since the page loaded. Sending away a list
+   * that is already away costs one timer and changes nothing.
+   */
+  function showMarks(next: boolean) {
+    if (next) {
+      setLeaving(false)
+      setListing(true)
+    } else {
+      setLeaving(true)
+    }
+  }
+
+  /** It has finished going. */
+  function listGone() {
+    setListing(false)
+    setLeaving(false)
+  }
+
   // One strip of the window, and one thing standing in it: a panel
   // opened out takes the column, and the list yields until it closes
   // rather than the two drawing over each other.
   const writing = big && Boolean(pending || open)
   const showList = listing && !writing
-  const columnOpen = writing || showList
+  // The sheet takes its width back as the list slides out rather than
+  // after it, so the two movements are one.
+  const columnOpen = writing || (showList && !leaving)
+  /** Open, as against on its way out: what the controls say, and what
+   *  pressing one of them does next. */
+  const open_ = showList && !leaving
+
+  // However the list goes, it is gone by the end of its own animation.
+  // The timer is the backstop: an animation that never runs -- a tab in
+  // the background, a browser that skipped it -- must not leave a panel
+  // on the page that the reader has already dismissed.
+  useEffect(() => {
+    if (!leaving) return
+    const timer = setTimeout(listGone, 800)
+    return () => clearTimeout(timer)
+  }, [leaving])
 
   useEffect(() => {
     if (!columnOpen) return
@@ -567,8 +611,8 @@ export function Highlighter({
       ) {
         return
       }
-      if (across <= -SWIPE.far) setListing(true)
-      else if (across >= SWIPE.far) setListing(false)
+      if (across <= -SWIPE.far) showMarks(true)
+      else if (across >= SWIPE.far) showMarks(false)
     }
 
     document.addEventListener('touchstart', start, { passive: true })
@@ -594,7 +638,7 @@ export function Highlighter({
       `[data-mark="${typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(id) : id}"]`
     )
     if (!piece) return
-    if (narrow) setListing(false)
+    if (narrow) showMarks(false)
     piece.scrollIntoView({ behavior: 'smooth', block: 'center' })
     // Arriving somewhere in the middle of a page of prose, the mark
     // says which of the words on it was the one asked for.
@@ -622,17 +666,38 @@ export function Highlighter({
     onChanged?.()
   }
 
-  /** Remove a mark from the list beside the reading. */
-  async function removeMark(id: string) {
-    const res = await fetch('/api/highlights', {
-      method: 'DELETE',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ id }),
-    })
-    if (!res.ok) throw new Error('Could not remove that.')
+  /**
+   * Remove a mark, from the list and from the words it was drawn on.
+   *
+   * Taken off the page first and written down behind the reader, the
+   * way keeping one is: removing a mark drops a row, rewrites an
+   * exposure and recomputes the topic's figure, and none of that is
+   * work anyone is waiting on. A failure puts the mark back rather than
+   * leaving the page saying something the server does not.
+   */
+  function removeMark(id: string) {
     setGone(g => [...g, id])
+    setLost(null)
     if (open?.mark.id === id) setOpen(null)
-    onChanged?.()
+
+    void (async () => {
+      try {
+        const res = await fetch('/api/highlights', {
+          method: 'DELETE',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ id }),
+        })
+        if (!res.ok) throw new Error('Could not remove that.')
+        onChanged?.()
+      } catch (e) {
+        setGone(g => g.filter(x => x !== id))
+        setLost(
+          `That mark was not removed: ${
+            e instanceof Error ? e.message : 'something went wrong'
+          }. It is still here.`
+        )
+      }
+    })()
   }
 
   /** The control that opens the notes out to a page of their own. */
@@ -672,28 +737,30 @@ export function Highlighter({
           to keep in step with the layout. */}
       {!pending && !open && !offer && (
         <div className={styles.desk}>
-          {marks.length > 0 && (
+          <div className={styles.deskStack}>
+            {marks.length > 0 && (
+              <button
+                type="button"
+                className={`${styles.deskNote} ${styles.deskQuiet}`}
+                onClick={() => showMarks(!open_)}
+                aria-label="What you have marked in this lesson"
+                aria-expanded={open_}
+                title="What you have marked in this lesson"
+              >
+                <MarksIcon />
+                <span className={styles.deskTally}>{marks.length}</span>
+              </button>
+            )}
             <button
               type="button"
-              className={`${styles.deskNote} ${styles.deskQuiet}`}
-              onClick={() => setListing(l => !l)}
-              aria-label="What you have marked in this lesson"
-              aria-expanded={showList}
-              title="What you have marked in this lesson"
+              className={styles.deskNote}
+              onClick={noteOnLesson}
+              aria-label="Write a note on this lesson"
+              title="A note on this lesson"
             >
-              <MarksIcon />
-              <span className={styles.deskTally}>{marks.length}</span>
+              <NoteIcon />
             </button>
-          )}
-          <button
-            type="button"
-            className={styles.deskNote}
-            onClick={noteOnLesson}
-            aria-label="Write a note on this lesson"
-            title="A note on this lesson"
-          >
-            <NoteIcon />
-          </button>
+          </div>
         </div>
       )}
 
@@ -704,8 +771,8 @@ export function Highlighter({
         <button
           type="button"
           className={styles.count}
-          onClick={() => setListing(l => !l)}
-          aria-expanded={showList}
+          onClick={() => showMarks(!open_)}
+          aria-expanded={open_}
         >
           {passages > 0 && `${passages} ${passages === 1 ? 'passage' : 'passages'} marked here`}
           {passages > 0 && notes > 0 && ' · '}
@@ -731,10 +798,12 @@ export function Highlighter({
         float(
           <MarkList
             marks={inReadingOrder(marks, drawn)}
+            leaving={leaving}
             onTravel={travelTo}
             onSave={saveNoteFor}
             onRemove={removeMark}
-            onClose={() => setListing(false)}
+            onClose={() => showMarks(false)}
+            onGone={listGone}
           />
         )}
 

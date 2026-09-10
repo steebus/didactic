@@ -152,14 +152,20 @@
    would end up fixed to -- does not reach it. */
 .desk {
   position: sticky;
-  bottom: var(--space-5);
+  /* Clear of the phone's own bar at the foot of the screen. */
+  bottom: calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
   z-index: 4;
   height: 0;
 }
 
-/* Two buttons, stacked up the edge from the corner: the marks first
-   because it is the one asked for most, the note under the thumb. */
-.desk {
+/* Two buttons, stacked up from the corner rather than down from it.
+   The line they hang off has no height, so a column laid out in it
+   grows off the bottom of the window -- which is where the note button
+   went the moment the marks button was added above it. */
+.deskStack {
+  position: absolute;
+  right: 0;
+  bottom: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
