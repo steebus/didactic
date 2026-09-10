@@ -159,16 +159,3 @@
 .row .slug {
   flex: 1;
 }
-
-/* Reduced motion keeps the galley and drops the travel: the shape is
-   the information, the movement is only reassurance. */
-@media (prefers-reduced-motion: reduce) {
-  .slug::after,
-  .ellipsis span {
-    animation: none;
-  }
-
-  .ellipsis span {
-    opacity: 0.6;
-  }
-}

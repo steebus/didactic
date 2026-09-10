@@ -179,13 +179,3 @@
     padding-left: 0;
   }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .arrow {
-    transition: none;
-  }
-
-  .back:hover .arrow {
-    transform: none;
-  }
-}

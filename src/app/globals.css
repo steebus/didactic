@@ -208,8 +208,9 @@ body[data-notes='open'] {
   background: transparent;
 }
 
-/* The reduced-motion guard is deliberately off: this is a single-user
-   app and its owner asked for motion regardless of the OS setting.
+/* The reduced-motion guard is deliberately off, here and everywhere:
+   this is a single-user app and its owner asked for motion regardless
+   of the OS setting. No surface guards its own animation either.
    Everything spatial is still expressed through --motion-travel, so
    restoring the guard is one block:
 

@@ -640,13 +640,17 @@ of one needs the same treatment.
 
 **Rule — waiting moves, and the movement is never the information.** The galley
 (§4) inks up line by line and its ellipsis comes up in turn, but the *shape* of
-the galley is what tells the reader what is coming. Under
-`prefers-reduced-motion` both animations stop and the shape remains, which is
-the test for whether a loading state was designed or decorated.
+the galley is what tells the reader what is coming. Stop every animation on the
+page and the shape remains, which is the test for whether a loading state was
+designed or decorated — and the test is the design's to pass, not a media
+query's to answer.
 
-`prefers-reduced-motion: reduce` is honoured globally in `globals.css`, clamping
-animation and transition duration to `0.01ms` and flattening `--motion-travel`
-to `0` so staggered entrances arrive without travelling.
+**`prefers-reduced-motion` is not honoured, deliberately and everywhere.** This
+is a single-user app whose owner asked for motion regardless of the OS setting:
+there is no global guard, and no surface guards its own animation either.
+Everything spatial still runs through `--motion-travel`, so restoring it is one
+block — recorded in `globals.css`, where it would go — and that block belongs
+back the moment anyone else uses this.
 
 ---
 
@@ -881,6 +885,7 @@ Recorded because the document is a description, not a defence.
   serialiser parts paragraphs instead of keeping a line break the note cannot
   say.
 - **No dark mode**, by construction. See §1.
+- **No reduced-motion guard**, by decision rather than by oversight. See §7.
 - **Screenshots in `.impeccable/review/` are stale** — they predate several
   surfaces and the rename of clusters/nodes to subjects/topics. The code is
   authoritative.
