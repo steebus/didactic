@@ -29,6 +29,11 @@ export function MarkedSheet({
   const [error, setError] = useState<string | null>(null)
   /** The last passage removed, held so it can be put back. */
   const [undo, setUndo] = useState<HighlightRow | null>(null)
+  /** Rows already taken off the sheet by this reader. Removing writes
+   *  a delete and drops three cache tags before the sheet comes back;
+   *  the row goes on the press, and comes back if the delete does not
+   *  land. */
+  const [removed, setRemoved] = useState<string[]>([])
   const [, startTransition] = useTransition()
   const router = useRouter()
 
@@ -61,23 +66,29 @@ export function MarkedSheet({
    * sheet is left: the passage and its note come back exactly as they
    * were, on the same lesson.
    */
-  async function remove(mark: HighlightRow) {
+  function remove(mark: HighlightRow) {
     setBusy(true)
-    setUndo(null)
-    try {
-      const res = await fetch('/api/highlights', {
-        method: 'DELETE',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ id: mark.id }),
-      })
-      if (!res.ok) throw new Error('Could not remove that.')
-      setUndo(mark)
-      startTransition(() => router.refresh())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not remove that.')
-    } finally {
-      setBusy(false)
-    }
+    setError(null)
+    setUndo(mark)
+    setRemoved(gone => [...gone, mark.id])
+
+    void (async () => {
+      try {
+        const res = await fetch('/api/highlights', {
+          method: 'DELETE',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ id: mark.id }),
+        })
+        if (!res.ok) throw new Error('Could not remove that.')
+        startTransition(() => router.refresh())
+      } catch (e) {
+        setRemoved(gone => gone.filter(id => id !== mark.id))
+        setUndo(null)
+        setError(e instanceof Error ? e.message : 'Could not remove that.')
+      } finally {
+        setBusy(false)
+      }
+    })()
   }
 
   /** Put back exactly what was removed, on the lesson it came from.
@@ -109,6 +120,11 @@ export function MarkedSheet({
       setBusy(false)
     }
   }
+
+  // What is on the sheet after this reader's own removals. An id the
+  // sheet has already dropped is a key nothing reads, so nothing
+  // prunes the list.
+  const shown = highlights.filter(h => !removed.includes(h.id))
 
   return (
     <>
@@ -145,8 +161,8 @@ export function MarkedSheet({
 
       <p className={styles.count}>
         {query
-          ? `${highlights.length} ${highlights.length === 1 ? 'passage' : 'passages'} matching "${query}"`
-          : `${highlights.length} ${highlights.length === 1 ? 'passage' : 'passages'} marked`}
+          ? `${shown.length} ${shown.length === 1 ? 'passage' : 'passages'} matching "${query}"`
+          : `${shown.length} ${shown.length === 1 ? 'passage' : 'passages'} marked`}
       </p>
 
       {error && <p className={styles.problem}>{error}</p>}
@@ -170,7 +186,7 @@ export function MarkedSheet({
         </p>
       )}
 
-      {highlights.length === 0 ? (
+      {shown.length === 0 ? (
         <p className={styles.empty}>
           {query
             ? 'Nothing matches that. The search covers both the passage and what you wrote about it.'
@@ -178,7 +194,7 @@ export function MarkedSheet({
         </p>
       ) : (
         <ul className={styles.marks}>
-          {highlights.map(h => (
+          {shown.map(h => (
             <li key={h.id} className={styles.mark}>
               <blockquote className={styles.quote}>{h.quote}</blockquote>
 

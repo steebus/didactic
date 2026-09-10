@@ -82,7 +82,7 @@ export default function CurriculumPage({
     }
   }, [id, revision])
 
-  async function patch(payload: Record<string, unknown>) {
+  async function patch(payload: Record<string, unknown>, undo?: () => void) {
     setBusy(true)
     setError(null)
     try {
@@ -95,12 +95,28 @@ export default function CurriculumPage({
       if (!res.ok) throw new Error(body.error ?? 'Could not save that.')
       setRevision(r => r + 1)
     } catch (e) {
+      undo?.()
       setError(e instanceof Error ? e.message : 'Something went wrong.')
     } finally {
       setBusy(false)
     }
   }
 
+  /**
+   * Move a lesson up or down the run.
+   *
+   * The row moves on the press. Reordering is a write and a re-read
+   * before anything on the sheet changed, so putting three lessons in
+   * order meant three waits watching a list that had not moved yet --
+   * and the reader is dragging a row, not asking a question. The
+   * order they see is the order that is sent; if the write fails the
+   * list goes back to what it was and says so.
+   *
+   * Only positions are rewritten here. A lesson's tier comes from what
+   * it requires rather than from where it sits, so moving a row within
+   * the run cannot change it, and the sheet's own answer arrives
+   * behind this to settle anything subtler.
+   */
   async function move(lessonId: string, direction: -1 | 1) {
     if (!data) return
     const order = [...data.lessons]
@@ -110,7 +126,21 @@ export default function CurriculumPage({
     const to = from + direction
     if (to < 0 || to >= order.length) return
     ;[order[from], order[to]] = [order[to], order[from]]
-    await patch({ lessonOrder: order })
+
+    const held = data
+    setData(d =>
+      d
+        ? {
+            ...d,
+            lessons: d.lessons.map(v => ({
+              ...v,
+              lesson: { ...v.lesson, position: order.indexOf(v.lesson.id) },
+            })),
+          }
+        : d
+    )
+
+    await patch({ lessonOrder: order }, () => setData(held))
   }
 
   async function addLesson() {

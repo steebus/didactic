@@ -154,9 +154,34 @@ export default function LessonPage({
     }
   }
 
+  /**
+   * Say how the lesson went.
+   *
+   * The write behind this is an exposure and a recomputed ability, a
+   * second or two away on the other side of the world, and the reader
+   * is not waiting on either: they have finished the lesson and are
+   * telling the app so. The sheet says "Worked" on the press and the
+   * writing happens behind it. What cannot be guessed is the figure it
+   * moved, so the ledger fills in when the server answers -- and a
+   * failure puts the state back rather than leaving a lesson marked
+   * done that nothing recorded.
+   */
   async function mark(action: 'complete' | 'uncomplete', depth?: string) {
+    const before = data?.lesson.completed_at ?? null
     setBusy(true)
     setError(null)
+    setData(d =>
+      d
+        ? {
+            ...d,
+            lesson: {
+              ...d.lesson,
+              completed_at: action === 'complete' ? new Date().toISOString() : null,
+            },
+          }
+        : d
+    )
+
     try {
       const res = await fetch(`/api/lessons/${id}`, {
         method: 'PATCH',
@@ -181,6 +206,8 @@ export default function LessonPage({
 
       setRevision(r => r + 1)
     } catch (e) {
+      setData(d => (d ? { ...d, lesson: { ...d.lesson, completed_at: before } } : d))
+      setEntry(null)
       setError(e instanceof Error ? e.message : 'Something went wrong.')
     } finally {
       setBusy(false)

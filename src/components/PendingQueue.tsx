@@ -36,41 +36,63 @@ function closeness(similarity: number): string {
 export function PendingQueue({ topics }: { topics: PendingTopic[] }) {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  /**
+   * Calls this reader has already made.
+   *
+   * A merge rewrites every filing, exposure and edge the two topics
+   * hold and then recomputes the figure, which is the slowest write in
+   * the app and the least interesting to wait for -- the decision was
+   * made when the button was pressed. The row goes at once and the
+   * work happens behind it; a failure puts the row back, because a
+   * queue that quietly loses a decision is worse than a slow one.
+   */
+  const [decided, setDecided] = useState<string[]>([])
   const [, startTransition] = useTransition()
   const router = useRouter()
 
-  async function adjudicate(
+  function adjudicate(
     topicId: string,
     action: 'confirm' | 'merge' | 'discard',
     mergeInto?: string
   ) {
     setBusy(topicId)
     setError(null)
-    try {
-      const res = await fetch('/api/topics/pending', {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ topicId, action, mergeInto }),
-      })
-      if (!res.ok) {
-        const { error } = await res.json().catch(() => ({ error: 'Request failed' }))
-        throw new Error(error ?? 'Request failed')
+    setDecided(gone => [...gone, topicId])
+
+    void (async () => {
+      try {
+        const res = await fetch('/api/topics/pending', {
+          method: 'PATCH',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ topicId, action, mergeInto }),
+        })
+        if (!res.ok) {
+          const { error } = await res.json().catch(() => ({ error: 'Request failed' }))
+          throw new Error(error ?? 'Request failed')
+        }
+        startTransition(() => router.refresh())
+      } catch (e) {
+        setDecided(gone => gone.filter(id => id !== topicId))
+        setError(e instanceof Error ? e.message : 'Could not save that. Try again.')
+      } finally {
+        setBusy(null)
       }
-      startTransition(() => router.refresh())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not save that. Try again.')
-    } finally {
-      setBusy(null)
-    }
+    })()
   }
 
-  if (topics.length === 0) return null
+  // The queue as the reader has left it. Ids that the sheet has since
+  // dropped are keys nothing reads, so nothing prunes them.
+  const waiting = topics.filter(t => !decided.includes(t.id))
+
+  if (waiting.length === 0) return null
 
   return (
     <section className={styles.decisions}>
       <div className={styles.decisionsHead}>
         <h2 className={styles.decisionsTitle}>
-          {topics.length === 1 ? 'One topic needs your call' : `${topics.length} topics need your call`}
+          {waiting.length === 1
+            ? 'One topic needs your call'
+            : `${waiting.length} topics need your call`}
         </h2>
       </div>
       <p className={styles.decisionsNote}>
@@ -85,7 +107,7 @@ export function PendingQueue({ topics }: { topics: PendingTopic[] }) {
       {error && <p className={styles.empty}>{error}</p>}
 
       <ul className={styles.pendingList}>
-        {topics.map(topic => (
+        {waiting.map(topic => (
           <li key={topic.id} className={styles.pendingRow}>
             <span className={styles.pendingName}>
               {topic.title}
