@@ -6,6 +6,8 @@ import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
 import { DraftCurriculum } from './DraftCurriculum'
 import { AddResource } from '@/components/AddResource'
 import { SheetNav } from '@/components/SheetNav'
+import { RouteSpecimen } from '@/components/RouteSpecimen'
+import { routeProgress } from '@/lib/progress'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
 
@@ -79,6 +81,12 @@ export default async function TopicPage({
                   ))}
             </p>
             <h1 className={styles.title}>{topic.title}</h1>
+          </div>
+          {/* The running head above already carries the way back, so the
+              aside holds only the progress plant — grown to how far this
+              topic's route has been worked. */}
+          <div className={styles.headAside}>
+            <RouteSpecimen progress={routeProgress(curricula)} ink={colour} />
           </div>
         </div>
 

@@ -33,6 +33,15 @@
   min-width: 0;
 }
 
+/* The right of the band: the subject's own emblem, and beneath it the
+   progress plant. Both are reversed out of the band, so they read as one
+   stack of plates rather than two floated cards. */
+.headAside {
+  display: grid;
+  justify-items: end;
+  gap: var(--space-3);
+}
+
 .eyebrow {
   font-size: var(--step--2);
   letter-spacing: 0.14em;
@@ -284,6 +293,67 @@
   margin: var(--space-1) 0 0;
   font-size: var(--step--1);
   color: var(--ink-faint);
+}
+
+/* The route chip: the third channel, printed as a stock table prints a
+   flag. The word is the carrier; the colour and the mark beside it are
+   redundant, so it survives a monochrome screen. */
+.route {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+/* A solid tick that fills as the route is worked; hollow when there is no
+   route at all, so an empty plan reads differently from a started one
+   without leaning on colour. */
+.routeMark {
+  width: 0.5rem;
+  height: 0.5rem;
+  border: 1px solid currentColor;
+  background: currentColor;
+  flex: none;
+}
+
+.routeCount {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+
+.route[data-route='no-route'] {
+  color: var(--ink-faint);
+}
+
+.route[data-route='no-route'] .routeMark {
+  background: none;
+}
+
+.route[data-route='drafted'] {
+  color: var(--plate-terracotta);
+}
+
+.route[data-route='unstarted'] {
+  color: var(--ink-soft);
+}
+
+.route[data-route='unstarted'] .routeMark {
+  /* Ground prepared, nothing worked: the tick is only an outline. */
+  background: none;
+}
+
+.route[data-route='in-progress'] {
+  color: var(--plate-mustard);
+}
+
+.route[data-route='worked'] {
+  color: var(--plate-green);
 }
 
 .topicFigures {

@@ -87,12 +87,18 @@ export function RootsSpecimen({
   level: raw,
   caption,
   ink = 'var(--plate-green)',
+  ariaLabel,
 }: {
   level: number
   /** Printed under the plate. Omitted entirely when absent. */
   caption?: string
   /** The plate's ink. Defaults to the app's own green. */
   ink?: string
+  /** Overrides the spoken label. The specimen is reused to show route
+   *  progress as well as a roots level; when it does, the label must say
+   *  so rather than announcing a "Level n of 5" that means something
+   *  else on that band. */
+  ariaLabel?: string
 }) {
   const level = Math.min(5, Math.max(0, Math.round(raw)))
   const stage = ROOT_STAGES[level]
@@ -108,7 +114,7 @@ export function RootsSpecimen({
         className={styles.specimen}
         viewBox="0 0 140 210"
         role="img"
-        aria-label={`Level ${level} of 5: ${stage.label}`}
+        aria-label={ariaLabel ?? `Level ${level} of 5: ${stage.label}`}
       >
         {/* Below the soil line, so root depth reads against something. */}
         <rect className={styles.soil} x="0" y="126" width="140" height="84" />

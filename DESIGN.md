@@ -373,13 +373,23 @@ sideways and nest nothing. Nesting is drawn with rules rather than indentation
 alone: a `1px solid var(--rule)` down the branch and a `var(--space-3)` tick
 out to each entry.
 
-**Rule — the outline is fixed and the graph is not.** Siblings sort by title
-at every depth, a topic takes at most one parent, and the strongest single
-relationship wins with ties broken by title, so the same data prints the same
-way twice. This is the whole reason the sheet exists beside the canvas: the
-graph is where position is emergent, which is good for shape and useless for
-finding the same topic again. Adding and removing topics therefore belongs on
-this sheet, not on the bed.
+**Rule — the outline is fixed and the graph is not.** A topic takes at most one
+parent, the strongest single relationship wins, and the whole tree is a pure
+function of the data, so the same data prints the same way twice. This is the
+whole reason the sheet exists beside the canvas: the graph is where position is
+emergent, which is good for shape and useless for finding the same topic again.
+Adding and removing topics therefore belongs on this sheet, not on the bed.
+
+**Rule — the outline's order answers "what now", its nesting answers "under
+what".** Siblings at every depth sort by attention first — a route being worked
+rises above one recently tended, which rises above the rest — then simpler-first
+by the mean stage of their lessons, then by title as the final tie-break
+(`orderSubjectOutline`, `src/lib/outline.ts`). The nesting `buildTopicTree` drew
+is never touched: a branch keeps its subtree when it floats, and the generic
+tree stays title-sorted for every other caller. The earlier build sorted
+siblings by title alone; the order now carries where to look, not just where a
+topic is filed, and it stays deterministic — the three keys are all read off the
+data, so the same bed still prints the same way twice.
 
 ### The spread
 
@@ -515,6 +525,41 @@ the antiques-shop memory of this world; the saturated field is the world itself.
 **Rule — forms must read at 48px.** Thin strokes and small internal detail are
 excluded by construction; interior marks are cut back to the plate's own ink via
 `.plateGround`.
+
+### Route progress → a printed chip, and the same specimen grown
+
+A third channel, beside ability (the viability figure) and freshness (the
+condition hatch). Those say how well a topic is held and how warm it is; this
+says how far the deliberate route through it has been *worked*. It is derived
+from the topic's curricula and their lessons, never stored, so it can never
+disagree with the lessons printed under it (`routeProgress`, `src/lib/progress.ts`).
+
+Five states, worked-least first: **No route**, **Route drafted** (a proposal
+counts for nothing until approved, so it never reads as started however many
+lessons are marked), **Not started**, **In progress**, **Worked**.
+
+**Rule — the chip carries the word, and the mark and colour are redundant.** On a
+bed row the state prints as an agate label with a small tick beside it: the tick
+is hollow where there is no route or none is worked and solid once it is, and the
+colour runs faint → terracotta → ink-soft → mustard → green across the five
+states. Removing the word is the regression; the tick and the colour only make it
+quicker to read, exactly as the condition bar's three carriers do.
+
+**Rule — where a band has the room, the roots specimen is grown to the same
+figure.** `RouteSpecimen` (`src/components/RouteSpecimen.tsx`) draws the sow
+sheet's own `RootsSpecimen` at a level mapped from progress — bare ground with no
+route, a seedling part way, in full flower when every lesson is done — reversed
+out of the band as an inset window, on the subject, topic and curriculum
+mastheads. The subject band folds its topics' routes into one figure
+(`aggregateRoutes`); the curriculum band is the cleanest, since lessons-worked
+there is unambiguous.
+
+**Rule — the growing specimen is one drawing with two meanings, so its caption
+names which.** The plant is the sow sheet's self-reported roots gauge and the
+band's route-progress plate both. To keep them apart the band passes an explicit
+`ariaLabel` ("Route progress: 3 of 8 worked") and prints a progress caption
+rather than a roots stage name — never "Seedling" where the figure means lessons.
+The drawing is shared; the words are not.
 
 ---
 

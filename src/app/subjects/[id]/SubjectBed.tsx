@@ -7,6 +7,8 @@ import { viabilityFigure } from '@/lib/scoring'
 import { StockBar, stockState, STOCK_LABEL, STOCK_ORDER } from '@/components/StockBar'
 import { readJson } from '@/lib/http'
 import { useLabour, DRAWINGS } from '@/components/useLabour'
+import { routeProgress, ROUTE_LABEL } from '@/lib/progress'
+import { orderSubjectOutline } from '@/lib/outline'
 import type { SubjectTopicRow, TopicTreeNode } from '@/lib/subject'
 import styles from './page.module.css'
 
@@ -255,7 +257,7 @@ export function SubjectBed({
         </div>
       ) : (
         <ul className={styles.tree}>
-          {(sort === 'outline' ? tree : byCondition(tree)).map(node => (
+          {(sort === 'outline' ? orderSubjectOutline(tree) : byCondition(tree)).map(node => (
             <TreeRow
               key={node.topic.id}
               node={node}
@@ -371,6 +373,11 @@ function TreeRow({
   const vague = topic.ability_confidence < 0.4
   const unread = topic.resources.filter(r => r.status === 'queued').length
   const hasDetail = topic.resources.length > 0 || topic.curricula.length > 0
+  // The third channel, printed as a chip: whether there is a route
+  // through this topic and how far it has been worked. The condition bar
+  // to the right says how warm the topic is; this says how far the plan
+  // has been followed.
+  const route = routeProgress(topic.curricula)
 
   return (
     <li className={styles.branch} style={{ '--depth': depth } as React.CSSProperties}>
@@ -387,14 +394,22 @@ function TreeRow({
               awaiting your decision
             </Link>
           )}
+          <span className={styles.route} data-route={route.state}>
+            <span className={styles.routeMark} aria-hidden="true" />
+            {ROUTE_LABEL[route.state]}
+            {route.total > 0 && route.state !== 'drafted' && (
+              <span className={styles.routeCount}>
+                {route.complete}/{route.total}
+              </span>
+            )}
+            {route.state === 'drafted' && route.total > 0 && (
+              <span className={styles.routeCount}>{route.total} lessons</span>
+            )}
+          </span>
           <p className={styles.topicMeta}>
             {topic.resources.length}{' '}
             {topic.resources.length === 1 ? 'resource' : 'resources'}
             {unread > 0 && ` · ${unread} unread`}
-            {topic.curricula.length > 0 &&
-              ` · ${topic.curricula.length} ${
-                topic.curricula.length === 1 ? 'curriculum' : 'curricula'
-              }`}
             {topic.alsoIn.length > 0 &&
               ` · also in ${topic.alsoIn.map(s => s.title).join(', ')}`}
           </p>

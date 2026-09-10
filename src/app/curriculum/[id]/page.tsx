@@ -4,6 +4,8 @@ import { use, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { NudgeIcon } from '@/components/NudgeIcon'
 import { SheetNav } from '@/components/SheetNav'
+import { RouteSpecimen } from '@/components/RouteSpecimen'
+import { routeProgress } from '@/lib/progress'
 import styles from './page.module.css'
 import { Setting } from '@/components/Setting'
 
@@ -191,6 +193,11 @@ export default function CurriculumPage({
   const { curriculum, topic, lessons, progress, sources } = data
   const draft = curriculum.status === 'draft'
   const tiers = [...new Set(lessons.map(l => l.tier))].sort((a, b) => a - b)
+  // This route's own progress, for the plant on the band: the cleanest of
+  // the three, since lessons-worked here is unambiguous.
+  const route = routeProgress([
+    { status: curriculum.status, total: progress.total, complete: progress.complete },
+  ])
 
   return (
     <main className={styles.sheet}>
@@ -209,9 +216,12 @@ export default function CurriculumPage({
             </p>
             <h1 className={styles.title}>{curriculum.title}</h1>
           </div>
-          <Link href={topic ? `/topics/${topic.id}` : '/'} className={styles.back}>
-            Back to the topic
-          </Link>
+          <div className={styles.headAside}>
+            <Link href={topic ? `/topics/${topic.id}` : '/'} className={styles.back}>
+              Back to the topic
+            </Link>
+            <RouteSpecimen progress={route} ink="var(--plate-ultramarine)" />
+          </div>
         </div>
 
         {curriculum.goal && <p className={styles.goal}>{curriculum.goal}</p>}

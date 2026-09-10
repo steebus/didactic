@@ -5,6 +5,8 @@ import { getSubjectArea } from '@/lib/subject'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
 import { Emblem, slugify } from '@/components/Emblem'
 import { SheetNav } from '@/components/SheetNav'
+import { RouteSpecimen } from '@/components/RouteSpecimen'
+import { routeProgress, aggregateRoutes } from '@/lib/progress'
 import { ROOT_STAGES } from '@/components/RootsSpecimen'
 import { SubjectBed } from './SubjectBed'
 import { GrubOut } from './GrubOut'
@@ -37,6 +39,9 @@ export default async function SubjectPage({
   const { subject, tree, topics, counts, sowing } = area
   const state = stockState(area.freshness, area.lastExposureAt)
   const vague = area.confidence < 0.4
+  // The bed's routes folded into one figure, so the band's plant grows
+  // with how much of the subject has actually been worked.
+  const routes = aggregateRoutes(topics.map(t => routeProgress(t.curricula)))
 
   return (
     <main className={styles.sheet}>
@@ -60,7 +65,10 @@ export default async function SubjectPage({
             </p>
           </div>
 
-          <Emblem slug={slugify(subject.title)} colour="rgba(239,231,214,0.16)" size={72} />
+          <div className={styles.headAside}>
+            <Emblem slug={slugify(subject.title)} colour="rgba(239,231,214,0.16)" size={72} />
+            <RouteSpecimen progress={routes} ink={subject.colour} label="Worked" />
+          </div>
         </div>
 
         <div className={styles.headFoot}>

@@ -75,8 +75,10 @@ that flatters its owner.
   canvas at that size cannot be glanced at.
 - A subject has its own sheet: the bed as a **fixed outline** — topics nested
   by what specialises or precedes what, with the material, curricula and
-  lessons filed under each — where topics are added and removed. The graph is
-  the other reading of the same data and is one press away from it.
+  lessons filed under each — where topics are added and removed. The nesting is
+  fixed; the sibling order carries attention, floating what is being worked to
+  the top and running simpler-first, while staying a pure function of the data.
+  The graph is the other reading of the same data and is one press away from it.
 
 ## Capabilities and Constraints
 

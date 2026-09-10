@@ -23,7 +23,7 @@ export interface SubjectTopicRow {
     status: CurriculumStatus
     total: number
     complete: number
-    lessons: Array<{ id: string; title: string; completed: boolean }>
+    lessons: Array<{ id: string; title: string; stage: string; completed: boolean }>
   }>
 }
 
@@ -265,7 +265,7 @@ export async function readSubjectArea(
   const curriculumIds = (curricula ?? []).map(c => c.id)
   const { data: lessons } = curriculumIds.length
     ? await db.from('lessons')
-        .select('id, curriculum_id, title, position, completed_at')
+        .select('id, curriculum_id, title, stage, position, completed_at')
         .in('curriculum_id', curriculumIds)
         .order('position')
     : { data: [] }
@@ -313,6 +313,7 @@ export async function readSubjectArea(
           lessons: mine.map(l => ({
             id: l.id,
             title: l.title,
+            stage: l.stage,
             completed: l.completed_at !== null,
           })),
         }
