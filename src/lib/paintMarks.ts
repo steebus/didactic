@@ -13,6 +13,8 @@
  * the topic sheet, which is where it does its real work.
  */
 
+import { panelSpot } from './markAnchor'
+
 export interface PaintableMark {
   id: string
   quote: string
@@ -116,18 +118,13 @@ export function paintMarks(
 
     const open = (e: Event) => {
       e.stopPropagation()
-      const rect = wrap.getBoundingClientRect()
-      const rootRect = root.getBoundingClientRect()
-      // Below the passage, unless that would put the panel off the
-      // bottom of the window -- then above it, so the panel never
-      // covers the words it is about and never opens off-screen.
-      const below = rect.bottom + 8
-      const wantsAbove = below + 220 > window.innerHeight && rect.top - rootRect.top > 220
-      onOpen(mark.id, {
-        top: wantsAbove ? rect.top - rootRect.top - 8 : rect.bottom - rootRect.top + 8,
-        left: Math.max(0, rect.left - rootRect.left),
-        above: wantsAbove,
-      })
+      onOpen(
+        mark.id,
+        panelSpot(wrap.getBoundingClientRect(), root.getBoundingClientRect(), {
+          width: window.innerWidth,
+          height: window.innerHeight,
+        })
+      )
     }
     wrap.addEventListener('click', open)
     wrap.addEventListener('keydown', e => {

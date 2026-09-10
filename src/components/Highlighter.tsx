@@ -1,30 +1,47 @@
 'use client'
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 // The DOM has a Highlight of its own, so ours is aliased rather than
 // left to whichever the compiler reaches for first.
 import type { Highlight as Mark } from '@/lib/types'
 import { paintMarks } from '@/lib/paintMarks'
+import { panelSpot, pinSpot, type Spot } from '@/lib/markAnchor'
 import styles from './Highlighter.module.css'
 
-type At = { top: number; left: number; above?: boolean }
-
 /**
- * How long a selection has to stop changing before it counts as
- * finished, where there is no release to go on.
+ * How long a selection has to stop changing before the offer to keep it
+ * is placed, where there is no release to go on.
  *
  * Long enough that dragging a handle a character at a time does not
- * open the composer under the reader's thumb, short enough that it
- * does not read as a lag. It only ever applies to the touch case: a
- * mouse says when it is done by coming up.
+ * move the button under the reader's thumb, short enough that it does
+ * not read as a lag. It only ever applies to the touch case: a mouse
+ * says when it is done by coming up.
  */
-const SETTLED_MS = 400
+const SETTLED_MS = 300
+
+/** The sheet is narrow enough that a panel has to dock. Kept in step
+ *  with the phone breakpoint the rest of the stylesheets use. */
+const NARROW = '(max-width: 40rem)'
 
 /** A mark kept in this session but not yet confirmed by the server.
  *  It is drawn like any other; what it cannot do is be edited or
  *  removed, because there is nothing on the other end to edit yet. */
 const UNSAVED = 'unsaved:'
 const isUnsaved = (id: string) => id.startsWith(UNSAVED)
+
+/**
+ * A passage the reader has selected but not yet kept: the words, the
+ * text before them, and the two places something can be put against
+ * it -- the floating button, in window coordinates, and the composer,
+ * in coordinates relative to the prose.
+ */
+interface Offer {
+  quote: string
+  prefix: string
+  pin: { top: number; left: number }
+  panel: Spot
+}
 
 /**
  * Marking a passage, and living with the marks afterwards.
@@ -51,13 +68,21 @@ export function Highlighter({
   const holder = useRef<HTMLDivElement>(null)
 
   const [pending, setPending] = useState<{ quote: string; prefix: string } | null>(null)
-  const [open, setOpen] = useState<{ mark: Mark; at: At } | null>(null)
+  const [offer, setOffer] = useState<Offer | null>(null)
+  const [open, setOpen] = useState<{ mark: Mark; at: Spot } | null>(null)
   const [note, setNote] = useState('')
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [at, setAt] = useState<At | null>(null)
+  const [at, setAt] = useState<Spot | null>(null)
   const [drawn, setDrawn] = useState(0)
+
+  const narrow = useNarrow()
+
+  /** Whether the last thing to touch the page was a finger. It decides
+   *  which of the two ways of marking is in play, and a device can be
+   *  both, so it is answered per gesture rather than per device. */
+  const finger = useRef(false)
 
   /**
    * Marks kept in this session that the server has not answered for
@@ -95,17 +120,19 @@ export function Highlighter({
 
   // --- Marking ---------------------------------------------------
 
-  const onSelect = useCallback(() => {
-    if (pending || open) return
+  /** What is selected inside the prose, if anything worth keeping is. */
+  const readSelection = useCallback((): Offer | null => {
+    const root = holder.current
+    if (!root) return null
+
     const selection = window.getSelection()
-    if (!selection || selection.isCollapsed) return
+    if (!selection || selection.isCollapsed || selection.rangeCount === 0) return null
 
     const range = selection.getRangeAt(0)
-    const root = holder.current
-    if (!root || !root.contains(range.commonAncestorContainer)) return
+    if (!root.contains(range.commonAncestorContainer)) return null
 
     const quote = selection.toString().trim()
-    if (quote.length < 3) return
+    if (quote.length < 3) return null
 
     // A little of the text before the selection, to tell two identical
     // passages apart when the mark is drawn back onto the page.
@@ -114,49 +141,82 @@ export function Highlighter({
     before.setEnd(range.startContainer, range.startOffset)
     const prefix = before.toString().slice(-40)
 
+    const view = { width: window.innerWidth, height: window.innerHeight }
     const rect = range.getBoundingClientRect()
-    const rootRect = root.getBoundingClientRect()
-    setAt({ top: rect.bottom - rootRect.top + 8, left: Math.max(0, rect.left - rootRect.left) })
-    setPending({ quote, prefix })
-    setNote('')
-    setError(null)
-  }, [pending, open])
+
+    return {
+      quote,
+      prefix,
+      pin: pinSpot(rect, view),
+      panel: panelSpot(rect, root.getBoundingClientRect(), view),
+    }
+  }, [])
+
+  /** Put the composer up against the passage. The mouse's way in: a
+   *  release is a decision, and the selection is not going to move. */
+  const compose = useCallback(
+    (chosen: Offer | null) => {
+      if (!chosen) return
+      setOffer(null)
+      setAt(chosen.panel)
+      setPending({ quote: chosen.quote, prefix: chosen.prefix })
+      setNote('')
+      setError(null)
+    },
+    []
+  )
+
+  const take = useCallback(() => {
+    if (pending || open) return
+    compose(readSelection())
+  }, [pending, open, compose, readSelection])
+
+  /** Float the offer near the selection and otherwise stay out of the
+   *  way. The finger's way in: the selection is still being made. */
+  const offerToKeep = useCallback(() => {
+    if (pending || open) return
+    setOffer(readSelection())
+  }, [pending, open, readSelection])
 
   useEffect(() => {
-    // When the reader has finished choosing, by either of the two ways
-    // there are to know.
+    // When the reader has finished choosing, by whichever of the ways
+    // there are to know applies to the thing they are choosing with.
     //
-    // Watching selectionchange alone, even debounced, read a pause
-    // mid-drag as a decision: the composer opened and took the
-    // selection over. Waiting only for a release missed the other
-    // half. On a phone the selection is made by long-press and then
-    // adjusted with handles the browser draws itself, and dragging
-    // those handles sends the page no touch events at all -- so the
-    // only touchend was the one from the long-press, which arrives
-    // before there is a selection to read. Nothing opened, and the
-    // reader had to tap again to produce an event that would. That
-    // second tap was the bug.
-    //
-    // So a release opens it at once where there is one, and otherwise
-    // a selection that has stopped changing counts as a decision. A
-    // pointer still down blocks both, which is the mid-drag case the
-    // first rule was there for.
+    // A mouse says it is done by coming up, and the composer opens
+    // there and then. A finger cannot: the selection is made by
+    // long-press and then adjusted with the handles the browser draws
+    // itself, and dragging those handles sends the page no events at
+    // all. Opening the composer on the first settled selection -- which
+    // is what this did -- took the selection over while it was still
+    // one word long, and the reader had no way to widen it. So a finger
+    // gets an offer floated beside the selection instead, and the
+    // selection stays theirs until they take it.
     let settling: ReturnType<typeof setTimeout> | undefined
     let pressing = false
 
     const settle = () => {
       clearTimeout(settling)
-      settling = setTimeout(onSelect, SETTLED_MS)
+      settling = setTimeout(() => (finger.current ? offerToKeep() : take()), SETTLED_MS)
     }
-    const down = () => {
+    const down = (e: PointerEvent) => {
+      finger.current = e.pointerType !== 'mouse'
       pressing = true
       clearTimeout(settling)
     }
     const up = () => {
       pressing = false
-      onSelect()
+      if (finger.current) settle()
+      else take()
     }
     const changed = () => {
+      const selection = window.getSelection()
+      if (!selection || selection.isCollapsed) {
+        // Letting go of a selection takes the offer with it, at once
+        // rather than after the settling delay.
+        clearTimeout(settling)
+        setOffer(null)
+        return
+      }
       if (!pressing) settle()
     }
 
@@ -171,7 +231,27 @@ export function Highlighter({
       document.removeEventListener('pointercancel', up)
       document.removeEventListener('selectionchange', changed)
     }
-  }, [onSelect])
+  }, [offerToKeep, take])
+
+  // The offer floats over the page rather than sitting in it, so the
+  // prose scrolling under it would leave it behind. Re-measured against
+  // the selection instead, which is still there.
+  const offering = offer !== null
+  useEffect(() => {
+    if (!offering) return
+    let frame = 0
+    const follow = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => setOffer(readSelection()))
+    }
+    window.addEventListener('scroll', follow, { passive: true })
+    window.addEventListener('resize', follow)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', follow)
+      window.removeEventListener('resize', follow)
+    }
+  }, [offering, readSelection])
 
   // --- Painting --------------------------------------------------
 
@@ -193,6 +273,7 @@ export function Highlighter({
         if (!mark) return
         setOpen({ mark, at: where })
         setPending(null)
+        setOffer(null)
         setNote(mark.note ?? '')
         setEditing(false)
         setError(null)
@@ -302,16 +383,53 @@ export function Highlighter({
   // Escape closes whichever panel is up, which is the one keyboard
   // convention a panel like this must not get wrong.
   useEffect(() => {
-    if (!pending && !open) return
+    if (!pending && !open && !offer) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
       setPending(null)
       setOpen(null)
+      setOffer(null)
       window.getSelection()?.removeAllRanges()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [pending, open])
+  }, [pending, open, offer])
+
+  /**
+   * Where a panel goes. On a phone it docks to the foot of the screen
+   * and the measured place is not used: a panel set against a passage
+   * on a narrow sheet hangs off the side of it and widens the page.
+   */
+  const placed = (spot: Spot | null) =>
+    narrow || !spot
+      ? undefined
+      : {
+          top: spot.top,
+          left: spot.left,
+          // Lifted clear by its own height when it opens above, so the
+          // panel sits over nothing it is describing.
+          transform: spot.above ? 'translateY(-100%)' : undefined,
+        }
+
+  const panel = `${styles.composer}${narrow ? ` ${styles.docked}` : ''}`
+
+  /**
+   * Anything measured against the window is hung off the body rather
+   * than left in the prose.
+   *
+   * Every sheet arrives under an animation on `main`, and an animation
+   * that touches `transform` leaves `main` the containing block for
+   * everything fixed inside it -- so a docked panel came to rest at the
+   * foot of the article instead of the foot of the screen. A panel set
+   * against a passage is still drawn where it belongs, in the prose it
+   * is measured against.
+   */
+  const float = (node: React.ReactNode) =>
+    typeof document === 'undefined' ? null : createPortal(node, document.body)
+
+  /** A panel stands where it was measured, or hangs off the body when
+   *  it is docked to the foot of the screen. */
+  const stand = (node: React.ReactNode) => (narrow ? float(node) : node)
 
   const unplaced = marks.length - drawn
 
@@ -339,112 +457,144 @@ export function Highlighter({
         </p>
       )}
 
-      {pending && at && (
-        <div className={styles.composer} style={{ top: at.top, left: at.left }} role="dialog">
-          <blockquote className={styles.quote}>{pending.quote}</blockquote>
-          <textarea
-            className={styles.note}
-            value={note}
-            onChange={e => setNote(e.target.value)}
-            placeholder="What about it? (optional)"
-            rows={2}
-            autoFocus
-          />
-          {error && <p className={styles.problem}>{error}</p>}
-          <div className={styles.actions}>
-            {/* Never busy: the mark is drawn and this closes on the
-                press, and the writing goes on behind the reader. */}
-            <button type="button" className={styles.keep} onClick={keep}>
-              Keep it
-            </button>
-            <button
-              type="button"
-              className={styles.cancel}
-              onClick={() => {
-                setPending(null)
-                window.getSelection()?.removeAllRanges()
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
+      {offer &&
+        !pending &&
+        !open &&
+        float(
+          <button
+            type="button"
+            className={styles.pin}
+            style={{ top: offer.pin.top, left: offer.pin.left }}
+            // The press must not reach the page: a tap outside a
+            // selection is what ends it, and the words are the whole
+            // point of the button. What is kept is what the offer was
+            // holding, so a browser that ends the selection anyway
+            // costs nothing.
+            onPointerDown={e => {
+              e.preventDefault()
+              e.stopPropagation()
+            }}
+            onClick={() => compose(offer)}
+          >
+            Add mark
+          </button>
+        )}
 
-      {open && (
-        <div
-          className={styles.composer}
-          style={{
-            top: open.at.top,
-            left: open.at.left,
-            // Lifted clear by its own height when it opens above, so
-            // the panel sits over nothing it is describing.
-            transform: open.at.above ? 'translateY(-100%)' : undefined,
-          }}
-          role="dialog"
-        >
-          {editing ? (
-            <>
-              <textarea
-                className={styles.note}
-                value={note}
-                onChange={e => setNote(e.target.value)}
-                placeholder="What about it?"
-                rows={3}
-                autoFocus
-              />
-              {error && <p className={styles.problem}>{error}</p>}
-              <div className={styles.actions}>
-                <button type="button" className={styles.keep} onClick={saveNote} disabled={busy}>
-                  {busy ? 'Saving…' : 'Save'}
-                </button>
-                <button type="button" className={styles.cancel} onClick={() => setEditing(false)}>
-                  Cancel
-                </button>
-              </div>
-            </>
-          ) : (
-            <>
-              <blockquote className={styles.quote}>{open.mark.quote}</blockquote>
-              {open.mark.note ? (
-                <p className={styles.reading}>{open.mark.note}</p>
-              ) : (
-                <p className={styles.unnoted}>Kept, with nothing written about it.</p>
-              )}
-              {isUnsaved(open.mark.id) && (
-                <p className={styles.unnoted}>
-                  Still being written down. It can be changed in a moment.
-                </p>
-              )}
-              {error && <p className={styles.problem}>{error}</p>}
-              <div className={styles.actions}>
-                <button
-                  type="button"
-                  className={styles.keep}
-                  disabled={isUnsaved(open.mark.id)}
-                  onClick={() => {
-                    setNote(open.mark.note ?? '')
-                    setEditing(true)
-                  }}
-                >
-                  {open.mark.note ? 'Edit note' : 'Add a note'}
-                </button>
-                <button
-                  type="button"
-                  className={styles.cancel}
-                  onClick={remove}
-                  disabled={busy || isUnsaved(open.mark.id)}
-                >
-                  {busy ? 'Removing…' : 'Remove'}
-                </button>
-                <button type="button" className={styles.cancel} onClick={() => setOpen(null)}>
-                  Close
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      )}
+      {pending &&
+        stand(
+          <div className={panel} style={placed(at)} role="dialog">
+            <blockquote className={styles.quote}>{pending.quote}</blockquote>
+            <textarea
+              className={styles.note}
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="What about it? (optional)"
+              rows={2}
+              // Not on a phone: the keyboard would come up over the
+              // passage before the reader has decided to write anything.
+              autoFocus={!narrow}
+            />
+            {error && <p className={styles.problem}>{error}</p>}
+            <div className={styles.actions}>
+              {/* Never busy: the mark is drawn and this closes on the
+                  press, and the writing goes on behind the reader. */}
+              <button type="button" className={styles.keep} onClick={keep}>
+                Keep it
+              </button>
+              <button
+                type="button"
+                className={styles.cancel}
+                onClick={() => {
+                  setPending(null)
+                  window.getSelection()?.removeAllRanges()
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+      {open &&
+        stand(
+          <div className={panel} style={placed(open.at)} role="dialog">
+            {editing ? (
+              <>
+                <textarea
+                  className={styles.note}
+                  value={note}
+                  onChange={e => setNote(e.target.value)}
+                  placeholder="What about it?"
+                  rows={3}
+                  autoFocus
+                />
+                {error && <p className={styles.problem}>{error}</p>}
+                <div className={styles.actions}>
+                  <button type="button" className={styles.keep} onClick={saveNote} disabled={busy}>
+                    {busy ? 'Saving…' : 'Save'}
+                  </button>
+                  <button type="button" className={styles.cancel} onClick={() => setEditing(false)}>
+                    Cancel
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <blockquote className={styles.quote}>{open.mark.quote}</blockquote>
+                {open.mark.note ? (
+                  <p className={styles.reading}>{open.mark.note}</p>
+                ) : (
+                  <p className={styles.unnoted}>Kept, with nothing written about it.</p>
+                )}
+                {isUnsaved(open.mark.id) && (
+                  <p className={styles.unnoted}>
+                    Still being written down. It can be changed in a moment.
+                  </p>
+                )}
+                {error && <p className={styles.problem}>{error}</p>}
+                <div className={styles.actions}>
+                  <button
+                    type="button"
+                    className={styles.keep}
+                    disabled={isUnsaved(open.mark.id)}
+                    onClick={() => {
+                      setNote(open.mark.note ?? '')
+                      setEditing(true)
+                    }}
+                  >
+                    {open.mark.note ? 'Edit note' : 'Add a note'}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.cancel}
+                    onClick={remove}
+                    disabled={busy || isUnsaved(open.mark.id)}
+                  >
+                    {busy ? 'Removing…' : 'Remove'}
+                  </button>
+                  <button type="button" className={styles.cancel} onClick={() => setOpen(null)}>
+                    Close
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
     </div>
   )
+}
+
+/** Whether the sheet is being read on a phone-width screen. */
+function useNarrow() {
+  const [narrow, setNarrow] = useState(false)
+
+  useEffect(() => {
+    const query = window.matchMedia(NARROW)
+    const sync = () => setNarrow(query.matches)
+    sync()
+    query.addEventListener('change', sync)
+    return () => query.removeEventListener('change', sync)
+  }, [])
+
+  return narrow
 }
