@@ -61,10 +61,28 @@ tag, a queue message) that live in server code; and the aggregated reads
 are moved into SQL, because a second copy of the map's reading on the
 phone is a second place for it to be wrong.
 
-*Rejected:* the phone as a direct Supabase client for everything. Without
-the server it cannot sow, ingest, score or draft, so it would be a hybrid
-either way; better to make the API the default and direct reads the
-measured exception than the reverse.
+*Rejected:* the phone as a direct Supabase client for everything. The four
+server-side jobs are not alike, and the reasons they stay are worth keeping
+straight, because someone will reopen this.
+
+- **Sowing and drafting** need `ANTHROPIC_API_KEY`. A vendor key shipped in a
+  client binary is a published key: it can be pulled out of the bundle, and
+  unlike the anon key there is no RLS to put behind it. Storing it in a table
+  does not help — whatever credential the phone presents to read the row, an
+  attacker holding the same credential reads it too, and a device calling
+  Anthropic directly has no rate limit, per-user quota or abuse cutoff. Keep
+  the key server-side (in the environment or, for rotation without a redeploy,
+  in a table the service role alone can read); the phone calls `/api/*`.
+- **Ingestion** is not a request. `010_cron.sql` schedules it, the `ingest`
+  edge function claims work off a Postgres queue and retries to
+  `MAX_ATTEMPTS`. It must run while the app is closed, so a phone cannot be
+  the worker whatever it holds.
+- **Scoring** is the exception, and only half of it: the pure functions move
+  to `core` (2.2) and run anywhere. What stays is the *write* —
+  `recomputeAbility` reads exposures, computes, and updates `topics`.
+
+So it would be a hybrid either way; better to make the API the default and
+direct reads the measured exception than the reverse.
 
 ### D2. Logic, types, tokens, copy and geometry are shared; rendered components are not
 
@@ -263,7 +281,7 @@ deploy from `main` is green before starting Phase 2.
 **Model:** opus for `core` boundaries and the auth change; sonnet for the client.
 
 - [ ] **2.1 `packages/tokens`.** `src/index.ts` exporting `colour`, `scale` (rem values *and* their px at 16), `space`, `motion`, `plates` (the six plate inks in assignment order), `reversed` (the paper-at-alpha steps), and `graph` (the graph-only inks), sourced from `apps/web/.impeccable/design-tokens.json` and `globals.css`. A Vitest test parses `apps/web/src/app/globals.css`'s `:root` block and asserts every `--` custom property in it has the same value in the module. This is what stops the phone's palette drifting.
-- [ ] **2.2 `packages/core`.** Move, with their tests: `types.ts`, `config.ts`, `tags.ts`, `scoring.ts` (split: `computeAbility`, `computeFreshness`, `subjectAggregate`, `viabilityFigure` move; `recomputeAbility` and `recomputeAbilities` take a Supabase client and stay in `apps/web`), `progress.ts`, `outline.ts`, `sections.ts`, `blocks.ts`, `curriculum.ts` (the same split: `viewLessons`, `tierLessons`, `curriculumProgress`, `findPrereqCycle`, `linearPrereqs` move; `completeLesson`, `uncompleteLesson` stay), `http.ts`, `markAnchor.ts`, `marks.ts` (`UNSAVED`, `isUnsaved`, `inReadingOrder` — the reading-order sort is pure and both platforms need it), `books.ts` (`normaliseBooks`, `bookNote` move; the fetch stays), the `buildTopicTree` and `readVerdict` halves of `subject.ts`, and the interfaces of `home.ts`, `topic.ts`, `library.ts`, `pending.ts`, `subject.ts`. New in `core`: `stock.ts` (`stockState`, `STOCK_LABEL`, the hatch table from `StockBar.tsx`), `specimens.ts` (the path data and stage names from `Emblem.tsx` and `RootsSpecimen.tsx`, plus `slugify`), `graph.ts` (node size, fade, label ink and label-side rules from `GraphCanvas.tsx`), `copy.ts` (`LABOURS`, `DRAWINGS`, the edition date format, empty-state sentences that both apps print). Each web component then imports its geometry and words from `core` and keeps its rendering. Nothing in `core` may import `next`, `react`, `dompurify`, `jsdom` or `@supabase/*` except as `import type`; an ESLint `no-restricted-imports` rule in the package enforces it.
+- [ ] **2.2 `packages/core`.** Move, with their tests: `types.ts`, `config.ts`, `tags.ts`, `scoring.ts` (split: `computeAbility`, `computeFreshness`, `subjectAggregate`, `viabilityFigure` move; `recomputeAbility` and `recomputeAbilities` take a Supabase client and stay in `apps/web`; with the pure half in `core` the phone may compute a projected ability from the exposures it already holds and print that at once, while the authoritative write stays server-side — the figure is shown locally, never saved locally), `progress.ts`, `outline.ts`, `sections.ts`, `blocks.ts`, `curriculum.ts` (the same split: `viewLessons`, `tierLessons`, `curriculumProgress`, `findPrereqCycle`, `linearPrereqs` move; `completeLesson`, `uncompleteLesson` stay), `http.ts`, `markAnchor.ts`, `marks.ts` (`UNSAVED`, `isUnsaved`, `inReadingOrder` — the reading-order sort is pure and both platforms need it), `books.ts` (`normaliseBooks`, `bookNote` move; the fetch stays), the `buildTopicTree` and `readVerdict` halves of `subject.ts`, and the interfaces of `home.ts`, `topic.ts`, `library.ts`, `pending.ts`, `subject.ts`. New in `core`: `stock.ts` (`stockState`, `STOCK_LABEL`, the hatch table from `StockBar.tsx`), `specimens.ts` (the path data and stage names from `Emblem.tsx` and `RootsSpecimen.tsx`, plus `slugify`), `graph.ts` (node size, fade, label ink and label-side rules from `GraphCanvas.tsx`), `copy.ts` (`LABOURS`, `DRAWINGS`, the edition date format, empty-state sentences that both apps print). Each web component then imports its geometry and words from `core` and keeps its rendering. Nothing in `core` may import `next`, `react`, `dompurify`, `jsdom` or `@supabase/*` except as `import type`; an ESLint `no-restricted-imports` rule in the package enforces it.
 - [ ] **2.3 Read endpoints for the sheets the server renders.** Add `GET /api/home` returning `HomeData`, `GET /api/subjects/[id]/area` returning `SubjectArea`, `GET /api/subjects/[id]/sowing` returning `Sowing`, `GET /api/topics/[id]/area` returning `TopicArea` (the existing `GET /api/topics/[id]` stays as it is), `GET /api/library` returning `LibraryRow[]`, `GET /api/inbox` returning `{ pending: PendingTopic[], queued: Resource[] }`, `GET /api/graph` returning what `graph/page.tsx` assembles. Each calls the same `get…` function the page calls, so the cache and its tags are shared with the page. These are thin: a handler, an owner check, a `NextResponse.json`.
 - [ ] **2.4 Bearer auth in the gate.** `getOwner()` in `apps/web/src/lib/auth.ts`: when the request carries `Authorization: Bearer <jwt>`, verify it with `createClient(url, anonKey).auth.getUser(jwt)` instead of the cookie client; `proxy.ts` does the same for API paths so a bearer request is neither redirected nor refreshed. The web keeps cookies. Add `tests/auth-bearer.test.ts`: a valid token passes, an expired one answers 401, a token with no header falls through to the cookie path. Document both modes in `guides/api-contract.md`.
 - [ ] **2.5 Row-level security.** `supabase/migrations/024_row_level_security.sql`: `enable row level security` on every table under `public` that lacks it, an owner policy `for all using (auth.uid() = user_id) with check (auth.uid() = user_id)` on the ten tables that carry `user_id` (subjects, topics, edges, resources, exposures, conversations, curricula, lessons, subject_sowings; highlights already has one), and for the join tables (`topic_subjects`, `resource_topics`, `resource_subjects`, `lesson_prereqs`, `lesson_resources`, `curriculum_sources`, `messages`, `ingestion_jobs`) a policy through `exists (select 1 from <parent> where id = <fk> and user_id = auth.uid())`. A storage policy on the bucket `017_sowings.sql` creates, owner-only. `tests/rls.integration.test.ts`: an anon client with no session reads zero rows from every table; with the owner's JWT it reads the owner's rows; the admin client is unaffected. Publish `resources` and `topics` to the `supabase_realtime` publication.
