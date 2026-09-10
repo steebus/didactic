@@ -49,6 +49,12 @@ export default async function TopicPage({
         // colour the subject happens to carry.
         style={{ background: colour, '--focus-ink': 'var(--paper)' } as React.CSSProperties}
       >
+        {/* The one sheet in the catalogue that did not carry the
+            running head: the component was imported here and never
+            printed, so a topic was the only place with no way to the
+            other sheets but the browser's own back button. */}
+        <SheetNav back={{ href: '/', label: 'Stock list' }} />
+
         <div className={styles.headRow}>
           <div>
             {/* The subject names were already printed here; they are
@@ -68,9 +74,6 @@ export default async function TopicPage({
             </p>
             <h1 className={styles.title}>{topic.title}</h1>
           </div>
-          <Link href="/" className={styles.back}>
-            Back to the stock list
-          </Link>
         </div>
 
         {topic.summary && <p className={styles.summary}>{topic.summary}</p>}

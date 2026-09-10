@@ -1,20 +1,40 @@
-import { Setting } from '@/components/Setting'
+import { SheetNav } from '@/components/SheetNav'
+import { Slug, Working } from '@/components/Setting'
 import styles from './page.module.css'
 
-/**
- * What stands here while the sheet is fetched.
- *
- * Without this boundary the browser holds the previous page until every
- * query has returned -- the database is on another continent and one
- * round trip measures about 140ms -- so a click looked like nothing had
- * happened at all. The galley arrives immediately and the sheet streams
- * in behind it.
- */
+/** The marked passages, while they are gathered. A mark is a quote
+ *  with a caption under it, so that is what stands here. */
 export default function Loading() {
   return (
     <main className={styles.sheet}>
+      <header className={styles.head}>
+        <SheetNav current="marked" />
+        <div className={styles.headRow}>
+          <h1 className={styles.title}>Marked</h1>
+        </div>
+      </header>
+      <div className={styles.headRule} />
+
       <div className={styles.body}>
-        <Setting label="Gathering the marks" shape="rows" />
+        <Working label="Gathering the marks" />
+
+        <ul className={styles.marks}>
+          {[
+            ['97%', '88%', '54%'],
+            ['93%', '61%'],
+            ['98%', '90%', '72%'],
+            ['86%', '49%'],
+          ].map((lines, i) => (
+            <li key={i} className={styles.mark}>
+              <div className={styles.quote}>
+                {lines.map((w, j) => (
+                  <Slug key={j} w={w} delay={i * 0.09} />
+                ))}
+              </div>
+              <Slug w="34%" delay={i * 0.09} />
+            </li>
+          ))}
+        </ul>
       </div>
     </main>
   )

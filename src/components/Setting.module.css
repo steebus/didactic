@@ -63,8 +63,20 @@
   max-width: 62ch;
 }
 
-.line,
-.head {
+/* Prose sets to a measure. A run of rows takes the column it is in,
+   because that is what the list it stands in for does. */
+.galleyWide {
+  max-width: none;
+}
+
+/* A heading slug carries its own space above it in a plain galley,
+   where it is standing in for a section break. Inside a sheet's own
+   layout the layout does that. */
+.galley > .slugTall {
+  margin-top: var(--space-3);
+}
+
+.slug {
   display: block;
   width: var(--w, 100%);
   height: 0.7em;
@@ -75,17 +87,31 @@
 
 /* A heading's galley slug is taller and darker, so the shape of the
    piece is legible before a word of it exists. */
-.head {
+.slugTall {
   height: 1.15em;
   width: var(--w, 58%);
   background: var(--paper-edge);
-  margin-top: var(--space-3);
+}
+
+/* Where an emblem will be. Round because the thing it stands in for
+   is, and a square here would move the row when the real one lands. */
+.slugRound {
+  width: var(--w, 3rem);
+  height: var(--w, 3rem);
+  border-radius: 50%;
+  flex: none;
+}
+
+/* On the masthead the paper is the plate colour, so a slug cut from
+   paper-deep is invisible. Light on dark, at the weight the band's own
+   type is set in. */
+.slugBand {
+  background: rgba(239, 231, 214, 0.22);
 }
 
 /* The ink-up: a soft band crossing each line, staggered down the galley
    so the page sets top to bottom rather than flashing at once. */
-.line::after,
-.head::after {
+.slug::after {
   content: '';
   position: absolute;
   inset: 0;
@@ -97,6 +123,7 @@
   );
   transform: translateX(-100%);
   animation: press 1.9s var(--ease-settle) infinite;
+  animation-delay: var(--delay, 0s);
 }
 
 .galley > *:nth-child(2n)::after {
@@ -129,15 +156,14 @@
   min-width: 1.75rem;
 }
 
-.row .line {
+.row .slug {
   flex: 1;
 }
 
 /* Reduced motion keeps the galley and drops the travel: the shape is
    the information, the movement is only reassurance. */
 @media (prefers-reduced-motion: reduce) {
-  .line::after,
-  .head::after,
+  .slug::after,
   .ellipsis span {
     animation: none;
   }

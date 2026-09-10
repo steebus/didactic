@@ -3,6 +3,67 @@
 import styles from './Setting.module.css'
 
 /**
+ * A slug of set type with no ink on it yet: one line of a galley.
+ *
+ * Exported because a sheet's own waiting state is not a generic block
+ * — a loading screen that does not have the shape of the sheet it
+ * stands in for is a second design of the same page, and the reader
+ * sees the page change shape under them when it arrives. Each sheet
+ * builds its own galley out of these, in its own layout classes.
+ */
+export function Slug({
+  w,
+  tall,
+  round,
+  /** On the masthead band the paper is dark, so the slug is light. */
+  band,
+  /** Seconds. Staggers the ink-up where the layout is not a plain run. */
+  delay,
+}: {
+  w?: string
+  tall?: boolean
+  round?: boolean
+  band?: boolean
+  delay?: number
+}) {
+  return (
+    <span
+      className={[
+        styles.slug,
+        tall ? styles.slugTall : '',
+        round ? styles.slugRound : '',
+        band ? styles.slugBand : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      style={
+        {
+          ...(w ? { '--w': w } : {}),
+          ...(delay ? { '--delay': `${delay}s` } : {}),
+        } as React.CSSProperties
+      }
+      aria-hidden="true"
+    />
+  )
+}
+
+/** A run of slugs, inked top to bottom. */
+export function Galley({
+  children,
+  wide,
+}: {
+  children: React.ReactNode
+  /** Prose sets to a measure; a list of rows takes the column. */
+  wide?: boolean
+}) {
+  return (
+    <div className={`${styles.galley} ${wide ? styles.galleyWide : ''}`} aria-hidden="true">
+      {children}
+    </div>
+  )
+}
+
+/**
  * What a sheet shows while it is being set.
  *
  * The catalogue is a printed object, so waiting is printing: ruled
@@ -25,27 +86,20 @@ export function Setting({
 }) {
   return (
     <div className={styles.setting} role="status" aria-live="polite">
-      <p className={styles.label}>
-        {label}
-        <span className={styles.ellipsis} aria-hidden="true">
-          <span />
-          <span />
-          <span />
-        </span>
-      </p>
+      <Working label={label} />
 
       <div className={styles.galley} aria-hidden="true">
         {shape === 'prose' && (
           <>
-            <span className={styles.head} />
-            <span className={styles.line} style={{ '--w': '96%' } as React.CSSProperties} />
-            <span className={styles.line} style={{ '--w': '99%' } as React.CSSProperties} />
-            <span className={styles.line} style={{ '--w': '91%' } as React.CSSProperties} />
-            <span className={styles.line} style={{ '--w': '62%' } as React.CSSProperties} />
-            <span className={styles.head} style={{ '--w': '42%' } as React.CSSProperties} />
-            <span className={styles.line} style={{ '--w': '97%' } as React.CSSProperties} />
-            <span className={styles.line} style={{ '--w': '88%' } as React.CSSProperties} />
-            <span className={styles.line} style={{ '--w': '71%' } as React.CSSProperties} />
+            <Slug tall />
+            <Slug w="96%" />
+            <Slug w="99%" />
+            <Slug w="91%" />
+            <Slug w="62%" />
+            <Slug tall w="42%" />
+            <Slug w="97%" />
+            <Slug w="88%" />
+            <Slug w="71%" />
           </>
         )}
 
@@ -53,18 +107,33 @@ export function Setting({
           [92, 78, 86, 69, 83, 74].map((w, i) => (
             <span className={styles.row} key={i}>
               <span className={styles.rowNumber}>{String(i + 1).padStart(2, '0')}</span>
-              <span className={styles.line} style={{ '--w': `${w}%` } as React.CSSProperties} />
+              <Slug w={`${w}%`} />
             </span>
           ))}
 
         {shape === 'panel' && (
           <>
-            <span className={styles.head} style={{ '--w': '54%' } as React.CSSProperties} />
-            <span className={styles.line} style={{ '--w': '94%' } as React.CSSProperties} />
-            <span className={styles.line} style={{ '--w': '77%' } as React.CSSProperties} />
+            <Slug tall w="54%" />
+            <Slug w="94%" />
+            <Slug w="77%" />
           </>
         )}
       </div>
     </div>
+  )
+}
+
+/** The line that says what is being waited for, with the three points
+ *  that come up in turn so it reads as working rather than stuck. */
+export function Working({ label }: { label: string }) {
+  return (
+    <p className={styles.label}>
+      {label}
+      <span className={styles.ellipsis} aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </span>
+    </p>
   )
 }

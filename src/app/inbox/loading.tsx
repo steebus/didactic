@@ -1,20 +1,44 @@
-import { Setting } from '@/components/Setting'
+import { SheetNav } from '@/components/SheetNav'
+import { Slug, Working } from '@/components/Setting'
 import styles from './page.module.css'
 
 /**
- * What stands here while the sheet is fetched.
+ * The inbox, while it is read.
  *
- * Without this boundary the browser holds the previous page until every
- * query has returned -- the database is on another continent and one
- * round trip measures about 140ms -- so a click looked like nothing had
- * happened at all. The galley arrives immediately and the sheet streams
- * in behind it.
+ * The capture box at the top needs nothing from the database, so it is
+ * not stood in for -- printing a grey box where a working field is
+ * about to be would be slower than the field itself. What is waited
+ * for is the two lists beneath it.
  */
 export default function Loading() {
   return (
     <main className={styles.sheet}>
+      <header className={styles.head}>
+        <SheetNav current="inbox" />
+        <div className={styles.headRow}>
+          <h1 className={styles.title}>Inbox</h1>
+        </div>
+      </header>
+      <div className={styles.headRule} />
+
       <div className={styles.body}>
-        <Setting label="Reading the inbox" shape="rows" />
+        <Working label="Reading the inbox" />
+
+        <section>
+          <div className={styles.sectionHead}>
+            <h2 className={styles.sectionTitle}>Unsown</h2>
+          </div>
+          <ul className={styles.list}>
+            {[71, 84, 62, 78, 55].map((w, i) => (
+              <li key={i} className={styles.row}>
+                <div>
+                  <Slug tall w={`${w}%`} delay={i * 0.07} />
+                  <Slug w="46%" delay={i * 0.07} />
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
       </div>
     </main>
   )
