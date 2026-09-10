@@ -74,8 +74,16 @@ export function paintMarks(
     const map: Array<{ node: Text; offset: number }> = []
     for (const n of nodes) {
       const text = normalise(n.data)
-      for (let i = 0; i < text.length; i++) map.push({ node: n, offset: i })
-      flat += text
+      for (let i = 0; i < text.length; i++) {
+        // Whitespace collapses across nodes as well as within them. The
+        // gap between a paragraph and the list under it is a text node
+        // of its own, so running the nodes together left two spaces
+        // where the reader had selected one -- and the passage was then
+        // looked for with one space and never found.
+        if (text[i] === ' ' && flat.endsWith(' ')) continue
+        map.push({ node: n, offset: i })
+        flat += text[i]
+      }
     }
 
     // The prefix disambiguates a quote that appears more than once.
@@ -92,57 +100,100 @@ export function paintMarks(
     }
     if (start === -1) continue
 
-    const from = map[start]
-    const to = map[start + quote.length - 1]
-    if (!from || !to) continue
-
-    // The flat string collapsed whitespace, so offsets are mapped back
-    // through the same collapse rather than used raw.
-    const range = document.createRange()
-    try {
-      range.setStart(from.node, realOffset(from.node, from.offset))
-      range.setEnd(to.node, realOffset(to.node, to.offset) + 1)
-    } catch {
-      continue
+    // The nodes the passage runs through, and how much of each it
+    // covers.
+    //
+    // A passage is wrapped a text node at a time rather than in one
+    // piece. A single range around the whole thing is what the DOM
+    // would prefer, but `surroundContents` refuses any range that
+    // straddles an element boundary -- and a reader marking two bullets
+    // or a sentence that carries on into the next paragraph makes
+    // exactly that range. Those marks were dropped silently: kept on
+    // the topic sheet, invisible on the lesson they were taken in.
+    //
+    // Wrapping each node's share separately never straddles anything,
+    // and the pieces carry the same id, so the passage reads as one
+    // mark and opens one panel however many elements it crosses.
+    const slices: Array<{ node: Text; from: number; to: number }> = []
+    for (let i = start; i < start + quote.length; i++) {
+      const at = map[i]
+      if (!at) break
+      const last = slices[slices.length - 1]
+      if (last && last.node === at.node) last.to = at.offset
+      else slices.push({ node: at.node, from: at.offset, to: at.offset })
     }
+    if (slices.length === 0) continue
 
-    const wrap = document.createElement('mark')
-    wrap.dataset.mark = mark.id
-    if (mark.hasNote) wrap.dataset.noted = 'true'
-    wrap.tabIndex = 0
-    wrap.setAttribute('role', 'button')
-    wrap.setAttribute(
-      'aria-label',
-      mark.hasNote ? 'Marked passage with a note' : 'Marked passage'
-    )
+    /** One piece of the passage, drawn and wired to open the mark. */
+    const piece = (first: boolean) => {
+      const wrap = document.createElement('mark')
+      wrap.dataset.mark = mark.id
+      if (mark.hasNote) wrap.dataset.noted = 'true'
 
-    const open = (e: Event) => {
-      e.stopPropagation()
-      onOpen(
-        mark.id,
-        panelSpot(wrap.getBoundingClientRect(), root.getBoundingClientRect(), {
-          width: window.innerWidth,
-          height: window.innerHeight,
-        })
-      )
-    }
-    wrap.addEventListener('click', open)
-    wrap.addEventListener('keydown', e => {
-      const key = (e as KeyboardEvent).key
-      if (key === 'Enter' || key === ' ') {
-        e.preventDefault()
-        open(e)
+      // One tab stop for the passage rather than one per piece: the
+      // rest are still clickable, and none of them is hidden from a
+      // screen reader, which would take the words with it.
+      if (first) {
+        wrap.tabIndex = 0
+        wrap.setAttribute('role', 'button')
+        wrap.setAttribute(
+          'aria-label',
+          mark.hasNote ? 'Marked passage with a note' : 'Marked passage'
+        )
       }
-    })
 
-    try {
-      // surroundContents throws when the range straddles element
-      // boundaries -- a quote running across a paragraph break, say.
-      // Those are left unpainted rather than rewriting the tree.
-      range.surroundContents(wrap)
-      drawn.add(mark.id)
-    } catch {
-      continue
+      const open = (e: Event) => {
+        e.stopPropagation()
+        onOpen(
+          mark.id,
+          panelSpot(wrap.getBoundingClientRect(), root.getBoundingClientRect(), {
+            width: window.innerWidth,
+            height: window.innerHeight,
+          })
+        )
+      }
+      wrap.addEventListener('click', open)
+      wrap.addEventListener('keydown', e => {
+        const key = (e as KeyboardEvent).key
+        if (key === 'Enter' || key === ' ') {
+          e.preventDefault()
+          open(e)
+        }
+      })
+      return wrap
+    }
+
+    // From the end back: wrapping part of a text node splits it, and
+    // everything after the split moves. Working backwards leaves the
+    // offsets this loop has not reached yet where it found them.
+    for (let i = slices.length - 1; i >= 0; i--) {
+      const slice = slices[i]
+      // The flat string collapsed whitespace, so offsets are mapped
+      // back through the same collapse rather than used raw.
+      const from = realOffset(slice.node, slice.from)
+      const to = realOffset(slice.node, slice.to) + 1
+
+      // The gaps between elements are text nodes too -- the newline
+      // between two list items is one. There is nothing to draw on
+      // them, and a mark around a line break draws a wash in the
+      // margin between the items.
+      if (!slice.node.data.slice(from, to).trim()) continue
+
+      const range = document.createRange()
+      try {
+        range.setStart(slice.node, from)
+        range.setEnd(slice.node, to)
+      } catch {
+        continue
+      }
+
+      try {
+        // Within one text node, so this cannot straddle anything.
+        range.surroundContents(piece(i === 0))
+        drawn.add(mark.id)
+      } catch {
+        continue
+      }
     }
   }
 

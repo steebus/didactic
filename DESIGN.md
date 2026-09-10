@@ -733,6 +733,15 @@ regenerable. When a rewritten body no longer contains the words, the sheet
 prints `n no longer in this text` rather than a count that disagrees with the
 page.
 
+**Rule — a passage is drawn a piece per element, and reads as one mark.** A
+reader marking two dot points, or a sentence that carries on into the next
+paragraph, makes a selection that crosses an element boundary, and the DOM
+refuses to wrap a range like that in one go. So each element's share is wrapped
+separately, under the same id: the wash breaks where the list breaks, the
+whitespace between items is left alone, the passage counts once, and pressing
+any piece opens the one mark. Only the first piece is a tab stop, and no piece
+is hidden from a screen reader — that would take the words with it.
+
 **Rule — a mark with no passage is a note on the lesson, and says so.** It is a
 mark like any other — same topic, same search, same weight — with nothing to
 draw it back onto. Everywhere marks are printed, an empty quote prints
@@ -868,9 +877,11 @@ Recorded because the document is a description, not a defence.
 
 - **A mark is found by its words, not by an offset.** §8. A lesson body is
   regenerable, so a rewritten one can leave a kept passage undrawable; the
-  sheet says how many rather than pretending. A quote spanning a paragraph
-  break is not drawn at all, because the range cannot be wrapped without
-  rewriting the tree.
+  sheet says how many rather than pretending. A passage that crosses an
+  element boundary *is* drawn — in pieces, under one id — but one whose words
+  have changed is still lost, and the words are matched with whitespace
+  collapsed, so a passage the reader marked across a paragraph and the list
+  under it matches on a single space.
 - **The graph camera does not fit to content.** `renderer.getCamera().animatedReset()`
   restores Sigma's default camera rather than computing the planting's bounding
   box, so beds can sit off-centre when the layout spreads them unevenly. Named as
