@@ -28,7 +28,7 @@ order by topic_links_to_drop desc;
 
 -- 2. File each piece of evidence against its subject.
 insert into resource_subjects (resource_id, subject_id, relevance, created_by)
-select distinct rt.resource_id, ts.subject_id, 0.3, 'ai'
+select distinct rt.resource_id, ts.subject_id, 0.3, 'ai'::created_by_kind
 from resource_topics rt
 join topic_subjects  ts on ts.topic_id   = rt.topic_id
 join subject_sowings ss on ss.subject_id = ts.subject_id
