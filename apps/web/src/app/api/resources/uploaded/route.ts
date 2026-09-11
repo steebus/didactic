@@ -3,7 +3,12 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { ownerId } from '@/lib/auth'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
-import { ownsPath, titleFromFilename } from '@didactic/core/documents'
+import {
+  MAX_DOCUMENT_BYTES,
+  ownsPath,
+  titleFromFilename,
+  tooLarge,
+} from '@didactic/core/documents'
 
 /**
  * Drop what this route just changed.
@@ -58,6 +63,21 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'nothing was uploaded to that path' }, { status: 404 })
   }
 
+  // The ceiling, checked against what actually landed.
+  //
+  // `upload-url` checks the size the client *says* it is about to
+  // upload, which is worth doing -- it fails fast, before the bytes
+  // move -- but it is not a limit. A signed upload URL carries no size
+  // of its own, so a client that claimed one megabyte and sent five
+  // hundred would have been believed. This is the check that counts,
+  // and the object goes back out of the bucket rather than being left
+  // there unreferenced.
+  const size = (object.metadata as { size?: number } | null)?.size ?? null
+  if (size !== null && size > MAX_DOCUMENT_BYTES) {
+    await db.storage.from('resources').remove([path])
+    return NextResponse.json({ error: tooLarge(size) }, { status: 413 })
+  }
+
   const title =
     typeof filename === 'string' && filename.trim()
       ? titleFromFilename(filename)
@@ -78,7 +98,7 @@ export async function POST(req: Request) {
       consumed_at: consumed === true ? new Date().toISOString() : null,
       storage_path: path,
       mime_type: 'application/pdf',
-      file_size: (object.metadata as { size?: number } | null)?.size ?? null,
+      file_size: size,
     })
     .select('id, title')
     .single()
