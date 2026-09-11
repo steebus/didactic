@@ -142,6 +142,29 @@ export const FIDELITY_RUNGS: FidelityRung[] = [
  *  often than reproducing it. */
 export const DEFAULT_FIDELITY: Fidelity = 'follow'
 
+/**
+ * Which rungs a document can honestly be offered at.
+ *
+ * Two of the three follow a shape, and plenty of documents have none: an
+ * article, a paper, a chapter pulled out of a book, anything exported
+ * from a blog. Offering "to the letter" for one of those is offering
+ * something that cannot happen — the bed would come out exactly as it
+ * would have anyway, and the reader would rightly report it as broken.
+ *
+ * So a document with no contents gets the one rung that does not need
+ * them. What it loses is only the shaping: it is still material, still
+ * filed against the subject, and still cited in lessons written there,
+ * because a citation needs a page and not a chapter.
+ */
+export function rungsFor(chapters: number): FidelityRung[] {
+  return chapters > 0 ? FIDELITY_RUNGS : FIDELITY_RUNGS.filter(r => r.value === 'source')
+}
+
+/** The rung a document should arrive at, given what was found in it. */
+export function defaultRungFor(chapters: number): Fidelity {
+  return chapters > 0 ? DEFAULT_FIDELITY : 'source'
+}
+
 export function rungFor(value: Fidelity): FidelityRung {
   return FIDELITY_RUNGS.find(r => r.value === value) ?? FIDELITY_RUNGS[1]
 }

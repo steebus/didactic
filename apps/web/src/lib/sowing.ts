@@ -237,9 +237,15 @@ export async function loadSourceDocuments(
     ])
   )
 
+  // A document with an outline row is returned even when that row holds
+  // no chapters. The two are different facts and the sheet has to tell
+  // them apart: absent means the document has not been read yet, and
+  // empty means it has been read and has no contents to follow. Saying
+  // "lay it out again once it has finished being read" about an article
+  // is advice that can never pay off.
   return wanted.flatMap(e => {
     const held = outlines.get(e.resourceId)
-    if (!held || held.chapters.length === 0) return []
+    if (!held) return []
     return [
       {
         resourceId: e.resourceId,
@@ -353,7 +359,19 @@ function sourceInstruction(sources: SourceDocument[]): string {
 
   for (const source of sources) {
     const flat = flattenChapters(source.chapters)
-    if (flat.length === 0) continue
+
+    // Read, but with no chapters in it: an article, a paper, a chapter
+    // pulled out of a book. There is no shape to follow, so the two
+    // rungs that follow a shape have nothing to work with and quietly
+    // become the third. It is still worth naming: the reader chose it
+    // as material for this subject, which is a different claim from the
+    // evidence list above -- that one is about what they already know.
+    if (flat.length === 0) {
+      parts.push(
+        `They handed over "${source.title}" as material for this subject. It carries no contents of its own to follow, so let it inform what the subject is taken to include and nothing more.`
+      )
+      continue
+    }
 
     if (source.fidelity === 'follow') {
       parts.push(

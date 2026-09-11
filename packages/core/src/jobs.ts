@@ -97,11 +97,20 @@ export function jobPhrases(kind: JobKind): string[] {
   return kind === 'sowing' ? LABOURS : WRITINGS
 }
 
-/** What the way to the finished thing is called. Null while it runs:
- *  there is nowhere to go yet. */
+/**
+ * What the way to the finished thing is called. Null while it runs:
+ * there is nowhere to go yet.
+ *
+ * A finished sowing goes to the reading rather than to the bed. The bed
+ * is a list of topics and says nothing about where it came from; the
+ * reading says what the reader claimed, what their answers actually
+ * showed, and what the bed was laid out from — which is the question
+ * anyone has the moment a bed they did not write appears. The bed is
+ * one press from it.
+ */
 export function jobWay(job: JobLike): string | null {
   if (job.state !== 'done') return null
-  return job.kind === 'sowing' ? 'See the bed' : 'Read it'
+  return job.kind === 'sowing' ? 'See the reading' : 'Read it'
 }
 
 /**

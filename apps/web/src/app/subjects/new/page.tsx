@@ -202,13 +202,21 @@ export default function NewSubjectPage() {
       })
       if (!ok || !body.subjectId) throw new Error(failed ?? 'Could not draw the map.')
 
-      // Straight to the reading when there is one — the comparison
-      // between what they said and what their answers showed is the
-      // point of having asked.
+      // Always the reading, for a bed just sown.
+      //
+      // It used to go there only when the app had formed a reading of
+      // the answers, and to the bed otherwise — which meant the sheet
+      // that explains what was just done was the one sheet a reader
+      // usually never saw, since whether it appeared turned on whether
+      // the model had filled in an optional part of its answer.
+      //
+      // The reading stands either way: every figure on it reads through
+      // `sowing?.`, and a bed with nothing to read prints "unstated"
+      // rather than an error. It is also the sheet that says what the
+      // bed rests on, which is exactly the question a reader has the
+      // moment a bed appears — and the bed itself is one press from it.
       return {
-        href: body.reading
-          ? `/subjects/${body.subjectId}/reading`
-          : `/subjects/${body.subjectId}`,
+        href: `/subjects/${body.subjectId}/reading`,
         warnings: body.warnings ?? [],
       }
     }
@@ -449,7 +457,7 @@ export default function NewSubjectPage() {
               className={styles.submit}
               onClick={() => router.push(partial.href)}
             >
-              Go to the bed
+              See the reading
             </button>
           </div>
         )}

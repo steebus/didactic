@@ -11,6 +11,8 @@ import {
   FIDELITY_RUNGS,
   DEFAULT_FIDELITY,
   rungFor,
+  rungsFor,
+  defaultRungFor,
   isFidelity,
 } from '../src/documents'
 
@@ -105,6 +107,19 @@ describe('the fidelity rungs', () => {
     expect(isFidelity('whatever')).toBe(false)
     expect(isFidelity(null)).toBe(false)
     expect(isFidelity(3)).toBe(false)
+  })
+
+  it('offers every rung for a document with contents', () => {
+    expect(rungsFor(12).map(r => r.value)).toEqual([...FIDELITIES])
+    expect(defaultRungFor(12)).toBe('follow')
+  })
+
+  it('offers only the rung that needs no contents for one without', () => {
+    // An article, a paper, anything exported from a blog. Offering "to
+    // the letter" here offers something that cannot happen: the bed
+    // would come out as it would have anyway and read as broken.
+    expect(rungsFor(0).map(r => r.value)).toEqual(['source'])
+    expect(defaultRungFor(0)).toBe('source')
   })
 
   it('falls back to the middle rung rather than throwing', () => {

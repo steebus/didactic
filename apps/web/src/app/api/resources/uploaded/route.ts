@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { ownerId } from '@/lib/auth'
 import { revalidateTag } from 'next/cache'
+import { ensureOutline, signedSource } from '@/lib/document'
 import { tags } from '@didactic/core/tags'
 import {
   MAX_DOCUMENT_BYTES,
@@ -9,6 +10,15 @@ import {
   titleFromFilename,
   tooLarge,
 } from '@didactic/core/documents'
+
+/**
+ * Long enough to open a document and read its bookmarks, and to fall
+ * back to the model on the front pages where there are none. Well
+ * inside the platform's minute, because the reader is watching a
+ * spinner on a file they just chose.
+ */
+export const maxDuration = 60
+const OUTLINE_BUDGET_MS = 40_000
 
 /**
  * Drop what this route just changed.
@@ -111,16 +121,54 @@ export async function POST(req: Request) {
   }
 
   await db.from('ingestion_jobs').insert({ resource_id: data.id })
+
+  // Read the document's own structure here, before answering.
+  //
+  // It used to wait for the queue, and the queue runs on a cron once a
+  // minute -- while a reader who has just uploaded a book is, within
+  // seconds, choosing how closely the bed should follow it and pressing
+  // sow. The answer always arrived after the question: the bed was laid
+  // out without the document every single time, and the sheet blamed
+  // the reader for being quick. Reading a bookmark tree is one pass and
+  // under a second, so it happens now and the sheet can say what it
+  // found. The passages -- the expensive part, and the part nothing
+  // needs until a lesson is written -- stay on the queue.
+  //
+  // A failure here is not a failure of the upload. The document is
+  // filed either way; it simply cannot be followed, which is the same
+  // position as a document that has no contents at all.
+  let outline: { chapters: number; source: string; pageCount: number } | null = null
+  try {
+    const shape = await ensureOutline(db, data.id, await signedSource(db, path), {
+      title: data.title,
+      userId,
+      deadline: Date.now() + OUTLINE_BUDGET_MS,
+    })
+    outline = {
+      chapters: shape.chapters.length,
+      source: shape.source,
+      pageCount: shape.pageCount,
+    }
+  } catch {
+    // Left null: the sheet reads that as "nothing to follow", which is
+    // exactly what it is.
+  }
+
   const { error: queueError } = await db.rpc('enqueue_ingestion', { p_resource_id: data.id })
 
   dropCache()
 
   if (queueError) {
     return NextResponse.json(
-      { id: data.id, title: data.title, warning: `saved but not queued: ${queueError.message}` },
+      {
+        id: data.id,
+        title: data.title,
+        outline,
+        warning: `saved but not queued: ${queueError.message}`,
+      },
       { status: 202 }
     )
   }
 
-  return NextResponse.json({ id: data.id, title: data.title })
+  return NextResponse.json({ id: data.id, title: data.title, outline })
 }

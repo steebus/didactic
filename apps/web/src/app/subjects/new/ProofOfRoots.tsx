@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { didactic, type AddResource } from '@didactic/api'
 import { bookNote, type BookMatch } from '@didactic/core/books'
-import { FIDELITY_RUNGS, type Fidelity } from '@didactic/core/documents'
+import { rungsFor, defaultRungFor, type Fidelity } from '@didactic/core/documents'
 import styles from './page.module.css'
 
 const api = didactic()
@@ -18,6 +18,10 @@ export interface ProofEntry {
    *  never holds its contents. Absent means it steers nothing, which
    *  is what every piece of proof did before the dial existed. */
   fidelity?: Fidelity
+  /** What the document turned out to be shaped like, read as it was
+   *  uploaded. Zero chapters is ordinary — an article is not a book —
+   *  and it decides which rungs can honestly be offered. */
+  chapters?: number
 }
 
 type Mode = 'link' | 'book' | 'credential' | 'file'
@@ -197,7 +201,20 @@ export function ProofOfRoots({
     if (!ok && status !== 202) {
       setError(failed ?? 'Could not take that file.')
     } else {
-      onChange([...entries, { resourceId: body.id, title: body.title, kind: 'pdf' }])
+      onChange([
+        ...entries,
+        {
+          resourceId: body.id,
+          title: body.title,
+          kind: 'pdf',
+          chapters: body.outline?.chapters ?? 0,
+          // A document with a shape to follow starts on the rung that
+          // is right far more often than the other two. One without
+          // starts steering only what the subject covers, because the
+          // other two rungs would have nothing to act on.
+          fidelity: defaultRungFor(body.outline?.chapters ?? 0),
+        },
+      ])
     }
 
     setBusy(false)
@@ -252,7 +269,29 @@ export function ProofOfRoots({
                     How closely should the bed follow it?
                   </legend>
 
-                  {FIDELITY_RUNGS.map(rung => (
+                  {/* What was actually found in it, read as it was
+                      uploaded. A document with no contents of its own
+                      cannot be followed to the letter or in its order,
+                      so those rungs are not offered rather than offered
+                      and quietly ignored — and the reason is printed,
+                      because "an article has no chapters" is obvious
+                      once said and baffling when it is not. */}
+                  {entry.chapters === 0 ? (
+                    <p className={styles.followNone}>
+                      It carries no contents of its own — no bookmarks and no
+                      contents page — so there is no order for the bed to follow.
+                      It can still steer what the subject covers, and lessons
+                      written here can still cite it.
+                    </p>
+                  ) : (
+                    entry.chapters !== undefined && (
+                      <p className={styles.followFound}>
+                        {entry.chapters} {entry.chapters === 1 ? 'chapter' : 'chapters'} found.
+                      </p>
+                    )
+                  )}
+
+                  {rungsFor(entry.chapters ?? 0).map(rung => (
                     <label key={rung.value} className={styles.followRung}>
                       <input
                         type="radio"

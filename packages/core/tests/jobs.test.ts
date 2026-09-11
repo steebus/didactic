@@ -92,7 +92,11 @@ describe('jobNote', () => {
 
 describe('jobWay', () => {
   it('offers the way to the finished thing', () => {
-    expect(jobWay(job({ state: 'done' }))).toBe('See the bed')
+    // A sowing goes to the reading, not to the bed: the bed is a list of
+    // topics and says nothing about where it came from, and "where did
+    // this come from" is the question a reader has the moment a bed they
+    // did not write appears.
+    expect(jobWay(job({ state: 'done' }))).toBe('See the reading')
     expect(jobWay(job({ kind: 'writing', state: 'done' }))).toBe('Read it')
   })
 

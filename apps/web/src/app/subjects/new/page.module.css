@@ -438,6 +438,20 @@
   margin-bottom: var(--space-1);
 }
 
+/* What was found in the document, printed above the rungs so the choice
+   is made knowing what there is to choose from. */
+.followFound,
+.followNone {
+  font-size: var(--step--2);
+  color: var(--ink-soft);
+  margin: 0 0 var(--space-1);
+  line-height: 1.4;
+}
+
+.followNone {
+  font-style: italic;
+}
+
 .followRung {
   display: grid;
   grid-template-columns: auto 1fr;

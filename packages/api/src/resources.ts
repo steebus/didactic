@@ -31,6 +31,13 @@ export interface Filed {
   warning?: string
   alreadyFiled?: boolean
   filedHereToo?: boolean
+  /**
+   * What a document turned out to be shaped like, read on the upload
+   * itself so the sowing sheet can say what it found before anyone
+   * chooses how closely to follow it. Null where it could not be read;
+   * absent on every route but `uploaded`.
+   */
+  outline?: { chapters: number; source: string; pageCount: number } | null
 }
 
 export const resources = (api: Api) => ({

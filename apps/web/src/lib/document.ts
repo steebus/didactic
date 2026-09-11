@@ -52,6 +52,141 @@ const CONCURRENCY = 3
  *  room to spare, short enough that it is not a key left lying about. */
 const URL_TTL_SECONDS = 900
 
+/** What a document turned out to be shaped like. */
+export interface DocumentShape {
+  chapters: OutlineEntry[]
+  source: 'bookmarks' | 'model' | 'none'
+  pageCount: number
+  /** True when this was read before and only loaded here. */
+  alreadyHeld: boolean
+  warnings: string[]
+}
+
+/**
+ * Read the document's structure, once, and keep it.
+ *
+ * Separated from the rounds because it is wanted long before them. A
+ * reader uploads a book and then, within seconds, says how closely the
+ * bed should follow it and presses sow -- while the queue that reads
+ * documents runs on a cron once a minute. Left on the queue, the answer
+ * always arrived after the question: the bed was laid out without the
+ * document every single time, and the sheet said "it has not finished
+ * being read" as though the reader had simply been too quick.
+ *
+ * So the structure is read on the upload itself, where it is cheap --
+ * a bookmark tree is one pass and under a second -- and the passages,
+ * which are the expensive part and which nothing needs until a lesson
+ * is written, stay on the queue.
+ *
+ * Idempotent: a document whose outline is already on the row is loaded
+ * rather than read again.
+ */
+export async function ensureOutline(
+  db: SupabaseClient,
+  resourceId: string,
+  source: { url: string } | { buffer: Buffer },
+  {
+    title,
+    userId,
+    deadline,
+  }: { title: string; userId: string; deadline: number }
+): Promise<DocumentShape> {
+  const warnings: string[] = []
+
+  const { data: held } = await db
+    .from('resource_outline')
+    .select('chapters, source, page_count')
+    .eq('resource_id', resourceId)
+    .maybeSingle()
+
+  if (held) {
+    return {
+      chapters: (held.chapters as OutlineEntry[] | null) ?? [],
+      source: (held.source as 'bookmarks' | 'model' | 'none') ?? 'none',
+      pageCount: (held.page_count as number | null) ?? 0,
+      alreadyHeld: true,
+      warnings,
+    }
+  }
+
+  const read = await readOutline(source)
+  let chapters = read.chapters
+  // Widened from what `readOutline` can answer ('bookmarks' or 'none'),
+  // because the model-read fallback below is the third case and only
+  // this function can produce it.
+  let outlineSource: DocumentShape['source'] = read.source
+
+  // No bookmarks. Many documents that lack them still print their own
+  // contents, so the front is read and the model is asked what it sees
+  // -- which is a guess, and is recorded as one. Plenty of documents
+  // have neither, and that is a fact about the document rather than a
+  // failure: an article is not a book and has no chapters to follow.
+  if (outlineSource === 'none' && Date.now() < deadline - OUTLINE_NEEDS_MS) {
+    try {
+      const front = await readPages(source, {
+        from: 1,
+        to: Math.min(FRONT_PAGES, read.pageCount),
+      })
+      const proposed = await readContentsPages({
+        title,
+        pageCount: read.pageCount,
+        front: front.pages,
+      })
+      if (proposed.length > 0) {
+        chapters = close(proposed, 1, read.pageCount)
+        outlineSource = 'model'
+      }
+    } catch (e) {
+      // A bed can still be sown from a document with no outline; it
+      // simply cannot be sown from it to the letter. Not fatal.
+      warnings.push(
+        `the contents could not be read: ${e instanceof Error ? e.message : String(e)}`
+      )
+    }
+  }
+
+  const { error: outlineError } = await db.from('resource_outline').upsert(
+    {
+      resource_id: resourceId,
+      user_id: userId,
+      chapters,
+      source: outlineSource,
+      page_count: read.pageCount,
+    },
+    { onConflict: 'resource_id' }
+  )
+  if (outlineError) warnings.push(`the outline was not saved: ${outlineError.message}`)
+
+  await db
+    .from('ingestion_jobs')
+    .update({ page_count: read.pageCount, updated_at: new Date().toISOString() })
+    .eq('resource_id', resourceId)
+
+  return {
+    chapters,
+    source: outlineSource,
+    pageCount: read.pageCount,
+    alreadyHeld: false,
+    warnings,
+  }
+}
+
+/**
+ * Sign a URL for a stored document, so pdfjs can fetch it by range.
+ */
+export async function signedSource(
+  db: SupabaseClient,
+  storagePath: string
+): Promise<{ url: string }> {
+  const { data, error } = await db.storage
+    .from('resources')
+    .createSignedUrl(storagePath, URL_TTL_SECONDS)
+  if (error || !data?.signedUrl) {
+    throw new Error(`document: could not reach the file — ${error?.message ?? 'no URL'}`)
+  }
+  return { url: data.signedUrl }
+}
+
 export interface RoundResult {
   done: boolean
   pagesDone: number
@@ -97,79 +232,19 @@ export async function readDocumentRound(
   let pageCount: number | null = job?.page_count ?? null
   const msPerPage: number | null = job?.ms_per_page ?? null
 
-  // A URL rather than the bytes, so pdfjs can fetch by range.
-  const { data: signed, error: signError } = await db.storage
-    .from('resources')
-    .createSignedUrl(resource.storage_path, URL_TTL_SECONDS)
-  if (signError || !signed?.signedUrl) {
-    throw new Error(`document: could not reach the file — ${signError?.message ?? 'no URL'}`)
-  }
-  const source = { url: signed.signedUrl }
+  const source = await signedSource(db, resource.storage_path)
 
-  /* 1. The document's own shape, once, on the first round. */
+  /* 1. The document's own shape, which is usually already known. */
 
-  let outlineSource: RoundResult['outline'] = 'already'
-  let chapters: OutlineEntry[] = []
-
-  if (pagesDone === 0) {
-    const read = await readOutline(source)
-    pageCount = read.pageCount
-    chapters = read.chapters
-    outlineSource = read.source
-
-    // No bookmarks. Most documents that lack them still print their
-    // contents, so the front is read and the model is asked what it
-    // sees -- which is a guess, and is recorded as one.
-    if (outlineSource === 'none' && Date.now() < deadline - OUTLINE_NEEDS_MS) {
-      try {
-        const front = await readPages(source, {
-          from: 1,
-          to: Math.min(FRONT_PAGES, read.pageCount),
-        })
-        const proposed = await readContentsPages({
-          title: resource.title,
-          pageCount: read.pageCount,
-          front: front.pages,
-        })
-        if (proposed.length > 0) {
-          chapters = close(proposed, 1, read.pageCount)
-          outlineSource = 'model'
-        }
-      } catch (e) {
-        // A bed can still be sown from a document with no outline; it
-        // simply cannot be sown from it to the letter. Not fatal.
-        warnings.push(
-          `the contents could not be read: ${e instanceof Error ? e.message : String(e)}`
-        )
-      }
-    }
-
-    const { error: outlineError } = await db.from('resource_outline').upsert(
-      {
-        resource_id: resourceId,
-        user_id: resource.user_id,
-        chapters,
-        source: outlineSource,
-        page_count: read.pageCount,
-      },
-      { onConflict: 'resource_id' }
-    )
-    if (outlineError) warnings.push(`the outline was not saved: ${outlineError.message}`)
-
-    await db
-      .from('ingestion_jobs')
-      .update({ page_count: read.pageCount, updated_at: new Date().toISOString() })
-      .eq('resource_id', resourceId)
-  } else {
-    const { data: held } = await db
-      .from('resource_outline')
-      .select('chapters')
-      .eq('resource_id', resourceId)
-      .single()
-    chapters = (held?.chapters as OutlineEntry[] | null) ?? []
-  }
-
-  if (pageCount === null) throw new Error('document: the page count could not be read')
+  const shape = await ensureOutline(db, resourceId, source, {
+    title: resource.title,
+    userId: resource.user_id,
+    deadline,
+  })
+  const chapters = shape.chapters
+  const outlineSource: RoundResult['outline'] = shape.alreadyHeld ? 'already' : shape.source
+  warnings.push(...shape.warnings)
+  pageCount = shape.pageCount
 
   /* 2. As many pages as the rest of the minute will carry. */
 

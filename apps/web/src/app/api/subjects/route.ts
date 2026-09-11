@@ -134,9 +134,27 @@ async function sow(req: Request) {
     ? await loadSourceDocuments(supabaseAdmin(), evidence)
     : []
   for (const asked of evidence) {
-    if (asked.fidelity && !sources.some(s => s.resourceId === asked.resourceId)) {
+    if (!asked.fidelity) continue
+    const found = sources.find(s => s.resourceId === asked.resourceId)
+
+    // Not read yet. Worth saying, and worth offering the remedy: laying
+    // the bed out again once it has been read does follow it.
+    if (!found) {
       warnings.push(
         `"${asked.title}" has not finished being read, so the bed was laid out without following it — lay it out again once it has`
+      )
+      continue
+    }
+
+    // Read, and there is nothing in it to follow. A different fact, and
+    // it needs a different sentence: telling someone to wait for a
+    // reading that has already happened is advice that can never pay
+    // off. Nothing is lost that was ever available — the document is
+    // still material, and still cited in lessons written here, which is
+    // the part that does not need chapters.
+    if (found.chapters.length === 0 && asked.fidelity !== 'source') {
+      warnings.push(
+        `"${asked.title}" carries no contents of its own — no bookmarks and no contents page — so there was no order for the bed to follow. It still steers what the subject covers, and lessons written here can still cite it`
       )
     }
   }
