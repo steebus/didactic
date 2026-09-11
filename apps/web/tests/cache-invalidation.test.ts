@@ -27,9 +27,12 @@ const MUTATES = /export async function (POST|PATCH|PUT|DELETE)\b/
  * Routes that write nothing the sheets read.
  *
  * Auth writes cookies and a session, which no cached function is built
- * from; qualify asks the model for questions and stores nothing.
+ * from; qualify asks the model for questions and stores nothing; and
+ * upload-url mints a signed URL and writes no row at all -- the shelf
+ * changes when the bytes land and `/resources/uploaded` says so, and
+ * that route does drop its tags.
  */
-const NO_CACHED_READS = ['auth', 'qualify']
+const NO_CACHED_READS = ['auth', 'qualify', 'upload-url']
 
 describe('cache invalidation', () => {
   // From this file, not the working directory: vitest runs from the

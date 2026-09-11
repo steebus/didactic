@@ -154,14 +154,18 @@ describe('ENDPOINTS', () => {
 
   it('gives every write something to invalidate, and every read nothing', () => {
     // A write that drops no tag is the stale-map failure this table
-    // exists to prevent. The exceptions are the three that genuinely
-    // change nothing cached: signing in and out, and asking for the
-    // qualifying questions.
+    // exists to prevent. The exceptions genuinely change nothing
+    // cached: signing in and out, asking for the qualifying questions,
+    // and asking for permission to upload -- that one mints a signed
+    // URL and writes no row at all, which is the whole point of it
+    // (`/api/resources/uploaded` is where the shelf changes, and that
+    // one does drop its tags).
     const changesNothing = new Set([
       'auth.claim',
       'auth.signIn',
       'auth.signOut',
       'subjects.qualify',
+      'resources.uploadUrl',
     ])
 
     for (const [key, endpoint] of entries) {

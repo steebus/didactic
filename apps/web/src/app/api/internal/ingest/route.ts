@@ -18,6 +18,25 @@ function dropCache() {
 
 
 /**
+ * What the platform allows, and what the round is budgeted against.
+ *
+ * Sixty rather than more: it is the ceiling on the cheapest plan, and
+ * asking for more than the plan allows is refused at deploy rather than
+ * granted at runtime. A document too long to read inside it is read
+ * across several of these -- see `lib/document.ts`.
+ */
+export const maxDuration = 60
+
+/**
+ * How much of the minute the work may have.
+ *
+ * The rest is left for the response to get out. A round that spends the
+ * whole sixty seconds and is killed on the way home has done its work
+ * and thrown it away.
+ */
+const BUDGET_MS = 50_000
+
+/**
  * Called by the queue worker. Not part of the public surface: the
  * pipeline lives here so there is one implementation rather than a
  * second copy inside the Edge Function.
@@ -34,7 +53,9 @@ export async function POST(req: Request) {
   }
 
   try {
-    const result = await ingestResource(supabaseAdmin(), resourceId)
+    const result = await ingestResource(supabaseAdmin(), resourceId, {
+      deadline: Date.now() + BUDGET_MS,
+    })
     dropCache()
     return NextResponse.json(result)
   } catch (e) {
