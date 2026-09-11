@@ -12,6 +12,7 @@ import { useWriteLesson } from '@/components/useWriteLesson'
 import { didactic } from '@didactic/api'
 import type { ExposureDepth, Highlight as Mark } from '@didactic/core/types'
 import type { LessonLink } from '@didactic/core/lessonLinks'
+import type { SourceLink } from '@didactic/core/sourceLinks'
 import type { LessonNeighbours } from '@didactic/core/lessonState'
 import { pressedLink } from '@/lib/pressedLink'
 import { useScrollMemory } from '@/lib/useScrollMemory'
@@ -47,6 +48,12 @@ interface LessonData {
    * in the body that none of these answer to is printed as a stub.
    */
   links: LessonLink[]
+  /**
+   * The documents this lesson may cite, with their lengths. A `source:`
+   * name none of these answer to prints as a stub, and so does a page
+   * past the end of one.
+   */
+  sources: SourceLink[]
   /** The lessons either side of this one in its route. */
   neighbours: LessonNeighbours
   /** Questions already answered here, by key. */
@@ -456,7 +463,7 @@ export default function LessonPage({
                     with no provider around them, where the questions
                     still ask and explain and simply do not score. */}
                 <Answering lessonId={id} answered={data.answered ?? {}}>
-                  <Prose markdown={body} lessons={data.links} />
+                  <Prose markdown={body} lessons={data.links} sources={data.sources} />
                 </Answering>
               </Highlighter>
 

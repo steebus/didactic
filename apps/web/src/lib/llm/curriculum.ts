@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import type { CurriculumShape, LessonStage } from '@didactic/core/types'
 import { blockPromptSection } from '@didactic/core/blocks'
 import { lessonSlug, type LessonLink } from '@didactic/core/lessonLinks'
+import { passagePromptSection, type CitedPassage } from '../citations'
 
 /** A lesson as the model proposes it, before it has an id. Branching is
  *  expressed with the model's own keys so it never has to invent uuids. */
@@ -258,6 +259,11 @@ export async function generateLessonBody(
      *  the prose rather than addressed, so the link is resolved when the
      *  lesson is read. See `lessonLinks.ts`. */
     links?: LessonLink[]
+    /** Passages from the reader's own documents, nearest to what this
+     *  lesson is about, with the pages a citation must print. Written
+     *  into the prompt whole: the agent cites what it can see and
+     *  nothing else. See `lib/citations.ts`. */
+    passages?: CitedPassage[]
   },
   /**
    * The lesson as far as it has been written, where this is carrying on
@@ -314,6 +320,8 @@ ${here.length || over.length
         : ''
     }\n${[...here, ...over].map(named).join('\n')}`
   : ''}
+
+${passagePromptSection(input.passages ?? [])}
 
 Never announce a block or label it in the prose -- no "steps:", no "here is a chart", no "see the table below". Each block prints its own title, so a line introducing one is a line printed twice.
 

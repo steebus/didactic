@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { renderMarkdown } from '@/lib/markdown'
 import { parseBlocks } from '@didactic/core/blocks'
 import { lessonRoster, type LessonLink } from '@didactic/core/lessonLinks'
+import { sourceRoster, type SourceLink } from '@didactic/core/sourceLinks'
 import { Block } from './blocks/Block'
 import styles from './Prose.module.css'
 
@@ -26,6 +27,7 @@ import styles from './Prose.module.css'
 export function Prose({
   markdown,
   lessons,
+  sources,
 }: {
   markdown: string
   /**
@@ -36,9 +38,18 @@ export function Prose({
    * around that text to reach into.
    */
   lessons?: LessonLink[]
+  /**
+   * The documents this lesson may cite: what was drawn from when it was
+   * written. A `source:` name none of these answer to prints as a stub,
+   * and so does a page past the end of one -- both mean a citation that
+   * cannot be checked, and a citation nobody can check should not look
+   * like one that can.
+   */
+  sources?: SourceLink[]
 }) {
   const parts = useMemo(() => parseBlocks(markdown), [markdown])
   const roster = useMemo(() => lessonRoster(lessons ?? []), [lessons])
+  const shelf = useMemo(() => sourceRoster(sources ?? []), [sources])
 
   return (
     <>
@@ -46,7 +57,7 @@ export function Prose({
         part.kind === 'block' ? (
           <Block key={i} name={part.name} data={part.data} />
         ) : (
-          <ProseText key={i} markdown={part.text} lessons={roster} />
+          <ProseText key={i} markdown={part.text} lessons={roster} sources={shelf} />
         )
       )}
     </>
@@ -56,11 +67,16 @@ export function Prose({
 function ProseText({
   markdown,
   lessons,
+  sources,
 }: {
   markdown: string
   lessons: Map<string, LessonLink>
+  sources: Map<string, SourceLink>
 }) {
-  const html = useMemo(() => renderMarkdown(markdown, undefined, lessons), [markdown, lessons])
+  const html = useMemo(
+    () => renderMarkdown(markdown, undefined, lessons, sources),
+    [markdown, lessons, sources]
+  )
 
   return (
     <div

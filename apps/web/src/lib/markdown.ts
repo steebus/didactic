@@ -14,6 +14,12 @@
 import { Marked, type Tokens } from 'marked'
 import createDOMPurify from 'dompurify'
 import { LESSON_SCHEME, resolveLesson, type LessonLink } from '@didactic/core/lessonLinks'
+import {
+  SOURCE_SCHEME,
+  resolveSource,
+  CITATION_STUB,
+  type SourceLink,
+} from '@didactic/core/sourceLinks'
 
 /**
  * DOMPurify needs a DOM, and a client component is still rendered once
@@ -60,7 +66,7 @@ function attr(value: string): string {
 }
 
 /**
- * A reader that knows what `lesson:` means.
+ * A reader that knows what `lesson:` and `source:` mean.
  *
  * Resolving the scheme here rather than in the markdown is what keeps
  * a name inside a code fence a name: marked has already decided what
@@ -73,11 +79,34 @@ function attr(value: string): string {
  * yet. `data-stub` carries that to the stylesheet, and the title
  * carries it to anyone who cannot see the colour.
  */
-function reader(lessons?: Map<string, LessonLink>) {
+function reader(lessons?: Map<string, LessonLink>, sources?: Map<string, SourceLink>) {
   return new Marked({
     renderer: {
       link(token: Tokens.Link) {
-        const slug = LESSON_SCHEME.exec(token.href ?? '')?.[1]
+        const href = token.href ?? ''
+
+        // A citation of one of the reader's own documents.
+        //
+        // The page rides in the href's fragment rather than in an
+        // attribute of its own, so that what the model writes is a
+        // whole address and what comes out is an ordinary link: it can
+        // be followed, middle-clicked and copied, and `resolveSource`
+        // has one string to turn into one URL. (An attribute would in
+        // fact survive the sanitiser -- DOMPurify passes `data-*`
+        // through by default -- so this is a choice about what a
+        // citation should be, not a way round a restriction.)
+        const cited = SOURCE_SCHEME.exec(href)
+        if (cited) {
+          const text = this.parser.parseInline(token.tokens)
+          const page = cited[2] ? Number(cited[2]) : null
+          const found = sources ? resolveSource(sources, cited[1], page) : null
+
+          return found
+            ? `<a href="${attr(found.href)}" title="${attr(found.label)}" data-cite>${text}</a>`
+            : `<a data-stub title="${attr(CITATION_STUB)}">${text}</a>`
+        }
+
+        const slug = LESSON_SCHEME.exec(href)?.[1]
         if (!slug) return false
 
         const text = this.parser.parseInline(token.tokens)
@@ -105,11 +134,12 @@ function reader(lessons?: Map<string, LessonLink>) {
 export function renderMarkdown(
   markdown: string,
   allowed: string[] = PROSE_TAGS,
-  lessons?: Map<string, LessonLink>
+  lessons?: Map<string, LessonLink>,
+  sources?: Map<string, SourceLink>
 ): string {
   const DOMPurify = purifier()
 
-  const raw = reader(lessons).parse(markdown, { async: false, gfm: true, breaks: false })
+  const raw = reader(lessons, sources).parse(markdown, { async: false, gfm: true, breaks: false })
   DOMPurify.addHook('afterSanitizeAttributes', node => {
     if (node.tagName === 'A' && node.getAttribute('href')?.startsWith('http')) {
       node.setAttribute('target', '_blank')

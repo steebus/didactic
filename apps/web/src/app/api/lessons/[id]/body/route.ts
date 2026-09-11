@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { generateLessonBody, ROUNDS_MAX } from '@/lib/llm/curriculum'
 import { lessonsWithinReach } from '@/lib/curriculum'
+import { passagesForLesson, unsupportedCitations } from '@/lib/citations'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
 
@@ -135,6 +136,17 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // resolve there.
   const links = await lessonsWithinReach(db, curriculum.topic_id, id)
 
+  // The passages from the reader's own documents nearest to what this
+  // lesson is about. Empty for a topic nobody handed a document to,
+  // which is the ordinary case and writes exactly as it always did.
+  const { passages } = await passagesForLesson(db, {
+    curriculumId: curriculum.id,
+    topicId: curriculum.topic_id,
+    topicTitle: topic?.title ?? 'this topic',
+    lessonTitle: lesson.title,
+    lessonSummary: lesson.summary,
+  })
+
   let written: { text: string; finished: boolean }
   try {
     written = await generateLessonBody({
@@ -163,6 +175,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           : []
       ),
       links,
+      passages,
       nearby: dedupe(
         (nearby ?? []).flatMap(r =>
           r.resources
@@ -204,12 +217,28 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // times for one lesson.
   if (written.finished) dropCache()
 
+  // A citation the agent was not shown. It is told plainly to cite only
+  // what it is given, and mostly does -- but a citation of a real book
+  // at a page nobody handed over reads exactly like a real one, and the
+  // reader is not going to check. Reported rather than repaired:
+  // rewriting the body to strip it risks breaking the sentence it sits
+  // in, and it already prints as a stub at read time because
+  // `resolveSource` refuses a page past the end of a document.
+  const unsupported = unsupportedCitations(written.text, passages)
+
   return NextResponse.json({
     body: written.text,
     cached: false,
     done: written.finished,
     round,
     words: words(written.text),
+    ...(unsupported.length
+      ? {
+          warning: `${unsupported.length} ${
+            unsupported.length === 1 ? 'citation points' : 'citations point'
+          } at a passage this lesson was not shown, and will print as unresolved.`,
+        }
+      : {}),
   })
 }
 

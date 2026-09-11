@@ -1,0 +1,130 @@
+/* Where a citation lands: the passage, printed as a passage.
+
+   Plum, because this is the one sheet that is somebody else's words
+   rather than the app's own -- the reader should know at a glance that
+   they have stepped out of a lesson and into a quotation. */
+
+.sheet {
+  max-width: var(--sheet-max);
+  margin: 0 auto;
+  padding: 0 0 var(--space-6);
+  background-color: var(--paper);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(90, 70, 45, 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(90, 70, 45, 0.03) 0 1px, transparent 1px 4px);
+  min-height: 100dvh;
+}
+
+.head {
+  background: var(--plate-plum);
+  color: var(--paper);
+  padding: var(--space-5);
+  /* The band is a saturated plate, so the terracotta focus ring
+     disappears into it. Controls in here state their own. */
+  --focus-ink: var(--paper);
+}
+
+.eyebrow {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.75;
+  margin: 0 0 var(--space-2);
+}
+
+.title {
+  font-size: var(--step-3);
+  font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 72;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.where {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  opacity: 0.85;
+  margin: var(--space-2) 0 0;
+}
+
+.headRule {
+  height: 5px;
+  background: var(--plate-mustard);
+  margin-bottom: var(--space-5);
+}
+
+.body {
+  padding: 0 var(--space-5);
+}
+
+/* The quotation itself. Serif and a shade larger than the app's body
+   text: it is being read, not scanned, and the rule down the left is
+   what says these are not our words. */
+.passage {
+  margin: 0 0 var(--space-5);
+  padding-left: var(--space-4);
+  border-left: 3px solid var(--plate-plum);
+  font-family: var(--font-display);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.passage p {
+  margin: 0 0 var(--space-3);
+}
+
+.runsOn {
+  display: block;
+  font-family: var(--font-text);
+  font-style: normal;
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.nothing {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  font-style: italic;
+  margin: 0 0 var(--space-5);
+}
+
+.steps {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border-top: 1px solid var(--rule);
+  padding-top: var(--space-3);
+}
+
+.step {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+/* Pushed right even when there is no previous page to balance it. */
+.next {
+  margin-left: auto;
+}
+
+.whole {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  margin-top: var(--space-5);
+}
+
+@media (max-width: 48rem) {
+  .head {
+    padding: var(--space-4);
+  }
+
+  .body {
+    padding: 0 var(--space-4);
+  }
+}

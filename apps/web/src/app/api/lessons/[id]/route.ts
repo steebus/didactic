@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { completeLesson, lessonsWithinReach, uncompleteLesson } from '@/lib/curriculum'
+import { citableRoster } from '@/lib/citations'
 import { VALID_DEPTHS } from '@/lib/consume'
 import type { ExposureDepth, LessonStage } from '@didactic/core/types'
 import { ownerId } from '@/lib/auth'
@@ -68,6 +69,14 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   // say so. See `@didactic/core/lessonLinks`.
   const links = curriculum ? await lessonsWithinReach(db, curriculum.topic_id, id) : []
 
+  // And what the body's `source:` names resolve against, read at the
+  // same moment and for the same reason: a document taken off the shelf
+  // should turn its citations into stubs rather than leave them looking
+  // like citations that still reach something.
+  const sources = curriculum
+    ? await citableRoster(db, { curriculumId: curriculum.id, topicId: curriculum.topic_id })
+    : []
+
   return NextResponse.json({
     lesson,
     curriculum,
@@ -76,6 +85,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     highlights: highlights ?? [],
     requires: required ?? [],
     links,
+    sources,
     // The way on, at the foot of the reading. Derived from the route
     // rather than stored, so reshaping the route reorders these with
     // it.

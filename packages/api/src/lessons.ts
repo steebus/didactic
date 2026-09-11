@@ -1,5 +1,6 @@
 import type { Api } from './client'
 import type { LessonLink } from '@didactic/core/lessonLinks'
+import type { SourceLink } from '@didactic/core/sourceLinks'
 import type { LessonNeighbours } from '@didactic/core/lessonState'
 import type {
   Curriculum,
@@ -36,6 +37,19 @@ export interface LessonDetail {
    * a dead end.
    */
   links: LessonLink[]
+  /**
+   * Every document this lesson may cite, with its length. Resolved when
+   * the lesson is read for the same reason `links` is: a document taken
+   * off the shelf should turn its citations into stubs rather than
+   * leave them looking like citations that still reach something. A
+   * page past the end of one is refused too, because a citation the
+   * agent invented reads exactly like one it did not.
+   *
+   * Additive: a client that has never heard of it prints every
+   * citation as a stub, which is the honest reading for a client that
+   * cannot open one.
+   */
+  sources: SourceLink[]
   /**
    * The lessons either side of this one in its route, for the way on at
    * the foot of the reading. Derived from the route's own order rather

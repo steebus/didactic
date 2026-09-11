@@ -101,6 +101,23 @@
    dotted rule reads the same without it and the title says it in
    words. Printed without an href, so it is not in the tab order and
    not pressable: there is nothing behind it yet. */
+/* A citation of one of the reader's own documents. Plum, matching the
+   sheet it opens, and marked with a small superscript rule so it reads
+   as a reference rather than as another lesson to go and read. */
+.prose a[data-cite] {
+  color: var(--plate-plum);
+  text-decoration-color: color-mix(in srgb, var(--plate-plum) 45%, transparent);
+  text-underline-offset: 0.2em;
+}
+
+.prose a[data-cite]::after {
+  content: '❞';
+  font-size: 0.7em;
+  vertical-align: super;
+  margin-left: 0.15em;
+  opacity: 0.65;
+}
+
 .prose a[data-stub] {
   color: var(--ink-faint);
   text-decoration: underline dotted var(--rule);
