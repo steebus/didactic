@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import Graph from 'graphology'
 import Sigma from 'sigma'
 import forceAtlas2 from 'graphology-layout-forceatlas2'
@@ -55,6 +56,28 @@ interface GraphLesson {
   curriculum_id: string
 }
 
+/**
+ * A kept passage, as the bed draws it.
+ *
+ * Two kinds of connection, and they mean different things. `topic_id`
+ * is where the mark came from -- the topic the lesson it was taken in
+ * teaches. The tagged ids are what the reader said it was *about*,
+ * which is very often somewhere else entirely: that is the whole
+ * reason for naming things in a note.
+ */
+interface GraphMark {
+  id: string
+  label: string
+  /** The topic of the lesson it was taken in. Null for scaffolding. */
+  topic_id: string | null
+  lesson_id: string
+  /** Whether anything was written, or only a passage kept. */
+  noted: boolean
+  /** What the note names. */
+  topic_ids: string[]
+  lesson_ids: string[]
+}
+
 const EDGE_KIND_LABEL: Record<string, string> = {
   prereq: 'sow first',
   related: 'grows with',
@@ -92,12 +115,22 @@ export function GraphCanvas({
   const holder = useRef<HTMLDivElement>(null)
   const sigma = useRef<Sigma | null>(null)
 
+  // Held in a ref rather than closed over: the canvas is built in an
+  // effect that must not tear the bed down and lay it out again just
+  // because the router object changed identity.
+  const router = useRouter()
+  const travel = useRef<(href: string) => void>(() => {})
+  useEffect(() => {
+    travel.current = (href: string) => router.push(href)
+  }, [router])
+
   const [data, setData] = useState<{
     topics: GraphTopic[]
     edges: GraphEdge[]
     subjects: Subject[]
     resources: GraphResource[]
     lessons: GraphLesson[]
+    marks: GraphMark[]
   } | null>(null)
   const [selected, setSelected] = useState<string | null>(initialTopic)
   const [query, setQuery] = useState('')
@@ -108,6 +141,7 @@ export function GraphCanvas({
   // it, off until asked for, or the planting is unreadable.
   const [showResources, setShowResources] = useState(false)
   const [showLessons, setShowLessons] = useState(false)
+  const [showMarks, setShowMarks] = useState(false)
   // The forces, exposed the way Obsidian exposes them: pulling these
   // around is how you find the arrangement that reads for you, and no
   // single default suits every planting.
@@ -266,6 +300,70 @@ export function GraphCanvas({
           color: 'rgba(47, 82, 51, 0.3)',
           kind: 'teaches',
         })
+      }
+    }
+
+    // Marks. The one layer that draws two kinds of connection, and the
+    // reason the layer is worth having: where a mark came from, and
+    // what the reader said it was about. A passage kept in a lesson on
+    // custody, noted as being about settlement, is a line between two
+    // topics that nothing else on the map would ever draw -- it exists
+    // only because somebody thought it.
+    if (showMarks) {
+      for (const m of data.marks ?? []) {
+        // Every end a line could be drawn to, and whether any of them
+        // is actually on the bed as it is filtered right now.
+        const from = m.topic_id && visibleIds.has(m.topic_id) ? m.topic_id : null
+        const about = m.topic_ids.filter(id => visibleIds.has(id))
+        // A named lesson is a node of its own when the lessons layer
+        // is up. With it down the line goes to the topic that lesson
+        // teaches instead, so naming a lesson still draws something.
+        const aboutLessons = m.lesson_ids.flatMap(id => {
+          if (showLessons && graph.hasNode(`lesson:${id}`)) return [`lesson:${id}`]
+          const topicId = data.lessons?.find(l => l.id === id)?.topic_id
+          return topicId && visibleIds.has(topicId) ? [topicId] : []
+        })
+
+        const ends = [...new Set([...(from ? [from] : []), ...about, ...aboutLessons])]
+        if (ends.length === 0) continue
+
+        const nodeId = `mark:${m.id}`
+        graph.addNode(nodeId, {
+          label: m.label,
+          size: 3,
+          // The catalogue's own colour for a kept passage, the same
+          // mustard the wash on the prose uses. A mark with nothing
+          // written on it is the paler one: the passage was kept, the
+          // thought was not.
+          color: m.noted ? '#c8871a' : '#ddc08a',
+          x: 0,
+          y: 0,
+          freshness: 1,
+          kindOfThing: 'mark',
+          markId: m.id,
+          lessonId: m.lesson_id,
+        })
+
+        // Where it came from, drawn faint: provenance, not argument.
+        if (from) {
+          graph.addEdge(nodeId, from, {
+            size: 0.6,
+            color: 'rgba(200, 135, 26, 0.28)',
+            kind: 'marked in',
+          })
+        }
+
+        // What it is about, drawn stronger. This is a line the reader
+        // asserted rather than one the map inferred, and it should
+        // read as the more deliberate of the two.
+        for (const end of ends) {
+          if (end === from || graph.hasEdge(nodeId, end)) continue
+          graph.addEdge(nodeId, end, {
+            size: 1,
+            color: 'rgba(200, 135, 26, 0.6)',
+            kind: 'about',
+          })
+        }
       }
     }
 
@@ -508,10 +606,19 @@ export function GraphCanvas({
     })
 
     renderer.on('clickNode', ({ node }) => {
-      // Material and lessons open where they live; only topics get the
-      // panel, which reads topic detail.
+      // Material, lessons and marks open where they live; only topics
+      // get the panel, which reads topic detail.
       if (node.startsWith('lesson:')) {
-        window.location.href = `/lesson/${node.slice('lesson:'.length)}`
+        // Turned through the router rather than loaded again: the bed
+        // is a heavy sheet to rebuild for a press that is a link.
+        travel.current(`/lesson/${node.slice('lesson:'.length)}`)
+        return
+      }
+      if (node.startsWith('mark:')) {
+        // A mark is read where it was taken. The lesson sheet stands
+        // the marks beside the reading, with this one in the list.
+        const held = data.marks?.find(m => m.id === node.slice('mark:'.length))
+        if (held) travel.current(`/lesson/${held.lesson_id}`)
         return
       }
       if (node.startsWith('resource:')) return
@@ -589,7 +696,7 @@ export function GraphCanvas({
       renderer.kill()
       sigma.current = null
     }
-  }, [data, query, subject, showDormantOnly, showResources, showLessons, colourFor, repel, centre, linkDistance])
+  }, [data, query, subject, showDormantOnly, showResources, showLessons, showMarks, colourFor, repel, centre, linkDistance])
 
   const selectedTopic = data?.topics.find(t => t.id === selected) ?? null
 
@@ -641,6 +748,15 @@ export function GraphCanvas({
               onChange={e => setShowLessons(e.target.checked)}
             />
             Lessons
+          </label>
+
+          <label className={styles.toggle}>
+            <input
+              type="checkbox"
+              checked={showMarks}
+              onChange={e => setShowMarks(e.target.checked)}
+            />
+            Marks
           </label>
 
           <button

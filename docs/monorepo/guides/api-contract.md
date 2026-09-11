@@ -103,7 +103,8 @@ the phone's query cache.
 | DELETE | `/api/lessons/[id]` | — | topics | |
 | POST | `/api/lessons/[id]/body` | regenerate? | — | Write, or write again. |
 | POST | `/api/refresher/[topicId]` | — | — | |
-| POST | `/api/highlights` | lessonId, quote, prefix, note | highlights, topics | A mark is the lightest exposure. |
+| POST | `/api/highlights` | lessonId, quote, prefix, note | highlights, topics | A mark is the lightest exposure. What the note names is indexed from the note. |
+| GET | `/api/mentions` | `q` | — | What an `@` in a note could mean: topics and lessons the owner holds, ranked for typing. Empty `q` offers the most recent. |
 | PATCH | `/api/highlights` | id, note | highlights | |
 | DELETE | `/api/highlights` | id | highlights, topics | |
 

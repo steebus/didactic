@@ -918,6 +918,14 @@ The chrome carries the design rather than defaulting:
   Printed with no `href`, so it is neither pressable nor in the tab order,
   and carries a `title` saying there is no lesson for it yet.
 
+**Rule — a name in a note is a link, and looks like one.** `@` in a note
+names a topic or a lesson, and what is kept is a markdown link to that
+thing's own address. So it is set apart from a link out of the catalogue by
+where it points rather than by a class: `--plate-green` ink and underline
+against the terracotta a link out carries, hovering to terracotta like
+everything else. The `@` the reader typed stays in the words, which is what
+makes it read as a tag; the colour only says it goes somewhere inside.
+
 **Rule — a link to nothing keeps its words and loses its way.** A lesson
 links out to the lessons around it, and a body outlives the rows near it: a
 route is reshaped, a lesson is grubbed out, and a link that reached
@@ -974,6 +982,10 @@ Recorded because the document is a description, not a defence.
   address is real, but it cannot check one, and a link that worked in March can
   be gone in June. The block is built to fail readably rather than to promise
   the picture will hold.
+- **The bed draws the newest 500 marks and no more.** A reader who marks
+  freely has thousands, and past a point they stop being a layer over the
+  planting and become the planting. The rest are on the marked sheet, where
+  they are searched rather than laid out. Named as `MARKS_ON_THE_BED`.
 - **A lesson names its neighbours, and cannot check them.** A body is
   written once and cached on the row; the map under it goes on moving. The
   names are resolved every time the lesson is read rather than frozen in

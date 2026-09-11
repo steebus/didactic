@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { ownerId } from '@/lib/auth'
-import { createHighlight, searchHighlights } from '@/lib/highlights'
+import { createHighlight, fileTags, searchHighlights } from '@/lib/highlights'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@/lib/tags'
 
@@ -93,14 +93,31 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'id is required' }, { status: 400 })
   }
 
-  const { error } = await supabaseAdmin()
+  const db = supabaseAdmin()
+  const written = typeof note === 'string' ? note.trim() || null : null
+
+  const { error } = await db
     .from('highlights')
-    .update({ note: typeof note === 'string' ? note.trim() || null : null, updated_at: new Date().toISOString() })
+    .update({ note: written, updated_at: new Date().toISOString() })
     .eq('id', id)
     .eq('user_id', userId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // What the note names is re-read from the note it was saved with, so
+  // a name taken back out of a note stops being drawn. Scoped to the
+  // owner above, which is what makes this safe to run on an id that
+  // came in on the request.
+  let tagged = 0
+  try {
+    tagged = (await fileTags(db, userId, id, written)).length
+  } catch (e) {
+    // The note is saved. An index that could not be rebuilt costs the
+    // connection on the graph, not the writing.
+    console.error('highlights: could not file what the note names', e)
+  }
+
   dropCache()
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, tagged })
 }
 
 export async function DELETE(req: Request) {

@@ -69,6 +69,8 @@ or `—` when a row is rendering only.
 | Marks: draw kept passages onto the prose | built (DOM walk) | planned (5) | `reader/paintMarks` | The same walker, in the WebView. |
 | Marks: select any range and keep it, across elements | built | planned (5) | `reader/Highlighter` | Full parity through the reader (D9). The per-paragraph native fallback would be `partial` and is not the plan. |
 | Marks: a note on the lesson with no passage | built | planned (5) | — | *A note on this lesson* wording shared. |
+| Marks: name a topic or a lesson in a note with `@` | built | planned (5) | `core/mentions`, `core/mentionSearch` | Suggestions as you type, from `api/mentions`. What is chosen is written in as a link to that thing's own address, so it needs no scheme and survives the editor's round trip. |
+| Marks on the bed, with what they are about | built | planned (6) | `core/graphMarks` | A layer like material and lessons, off until asked for. Two kinds of line: faint to the topic it was marked in, stronger to everything the note names. Newest 500. |
 | Marks: the list beside the reading, in the lesson's order | built | planned (5) | `reader/MarkList`, `core/marks.inReadingOrder` | `DESIGN.md` *The marks beside the reading*. Sorted by where `paintMarks` landed each mark, never by when it was kept. Pressing a passage travels to it. On a phone it is over the reading and puts itself away first; the swipe that opens it is the WebView's to carry (D9). |
 | Note editor with bold, italic, lists | built (`execCommand`) | planned (5) | `reader/NoteEditor` | The same editor, inside the reader; the soft keyboard is the native side's to handle. |
 | Refresher generation | built | planned (5) | `api/refresher.write` | |

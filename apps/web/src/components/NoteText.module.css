@@ -39,3 +39,24 @@
   text-decoration-color: var(--plate-mustard);
   text-underline-offset: 0.15em;
 }
+
+/* --- What a note names ----------------------------------------------
+
+   A tag is a link to the thing's own address and nothing more, so it
+   is styled by where it points rather than by a class the round trip
+   through markdown could not carry. The `@` the reader typed is in the
+   words; this only sets them apart from a link out, which goes
+   somewhere else entirely. */
+.body a[href^='/topics/'],
+.body a[href^='/lesson/'] {
+  color: var(--plate-green);
+  text-decoration-color: var(--plate-green);
+  text-underline-offset: 0.22em;
+  white-space: nowrap;
+}
+
+.body a[href^='/topics/']:hover,
+.body a[href^='/lesson/']:hover {
+  color: var(--plate-terracotta);
+  text-decoration-color: var(--plate-terracotta);
+}
