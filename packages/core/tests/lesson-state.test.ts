@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   lessonState,
   lessonStandings,
+  lessonNeighbours,
   LESSON_LABEL,
   LESSON_NOTE,
   LESSON_ORDER,
@@ -98,5 +99,51 @@ describe('the vocabulary', () => {
   it('names every state exactly once', () => {
     expect(new Set(LESSON_ORDER).size).toBe(LESSON_ORDER.length)
     expect(LESSON_ORDER.length).toBe(Object.keys(LESSON_LABEL).length)
+  })
+})
+
+describe('lessonNeighbours', () => {
+  const route = [
+    { id: 'a', title: 'Why it matters' },
+    { id: 'b', title: 'Measuring it' },
+    { id: 'c', title: 'Core vitals' },
+  ]
+
+  it('gives both ways from the middle', () => {
+    expect(lessonNeighbours(route, 'b')).toEqual({
+      previous: { id: 'a', title: 'Why it matters' },
+      next: { id: 'c', title: 'Core vitals' },
+    })
+  })
+
+  it('has no previous at the start', () => {
+    const { previous, next } = lessonNeighbours(route, 'a')
+    expect(previous).toBeNull()
+    expect(next).toEqual({ id: 'b', title: 'Measuring it' })
+  })
+
+  it('has no next at the end', () => {
+    const { previous, next } = lessonNeighbours(route, 'c')
+    expect(previous).toEqual({ id: 'b', title: 'Measuring it' })
+    expect(next).toBeNull()
+  })
+
+  it('has neither for a lesson the route does not hold', () => {
+    expect(lessonNeighbours(route, 'elsewhere')).toEqual({ previous: null, next: null })
+  })
+
+  it('has neither in a route of one', () => {
+    expect(lessonNeighbours([route[0]], 'a')).toEqual({ previous: null, next: null })
+  })
+
+  it('has neither in an empty route', () => {
+    expect(lessonNeighbours([], 'a')).toEqual({ previous: null, next: null })
+  })
+
+  it('does not gate the way on by whether anything was worked', () => {
+    // Nothing in this app is locked. A prerequisite not met is said out
+    // loud on the lesson's own sheet, never enforced by hiding the way
+    // there -- so the neighbours do not depend on completion at all.
+    expect(lessonNeighbours(route, 'a').next).toEqual({ id: 'b', title: 'Measuring it' })
   })
 })

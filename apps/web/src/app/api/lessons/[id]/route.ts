@@ -6,6 +6,7 @@ import type { ExposureDepth, LessonStage } from '@didactic/core/types'
 import { ownerId } from '@/lib/auth'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
+import { lessonNeighbours } from '@didactic/core/lessonState'
 
 /**
  * Drop what this route just changed.
@@ -29,15 +30,25 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const { data: lesson } = await db.from('lessons').select('*').eq('id', id).single()
   if (!lesson) return NextResponse.json({ error: 'not found' }, { status: 404 })
 
-  const [{ data: curriculum }, { data: prereqs }, { data: resources }, { data: highlights }] =
-    await Promise.all([
-      db.from('curricula').select('id, title, goal, topic_id, status')
-        .eq('id', lesson.curriculum_id).single(),
-      db.from('lesson_prereqs').select('requires_lesson_id').eq('lesson_id', id),
-      db.from('lesson_resources').select('relevance, resources(id, title, kind, url, status)')
-        .eq('lesson_id', id),
-      db.from('highlights').select('*').eq('lesson_id', id).order('created_at'),
-    ])
+  const [
+    { data: curriculum },
+    { data: prereqs },
+    { data: resources },
+    { data: highlights },
+    { data: route },
+  ] = await Promise.all([
+    db.from('curricula').select('id, title, goal, topic_id, status')
+      .eq('id', lesson.curriculum_id).single(),
+    db.from('lesson_prereqs').select('requires_lesson_id').eq('lesson_id', id),
+    db.from('lesson_resources').select('relevance, resources(id, title, kind, url, status)')
+      .eq('lesson_id', id),
+    db.from('highlights').select('*').eq('lesson_id', id).order('created_at'),
+    // The route this lesson sits in, in the order it is meant to be
+    // worked, so the foot of the reading can offer the way on. Titles
+    // and ids only: the neighbours are two links, not two lessons.
+    db.from('lessons').select('id, title, position')
+      .eq('curriculum_id', lesson.curriculum_id).order('position'),
+  ])
 
   const requiredIds = (prereqs ?? []).map(p => p.requires_lesson_id)
   const { data: required } = requiredIds.length
@@ -63,6 +74,10 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     highlights: highlights ?? [],
     requires: required ?? [],
     links,
+    // The way on, at the foot of the reading. Derived from the route
+    // rather than stored, so reshaping the route reorders these with
+    // it.
+    neighbours: lessonNeighbours(route ?? [], id),
     // Availability is derived, so the page never has to trust a stored flag.
     available: (required ?? []).every(r => r.completed_at !== null),
   })

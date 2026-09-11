@@ -9,6 +9,7 @@ import { Contents } from '@/components/Contents'
 import { didactic } from '@didactic/api'
 import type { ExposureDepth, Highlight as Mark } from '@didactic/core/types'
 import type { LessonLink } from '@didactic/core/lessonLinks'
+import type { LessonNeighbours } from '@didactic/core/lessonState'
 import { pressedLink } from '@/lib/pressedLink'
 import { useScrollMemory } from '@/lib/useScrollMemory'
 import { viabilityFigure } from '@didactic/core/scoring'
@@ -41,6 +42,8 @@ interface LessonData {
    * in the body that none of these answer to is printed as a stub.
    */
   links: LessonLink[]
+  /** The lessons either side of this one in its route. */
+  neighbours: LessonNeighbours
   available: boolean
 }
 
@@ -229,7 +232,7 @@ export default function LessonPage({
     )
   }
 
-  const { lesson, curriculum, topic, resources, requires, available } = data
+  const { lesson, curriculum, topic, resources, requires, available, neighbours } = data
   const done = lesson.completed_at !== null
   const blocking = requires.filter(r => r.completed_at === null)
 
@@ -487,6 +490,54 @@ export default function LessonPage({
             </>
           )}
         </section>
+
+        {/* The way on, at the very foot: past the reading and past
+            saying how it went, which is the order the two things
+            actually happen in. A lesson is the end of a navigation, and
+            until this the only ways onward were the browser's back
+            button or a detour through the topic sheet to reach the row
+            directly under the one you came from.
+
+            Neither side is gated on the other being worked. Nothing in
+            this app is locked -- a lesson that builds on ground not
+            covered says so on its own sheet, at the top, where it can
+            be read before the reading rather than enforced by hiding
+            the way there. */}
+        {(neighbours.previous || neighbours.next) && (
+          <nav className={styles.onward} aria-label="The rest of the route">
+            {neighbours.previous && (
+              <Link
+                href={`/lesson/${neighbours.previous.id}`}
+                className={styles.onwardLink}
+                data-side="back"
+              >
+                <span className={styles.onwardWay} aria-hidden="true">
+                  ←
+                </span>
+                <span className={styles.onwardBody}>
+                  <span className={styles.onwardLabel}>Previous</span>
+                  <span className={styles.onwardTitle}>{neighbours.previous.title}</span>
+                </span>
+              </Link>
+            )}
+
+            {neighbours.next && (
+              <Link
+                href={`/lesson/${neighbours.next.id}`}
+                className={styles.onwardLink}
+                data-side="on"
+              >
+                <span className={styles.onwardBody}>
+                  <span className={styles.onwardLabel}>Next</span>
+                  <span className={styles.onwardTitle}>{neighbours.next.title}</span>
+                </span>
+                <span className={styles.onwardWay} aria-hidden="true">
+                  →
+                </span>
+              </Link>
+            )}
+          </nav>
+        )}
       </div>
     </main>
   )

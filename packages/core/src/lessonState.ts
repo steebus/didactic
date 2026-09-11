@@ -87,3 +87,47 @@ export const LESSON_NOTE: Record<LessonState, string> = {
  *  STOCK_ORDER, so a list can float what needs attention. */
 export const LESSON_ORDER: LessonState[] = ['unwritten', 'ready', 'started', 'worked']
 
+/**
+ * A lesson's neighbours in its route.
+ *
+ * The way on, at the foot of the reading. A lesson is the end of a
+ * navigation -- the reader arrived from a topic sheet, a link in another
+ * lesson's prose, or a bookmark -- and having finished it the only ways
+ * onward were the browser's back button or the topic sheet, which is a
+ * detour through a list to reach the row directly under the one you came
+ * from.
+ *
+ * Position order, because that is the order the route is meant to be
+ * worked in and the order the topic sheet prints. Neither neighbour is
+ * gated on the other being finished: nothing in this app is locked, and
+ * a prerequisite not yet met is said out loud on the lesson's own sheet
+ * rather than enforced by hiding the way there.
+ */
+export interface LessonNeighbour {
+  id: string
+  title: string
+}
+
+export interface LessonNeighbours {
+  previous: LessonNeighbour | null
+  next: LessonNeighbour | null
+}
+
+export function lessonNeighbours(
+  route: Array<{ id: string; title: string }>,
+  lessonId: string
+): LessonNeighbours {
+  const at = route.findIndex(l => l.id === lessonId)
+  // A lesson that is not in the route it was handed has no neighbours
+  // in it. That is a real case -- the list arrives from one query and
+  // the lesson from another -- and guessing an end to start from would
+  // put the reader somewhere arbitrary.
+  if (at === -1) return { previous: null, next: null }
+
+  const cell = (i: number): LessonNeighbour | null => {
+    const l = route[i]
+    return l ? { id: l.id, title: l.title } : null
+  }
+
+  return { previous: cell(at - 1), next: cell(at + 1) }
+}

@@ -1,5 +1,6 @@
 import type { Api } from './client'
 import type { LessonLink } from '@didactic/core/lessonLinks'
+import type { LessonNeighbours } from '@didactic/core/lessonState'
 import type {
   Curriculum,
   ExposureDepth,
@@ -35,6 +36,15 @@ export interface LessonDetail {
    * a dead end.
    */
   links: LessonLink[]
+  /**
+   * The lessons either side of this one in its route, for the way on at
+   * the foot of the reading. Derived from the route's own order rather
+   * than stored, so reshaping the route reorders these with it.
+   *
+   * Additive: a client that has never heard of it reads the lesson
+   * exactly as before.
+   */
+  neighbours: LessonNeighbours
   /** Derived, so the sheet never has to trust a stored flag. */
   available: boolean
 }
