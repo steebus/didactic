@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",
+    "@didactic/api": "*",
     "@didactic/core": "*",
     "@didactic/tokens": "*",
     "@mozilla/readability": "^0.6.0",

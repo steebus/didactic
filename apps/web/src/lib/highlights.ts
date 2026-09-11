@@ -3,11 +3,11 @@ import { config } from './config'
 import { recomputeAbility } from './scoring'
 import type { Highlight } from './types'
 
-/** A highlight with the lesson and topic it came from, for listing. */
-export interface HighlightRow extends Highlight {
-  lesson: { id: string; title: string } | null
-  topic: { id: string; title: string } | null
-}
+// The shape moved to `@didactic/core/shapes`, where the phone can name
+// it too; the query that builds it needs a client and the cache, so it
+// stays here. Re-exported so `@/lib/highlights` still answers for both.
+import type { HighlightRow } from '@didactic/core/shapes'
+export type { HighlightRow } from '@didactic/core/shapes'
 
 const SELECT = '*, lesson:lessons(id, title), topic:topics(id, title)'
 

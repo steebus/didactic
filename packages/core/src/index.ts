@@ -15,6 +15,7 @@
  */
 
 export * from './types'
+export * from './shapes'
 export * from './config'
 export * from './tags'
 export * from './http'

@@ -4,53 +4,14 @@ import { tags } from './tags'
 import type { HighlightRow } from './highlights'
 import { computeFreshness } from './scoring'
 import { curriculumProgress } from './curriculum'
-import type { Curriculum, Resource, Subject, Topic } from './types'
+import type { Resource, Subject } from './types'
 import { supabaseAdmin } from './supabase'
 
-export interface TopicNeighbour {
-  id: string
-  title: string
-  kind: string
-  /** True when this topic comes before the one being viewed. */
-  incoming: boolean
-}
-
-export interface CurriculumCard extends Curriculum {
-  total: number
-  complete: number
-  fraction: number
-  /** The lessons themselves, in the order they are meant to be worked.
-   *  The topic sheet lists these directly: a topic has one route
-   *  through it in practice, and printing the route's name above its
-   *  own lessons was a level of indirection that said nothing. */
-  lessons: LessonRow[]
-}
-
-export interface LessonRow {
-  id: string
-  title: string
-  summary: string | null
-  position: number
-  stage: string
-  minutes: number | null
-  completed_at: string | null
-  /** How many passages were marked while reading it. A lesson you
-   *  argued with is worth finding again. */
-  marks: number
-}
-
-export interface TopicArea {
-  topic: Topic & { freshness: number }
-  subjects: Subject[]
-  curricula: CurriculumCard[]
-  resources: Array<{ relevance: number; resource: Resource }>
-  neighbours: TopicNeighbour[]
-  exposures: Array<{ id: string; reason: string; depth: string; created_at: string }>
-  /** Passages marked in this topic's lessons, newest first. The lesson
-   *  they came from stops mattering quickly; the topic is what makes
-   *  them worth keeping. */
-  highlights: HighlightRow[]
-}
+// The shape moved to `@didactic/core/shapes`, where the phone can name
+// it too; the query that builds it needs a client and the cache, so it
+// stays here. Re-exported so `@/lib/topic` still answers for both.
+import type { TopicArea } from '@didactic/core/shapes'
+export type { TopicNeighbour, CurriculumCard, LessonRow, TopicArea } from '@didactic/core/shapes'
 
 /**
  * Everything the topic area shows: the curriculum and the material,

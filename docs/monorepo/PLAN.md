@@ -299,7 +299,7 @@ deploy from `main` is green before starting Phase 2.
   empty rather than broken. Also amend `auth.ts`, whose gate comment still
   says row-level security is out of scope, and `PRODUCT.md` with it, in the
   same commit. `supabase/migrations/024_row_level_security.sql`: `enable row level security` on every table under `public` that lacks it, an owner policy `for all using (auth.uid() = user_id) with check (auth.uid() = user_id)` on the ten tables that carry `user_id` (subjects, topics, edges, resources, exposures, conversations, curricula, lessons, subject_sowings; highlights already has one), and for the join tables (`topic_subjects`, `resource_topics`, `resource_subjects`, `lesson_prereqs`, `lesson_resources`, `curriculum_sources`, `messages`, `ingestion_jobs`) a policy through `exists (select 1 from <parent> where id = <fk> and user_id = auth.uid())`. A storage policy on the bucket `017_sowings.sql` creates, owner-only. `tests/rls.integration.test.ts`: an anon client with no session reads zero rows from every table; with the owner's JWT it reads the owner's rows; the admin client is unaffected. Publish `resources` and `topics` to the `supabase_realtime` publication.
-- [ ] **2.6 `packages/api`.** A typed client over every route in `guides/api-contract.md`: one function per endpoint, each naming the cache tag it invalidates, a `createApi({ baseUrl, headers })` factory so the web passes cookies and the phone passes a bearer token, and the request/response types imported from `@didactic/core` rather than restated. No React: callers wrap it in their own query layer.
+- [x] **2.6 `packages/api`.** A typed client over every route in `guides/api-contract.md`: one function per endpoint, each naming the cache tag it invalidates, a `createApi({ baseUrl, headers })` factory so the web passes cookies and the phone passes a bearer token, and the request/response types imported from `@didactic/core` rather than restated. No React: callers wrap it in their own query layer.
 - [ ] **2.7 The web's client components use the client.** *Also clears the debt from 2.2:* every module moved to `core` left a one-line re-export at its old `@/lib/…` path so no call site had to move. Those shims come out in this pass, along with the halves of `scoring`, `curriculum` and `subject` that re-export their own core half. Until then `@/lib/x` and `@didactic/core/x` are both live and both correct. Replace the raw `fetch('/api/…')` calls in `GraphCanvas`, `PendingQueue`, `AddResource`, `InboxTally`, `Highlighter`, `SignOut`, `DraftCurriculum`, `subjects/new/page`, `ProofOfRoots`, `MarkedSheet`, `curriculum/[id]/page`, `lesson/[id]/page`, `refresher/[topicId]/page` with `@didactic/api`. Behaviour identical; the diff is mechanical and the gate is the existing tests plus a click through every sheet.
 - [ ] **2.8 Scripts and edge functions.** `scripts/*.ts` import from `@didactic/core`. Leave `supabase/functions` on their own copies of any maths for now and record the duplication in `PARITY.md` under *Backend*; a Deno import map pointing at `packages/core/src` is a follow-up, not a blocker.
 - [ ] **2.9 Agent files.** `docs/monorepo/agents/packages.CLAUDE.md` to `packages/CLAUDE.md`.
@@ -401,9 +401,10 @@ deliberately not in CI — Vercel builds every push through its GitHub
 connection, so a CI build would be a second build of the same commit
 needing the service role key in Actions to report what Vercel reports.
 
-**Phase 2 is most of the way done, on the `refactor` branch** (seven
-commits, pushed, not merged): 2.1 through 2.5 are complete. 353 tests
-pass — 226 in the web, and 127 in core — plus tokens' 51.
+**Phase 2 is most of the way done, on the `refactor` branch** (eight
+commits, pushed, not merged): 2.1 through 2.6 are complete. 366 tests
+pass — 226 in the web, 127 in core and 13 in the new `api` — plus
+tokens' 51.
 
 2.4 as built: `getOwner()` reads `Authorization: Bearer <jwt>` before it
 reads cookies and verifies it on the anon client, so a bad token is never
@@ -427,7 +428,24 @@ has the prerequisite. The storage policy could not be the usual
 sees their object, a stranger sees none, the anon key reads nothing from
 any of the eighteen, and the admin client is untouched.
 
-**Next, in order:** 2.6 (`packages/api`), then 2.7–2.9.
+2.6 needed 2.2's unlanded half first. The plan said the interfaces of
+`home.ts`, `topic.ts`, `library.ts`, `pending.ts` and `subject.ts` would
+move to `core`; the maths moved and the shapes did not, and a package
+cannot import an app, so `@didactic/api` had nothing to name its returns
+after. `packages/core/src/shapes.ts` is that move, done now: fifteen
+interfaces, with each `src/lib` module importing and re-exporting its own
+so no call site changed. Note that a bare `export type { X } from` does
+not bind `X` locally — the modules that use their own shapes need the
+import beside the re-export.
+
+The client itself is one function per route, `Result<T>` from `readJson`,
+nothing throwing on an HTTP error. `library.ts` is a fourteenth module
+`ARCHITECTURE.md` did not list, added there. `BodyInit` cannot be named
+in a package whose `lib` is `esnext` — the body type is `FormData` and is
+otherwise inferred, which keeps `dom` out of a package the phone reads.
+
+**Next, in order:** 2.7 (the web's client components use the client, and
+the `@/lib/…` shims come out), then 2.8–2.9.
 
 ### Things that cost time, so they are written down
 

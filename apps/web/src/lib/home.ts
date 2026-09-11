@@ -2,58 +2,14 @@ import { cacheTag } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { computeFreshness, subjectAggregate } from './scoring'
 import { viewLessons } from './curriculum'
-import type { Resource } from './types'
 import { tags } from './tags'
 import { supabaseAdmin } from './supabase'
 
-export interface SubjectCell {
-  id: string
-  title: string
-  colour: string
-  count: number
-  queuedCount: number
-  ability: number
-  freshness: number
-  /** Mean confidence across members. Drives how vaguely the sheet
-   *  prints the viability figure — see PRODUCT.md principle 4. */
-  confidence: number
-  /** Most recent exposure across members, or null when no member has
-   *  ever been tended. Null is what makes the 'unsown' state
-   *  reachable for a populated subject. */
-  lastExposureAt: string | null
-}
-
-export interface TopicSummary {
-  id: string
-  title: string
-  ability: number
-  confidence: number
-  freshness: number
-  primary_subject_id: string | null
-}
-
-/** An active curriculum with work left, and where to pick it up. */
-export interface CurriculumInProgress {
-  id: string
-  title: string
-  topicTitle: string
-  completed: number
-  total: number
-  /** The next lesson whose ground has been covered, if any is open. */
-  nextLesson: { id: string; title: string } | null
-}
-
-export interface HomeData {
-  subjects: SubjectCell[]
-  unfiled: TopicSummary[]
-  hot: TopicSummary[]
-  cold: TopicSummary[]
-  queued: Resource[]
-  pendingCount: number
-  suggested: TopicSummary | null
-  inProgress: CurriculumInProgress[]
-  totals: { topics: number; subjects: number; resources: number }
-}
+// The shape moved to `@didactic/core/shapes`, where the phone can name
+// it too; the query that builds it needs a client and the cache, so it
+// stays here. Re-exported so `@/lib/home` still answers for both.
+import type { SubjectCell, TopicSummary, CurriculumInProgress, HomeData } from '@didactic/core/shapes'
+export type { SubjectCell, TopicSummary, CurriculumInProgress, HomeData } from '@didactic/core/shapes'
 
 /**
  * Active curricula with lessons still to work, newest first, each with

@@ -108,8 +108,10 @@ the phone's query cache.
 | DELETE | `/api/highlights` | id | highlights, topics | |
 
 Body columns are the fields the routes destructure today; the route is
-still the truth when they disagree. Phase 2.5 replaces this table's
-body columns with the client's typed signatures.
+still the truth when they disagree. The typed signatures for all of them
+now live in `@didactic/api` (Phase 2.6): one function per row above, each
+returning `Result<T>` and never throwing on an HTTP error, with the tags
+it drops registered in `ENDPOINTS`.
 
 ## Changing a route
 

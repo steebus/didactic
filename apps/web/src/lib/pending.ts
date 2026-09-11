@@ -5,17 +5,11 @@ import { config } from './config'
 import { tags } from './tags'
 import { supabaseAdmin } from './supabase'
 
-export interface PendingTopic {
-  id: string
-  title: string
-  summary: string | null
-  nearest: {
-    id: string
-    title: string
-    summary: string | null
-    similarity: number
-  } | null
-}
+// The shape moved to `@didactic/core/shapes`, where the phone can name
+// it too; the query that builds it needs a client and the cache, so it
+// stays here. Re-exported so `@/lib/pending` still answers for both.
+import type { PendingTopic } from '@didactic/core/shapes'
+export type { PendingTopic } from '@didactic/core/shapes'
 
 /**
  * The adjudication queue: topics the resolver would not decide alone.

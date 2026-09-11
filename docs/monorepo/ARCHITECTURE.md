@@ -133,6 +133,7 @@ packages/api/src/
   lessons.ts    get, patch, remove, writeBody
   highlights.ts list, create, patch, remove
   inbox.ts      count(), read()
+  library.ts    list()                                       GET  /api/library
   books.ts      search(q)
   refresher.ts  write(topicId)
   graph.ts      read()

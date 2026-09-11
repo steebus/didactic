@@ -1,8 +1,14 @@
 import { cacheTag } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Resource } from './types'
 import { tags } from './tags'
 import { supabaseAdmin } from './supabase'
+
+// The shape moved to `@didactic/core/shapes`, where the phone can name
+// it too; the query that builds it needs a client and the cache, so it
+// stays here. Re-exported so `@/lib/library` still answers for both.
+import type { LibraryRow } from '@didactic/core/shapes'
+export type { LibraryRow } from '@didactic/core/shapes'
+
 
 /**
  * Two rows that look like the same piece of material.
@@ -42,18 +48,6 @@ function titleOverlap(a: string, b: string): number {
  *  the same author do not match each other. */
 const SAME_THING = 0.6
 
-export interface LibraryRow extends Resource {
-  /** The topics it is filed against, so a row says where it sits. */
-  topics: Array<{ id: string; title: string }>
-  /** Whether anything has been read out of it. A resource with
-   *  exposures behind it cannot be deleted without rewriting history,
-   *  so the sheet says so rather than offering an action that fails. */
-  readInto: boolean
-  /** Other rows that look like the same piece of material. Named on
-   *  the shelf rather than merged quietly: merging moves exposures and
-   *  cannot be undone. */
-  sameAs: Array<{ id: string; title: string }>
-}
 
 /**
  * Everything in the library, in one list.

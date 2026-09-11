@@ -1,65 +1,24 @@
 import { cacheTag } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { computeFreshness, subjectAggregate } from './scoring'
-import type { CurriculumStatus, Resource, Subject } from '@didactic/core/types'
+import type { CurriculumStatus, Resource } from '@didactic/core/types'
 import type { SubjectTopicRow, TopicTreeNode } from '@didactic/core/subject'
 import { buildTopicTree } from '@didactic/core/subject'
 import { tags } from '@didactic/core/tags'
 import { supabaseAdmin } from './supabase'
+
+// The shape moved to `@didactic/core/shapes`, where the phone can name
+// it too; the query that builds it needs a client and the cache, so it
+// stays here. Re-exported so `@/lib/subject` still answers for both.
+import type { SubjectArea, Assessment, Sowing } from '@didactic/core/shapes'
+export type { SubjectArea, Assessment, Sowing } from '@didactic/core/shapes'
+
 
 // The outline and the verdict moved to `@didactic/core`: both are pure
 // and the phone draws the same bed. What stays here reaches the database
 // and carries the cache tags. Re-exported so `@/lib/subject` still
 // answers for both halves.
 export * from '@didactic/core/subject'
-
-export interface SubjectArea {
-  subject: Subject
-  tree: TopicTreeNode[]
-  topics: SubjectTopicRow[]
-  /** Resources filed against the subject as a whole rather than any one
-   *  topic — sow-time evidence, mainly. Named here so the reader can see
-   *  what a subject stands on and file it onto topics by hand. */
-  resources: Array<Pick<Resource, 'id' | 'title' | 'kind' | 'status' | 'url'>>
-  /** The subject's own figures, aggregated from its members. */
-  ability: number
-  freshness: number
-  confidence: number
-  lastExposureAt: string | null
-  counts: {
-    topics: number
-    resources: number
-    unread: number
-    curricula: number
-    /** Connections with both ends inside this bed. Nought on a bed the
-     *  sowing never got to relate, which is what the sheet offers to
-     *  put right. */
-    edges: number
-  }
-  /** What the user said when they sowed it, if it was sown here. */
-  sowing: Sowing | null
-}
-
-/** The app's reading of the sowing answers, beside the user's own. */
-export interface Assessment {
-  level: number
-  note: string
-  shown: string[]
-  missing: string[]
-  answered: number
-  asked: number
-}
-
-export interface Sowing {
-  roots: number | null
-  confident: string | null
-  gaps: string | null
-  depth: string | null
-  qualifiers: Array<{ prompt: string; level: number; answer: string }>
-  evidence: Array<{ title: string; kind: string }>
-  assessment: Assessment | null
-  created_at: string
-}
 
 /**
  * How the app's reading sits against the user's own figure.

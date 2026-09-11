@@ -6,6 +6,13 @@ import { recomputeAbilities } from './scoring'
 import { config } from './config'
 import { proposeEdges } from './llm/edges'
 
+// The shape moved to `@didactic/core/shapes`, where the phone can name
+// it too; the query that builds it needs a client and the cache, so it
+// stays here. Re-exported so `@/lib/sowing` still answers for both.
+import type { Assessment } from '@didactic/core/shapes'
+export type { Assessment } from '@didactic/core/shapes'
+
+
 /**
  * Laying out a bed: asking the model for a map of a subject, and
  * planting what comes back.
@@ -106,14 +113,6 @@ export interface Proposal {
   estimated_level: number
 }
 
-export interface Assessment {
-  level: number
-  note: string
-  shown: string[]
-  missing: string[]
-  answered: number
-  asked: number
-}
 
 const TOOL = {
   name: 'record_subject_topics',

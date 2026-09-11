@@ -95,6 +95,7 @@ or `—` when a row is rendering only.
 | Row-level security on every table | built | `024_row_level_security.sql`: all 18 tables under `public`, owner policy on the nine carrying `user_id` (`highlights` kept its own from 020), join tables through their parent. Storage's `resources` bucket joins back through `resources.storage_path`, because upload paths carry no owner id. Service role unaffected. |
 | Realtime publication for `resources` and `topics` | built | For the phone's tally and inbox. A publication is not a grant: RLS still decides what a subscriber sees. |
 | Read endpoints for server-rendered sheets | built | `/api/home`, `/api/library`, `/api/inbox`, `/api/graph`, `…/area`, `…/sowing`. |
+| Typed API client (`@didactic/api`) | built | One function per route, `Result<T>` from `readJson`, never throws on an HTTP error. `ENDPOINTS` names the tags each write drops, read by the server cache and the phone's query cache both. |
 | Scoring maths in the Deno edge functions | duplicated | Edge functions keep their own copies until a Deno import map points at `packages/core/src`. Record any divergence here. |
 
 ## How to change this file
