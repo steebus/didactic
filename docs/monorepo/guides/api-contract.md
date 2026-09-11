@@ -56,18 +56,18 @@ the phone's query cache.
 
 | Method | Path | Query / body | Returns | Notes |
 | --- | --- | --- | --- | --- |
-| GET | `/api/home` | — | `HomeData` | **Planned (2.3).** Same reader as the stock list page. |
-| GET | `/api/graph` | — | topics, subjects, edges as the graph page assembles them | **Planned (2.3).** |
-| GET | `/api/inbox` | — | `{ pending: PendingTopic[], queued: Resource[] }` | **Planned (2.3).** |
+| GET | `/api/home` | — | `HomeData` | The stock list's own `getHomeData`, so the read shares its cache tags. |
+| GET | `/api/graph` | — | `{ topics, edges, resources, lessons, subjects }` | The whole bed in one call. The web's canvas asks `/api/topics` and `/api/subjects` separately and merges them itself; both read `getPlanting`, so they cannot drift. |
+| GET | `/api/inbox` | — | `{ pending: PendingTopic[], queued: Resource[] }` | The sheet in one call. `/api/inbox/count` stays separate and stays cheap. |
 | GET | `/api/inbox/count` | — | `{ decisions, waiting, total }` | Counts on an index; cheap enough for a nav. |
-| GET | `/api/library` | — | `LibraryRow[]` | **Planned (2.3).** |
+| GET | `/api/library` | — | `LibraryRow[]` | The library sheet's own `getLibrary`. |
 | GET | `/api/subjects` | — | subjects | |
 | GET | `/api/subjects/[id]` | — | subject with topics | |
-| GET | `/api/subjects/[id]/area` | — | `SubjectArea` | **Planned (2.3).** The outline's data. |
-| GET | `/api/subjects/[id]/sowing` | — | `Sowing` | **Planned (2.3).** The reading's data. |
+| GET | `/api/subjects/[id]/area` | — | `SubjectArea` | The outline's data. 404 when the bed is not there. |
+| GET | `/api/subjects/[id]/sowing` | — | `Sowing \| null` | The reading's data. Null for a bed sown before the sowing sheet existed, which the reading prints as *unstated*. |
 | GET | `/api/topics` | — | topics | |
 | GET | `/api/topics/[id]` | — | topic, subjects, exposures, resources, edges, curricula with counts | |
-| GET | `/api/topics/[id]/area` | — | `TopicArea` | **Planned (2.3).** What the topic sheet prints. |
+| GET | `/api/topics/[id]/area` | — | `TopicArea` | What the topic sheet prints. `/api/topics/[id]` stays as it is: it answers the graph panel's question, and the two shapes differ on purpose. |
 | GET | `/api/topics/pending` | — | `PendingTopic[]` | |
 | GET | `/api/resources` | — | resources | |
 | GET | `/api/curricula/[id]` | — | curriculum with lessons and prereqs | |
