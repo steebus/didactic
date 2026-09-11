@@ -1,6 +1,7 @@
 import type { Api } from './client'
 import type { Subject } from '@didactic/core/types'
 import type { SubjectArea, Sowing } from '@didactic/core/shapes'
+import type { Fidelity } from '@didactic/core/documents'
 
 /**
  * What a sowing answers with. Takes the better part of a minute.
@@ -81,7 +82,15 @@ export interface SowBody {
   depth?: string | null
   confident?: string | null
   gaps?: string | null
-  evidence?: Array<{ title: string; kind: string; url?: string; resourceId?: string }>
+  evidence?: Array<{
+    title: string
+    kind: string
+    url?: string
+    resourceId?: string
+    /** How closely the bed should follow this document. Only ever set
+     *  on a PDF that has been read; absent means it steers nothing. */
+    fidelity?: Fidelity
+  }>
   qualifiers?: Array<{ prompt: string; level: number; probes?: string; answer: string }>
 }
 

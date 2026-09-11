@@ -5,6 +5,9 @@ import { resolveConcept, fetchCandidates, neighboursFor } from './resolver'
 import { recomputeAbilities } from './scoring'
 import { config } from '@didactic/core/config'
 import { proposeEdges } from './llm/edges'
+import type { Fidelity } from '@didactic/core/documents'
+import type { OutlineEntry } from '@didactic/core/passages'
+import { flattenChapters, printOutline, bedEdgesFromOutline } from '@didactic/core/documentBed'
 
 // The shape moved to `@didactic/core/shapes`, where the phone can name
 // it too; the query that builds it needs a client and the cache, so it
@@ -91,6 +94,29 @@ export interface Evidence {
   resourceId?: string
   title: string
   kind: string
+  /** Set only on a document the user asked the bed to follow. Null or
+   *  absent is the ordinary case: filed as material, steering nothing. */
+  fidelity?: Fidelity
+}
+
+/**
+ * A document the bed is being laid out from, with its structure.
+ *
+ * Only ever populated for a PDF whose rung is `verbatim` or `follow`
+ * and whose outline has actually been read. A document handed over at
+ * `source`, or one still being read when the bed is sown, is evidence
+ * like any other -- it informs the figure and is filed against the
+ * subject, and the bed is laid out without reference to its shape.
+ */
+export interface SourceDocument {
+  resourceId: string
+  title: string
+  fidelity: Fidelity
+  chapters: OutlineEntry[]
+  /** Whether the shape is the document's own or a reading of its
+   *  contents page. A bed laid out to the letter from a guess is worth
+   *  saying out loud, so the sheet is told. */
+  outlineSource: 'bookmarks' | 'model' | 'none'
 }
 
 /** Everything the user said on the sowing sheet. Every field below the
@@ -104,12 +130,18 @@ export interface Brief {
   depth: string
   qualifiers: Qualifier[]
   evidence: Evidence[]
+  /** Documents whose shape the bed is meant to follow. */
+  sources: SourceDocument[]
 }
 
 export interface Proposal {
   name: string
   summary: string
   estimated_level: number
+  /** The chapter this topic was named for, when the bed is being laid
+   *  out to the letter. It is how the edges the document asserts are
+   *  matched back to the topics that were actually written. */
+  chapter?: string
 }
 
 
@@ -167,6 +199,57 @@ const TOOL = {
     },
     required: ['topics'],
   },
+}
+
+/**
+ * Load the structure of every document the bed is meant to follow.
+ *
+ * A document only reaches here once it has been read: the outline is
+ * written by the first ingestion round, and a book uploaded a moment
+ * before the bed is sown may still be part way through. That is not an
+ * error and does not hold the sowing up -- a document with no outline
+ * yet is dropped to plain evidence, which is what it would have been
+ * before any of this existed. Saying so is the caller's job; the sheet
+ * offers to lay the bed out again once the reading has finished.
+ */
+export async function loadSourceDocuments(
+  db: SupabaseClient,
+  evidence: Evidence[]
+): Promise<SourceDocument[]> {
+  const wanted = evidence.filter(
+    (e): e is Evidence & { resourceId: string; fidelity: Fidelity } =>
+      Boolean(e.resourceId) && Boolean(e.fidelity)
+  )
+  if (wanted.length === 0) return []
+
+  const { data } = await db
+    .from('resource_outline')
+    .select('resource_id, chapters, source')
+    .in('resource_id', wanted.map(e => e.resourceId))
+
+  const outlines = new Map(
+    (data ?? []).map(row => [
+      row.resource_id as string,
+      {
+        chapters: (row.chapters as OutlineEntry[] | null) ?? [],
+        source: (row.source as 'bookmarks' | 'model' | 'none') ?? 'none',
+      },
+    ])
+  )
+
+  return wanted.flatMap(e => {
+    const held = outlines.get(e.resourceId)
+    if (!held || held.chapters.length === 0) return []
+    return [
+      {
+        resourceId: e.resourceId,
+        title: e.title,
+        fidelity: e.fidelity,
+        chapters: held.chapters,
+        outlineSource: held.source,
+      },
+    ]
+  })
 }
 
 /**
@@ -251,6 +334,50 @@ function buildBrief(input: Brief) {
 }
 
 /**
+ * The document, as the model is told about it.
+ *
+ * Only `follow` and `source` come through here. `verbatim` does not ask
+ * the model what the topics are at all -- it tells it, and asks only
+ * what each chapter should be called on a map, which is a different
+ * question and a different tool (see `proposeMap`).
+ *
+ * The difference between the two rungs handled here is a real one and
+ * is stated as such. `follow` makes the document the starting point and
+ * gives explicit permission to depart from it, which is what a reader
+ * asking for its order rather than its letter wants. `source` keeps the
+ * document as evidence of what the subject contains and takes its
+ * arrangement as one author's choice, which is all it is.
+ */
+function sourceInstruction(sources: SourceDocument[]): string {
+  const parts: string[] = []
+
+  for (const source of sources) {
+    const flat = flattenChapters(source.chapters)
+    if (flat.length === 0) continue
+
+    if (source.fidelity === 'follow') {
+      parts.push(
+        `They handed over "${source.title}" and asked for the bed to follow its order. Here is its structure:
+
+${printOutline(flat)}
+
+Start from this. Keep its order and its emphasis — the page ranges say what it gives weight to, and a sixty-page chapter is not the same size of thing as a two-page one. You may merge two chapters that are one topic, split one that is plainly two, and add what the subject needs and this document happens to skip. Name every topic canonically regardless: a chapter title is a label in a book, not a concept on a map.`
+      )
+    } else if (source.fidelity === 'source') {
+      parts.push(
+        `They handed over "${source.title}" as source material, which covers:
+
+${printOutline(flat)}
+
+Read this for what the subject contains, not for how it should be arranged. Its order is one author's choice and you are not bound by it. Lay the bed out as you would anyway, informed by what this shows the subject to include.`
+      )
+    }
+  }
+
+  return parts.join('\n\n')
+}
+
+/**
  * How far the user said they want to take the subject decides the shape
  * of the bed, not just its labels: an overview is broad and shallow, a
  * mastery run is narrow and finely cut.
@@ -327,6 +454,9 @@ function readMap(res: Anthropic.Message): MapReading {
       name: (t.name as string).trim(),
       summary: typeof t.summary === 'string' ? t.summary : '',
       estimated_level: Number.isFinite(t.estimated_level) ? (t.estimated_level as number) : 1,
+      ...(typeof t.chapter === 'string' && t.chapter.trim()
+        ? { chapter: (t.chapter as string).trim() }
+        : {}),
     }))
 
   const shape = Array.isArray(raw.topics)
@@ -376,9 +506,32 @@ export async function proposeMap(
   const { subject, roots, depth } = brief
   const written = buildBrief(brief)
 
-  const instruction = `Break the subject "${subject}" into learnable topics. Topics are areas within the subject; they need not relate to one another. Use canonical names that would match an existing knowledge graph.
+  // A document to be followed to the letter is not a scope instruction
+  // and not a hint. It decides which topics there are, and the only
+  // question left for the model is what each one is called.
+  const toTheLetter = brief.sources.find(
+    source => source.fidelity === 'verbatim' && source.chapters.length > 0
+  )
+  const chapters = toTheLetter ? flattenChapters(toTheLetter.chapters) : []
+  const verbatim = toTheLetter && chapters.length > 0 ? { source: toTheLetter, chapters } : null
 
-${scopeInstruction(depth)}
+  const opening = verbatim
+    ? `The subject "${subject}" is being laid out from a document the reader asked to be followed to the letter: "${verbatim.source.title}".
+
+Here is its structure, in its order:
+
+${printOutline(verbatim.chapters)}
+
+Record exactly one topic for each of the ${verbatim.chapters.length} entries above, in the same order, and no others. You are not choosing what the topics are — the document has chosen. What you are deciding is what each one is called.
+
+Give each a canonical name: the concept it teaches, named as a knowledge graph would name it, not as the chapter is titled. "Getting started" is not a concept; whatever that chapter actually introduces is. Where a chapter title already is the canonical name, use it unchanged. Record the chapter title verbatim in the \`chapter\` field so each topic can be matched back to it.`
+    : `Break the subject "${subject}" into learnable topics. Topics are areas within the subject; they need not relate to one another. Use canonical names that would match an existing knowledge graph.
+
+${scopeInstruction(depth)}`
+
+  const instruction = `${opening}
+
+${sourceInstruction(brief.sources)}
 
 ${written ? `What they told us about where they stand:\n\n${written}` : 'They said nothing about where they stand, so assume nothing.'}
 
@@ -396,13 +549,53 @@ ${
     : 'They gave nothing to read, so omit the assessment entirely.'
 }`
 
+  // Laying out to the letter asks for one more field per topic -- the
+  // chapter it answers to -- so the document's own edges can be matched
+  // back to the topics that were actually written. The tool is built
+  // from the ordinary one rather than written out again, so the two
+  // cannot drift apart.
+  const tool = verbatim
+    ? {
+        ...TOOL,
+        input_schema: {
+          ...TOOL.input_schema,
+          properties: {
+            ...TOOL.input_schema.properties,
+            topics: {
+              ...TOOL.input_schema.properties.topics,
+              minItems: verbatim.chapters.length,
+              description: `Exactly one topic per chapter of the document, in the document's order. ${verbatim.chapters.length} of them.`,
+              items: {
+                ...TOOL.input_schema.properties.topics.items,
+                properties: {
+                  ...TOOL.input_schema.properties.topics.items.properties,
+                  chapter: {
+                    type: 'string',
+                    description:
+                      "The chapter title this topic was named for, copied exactly as given.",
+                  },
+                },
+                required: [
+                  ...TOOL.input_schema.properties.topics.items.required,
+                  'chapter',
+                ],
+              },
+            },
+          },
+        },
+      }
+    : TOOL
+
   /** Ask for the map. `again` is empty on the first go and carries the
    *  complaint on the second. */
   const askForMap = (again: string) =>
     client.messages.create({
       model: 'claude-sonnet-5',
-      max_tokens: 4000,
-      tools: [TOOL],
+      // A long document imposes a long list, and a bed cut off half way
+      // through its chapters is the `truncated` problem rather than a
+      // bed. Sized to the work rather than fixed.
+      max_tokens: verbatim ? Math.min(16_000, 4_000 + verbatim.chapters.length * 120) : 4_000,
+      tools: [tool],
       tool_choice: { type: 'tool', name: 'record_subject_topics' },
       messages: [{ role: 'user', content: `${instruction}${again}` }],
     })
@@ -540,7 +733,19 @@ export async function plantMap(
     level: number
     vector: number[]
     pending: boolean
+    chapter?: string
   }> = []
+
+  // Which chapter ended up as which topic.
+  //
+  // Only filled when the bed is being laid out to the letter, and it is
+  // what the document's own edges are drawn from afterwards. It has to
+  // be collected here rather than worked out later because this is the
+  // only point at which a proposal and the row it resolved onto are
+  // both in hand -- a topic reused from elsewhere on the map keeps its
+  // own name, so matching by title after the fact would miss exactly
+  // the topics that matter most.
+  const placed = new Map<string, string>()
   // Proposals already accepted in this pass, so the resolver can see
   // them before they exist in the database. Their ids are marked so a
   // match against one is not mistaken for a row to link.
@@ -565,7 +770,10 @@ export async function plantMap(
       // Matching something accepted moments ago means the model
       // proposed the same topic twice. There is nothing to link and
       // nothing to create; the first one stands.
-      if (!resolution.topicId.startsWith('batch:')) toLink.push(resolution.topicId)
+      if (!resolution.topicId.startsWith('batch:')) {
+        toLink.push(resolution.topicId)
+        if (candidate.chapter) placed.set(candidate.chapter, resolution.topicId)
+      }
       continue
     }
 
@@ -575,6 +783,7 @@ export async function plantMap(
       level: Math.min(5, Math.max(1, candidate.estimated_level)),
       vector,
       pending: resolution.action === 'pending',
+      ...(candidate.chapter ? { chapter: candidate.chapter } : {}),
     })
     accepted.push({ id: `batch:${accepted.length}`, title: candidate.name, embedding: vector })
   }
@@ -612,6 +821,15 @@ export async function plantMap(
       warnings,
       dropped,
       problem: `The topics could not be written: ${createError.message}`,
+    }
+  }
+
+  // The chapters that became new topics, now that those rows have ids.
+  if (created?.length) {
+    const idByTitle = new Map(created.map(t => [t.title as string, t.id as string]))
+    for (const entry of toCreate) {
+      const id = entry.chapter ? idByTitle.get(entry.name) : undefined
+      if (entry.chapter && id) placed.set(entry.chapter, id)
     }
   }
 
@@ -670,13 +888,22 @@ export async function plantMap(
   // topic was created, because the subject is what it belongs to.
   const evidenceIds = brief.evidence.flatMap(e => (e.resourceId ? [e.resourceId] : []))
   if (evidenceIds.length > 0) {
+    // The rung rides along with the filing: it is a fact about this
+    // document's relationship to this subject, which is exactly what
+    // this join row is. `ignoreDuplicates` is dropped so that laying
+    // the bed out again records a rung the first attempt could not --
+    // a document still being read the first time round.
+    const fidelityOf = new Map(
+      brief.evidence.flatMap(e => (e.resourceId && e.fidelity ? [[e.resourceId, e.fidelity]] : []))
+    )
     const { error: fileError } = await db.from('resource_subjects').upsert(
       evidenceIds.map(resource_id => ({
         resource_id,
         subject_id: subject.id,
         relevance: 0.3,
+        fidelity: fidelityOf.get(resource_id) ?? null,
       })),
-      { onConflict: 'resource_id,subject_id', ignoreDuplicates: true }
+      { onConflict: 'resource_id,subject_id' }
     )
     if (fileError) {
       warnings.push(`the evidence was not filed against the subject: ${fileError.message}`)
@@ -696,7 +923,39 @@ export async function plantMap(
   // one. Which is also why it is the first thing given up when the
   // clock runs short: the bed is already written, and finishing the
   // request is worth more than relating it.
-  if (created && created.length > 1) {
+  // A bed laid out to the letter already knows how its topics relate,
+  // because the document said so. A section sits under its chapter and
+  // one chapter comes before the next -- and asking a model to guess at
+  // relationships the author already stated would be both slower and
+  // worse. So the document's edges are drawn, and the model's edge pass
+  // is skipped entirely: it is the single most expensive thing in this
+  // request, and the whole point of this rung is that the shape is not
+  // up for discussion.
+  const toTheLetter = brief.sources.find(
+    source => source.fidelity === 'verbatim' && source.chapters.length > 0
+  )
+
+  if (toTheLetter && placed.size > 1) {
+    const edges = bedEdgesFromOutline(flattenChapters(toTheLetter.chapters), placed)
+    if (edges.length > 0) {
+      const { error: edgeError } = await db.from('edges').upsert(
+        edges.map(e => ({
+          user_id: subject.user_id,
+          from_topic: e.from,
+          to_topic: e.to,
+          kind: e.kind,
+          weight: e.weight,
+          created_by: 'ai' as const,
+        })),
+        { onConflict: 'from_topic,to_topic,kind', ignoreDuplicates: true }
+      )
+      if (edgeError) {
+        warnings.push(
+          `the bed follows the document but its connections were not drawn: ${edgeError.message}`
+        )
+      }
+    }
+  } else if (created && created.length > 1) {
     if (deadline - Date.now() < EDGES_NEED_MS) {
       warnings.push(
         'there was not enough time left to relate the topics to each other, so the bed is sown but its connections are not drawn'

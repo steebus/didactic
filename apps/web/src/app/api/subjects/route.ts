@@ -8,11 +8,13 @@ import {
   plantMap,
   readAssessment,
   isReadable,
+  loadSourceDocuments,
   PROBLEM_NOTES,
   type Brief,
   type Qualifier,
   type Evidence,
 } from '@/lib/sowing'
+import { isFidelity } from '@didactic/core/documents'
 
 /**
  * Drop what this route just changed.
@@ -115,8 +117,29 @@ async function sow(req: Request) {
       resourceId: typeof e.resourceId === 'string' ? e.resourceId : undefined,
       title: text(e.title),
       kind: text(e.kind) || 'note',
+      ...(isFidelity(e.fidelity) ? { fidelity: e.fidelity } : {}),
     }))
     .filter(e => e.title)
+
+  // A document only steers the bed once it has been read. One still
+  // being read is dropped to plain evidence and said so, rather than
+  // the bed quietly ignoring what the reader asked for.
+  //
+  // Only asked when something is actually being followed. The ordinary
+  // sowing reaches no database at all until the map is back, which is
+  // worth keeping: the model call is the part that fails, and failing
+  // before writing anything is what makes a failed sowing leave no
+  // half-built subject behind.
+  const sources = evidence.some(e => e.fidelity)
+    ? await loadSourceDocuments(supabaseAdmin(), evidence)
+    : []
+  for (const asked of evidence) {
+    if (asked.fidelity && !sources.some(s => s.resourceId === asked.resourceId)) {
+      warnings.push(
+        `"${asked.title}" has not finished being read, so the bed was laid out without following it — lay it out again once it has`
+      )
+    }
+  }
 
   const brief: Brief = {
     subject,
@@ -126,6 +149,7 @@ async function sow(req: Request) {
     depth: text(body.depth),
     qualifiers,
     evidence,
+    sources,
   }
 
   // Only one key is needed now: the topics are proposed by Anthropic,

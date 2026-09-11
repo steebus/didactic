@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { didactic, type AddResource } from '@didactic/api'
 import { bookNote, type BookMatch } from '@didactic/core/books'
+import { FIDELITY_RUNGS, type Fidelity } from '@didactic/core/documents'
 import styles from './page.module.css'
 
 const api = didactic()
@@ -12,6 +13,11 @@ export interface ProofEntry {
   resourceId: string
   title: string
   kind: string
+  /** How closely the bed should follow it. Only ever set on a PDF: a
+   *  book named by title has no structure to follow, because the app
+   *  never holds its contents. Absent means it steers nothing, which
+   *  is what every piece of proof did before the dial existed. */
+  fidelity?: Fidelity
 }
 
 type Mode = 'link' | 'book' | 'credential' | 'file'
@@ -198,6 +204,15 @@ export function ProofOfRoots({
     if (fileInput.current) fileInput.current.value = ''
   }
 
+  /** Which rung this document sits at. Kept on the entry rather than
+   *  sent anywhere: it is read when the bed is sown, with the rest of
+   *  the sheet, because until then there is no bed to follow it. */
+  function setFidelity(entry: ProofEntry, fidelity: Fidelity | undefined) {
+    onChange(
+      entries.map(e => (e.resourceId === entry.resourceId ? { ...e, fidelity } : e))
+    )
+  }
+
   async function remove(entry: ProofEntry) {
     onChange(entries.filter(e => e.resourceId !== entry.resourceId))
     // Filed already, so taking it off the list has to take it out of the
@@ -217,17 +232,55 @@ export function ProofOfRoots({
         <ul className={styles.proofList}>
           {entries.map(entry => (
             <li key={entry.resourceId} className={styles.proofRow}>
-              <span className={styles.proofName}>{entry.title}</span>
-              <span className={styles.leaders} aria-hidden="true" />
-              <span className={styles.proofKind}>{entry.kind}</span>
-              <button
-                type="button"
-                className={styles.proofDrop}
-                onClick={() => remove(entry)}
-                aria-label={`Remove ${entry.title}`}
-              >
-                Remove
-              </button>
+              <div className={styles.proofLine}>
+                <span className={styles.proofName}>{entry.title}</span>
+                <span className={styles.leaders} aria-hidden="true" />
+                <span className={styles.proofKind}>{entry.kind}</span>
+                <button
+                  type="button"
+                  className={styles.proofDrop}
+                  onClick={() => remove(entry)}
+                  aria-label={`Remove ${entry.title}`}
+                >
+                  Remove
+                </button>
+              </div>
+
+              {entry.kind === 'pdf' && (
+                <fieldset className={styles.follow}>
+                  <legend className={styles.followLegend}>
+                    How closely should the bed follow it?
+                  </legend>
+
+                  {FIDELITY_RUNGS.map(rung => (
+                    <label key={rung.value} className={styles.followRung}>
+                      <input
+                        type="radio"
+                        name={`follow-${entry.resourceId}`}
+                        value={rung.value}
+                        checked={entry.fidelity === rung.value}
+                        onChange={() => setFidelity(entry, rung.value)}
+                      />
+                      <span className={styles.followLabel}>{rung.label}</span>
+                      <span className={styles.followHint}>{rung.hint}</span>
+                    </label>
+                  ))}
+
+                  <label className={styles.followRung}>
+                    <input
+                      type="radio"
+                      name={`follow-${entry.resourceId}`}
+                      value=""
+                      checked={!entry.fidelity}
+                      onChange={() => setFidelity(entry, undefined)}
+                    />
+                    <span className={styles.followLabel}>Not at all</span>
+                    <span className={styles.followHint}>
+                      Filed as material. The bed is laid out as though it were not here.
+                    </span>
+                  </label>
+                </fieldset>
+              )}
             </li>
           ))}
         </ul>

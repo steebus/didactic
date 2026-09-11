@@ -8,11 +8,13 @@ import {
   plantMap,
   readAssessment,
   isReadable,
+  loadSourceDocuments,
   PROBLEM_NOTES,
   type Brief,
   type Qualifier,
   type Evidence,
 } from '@/lib/sowing'
+import { isFidelity } from '@didactic/core/documents'
 
 /** The same wide drop the sowing does: a bed appearing is a change to
  *  the stock list, to every topic sheet in it, and to the queue. The
@@ -105,6 +107,12 @@ async function resow(subjectId: string) {
     depth: sowing?.depth ?? '',
     qualifiers: readQualifiers(sowing?.qualifiers),
     evidence: readEvidence(sowing?.evidence),
+    // Rebuilt from the kept evidence rather than from the request, so
+    // laying the bed out again follows the same documents it was asked
+    // to follow the first time -- and now succeeds where the first
+    // attempt came too early, before the document had finished being
+    // read.
+    sources: await loadSourceDocuments(db, readEvidence(sowing?.evidence)),
   }
 
   // The reading was written on the first attempt and has already been
@@ -176,6 +184,10 @@ function readEvidence(raw: unknown): Evidence[] {
       resourceId: typeof e.resourceId === 'string' ? e.resourceId : undefined,
       title: text(e.title),
       kind: text(e.kind) || 'note',
+      // The rung the reader chose, kept so laying out again follows the
+      // same document the same way. Absent on every sowing recorded
+      // before the dial existed, which is the same as steering nothing.
+      ...(isFidelity(e.fidelity) ? { fidelity: e.fidelity } : {}),
     }))
     .filter(e => e.title)
 }

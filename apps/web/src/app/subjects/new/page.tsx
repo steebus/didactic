@@ -191,6 +191,7 @@ export default function NewSubjectPage() {
           resourceId: p.resourceId,
           title: p.title,
           kind: p.kind,
+          fidelity: p.fidelity,
         })),
         qualifiers: questions.map((q, i) => ({
           prompt: q.prompt,

@@ -405,10 +405,65 @@
 }
 
 .proofRow {
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--step--1);
+}
+
+.proofLine {
   display: flex;
   align-items: baseline;
   gap: var(--space-2);
-  font-size: var(--step--1);
+}
+
+/* How closely the bed follows a document. Only ever shown under a PDF,
+   because it is the only thing filed here that has a structure to
+   follow -- a book named by title is a reference, not a text. */
+.follow {
+  border: none;
+  border-left: 2px solid var(--rule);
+  margin: 0;
+  padding: 0 0 0 var(--space-3);
+  display: grid;
+  gap: var(--space-2);
+}
+
+.followLegend {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding: 0;
+  margin-bottom: var(--space-1);
+}
+
+.followRung {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 var(--space-2);
+  align-items: baseline;
+  cursor: pointer;
+}
+
+.followRung input {
+  grid-row: 1 / span 2;
+  margin: 0;
+  accent-color: var(--plate-green);
+}
+
+.followLabel {
+  color: var(--ink);
+}
+
+/* The caveat under "To the letter" is the longest of the three and is
+   the one that has to be read before choosing, so the hints are printed
+   rather than hidden behind the label. */
+.followHint {
+  grid-column: 2;
+  font-size: var(--step--2);
+  color: var(--ink-soft);
+  line-height: 1.4;
 }
 
 .proofName {
