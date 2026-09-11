@@ -60,7 +60,15 @@ export async function createHighlight(
     .single()
   if (error) throw new Error(error.message)
 
-  await fileTags(db, input.userId, highlight.id, input.note ?? null)
+  // The mark is written. Indexing what its note names is the lesser
+  // half of the job, and it is not worth failing a kept passage over
+  // -- including on the deploy where the code is out and the table it
+  // writes to is not yet.
+  try {
+    await fileTags(db, input.userId, highlight.id, input.note ?? null)
+  } catch (e) {
+    console.error('highlights: could not file what the note names', e)
+  }
 
   // A scaffolding lesson teaches no single topic, so there is nothing
   // for the mark to count toward.
