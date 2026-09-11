@@ -66,6 +66,14 @@ interface Bench {
   /** Whether this exact piece of work is already underway. */
   running: (kind: JobKind, id: string) => boolean
   /**
+   * The job for this piece of work, in whatever state it reached.
+   *
+   * A sheet watching its own job needs to tell *finished* from merely
+   * *stopped*: those are the same transition, and treating them alike
+   * is how a failed write turns into a retry loop.
+   */
+  jobFor: (kind: JobKind, id: string) => Job | null
+  /**
    * Set a job going, and report on it from the corner of every sheet.
    *
    * Answers when the work does, so a caller that wants to wait -- the
@@ -82,6 +90,7 @@ interface Bench {
 const NOWHERE: Bench = {
   jobs: [],
   running: () => false,
+  jobFor: () => null,
   start: async (_job, work) => {
     // No bench, so nothing is reported -- but the work still happens.
     // A component rendered outside the provider (a test, a sheet not
@@ -143,12 +152,17 @@ export function Bench({ children }: { children: React.ReactNode }) {
    * to the ref happens to sit beside a `setJobs`. This answers from the
    * state, which is the thing React actually re-renders on.
    */
-  const running = useCallback(
+  const jobFor = useCallback(
     (kind: JobKind, id: string) => {
       const key = jobKey(kind, id)
-      return jobs.some(j => j.key === key && j.state === 'running')
+      return jobs.find(j => j.key === key) ?? null
     },
     [jobs]
+  )
+
+  const running = useCallback(
+    (kind: JobKind, id: string) => jobFor(kind, id)?.state === 'running',
+    [jobFor]
   )
 
   const start = useCallback<Bench['start']>(
@@ -203,7 +217,10 @@ export function Bench({ children }: { children: React.ReactNode }) {
     [forget, router]
   )
 
-  const value = useMemo(() => ({ jobs, running, start }), [jobs, running, start])
+  const value = useMemo(
+    () => ({ jobs, running, jobFor, start }),
+    [jobs, running, jobFor, start]
+  )
 
   return (
     <Channel.Provider value={value}>

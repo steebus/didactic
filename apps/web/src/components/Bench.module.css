@@ -9,9 +9,14 @@
 .bench {
   position: fixed;
   right: var(--space-4);
-  /* Stands on the foot bar when there is one (Phase 3); on the sheet's
-     own edge until then. */
-  bottom: calc(var(--foot-bar, 0px) + var(--space-4));
+  /* Stands on the foot bar when there is one (Phase 3), and clear of
+     the lesson reader's floating buttons wherever those are showing --
+     on a phone a notice runs the full width and simply covered them.
+     Both are nought on a sheet that has neither. */
+  bottom: calc(
+    var(--foot-bar, 0px) + env(safe-area-inset-bottom, 0px) + var(--desk-stack, 0rem) +
+      var(--space-4)
+  );
   z-index: 40;
 
   display: flex;
@@ -175,7 +180,10 @@
   .bench {
     left: var(--space-2);
     right: var(--space-2);
-    bottom: calc(var(--foot-bar, 0px) + var(--space-2));
+    bottom: calc(
+      var(--foot-bar, 0px) + env(safe-area-inset-bottom, 0px) + var(--desk-stack, 0rem) +
+        var(--space-2)
+    );
     width: auto;
   }
 }

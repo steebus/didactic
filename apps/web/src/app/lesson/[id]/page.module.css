@@ -449,6 +449,13 @@
   max-width: 54ch;
 }
 
+.unwritten {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
 /* Writing a lesson takes ten to twenty seconds. A pulse says the
    page is working rather than stuck; it is truthful, not a fake
    progress bar. */

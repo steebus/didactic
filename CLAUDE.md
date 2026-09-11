@@ -30,6 +30,16 @@ without waiting for the end of the session. Vercel builds the web from
 `main`; EAS Update ships the phone's JavaScript from `main`. An unpushed
 commit is work that does not exist yet.
 
+**Supabase is connected to GitHub: a migration merged to `main` is applied
+to the database on that push.** Nobody runs it by hand. Which means a
+migration is not a file waiting for someone — it is a deploy, and it lands
+at the same moment as the code that depends on it. So write every one to be
+safe to run twice (`if not exists`, `drop policy … if exists` then create),
+never edit a migration that has already been merged, and never push code
+that would break against the schema as it stands before its own migration
+runs — the two go up together, but the web build and the migration are not
+a transaction.
+
 Before the push, run what the repo runs: `npx turbo run lint typecheck
 test`, and `npx turbo run build --filter=@didactic/web` where the change
 could break one. A push that breaks the deploy costs more than the minute

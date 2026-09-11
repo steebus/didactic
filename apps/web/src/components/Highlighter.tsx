@@ -564,6 +564,35 @@ export function Highlighter({
     }
   }, [columnOpen])
 
+  /**
+   * Say how much room the desk's buttons are taking at the foot.
+   *
+   * They are the only things in the catalogue that float over the
+   * reading, and they were not the only things docked in that corner:
+   * the bench's notices are fixed there too, and on a phone -- where a
+   * notice runs the full width -- the notice simply covered them.
+   *
+   * Written on the body rather than passed down because the bench is
+   * not below this in the tree; it is mounted beside the whole router
+   * in `layout.tsx`, which is the entire point of it. So the two agree
+   * through a custom property, the way anything docked at the foot
+   * already agrees with `--foot-bar`.
+   *
+   * The height is the stack's own: one button, or two once there is
+   * something marked to list. The offset the desk itself sits at is
+   * included, so a reader of this only has to add their own gap.
+   */
+  useEffect(() => {
+    const buttons = marks.length > 0 ? '6rem' : '2.75rem'
+    document.body.style.setProperty(
+      '--desk-stack',
+      `calc(var(--space-5) + ${buttons})`
+    )
+    return () => {
+      document.body.style.removeProperty('--desk-stack')
+    }
+  }, [marks.length])
+
   // A finger asking for the marks: a swipe leftward across the reading,
   // and a swipe back to send them away again. Kept off anything that
   // scrolls sideways of its own accord -- a wide table, a plot -- and

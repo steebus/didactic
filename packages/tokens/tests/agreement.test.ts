@@ -106,6 +106,11 @@ describe('the tokens agree with globals.css', () => {
       // guides/styling-on-mobile.md instead.
       '--font-display',
       '--font-text',
+      // A measurement the lesson reader writes at runtime, not a
+      // decision about the design: it says how much room that sheet's
+      // floating buttons are taking so anything else docked at the foot
+      // can stand clear. The phone's reader measures its own.
+      '--desk-stack',
     ])
     const claimed = new Set(CLAIMS.map(([property]) => property))
     const unaccounted = [...props.keys()]

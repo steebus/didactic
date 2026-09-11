@@ -76,7 +76,20 @@ export default function LessonPage({
   const [body, setBody] = useState<string | null>(null)
   const [highlights, setHighlights] = useState<Mark[]>([])
   const bench = useBench()
-  const writing = bench.running('writing', id)
+  const job = bench.jobFor('writing', id)
+  const writing = job?.state === 'running'
+  /**
+   * Whether this sheet has already set a write going for this lesson.
+   *
+   * The guard against writing the same lesson over and over. The read
+   * effect below re-runs whenever anything bumps `revision` -- a mark
+   * kept, a lesson finished, a write landing -- and it starts a write
+   * whenever it finds no body. Without this, a write that failed left
+   * the sheet in exactly that state and the next bump started another
+   * one: a model call a minute, for as long as the lesson stayed open.
+   * A failure is offered again by hand, below, and never on a loop.
+   */
+  const attempted = useRef(false)
   // Pulled out because it is stable, where the bench itself changes
   // identity whenever any job does. In the read effect's dependencies
   // the whole bench would re-read the lesson every time a notice in the
@@ -104,13 +117,22 @@ export default function LessonPage({
   useScrollMemory(`lesson:${id}`, body !== null)
 
   // A write this sheet joined rather than started -- the topic sheet
-  // set it going -- finishes on the bench with nothing here listening.
-  // When it stops running, read the lesson again and the body is there.
-  const wasWriting = useRef(writing)
+  // set it going -- lands on the bench with nothing here listening, so
+  // the lesson is read again when it does.
+  //
+  // On 'done' only. Finishing and failing are the same transition out
+  // of 'running', and re-reading on both is what turned one failed
+  // write into a loop of them.
+  const before = useRef(job?.state)
   useEffect(() => {
-    if (wasWriting.current && !writing) setRevision(r => r + 1)
-    wasWriting.current = writing
-  }, [writing])
+    if (before.current === 'running' && job?.state === 'done') setRevision(r => r + 1)
+    before.current = job?.state
+  }, [job?.state])
+
+  // A different lesson is a fresh sheet, whatever this one did.
+  useEffect(() => {
+    attempted.current = false
+  }, [id])
 
   useEffect(() => {
     let cancelled = false
@@ -127,6 +149,8 @@ export default function LessonPage({
       setBody(payload.lesson.body)
       setHighlights(payload.highlights ?? [])
       if (payload.lesson.body) return
+      if (attempted.current) return
+      attempted.current = true
 
       // The body is written on first open rather than at draft time:
       // most drafted lessons are never reached, and reshaping the
@@ -428,7 +452,27 @@ export default function LessonPage({
             </article>
           </>
         ) : (
-          !error && <p className={styles.pending}>Nothing written yet.</p>
+          <div className={styles.unwritten}>
+            {!error && <p className={styles.pending}>Nothing written yet.</p>}
+            {/* A write that failed is offered again here rather than
+                retried behind the reader. Each attempt is a model call,
+                and a sheet that quietly starts another one every time
+                something on it changes is a sheet that spends money by
+                being left open. */}
+            {job?.state === 'failed' && (
+              <button
+                type="button"
+                className={styles.quietAction}
+                onClick={() => {
+                  attempted.current = false
+                  setError(null)
+                  setRevision(r => r + 1)
+                }}
+              >
+                Try writing it again
+              </button>
+            )}
+          </div>
         )}
 
         {resources.length > 0 && (
