@@ -18,6 +18,12 @@
 -- table nobody remembered stays silently readable by anyone. The second
 -- is the one worth being careful about.
 --
+-- Every step is written to be safe to run twice. This one is applied by
+-- hand on any project that was already live when it was written, and a
+-- migration that half-applies and then fails on a duplicate name is
+-- worse than one that does nothing: the tables before the failure are
+-- locked, the ones after are not, and nothing says which.
+--
 -- To revert:
 --   drop policy <name> on <table>;              -- each policy below
 --   alter table <table> disable row level security;
@@ -27,8 +33,10 @@
 -- 1. The nine tables that carry the owner's id.
 --
 -- `highlights` is deliberately absent: 020 already enables RLS and
--- creates highlights_owner with exactly this shape. Repeating it here
--- would fail on the duplicate name.
+-- creates highlights_owner with exactly this shape, so there is nothing
+-- for this migration to add. Listing it here would drop and recreate a
+-- policy that another migration owns, which is how two files end up
+-- disagreeing about one rule.
 do $$
 declare
   owned text;
@@ -39,6 +47,10 @@ begin
   ]
   loop
     execute format('alter table %I enable row level security', owned);
+    -- `drop ... if exists` then create, rather than a guard around the
+    -- create: it also repairs a policy whose definition has drifted,
+    -- which a presence check would leave standing.
+    execute format('drop policy if exists %I on %I', owned || '_owner', owned);
     execute format(
       'create policy %I on %I for all using (auth.uid() = user_id) '
       'with check (auth.uid() = user_id)',
@@ -59,36 +71,43 @@ $$;
 -- lesson that has the prerequisite, not the one that is one.
 
 alter table topic_subjects enable row level security;
+drop policy if exists topic_subjects_owner on topic_subjects;
 create policy topic_subjects_owner on topic_subjects for all
   using (exists (select 1 from topics t where t.id = topic_id and t.user_id = auth.uid()))
   with check (exists (select 1 from topics t where t.id = topic_id and t.user_id = auth.uid()));
 
 alter table resource_topics enable row level security;
+drop policy if exists resource_topics_owner on resource_topics;
 create policy resource_topics_owner on resource_topics for all
   using (exists (select 1 from resources r where r.id = resource_id and r.user_id = auth.uid()))
   with check (exists (select 1 from resources r where r.id = resource_id and r.user_id = auth.uid()));
 
 alter table resource_subjects enable row level security;
+drop policy if exists resource_subjects_owner on resource_subjects;
 create policy resource_subjects_owner on resource_subjects for all
   using (exists (select 1 from resources r where r.id = resource_id and r.user_id = auth.uid()))
   with check (exists (select 1 from resources r where r.id = resource_id and r.user_id = auth.uid()));
 
 alter table lesson_prereqs enable row level security;
+drop policy if exists lesson_prereqs_owner on lesson_prereqs;
 create policy lesson_prereqs_owner on lesson_prereqs for all
   using (exists (select 1 from lessons l where l.id = lesson_id and l.user_id = auth.uid()))
   with check (exists (select 1 from lessons l where l.id = lesson_id and l.user_id = auth.uid()));
 
 alter table lesson_resources enable row level security;
+drop policy if exists lesson_resources_owner on lesson_resources;
 create policy lesson_resources_owner on lesson_resources for all
   using (exists (select 1 from lessons l where l.id = lesson_id and l.user_id = auth.uid()))
   with check (exists (select 1 from lessons l where l.id = lesson_id and l.user_id = auth.uid()));
 
 alter table curriculum_sources enable row level security;
+drop policy if exists curriculum_sources_owner on curriculum_sources;
 create policy curriculum_sources_owner on curriculum_sources for all
   using (exists (select 1 from curricula c where c.id = curriculum_id and c.user_id = auth.uid()))
   with check (exists (select 1 from curricula c where c.id = curriculum_id and c.user_id = auth.uid()));
 
 alter table messages enable row level security;
+drop policy if exists messages_owner on messages;
 create policy messages_owner on messages for all
   using (exists (select 1 from conversations c where c.id = conversation_id and c.user_id = auth.uid()))
   with check (exists (select 1 from conversations c where c.id = conversation_id and c.user_id = auth.uid()));
@@ -96,6 +115,7 @@ create policy messages_owner on messages for all
 -- Ingestion jobs are written by the worker on the service role and read
 -- by nobody else, but an unlocked table is an unlocked table.
 alter table ingestion_jobs enable row level security;
+drop policy if exists ingestion_jobs_owner on ingestion_jobs;
 create policy ingestion_jobs_owner on ingestion_jobs for all
   using (exists (select 1 from resources r where r.id = resource_id and r.user_id = auth.uid()))
   with check (exists (select 1 from resources r where r.id = resource_id and r.user_id = auth.uid()));
@@ -108,6 +128,7 @@ create policy ingestion_jobs_owner on ingestion_jobs for all
 -- the object, so that is what the policy asks. Every upload and download
 -- in the app today goes through the service role and is unaffected; this
 -- is what makes a direct read from the phone safe to allow later.
+drop policy if exists resources_bucket_owner on storage.objects;
 create policy resources_bucket_owner on storage.objects for all
   using (
     bucket_id = 'resources'
@@ -130,5 +151,22 @@ create policy resources_bucket_owner on storage.objects for all
 -- publication is not a grant: RLS still decides what a subscriber sees,
 -- which is why this is safe to publish and why it is done here rather
 -- than anywhere earlier.
-alter publication supabase_realtime add table resources;
-alter publication supabase_realtime add table topics;
+-- `add table` errors on a table that is already a member, so each is
+-- asked for rather than assumed. There is no `add table if not exists`.
+do $$
+declare
+  published text;
+begin
+  foreach published in array array['resources', 'topics']
+  loop
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and tablename = published
+    ) then
+      execute format(
+        'alter publication supabase_realtime add table %I', published
+      );
+    end if;
+  end loop;
+end
+$$;
