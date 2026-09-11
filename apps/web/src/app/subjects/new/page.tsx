@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { SheetNav } from '@/components/SheetNav'
 import { RootsGauge, ROOT_STAGES } from '@/components/RootsGauge'
 import { didactic } from '@didactic/api'
 import { useLabour } from '@/components/useLabour'
+import { useBench } from '@/components/Bench'
 import { ProofOfRoots, type ProofEntry } from './ProofOfRoots'
 import styles from './page.module.css'
 
@@ -69,6 +70,17 @@ export default function NewSubjectPage() {
    *  navigated past, because a warning nobody reads is a warning that
    *  may as well not have been written. */
   const [partial, setPartial] = useState<{ href: string; warnings: string[] } | null>(null)
+  const bench = useBench()
+  /** Whether this sheet is still on screen when the bed lands. A reader
+   *  who waited is taken to it; one who walked off is left where they
+   *  went, with the bench's notice carrying the way there. */
+  const standing = useRef(true)
+  useEffect(() => {
+    standing.current = true
+    return () => {
+      standing.current = false
+    }
+  }, [])
   const router = useRouter()
 
   async function writeQuestions(name: string) {
@@ -102,10 +114,70 @@ export default function NewSubjectPage() {
     setQualifying('idle')
   }
 
+  /**
+   * Lay the bed out.
+   *
+   * Handed to the bench, which owns it from here: sowing takes the
+   * better part of a minute, and a reader who has answered eight
+   * questions has earned the right to go and do something else while
+   * the model works. Held on this sheet, walking off unmounted the
+   * component holding the request and the finished bed arrived to
+   * nobody.
+   *
+   * The sheet still takes them straight there when they did wait --
+   * that is what they were waiting for -- so `standing` says whether
+   * anyone is still here to be taken anywhere. When they are not, the
+   * bench's notice carries the way to the bed instead.
+   */
   async function submit() {
     setBusy(true)
     setError(null)
     try {
+      const outcome = await bench.start(
+        { kind: 'sowing', id: named!, name: named! },
+        () => sow()
+      )
+
+      // This subject was already being sown -- a second press, or a
+      // tab that never left. The bench is reporting on the first.
+      if (outcome.kind === 'joined') {
+        setBusy(false)
+        return
+      }
+
+      // The bench has the failure in the corner either way, but a
+      // reader who stayed and watched should be told on the sheet they
+      // are standing in front of rather than in their peripheral
+      // vision.
+      if (outcome.kind === 'failed') {
+        if (standing.current) {
+          setError(outcome.reason)
+          setBusy(false)
+        }
+        return
+      }
+
+      // Gone elsewhere while it ran: leave them where they went. The
+      // notice carries the way to the bed.
+      if (!standing.current) return
+
+      const made = outcome.made
+      if (made.warnings.length > 0) {
+        setPartial({ href: made.href, warnings: made.warnings })
+        setBusy(false)
+        return
+      }
+      router.push(made.href)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong.')
+      setBusy(false)
+    }
+  }
+
+  /** The request itself, and what the bench needs back from it: where
+   *  the bed is, and anything worth saying about how it was laid. */
+  async function sow(): Promise<{ href: string; warnings: string[] }> {
+    {
       const { ok, body, error: failed } = await api.subjects.sow({
         subject: named!,
         // Untouched is not the same answer as nought: nought says
@@ -132,20 +204,12 @@ export default function NewSubjectPage() {
       // Straight to the reading when there is one — the comparison
       // between what they said and what their answers showed is the
       // point of having asked.
-      const href = body.reading
-        ? `/subjects/${body.subjectId}/reading`
-        : `/subjects/${body.subjectId}`
-
-      if (body.warnings?.length) {
-        setPartial({ href, warnings: body.warnings })
-        setBusy(false)
-        return
+      return {
+        href: body.reading
+          ? `/subjects/${body.subjectId}/reading`
+          : `/subjects/${body.subjectId}`,
+        warnings: body.warnings ?? [],
       }
-
-      router.push(href)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.')
-      setBusy(false)
     }
   }
 

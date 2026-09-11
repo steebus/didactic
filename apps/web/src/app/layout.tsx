@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Fraunces, Archivo } from 'next/font/google'
 import './globals.css'
+import { Bench } from '@/components/Bench'
 
 const fraunces = Fraunces({
   subsets: ['latin'],
@@ -23,7 +24,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${fraunces.variable} ${archivo.variable}`}>
-      <body>{children}</body>
+      <body>
+        {/* Above the router, so work set going on one sheet outlives
+            walking off to another. Everything in the catalogue is
+            inside it, which is what makes the notices site-wide. */}
+        <Bench>{children}</Bench>
+      </body>
     </html>
   )
 }

@@ -562,6 +562,37 @@ rather than a roots stage name — never "Seedling" where the figure means lesso
 The drawing is shared; the words are not.
 
 
+### The bench → work in hand, at the foot of every sheet
+
+Sowing a subject and writing a lesson each take the better part of a minute.
+Both were held by the sheet that started them, so walking off to read something
+else orphaned the request: the row was written and the reader was never told.
+
+**Rule — the notice's one job while it runs is to say that leaving is safe.**
+"Carry on reading — you will be told when the bed is laid." A reader who does
+not know they can walk away will sit and watch, which is the thing the bench
+exists to stop.
+
+**Rule — a mark, never a bar.** Neither job can honestly say how far along it
+is, and a bar that cannot know its total lies about how much is left. The mark
+breathes, which says *working* without claiming progress.
+
+**Rule — it docks at the foot, and it is polite.** The head of every sheet is
+its masthead — the plate that says where you are — and a notice over that
+covers the one thing the reader navigated to see. `aria-live="polite"`: a bed
+finishing must not interrupt someone mid-sentence in a lesson.
+
+**Rule — a notice carrying a way to what it made waits to be followed or
+dismissed.** Only one with nowhere to go puts itself away on a timer. Taking a
+link away from a reader who walked off *because the page told them they could*
+is the one thing this mechanism must never do. A failure stays for the same
+reason: it is the only place the reason is written down.
+
+**Rule — the state's ink runs down the near edge**, mustard while it works,
+green when it lands, terracotta when it fails — and the notice takes the only
+drop shadow in the catalogue, because it is a slip of paper laid on the sheet
+rather than something printed on it.
+
 ### A model the reader can push on
 
 `chart` plots figures the writer already had. `model` computes them, from

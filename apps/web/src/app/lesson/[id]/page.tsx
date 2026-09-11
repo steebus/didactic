@@ -7,6 +7,7 @@ import { Prose } from '@/components/Prose'
 import { Highlighter } from '@/components/Highlighter'
 import { Contents } from '@/components/Contents'
 import { Answering } from '@/components/blocks/answering'
+import { useBench } from '@/components/Bench'
 import { didactic } from '@didactic/api'
 import type { ExposureDepth, Highlight as Mark } from '@didactic/core/types'
 import type { LessonLink } from '@didactic/core/lessonLinks'
@@ -74,7 +75,13 @@ export default function LessonPage({
   const [data, setData] = useState<LessonData | null>(null)
   const [body, setBody] = useState<string | null>(null)
   const [highlights, setHighlights] = useState<Mark[]>([])
-  const [writing, setWriting] = useState(false)
+  const bench = useBench()
+  const writing = bench.running('writing', id)
+  // Pulled out because it is stable, where the bench itself changes
+  // identity whenever any job does. In the read effect's dependencies
+  // the whole bench would re-read the lesson every time a notice in the
+  // corner so much as ticked over.
+  const { start: setGoing } = bench
   // Asking for the lesson again, and the press that confirms it. Two
   // presses because it cannot be undone: the body it replaces is not
   // kept anywhere.
@@ -96,6 +103,15 @@ export default function LessonPage({
   // on the page, or the restore lands on a document too short to scroll.
   useScrollMemory(`lesson:${id}`, body !== null)
 
+  // A write this sheet joined rather than started -- the topic sheet
+  // set it going -- finishes on the bench with nothing here listening.
+  // When it stops running, read the lesson again and the body is there.
+  const wasWriting = useRef(writing)
+  useEffect(() => {
+    if (wasWriting.current && !writing) setRevision(r => r + 1)
+    wasWriting.current = writing
+  }, [writing])
+
   useEffect(() => {
     let cancelled = false
 
@@ -115,18 +131,33 @@ export default function LessonPage({
       // The body is written on first open rather than at draft time:
       // most drafted lessons are never reached, and reshaping the
       // curriculum would waste anything written early.
-      setWriting(true)
-      const written = await api.lessons.writeBody(id)
+      //
+      // Through the bench, for two reasons. A minute is long enough
+      // that the reader may well go elsewhere, and held here that
+      // would orphan the request; and the topic sheet can set the same
+      // write going, so the bench is what stops opening the lesson
+      // starting a second one -- it joins the first instead, and the
+      // watcher below picks the body up when it lands.
+      const made = await setGoing(
+        { kind: 'writing', id, name: payload.lesson.title },
+        async () => {
+          const written = await api.lessons.writeBody(id)
+          if (!written.ok) throw new Error(written.error ?? 'The lesson could not be written.')
+          return { href: `/lesson/${id}`, text: written.body.body }
+        }
+      )
       if (cancelled) return
-      if (written.ok) setBody(written.body.body)
-      else setError(written.error ?? 'Could not write it.')
-      setWriting(false)
+      // 'joined' means the topic sheet set this same write going and
+      // this sheet is now waiting on it; the watcher above reads the
+      // lesson again when it lands.
+      if (made.kind === 'done') setBody(made.made.text)
+      else if (made.kind === 'failed') setError(made.reason)
     })()
 
     return () => {
       cancelled = true
     }
-  }, [id, revision])
+  }, [id, revision, setGoing])
 
   /**
    * Write the lesson again.

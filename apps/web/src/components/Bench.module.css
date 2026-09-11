@@ -1,0 +1,181 @@
+/* The potting bench: what is underway, reported from the corner of
+   every sheet.
+
+   Docked at the foot rather than the head. The head of every sheet in
+   this catalogue is its masthead — the subject's own plate, the band
+   that says where you are — and a notice sitting over that would cover
+   the one thing the reader navigated to see. The foot is where a
+   catalogue prints its standing notices. */
+.bench {
+  position: fixed;
+  right: var(--space-4);
+  /* Stands on the foot bar when there is one (Phase 3); on the sheet's
+     own edge until then. */
+  bottom: calc(var(--foot-bar, 0px) + var(--space-4));
+  z-index: 40;
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: min(24rem, calc(100vw - var(--space-4) * 2));
+  /* Bounded, because nothing here puts itself away while it carries a
+     way to what it made. Four lessons set writing is four notices, and
+     a stack that climbs off the top of the screen takes its own links
+     with it. */
+  max-height: min(70vh, 28rem);
+  overflow-y: auto;
+  /* The bench itself catches nothing: the gaps between notices are
+     still the sheet's, and a reader must not lose a paragraph to an
+     invisible box. */
+  pointer-events: none;
+}
+
+.notice {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  /* The one printed thing in the app that sits above the sheet rather
+     than on it, so it takes the only drop shadow in the catalogue —
+     a slip of paper laid on the page, not a panel. */
+  box-shadow: 3px 3px 0 rgba(36, 29, 22, 0.18);
+
+  animation: laid var(--dur-state) var(--ease-settle) both;
+}
+
+/* The state's ink runs down the near edge, so a finished job and a
+   failed one can be told apart before either is read. */
+.notice[data-state='running'] {
+  border-left: 3px solid var(--plate-mustard);
+}
+
+.notice[data-state='done'] {
+  border-left: 3px solid var(--plate-green);
+}
+
+.notice[data-state='failed'] {
+  border-left: 3px solid var(--plate-terracotta);
+}
+
+@keyframes laid {
+  from {
+    opacity: 0;
+    transform: translateY(calc(6px * var(--motion-travel)));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  flex: 1;
+}
+
+.title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--step-0);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+/* A mark, not a spinner. Neither of these jobs can say how far along it
+   is, and a bar that cannot know the total lies about how much is left.
+   It breathes instead, which says working without claiming progress. */
+.mark {
+  flex: none;
+  font-size: var(--step--1);
+  line-height: 1;
+}
+
+.notice[data-state='running'] .mark {
+  color: var(--plate-mustard);
+  animation: breathe 2.4s ease-in-out infinite;
+}
+
+.notice[data-state='done'] .mark {
+  color: var(--plate-green);
+}
+
+.notice[data-state='failed'] .mark {
+  color: var(--plate-terracotta);
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.note {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+
+.way {
+  align-self: flex-start;
+  margin-top: var(--space-1);
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--plate-mustard);
+  padding: 2px 0;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-bottom-color var(--dur-feedback) var(--ease-settle);
+}
+
+.way:hover {
+  border-bottom-color: var(--ink);
+}
+
+.put {
+  flex: none;
+  font-family: var(--font-text);
+  font-size: var(--step-0);
+  line-height: 1;
+  color: var(--ink-faint);
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  cursor: pointer;
+  transition: color var(--dur-feedback) var(--ease-settle);
+}
+
+.put:hover {
+  color: var(--ink);
+}
+
+@media (max-width: 40rem) {
+  /* Full width at the foot on a phone, where a floating card with a
+     margin either side wastes the only dimension there is. */
+  .bench {
+    left: var(--space-2);
+    right: var(--space-2);
+    bottom: calc(var(--foot-bar, 0px) + var(--space-2));
+    width: auto;
+  }
+}

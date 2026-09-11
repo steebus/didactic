@@ -1,12 +1,11 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { didactic } from '@didactic/api'
 import { lessonStandings, LESSON_LABEL, LESSON_NOTE } from '@didactic/core/lessonState'
 import type { LessonRow } from '@didactic/core/shapes'
-import { useLabour, WRITINGS } from '@/components/useLabour'
+import { useBench } from '@/components/Bench'
 import styles from './page.module.css'
 
 const api = didactic()
@@ -43,45 +42,41 @@ export function LessonList({
    *  route nobody has agreed to yet. */
   draft: boolean
 }) {
-  const router = useRouter()
-  // The lesson being written, and the one the reader is being asked to
-  // confirm. Writing is a minute of somebody else's compute and cannot
-  // be taken back, so it is asked for twice -- the same two presses the
-  // lesson sheet asks for before it rewrites a body.
-  const [writing, setWriting] = useState<string | null>(null)
+  // The one the reader is being asked to confirm. Writing is a minute
+  // of somebody else's compute and cannot be taken back, so it is asked
+  // for twice -- the same two presses the lesson sheet asks for before
+  // it rewrites a body.
   const [confirming, setConfirming] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [note, setNote] = useState<string | null>(null)
-  const labour = useLabour(writing !== null, WRITINGS)
-  const [, startTransition] = useTransition()
+  const bench = useBench()
 
   const standings = lessonStandings(lessons)
 
   /**
    * Write a lesson from here.
    *
-   * The body is written by the route and stored on the row, so nothing
-   * about this needs the reader's attention once it has started: the
-   * sheet is re-read when it lands and the lesson's stamp moves from
-   * "Not written" to "Ready". What it does need is for the tab to stay
-   * open -- the body is saved in one piece at the end, so a request cut
-   * off half way saves nothing and the lesson is simply still
-   * unwritten.
+   * Handed to the bench rather than held here. The body is written by
+   * the route and stored on the row, so nothing about this needs the
+   * reader's attention once it has started -- and the whole point of
+   * offering it from the topic sheet is that they can then go and read
+   * something else. Held here, walking off would unmount this component
+   * and the answer would arrive to nobody; on the bench it outlives the
+   * sheet, says so from the corner, and offers the way into the lesson
+   * when it lands.
+   *
+   * What it still needs is for the tab to stay open: the body is saved
+   * in one piece at the end, so a reload part way through saves nothing
+   * and the lesson is simply still unwritten.
    */
-  async function write(lesson: LessonRow) {
-    setWriting(lesson.id)
+  function write(lesson: LessonRow) {
     setConfirming(null)
-    setError(null)
-    setNote(null)
-
-    const { ok, error: failed } = await api.lessons.writeBody(lesson.id)
-    if (ok) {
-      setNote(`“${lesson.title}” is written and ready to open.`)
-      startTransition(() => router.refresh())
-    } else {
-      setError(failed ?? `Could not write “${lesson.title}”.`)
-    }
-    setWriting(null)
+    void bench.start(
+      { kind: 'writing', id: lesson.id, name: lesson.title },
+      async () => {
+        const { ok, error: failed } = await api.lessons.writeBody(lesson.id)
+        if (!ok) throw new Error(failed ?? 'The lesson could not be written.')
+        return { href: `/lesson/${lesson.id}` }
+      }
+    )
   }
 
   return (
@@ -89,7 +84,9 @@ export function LessonList({
       <ol className={styles.lessons}>
         {lessons.map((lesson, i) => {
           const { state, next } = standings[i]
-          const busy = writing === lesson.id
+          // The bench is the one place that knows, so a reload of
+          // this sheet mid-write still shows the lesson as underway.
+          const busy = bench.running('writing', lesson.id)
           const asking = confirming === lesson.id
 
           return (
@@ -154,7 +151,7 @@ export function LessonList({
                           type="button"
                           className={styles.lessonWrite}
                           onClick={() => write(lesson)}
-                          disabled={writing !== null}
+                          disabled={busy}
                         >
                           Yes, write it
                         </button>
@@ -172,9 +169,12 @@ export function LessonList({
                       type="button"
                       className={styles.lessonWrite}
                       onClick={() => setConfirming(lesson.id)}
-                      disabled={writing !== null}
+                      disabled={busy}
                     >
-                      {busy ? labour : 'Write this lesson'}
+                      {/* Underway is reported on the bench, in the
+                          corner, so the row says only that it is in
+                          hand rather than repeating the whole wait. */}
+                      {busy ? 'Being written…' : 'Write this lesson'}
                     </button>
                   )}
                 </div>
@@ -183,9 +183,6 @@ export function LessonList({
           )
         })}
       </ol>
-
-      {note && <p className={styles.lessonNote}>{note}</p>}
-      {error && <p className={styles.lessonProblem}>{error}</p>}
 
       <p className={styles.routeLink}>
         <Link href={`/curriculum/${routeId}`} className={styles.inlineLink}>
