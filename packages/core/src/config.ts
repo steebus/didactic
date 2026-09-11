@@ -78,7 +78,18 @@ export const config = {
   // map. At 0.01 it takes fifty of them to reach one read, and fifty
   // marked passages is a real amount of attention rather than a way
   // round the figure.
-  DEPTH_WEIGHTS: { marked: 0.01, skim: 0.2, read: 0.5, applied: 1.0 },
+  //
+  // A question answered correctly the first time is the next lightest.
+  // It is worth more than a marked passage -- marking is evidence you
+  // were there, answering is evidence you followed -- and much less
+  // than a skim: a lesson with four questions in it, all answered
+  // right, comes to one fifth of reading the lesson, which is about
+  // what four right answers are worth against actually reading it.
+  //
+  // Only the first answer to a question is ever recorded (027), and a
+  // wrong one scores nothing, so this cannot be farmed by re-answering
+  // and cannot be lost by guessing.
+  DEPTH_WEIGHTS: { marked: 0.01, answered: 0.05, skim: 0.2, read: 0.5, applied: 1.0 },
 
   // You cannot read your way to expert.
   CONSUMPTION_CEILING: 3.5,

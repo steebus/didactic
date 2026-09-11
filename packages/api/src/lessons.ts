@@ -45,6 +45,13 @@ export interface LessonDetail {
    * exactly as before.
    */
   neighbours: LessonNeighbours
+  /**
+   * Which of this lesson's questions the reader has already answered,
+   * by `questionKey`, and whether they got each right. Only the first
+   * answer to a question counts, so a block needs this to know whether
+   * it may still offer a boost.
+   */
+  answered: Record<string, boolean>
   /** Derived, so the sheet never has to trust a stored flag. */
   available: boolean
 }
@@ -69,6 +76,23 @@ export interface Written {
   cached: boolean
 }
 
+/**
+ * What answering a question inside a lesson was worth.
+ *
+ * `counted` is false where the question had already been answered --
+ * the first answer is the only one that moves anything, so the page can
+ * say "you have already answered this" rather than implying a boost it
+ * did not earn. A wrong first answer counts (the question is closed)
+ * but writes no exposure.
+ */
+export interface Answered {
+  counted: boolean
+  exposureWritten: boolean
+  topicTitle: string | null
+  abilityBefore: number | null
+  abilityAfter: number | null
+}
+
 export const lessons = (api: Api) => ({
   get: (id: string) => api.get<LessonDetail>(`/api/lessons/${id}`),
 
@@ -80,4 +104,12 @@ export const lessons = (api: Api) => ({
   /** Write the body, or write it again. */
   writeBody: (id: string, regenerate = false) =>
     api.post<Written>(`/api/lessons/${id}/body`, { regenerate }),
+
+  /**
+   * Answer one of the lesson's questions. `key` is `questionKey` of the
+   * question's own text, so it survives everything but a rewrite of
+   * the question itself.
+   */
+  answer: (id: string, key: string, correct: boolean) =>
+    api.post<Answered>(`/api/lessons/${id}/answers`, { key, correct }),
 })

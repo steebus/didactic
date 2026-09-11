@@ -231,6 +231,27 @@
   text-underline-offset: 2px;
 }
 
+/* What the answer was worth, said out loud under the question.
+   Scoring a question without saying so is the version of this that was
+   worth avoiding, so the sentence is not optional and not quiet -- it
+   is the same agate the rest of the sheet uses for a figure that has
+   moved. */
+.scored {
+  font-size: var(--step--2);
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  margin: var(--space-2) 0 0;
+  font-style: italic;
+}
+
+/* The one case where something was actually entered takes the ledger's
+   own ink, so a boost reads as a boost and the other three readings --
+   already answered, wrong, no topic to move -- stay quiet. */
+.scored[data-paid] {
+  color: var(--plate-green);
+  font-style: normal;
+}
+
 /* --- Compare ---------------------------------------------------- */
 
 /* The wrapper is what scrolls, so it must be allowed to be narrower
@@ -483,4 +504,182 @@
   text-decoration: underline;
   text-decoration-color: var(--plate-mustard);
   text-underline-offset: 0.15em;
+}
+
+/* --- Blank ------------------------------------------------------ */
+
+/* The sentence with its load-bearing words taken out. It reads as
+   prose, because it is prose -- the gaps are set into the line rather
+   than lifted out of it, or the reader is filling in a form rather
+   than finishing a sentence. */
+.blankSentence {
+  font-size: var(--step-0);
+  line-height: 2.1;
+  margin: var(--space-3) 0 0;
+}
+
+/* A ruled gap, the way a printed exercise rules one: a line under the
+   space and nothing around it. A boxed input here would read as a
+   search field set into a paragraph. */
+.blankGap {
+  font: inherit;
+  font-family: var(--font-display);
+  color: var(--ink);
+  background: none;
+  border: none;
+  border-bottom: 1.5px solid var(--rule-strong);
+  padding: 0 0.25em;
+  margin: 0 0.15em;
+  text-align: center;
+  max-width: 100%;
+}
+
+.blankGap:focus-visible {
+  outline: none;
+  border-bottom-color: var(--plate-mustard);
+  border-bottom-width: 2.5px;
+  background: var(--paper);
+}
+
+.blankGap[data-state='right'] {
+  color: var(--plate-green);
+  border-bottom-color: var(--plate-green);
+}
+
+.blankGap[data-state='wrong'] {
+  color: var(--plate-terracotta);
+  border-bottom-color: var(--plate-terracotta);
+  /* Struck through rather than only recoloured, so the wrong answer
+     reads as wrong without colour being the carrier. */
+  text-decoration: line-through;
+}
+
+.blankAnswers {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+}
+
+.blankAnswer {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.blankMark {
+  font-size: var(--step--1);
+  flex: none;
+}
+
+.blankWord {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--step-0);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1;
+}
+
+/* The why under a printed answer is already indented by the mark, so
+   it does not take the check block's own indent as well. */
+.blankAnswer .checkWhy {
+  margin-left: 0;
+}
+
+/* --- Sort ------------------------------------------------------- */
+
+.sortItems {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+}
+
+.sortItem {
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--rule);
+}
+
+.sortItem:first-child {
+  border-top: none;
+}
+
+.sortText {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--step-0);
+  line-height: 1.4;
+}
+
+.sortText[data-state='right'] {
+  color: var(--plate-green);
+}
+
+.sortText[data-state='wrong'] {
+  color: var(--plate-terracotta);
+}
+
+.sortMark {
+  font-size: var(--step--1);
+  flex: none;
+}
+
+/* The buckets, as a row of stamps under the thing being sorted. They
+   wrap rather than scroll: a group name is words, and on a phone two
+   of them do not fit on one line beside each other. */
+.sortGroups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.sortGroup {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid var(--rule);
+  padding: 0.3em 0.7em;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-feedback) var(--ease-settle),
+    border-color var(--dur-feedback) var(--ease-settle),
+    color var(--dur-feedback) var(--ease-settle);
+}
+
+.sortGroup:hover:not(:disabled) {
+  border-color: var(--rule-strong);
+  color: var(--ink);
+}
+
+/* What the reader chose: filled, the way a chosen thing is filled
+   everywhere else on the sheet. */
+.sortGroup[data-chosen] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+/* Where it actually belonged, marked once the answer is in. Outlined
+   in the ledger's green rather than filled, so it can be told apart
+   from the reader's own choice even when they are the same button. */
+.sortGroup[data-answer] {
+  border-color: var(--plate-green);
+  border-width: 2px;
+  padding: calc(0.3em - 1px) calc(0.7em - 1px);
+}
+
+.sortGroup[data-chosen][data-answer] {
+  background: var(--plate-green);
+  color: var(--paper);
+}
+
+.sortGroup:disabled {
+  cursor: default;
+}
+
+.sortWaiting {
+  color: var(--ink-faint);
 }

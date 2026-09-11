@@ -2,6 +2,8 @@
 
 import { Chart, type ChartData } from './Chart'
 import { Check, type CheckData } from './Check'
+import { Blank, type BlankData } from './Blank'
+import { Sort, type SortData } from './Sort'
 import { Compare, type CompareData } from './Compare'
 import { Steps, type StepsData } from './Steps'
 import { Flow, type FlowData } from './Flow'
@@ -25,6 +27,10 @@ export function Block({ name, data }: { name: string; data: unknown }) {
       return <Chart data={data as ChartData} />
     case 'check':
       return <Check data={data as CheckData} />
+    case 'blank':
+      return <Blank data={data as BlankData} />
+    case 'sort':
+      return <Sort data={data as SortData} />
     case 'compare':
       return <Compare data={data as CompareData} />
     case 'steps':

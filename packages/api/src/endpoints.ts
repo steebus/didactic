@@ -87,6 +87,7 @@ export const ENDPOINTS = {
   'lessons.patch': { name: 'lessons.patch', method: 'PATCH', path: '/api/lessons/[id]', invalidates: CURATION },
   'lessons.remove': { name: 'lessons.remove', method: 'DELETE', path: '/api/lessons/[id]', invalidates: CURATION },
   'lessons.writeBody': { name: 'lessons.writeBody', method: 'POST', path: '/api/lessons/[id]/body', invalidates: [tags.topics] },
+  'lessons.answer': { name: 'lessons.answer', method: 'POST', path: '/api/lessons/[id]/answers', invalidates: [tags.topics, tags.subjects] },
 
   'refresher.write': { name: 'refresher.write', method: 'POST', path: '/api/refresher/[topicId]', invalidates: [tags.topics, tags.subjects] },
 

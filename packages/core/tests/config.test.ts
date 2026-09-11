@@ -13,6 +13,7 @@ describe('config', () => {
   it('weights depth so applied counts five times a skim', () => {
     expect(config.DEPTH_WEIGHTS).toEqual({
       marked: 0.01,
+      answered: 0.05,
       skim: 0.2,
       read: 0.5,
       applied: 1.0,
@@ -24,6 +25,16 @@ describe('config', () => {
     // this ever creeps up to a skim, highlighting becomes the cheapest
     // way to move a figure.
     expect(config.DEPTH_WEIGHTS.marked).toBeLessThan(config.DEPTH_WEIGHTS.skim / 10)
+  })
+
+  it('keeps answering a question between marking and skimming', () => {
+    // Answering is evidence you followed the argument, which is worth
+    // more than evidence you were in the room. It is still not reading:
+    // a lesson's worth of right answers must stay well under the lesson.
+    expect(config.DEPTH_WEIGHTS.answered).toBeGreaterThan(config.DEPTH_WEIGHTS.marked)
+    expect(config.DEPTH_WEIGHTS.answered).toBeLessThan(config.DEPTH_WEIGHTS.skim)
+    // Four right answers -- a well-furnished lesson -- against reading it.
+    expect(config.DEPTH_WEIGHTS.answered * 4).toBeLessThan(config.DEPTH_WEIGHTS.read)
   })
 
   it('caps consumption-only ability below expert', () => {

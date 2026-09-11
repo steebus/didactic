@@ -68,6 +68,35 @@ export const BLOCKS: BlockSpec[] = [
 }`,
   },
   {
+    name: 'blank',
+    when:
+      'a term has just been defined and it is worth finding out whether it landed as a word or only as a sentence that made sense at the time. Recall, where `check` is recognition -- so use it for the vocabulary a reader will need later, not for ideas. One sentence, one or two gaps; a paragraph with six holes in it is a test, not a question',
+    example: `{
+  "question": "Fill in what the browser is waiting for.",
+  "text": "A browser cannot paint until it has built both the DOM and the {{1}}, which is why a stylesheet in the {{2}} holds up the first paint.",
+  "blanks": [
+    { "accept": ["CSSOM", "CSS object model"], "why": "The stylesheet is parsed into its own tree, and layout needs both." },
+    { "accept": ["head"], "why": "It is discovered before any of the body, and nothing paints until it has been fetched and parsed." }
+  ]
+}`,
+  },
+  {
+    name: 'sort',
+    when:
+      'a rule has several instances under it and the rule is the lesson -- which of these block, which of these are safe, which belong to each side. The question `check` cannot ask, because a multiple choice asks about one thing at a time. Two or three groups, four to six items',
+    example: `{
+  "question": "Which of these hold up the first paint?",
+  "groups": ["Holds up the paint", "Does not"],
+  "items": [
+    { "text": "A stylesheet in the head", "group": "Holds up the paint", "why": "Render-blocking by default: layout cannot start without it." },
+    { "text": "A script with defer", "group": "Does not", "why": "It runs after the document is parsed, so it is out of the way." },
+    { "text": "A synchronous script in the head", "group": "Holds up the paint", "why": "Parsing stops dead until it has been fetched and run." },
+    { "text": "An image below the fold", "group": "Does not", "why": "Images never block the first paint; they arrive into space already laid out." },
+    { "text": "A web font with block as its display", "group": "Holds up the paint", "why": "The text it styles is not painted until the font arrives or the block period ends." }
+  ]
+}`,
+  },
+  {
     name: 'compare',
     when:
       'two or three things are routinely confused with each other and the difference is the lesson -- shows them side by side on the same rows',

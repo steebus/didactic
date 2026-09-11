@@ -7,6 +7,7 @@ import { ownerId } from '@/lib/auth'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
 import { lessonNeighbours } from '@didactic/core/lessonState'
+import { answeredIn } from '@/lib/answers'
 
 /**
  * Drop what this route just changed.
@@ -26,6 +27,7 @@ const STAGES: LessonStage[] = ['introductory', 'core', 'advanced']
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const db = supabaseAdmin()
+  const userId = await ownerId()
 
   const { data: lesson } = await db.from('lessons').select('*').eq('id', id).single()
   if (!lesson) return NextResponse.json({ error: 'not found' }, { status: 404 })
@@ -78,6 +80,10 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     // rather than stored, so reshaping the route reorders these with
     // it.
     neighbours: lessonNeighbours(route ?? [], id),
+    // Which of this lesson's questions have been answered before.
+    // Without it a question answered yesterday reads as fresh today and
+    // the reader is promised a boost that has already been paid.
+    answered: userId ? await answeredIn(db, userId, id) : {},
     // Availability is derived, so the page never has to trust a stored flag.
     available: (required ?? []).every(r => r.completed_at !== null),
   })

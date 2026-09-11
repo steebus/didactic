@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Prose } from '@/components/Prose'
 import { Highlighter } from '@/components/Highlighter'
 import { Contents } from '@/components/Contents'
+import { Answering } from '@/components/blocks/answering'
 import { didactic } from '@didactic/api'
 import type { ExposureDepth, Highlight as Mark } from '@didactic/core/types'
 import type { LessonLink } from '@didactic/core/lessonLinks'
@@ -44,6 +45,8 @@ interface LessonData {
   links: LessonLink[]
   /** The lessons either side of this one in its route. */
   neighbours: LessonNeighbours
+  /** Questions already answered here, by key. */
+  answered: Record<string, boolean>
   available: boolean
 }
 
@@ -341,7 +344,13 @@ export default function LessonPage({
                 existing={highlights}
                 onChanged={() => setRevision(r => r + 1)}
               >
-                <Prose markdown={body} lessons={data.links} />
+                {/* Lets the question blocks inside the prose count for
+                    something. A refresher renders the same components
+                    with no provider around them, where the questions
+                    still ask and explain and simply do not score. */}
+                <Answering lessonId={id} answered={data.answered ?? {}}>
+                  <Prose markdown={body} lessons={data.links} />
+                </Answering>
               </Highlighter>
 
               {/* Quiet, and at the end of the reading rather than the
