@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { resolveConcept, cosineSimilarity, neighboursFor } from '@/lib/resolver'
+import { resolveConcept, neighboursFor } from '@/lib/resolver'
 import cases from './fixtures/resolver-cases.json'
 import { config } from '@didactic/core/config'
 
@@ -12,22 +12,6 @@ function vectorsWithSimilarity(target: number): [number[], number[]] {
   b[1] = Math.sqrt(1 - target * target)
   return [a, b]
 }
-
-describe('cosineSimilarity', () => {
-  it('returns 1 for identical vectors', () => {
-    const v = [1, 0, 0]
-    expect(cosineSimilarity(v, v)).toBeCloseTo(1)
-  })
-
-  it('returns 0 for orthogonal vectors', () => {
-    expect(cosineSimilarity([1, 0], [0, 1])).toBeCloseTo(0)
-  })
-
-  it('constructs the similarity the test helper claims', () => {
-    const [a, b] = vectorsWithSimilarity(0.85)
-    expect(cosineSimilarity(a, b)).toBeCloseTo(0.85)
-  })
-})
 
 describe('resolveConcept fixture suite', () => {
   for (const c of cases) {

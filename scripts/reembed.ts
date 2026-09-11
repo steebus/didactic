@@ -1,4 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
+// `embed` stays in the app: it reads the environment and calls the
+// edge function over HTTP, neither of which belongs in a package the
+// phone reads.
 import { embed } from '../apps/web/src/lib/embedding'
 
 /**

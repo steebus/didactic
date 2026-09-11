@@ -1,6 +1,6 @@
 import { cacheTag } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { cosineSimilarity } from './resolver'
+import { cosineSimilarity } from '@didactic/core/similarity'
 import { config } from '@didactic/core/config'
 import { tags } from '@didactic/core/tags'
 import { supabaseAdmin } from './supabase'

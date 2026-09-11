@@ -1,21 +1,11 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { config } from '@didactic/core/config'
+import { cosineSimilarity } from '@didactic/core/similarity'
 
 export type Resolution =
   | { action: 'link'; topicId: string; similarity: number }
   | { action: 'pending'; title: string; similarity: number; nearestId: string }
   | { action: 'create'; title: string }
-
-export function cosineSimilarity(a: number[], b: number[]): number {
-  let dot = 0, magA = 0, magB = 0
-  for (let i = 0; i < a.length; i++) {
-    dot += a[i] * b[i]
-    magA += a[i] * a[i]
-    magB += b[i] * b[i]
-  }
-  const denom = Math.sqrt(magA) * Math.sqrt(magB)
-  return denom === 0 ? 0 : dot / denom
-}
 
 export function resolveConcept(
   concept: string,

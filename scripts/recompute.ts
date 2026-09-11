@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
-import { computeAbility } from '../apps/web/src/lib/scoring'
-import type { Exposure } from '../apps/web/src/lib/types'
+import { computeAbility } from '@didactic/core/scoring'
+import type { Exposure } from '@didactic/core/types'
 
 /**
  * Fold the exposure log back into the cached ability figures. The

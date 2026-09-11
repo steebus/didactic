@@ -229,7 +229,7 @@ didactic/
     core/                      @didactic/core: types, maths, labels, geometry, markdown parsing
     tokens/                    @didactic/tokens: colours, scale, space, motion, as TS + a CSS agreement test
     api/                       @didactic/api: typed client for every route, with the tag each one invalidates
-    CLAUDE.md                  (draft: docs/monorepo/agents/packages.CLAUDE.md)
+    CLAUDE.md
 ```
 
 Package names are `@didactic/core`, `@didactic/tokens`, `@didactic/api`.
@@ -308,8 +308,8 @@ deploy from `main` is green before starting Phase 2.
   *Also clears the debt from 2.2 and 2.6:* twenty-one re-exports stand at old `@/lib/…` paths so no call site had to move when the code did. **Eleven are pure shims** whose whole body is one `export * from '@didactic/core/…'` — `blocks`, `books`, `config`, `http`, `markAnchor`, `marks`, `outline`, `progress`, `sections`, `tags`, `types` — and those files are deleted once their importers point at the package. **Three are split modules** that keep their own writing half beside a re-export of the pure half: `scoring` (60 lines), `curriculum` (66) and `subject` (230); these keep their files and lose only the `export *` line. **Seven re-export response shapes** added by 2.6 — `highlights`, `home`, `library`, `pending`, `sowing`, `subject`, `topic` — and those keep both the import and the file, because each module names its own shape in its own signatures; only the `export type { … }` line goes. Until this pass, `@/lib/x` and `@didactic/core/x` are both live and both correct.
 
   **Gate:** `npx turbo run lint typecheck test` green, `npx turbo run build --filter=@didactic/web` green, and a click through every sheet — the tests do not cover a component's fetch, which is the whole reason this is a click-through rather than a diff review.
-- [ ] **2.8 Scripts and edge functions.** `scripts/*.ts` import from `@didactic/core`. Leave `supabase/functions` on their own copies of any maths for now and record the duplication in `PARITY.md` under *Backend*; a Deno import map pointing at `packages/core/src` is a follow-up, not a blocker.
-- [ ] **2.9 Agent files.** `docs/monorepo/agents/packages.CLAUDE.md` to `packages/CLAUDE.md`.
+- [x] **2.8 Scripts and edge functions.** `scripts/*.ts` import from `@didactic/core`. Leave `supabase/functions` on their own copies of any maths for now and record the duplication in `PARITY.md` under *Backend*; a Deno import map pointing at `packages/core/src` is a follow-up, not a blocker.
+- [x] **2.9 Agent files.** `docs/monorepo/agents/packages.CLAUDE.md` to `packages/CLAUDE.md`.
 
 **Gate:** every test that moved passes in its new home; `turbo run test`
 runs `core`, `tokens`, `api` and `web`; `curl -H "Authorization: Bearer …"
@@ -410,11 +410,11 @@ deliberately not in CI — Vercel builds every push through its GitHub
 connection, so a CI build would be a second build of the same commit
 needing the service role key in Actions to report what Vercel reports.
 
-**Phase 2 is nearly done, on the `refactor` branch**, pushed and not
-merged: 2.1 through 2.7 are complete, 2.8 and 2.9 are open. 417 tests
-pass — 226 in the web, 127 in core, 13 in `api` and 51 in tokens.
-`git log main..refactor` is the commit list; each task is its own commit
-and reverts on its own.
+**Phase 2's tasks are all done, on the `refactor` branch**, pushed and
+not merged: 2.1 through 2.9 are complete and what remains is the exit
+gate below, which is checked against a deployment rather than a
+worktree. `git log main..refactor` is the commit list; each task is its
+own commit and reverts on its own.
 
 2.4 as built: `getOwner()` reads `Authorization: Bearer <jwt>` before it
 reads cookies and verifies it on the anon client, so a bad token is never
@@ -483,8 +483,30 @@ re-export lines dropped. Two things the plan did not anticipate:
   needed an `await act` because the client asks for its headers before
   it calls `fetch`, putting the call a microtask behind the press.
 
-**Next: 2.8** (scripts import from `core`) and 2.9 (the agent file
-moves), both small.
+2.8 as built, and it could not be the whole instruction. `recompute.ts`
+reads `@didactic/core/scoring` and `/types`, and `tune-thresholds.ts`
+reads `cosineSimilarity` from a new `core/similarity.ts` — ten lines of
+arithmetic that were sitting in `apps/web/src/lib/resolver.ts`, which
+the phone will want and which is now tested in the package that owns
+it. What stays app-relative is `embed`: it reads `process.env` and calls
+the edge function over HTTP, so core would have to take a platform
+global to hold it. Both scripts that use it say so at the import.
+
+The *Backend* row about the edge functions duplicating scoring maths was
+wrong and now says so: neither function holds any. `embed` runs
+gte-small and answers a vector; `ingest` claims a queue message and
+calls `/api/internal/ingest`, where the maths already is. The Deno
+import map is not a follow-up anybody needs yet.
+
+**Next: Phase 2's exit gate**, which is not a code change. A bearer
+`curl` against `/api/home` on a deploy returns the stock list and the
+same URL without the header returns 401; a `select` on `topics` with the
+anon key and no session returns nothing; the web deploy is green and
+reads identically. Note that `apps/web/.env` points at the **remote**
+Supabase project while the local docker stack holds different seed data,
+so the anon-key check has to name which one it is testing. Then Phase 3,
+which is a visible design change on the web and wants showing before it
+is live.
 
 **Before starting anything, three things about this machine.** The local
 Supabase stack is what 2.5 must be verified against and what the

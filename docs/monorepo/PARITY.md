@@ -7,7 +7,7 @@ in the same commit as the code that changes it.
 **Mobile runtime:** not yet scaffolded. When Phase 4 lands, record the Expo
 SDK and React Native versions here.
 
-**Shared packages, as at 2026-09-11:** `@didactic/core` (19 modules) and
+**Shared packages, as at 2026-09-11:** `@didactic/core` (20 modules) and
 `@didactic/tokens` exist and are read by `apps/web`. The *Shared via*
 column below names where a row's logic will live; for rows whose module
 has shipped, it now names something real rather than something planned.
@@ -96,7 +96,7 @@ or `—` when a row is rendering only.
 | Realtime publication for `resources` and `topics` | built | For the phone's tally and inbox. A publication is not a grant: RLS still decides what a subscriber sees. |
 | Read endpoints for server-rendered sheets | built | `/api/home`, `/api/library`, `/api/inbox`, `/api/graph`, `…/area`, `…/sowing`. |
 | Typed API client (`@didactic/api`) | built | One function per route, `Result<T>` from `readJson`, never throws on an HTTP error. `ENDPOINTS` names the tags each write drops, read by the server cache and the phone's query cache both. |
-| Scoring maths in the Deno edge functions | duplicated | Edge functions keep their own copies until a Deno import map points at `packages/core/src`. Record any divergence here. |
+| Scoring maths in the Deno edge functions | none duplicated | Checked at 2.8: neither function holds any. `embed` runs gte-small and answers a vector; `ingest` claims a queue message and calls `/api/internal/ingest`, where the maths already lives. A Deno import map at `packages/core/src` is only needed if one ever computes a figure of its own. |
 
 ## How to change this file
 
