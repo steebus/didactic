@@ -1,4 +1,4 @@
-import { cacheTag } from 'next/cache'
+import { cacheLife, cacheTag } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { tags } from '@didactic/core/tags'
 import type { HighlightRow } from '@didactic/core/shapes'
@@ -21,6 +21,9 @@ export async function getTopicArea(topicId: string): Promise<TopicArea | null> {
   // Everything below is built from this one topic, so one tag drops
   // the whole sheet. The routes that write to it name the same tag.
   cacheTag(tags.topic(topicId), tags.topics)
+  // Held until a write drops one of the tags above. See the `held`
+  // profile in next.config.ts for why nothing here expires on time.
+  cacheLife('held')
   // The client is built in here rather than passed in: an argument
   // crossing a `use cache` boundary is serialised, and a Supabase
   // client does not survive that.

@@ -1,4 +1,4 @@
-import { cacheTag } from 'next/cache'
+import { cacheLife, cacheTag } from 'next/cache'
 import { computeFreshness } from '@didactic/core/scoring'
 import { markLabel, MARKS_ON_THE_BED } from '@didactic/core/graphMarks'
 import { tags } from '@didactic/core/tags'
@@ -18,6 +18,9 @@ import { supabaseAdmin } from './supabase'
 export async function getPlanting() {
   'use cache'
   cacheTag(tags.topics, tags.subjects, tags.resources)
+  // Held until a write drops one of the tags above. See the `held`
+  // profile in next.config.ts for why nothing here expires on time.
+  cacheLife('held')
   // The client is built in here rather than passed in: an argument
   // crossing a `use cache` boundary is serialised, and a Supabase
   // client does not survive that.

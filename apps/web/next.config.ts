@@ -11,6 +11,37 @@ const nextConfig: NextConfig = {
   // by default; what is cached is stated per function, tagged, and
   // dropped by the route that changed it.
   cacheComponents: true,
+  cacheLife: {
+    // The structure of the catalogue, held until something says
+    // otherwise.
+    //
+    // Everything cached in this app is derived from one user's own
+    // writes, and every route that writes drops the tags it touched --
+    // `tests/cache-invalidation.test.ts` fails the build if one does
+    // not. So a timer re-reading the database is not a correctness
+    // measure here, it is only a cost: the `default` profile threw the
+    // map away every fifteen minutes and re-read three continents'
+    // worth of round trips to rebuild, byte for byte, what it already
+    // had. A sown subject's topics and a written lesson's prose
+    // essentially never change on their own.
+    //
+    // So: no expiry on time. `revalidate` is a year rather than a
+    // literal infinity because the option takes a number, and `expire`
+    // is inherited from `default`, which is never. What drops a sheet
+    // is `revalidateTag`, and nothing else.
+    //
+    // `stale` is the one figure deliberately left short. It governs the
+    // browser's own router cache, which no tag can reach: only a
+    // `router.refresh()` clears it, which every write on the web does.
+    // A second client -- the phone, another tab -- cannot, so this is
+    // the window in which those could show a figure this browser has
+    // already moved on from. Five minutes is the framework default and
+    // is the whole exposure.
+    held: {
+      stale: 300,
+      revalidate: 60 * 60 * 24 * 365,
+    },
+  },
   // One reusable shell per route, prefetched, rather than one prefetch
   // per link in the viewport. Navigating between a topic and the bed it
   // sits in is the same two routes over and over, so the shells are

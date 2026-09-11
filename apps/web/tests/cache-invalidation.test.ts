@@ -54,3 +54,37 @@ describe('cache invalidation', () => {
     expect(calls).toBeGreaterThan(1)
   })
 })
+
+/**
+ * Every cached reader says how long it is held for.
+ *
+ * Nothing in this app expires on time any more: the readers run on the
+ * `held` profile, which revalidates in a year and never expires, and a
+ * tag dropped by a write is the only thing that re-reads the database.
+ * That is only safe while it is deliberate. A reader that forgets
+ * `cacheLife` silently gets the framework's `default` instead -- fifteen
+ * minutes -- which does not break anything, and so would never be
+ * noticed: the sheet would simply be slower than the one beside it for
+ * reasons nobody could see. This is the check that says so out loud.
+ */
+describe('cached readers state their lifetime', () => {
+  const lib = join(import.meta.dirname, '..', 'src', 'lib')
+  const readers = readdirSync(lib)
+    .filter(f => f.endsWith('.ts'))
+    .map(f => join(lib, f))
+    .filter(p => readFileSync(p, 'utf8').includes("'use cache'"))
+
+  it('finds the cached readers', () => {
+    expect(readers.length).toBeGreaterThan(3)
+  })
+
+  it.each(readers.map(p => [p.split('lib')[1].replace(/\\/g, '/'), p] as const))(
+    '%s holds until invalidated',
+    (_name, path) => {
+      const source = readFileSync(path, 'utf8')
+      // Tagged, or there is nothing a write could drop.
+      expect(source).toContain('cacheTag(')
+      expect(source).toContain("cacheLife('held')")
+    }
+  )
+})

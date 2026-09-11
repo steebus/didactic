@@ -1,4 +1,4 @@
-import { cacheTag } from 'next/cache'
+import { cacheLife, cacheTag } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { computeFreshness, subjectAggregate } from '@didactic/core/scoring'
 import { viewLessons } from '@didactic/core/curriculum'
@@ -77,6 +77,9 @@ export async function getHomeData(): Promise<HomeData> {
   // Read at a glance, so it is dropped by any write that could move a
   // figure on it.
   cacheTag(tags.subjects, tags.topics, tags.resources)
+  // Held until a write drops one of the tags above. See the `held`
+  // profile in next.config.ts for why nothing here expires on time.
+  cacheLife('held')
   // The client is built in here rather than passed in: an argument
   // crossing a `use cache` boundary is serialised, and a Supabase
   // client does not survive that -- it arrives as a dead reference

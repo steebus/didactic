@@ -1,4 +1,4 @@
-import { cacheTag } from 'next/cache'
+import { cacheLife, cacheTag } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { cosineSimilarity } from '@didactic/core/similarity'
 import { config } from '@didactic/core/config'
@@ -21,6 +21,9 @@ import type { PendingTopic } from '@didactic/core/shapes'
 export async function getPendingTopics(): Promise<PendingTopic[]> {
   'use cache'
   cacheTag(tags.pending, tags.topics)
+  // Held until a write drops one of the tags above. See the `held`
+  // profile in next.config.ts for why nothing here expires on time.
+  cacheLife('held')
   // The client is built in here rather than passed in: an argument
   // crossing a `use cache` boundary is serialised, and a Supabase
   // client does not survive that -- it arrives as a dead reference and
