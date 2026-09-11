@@ -62,7 +62,9 @@ or `—` when a row is rendering only.
 | Write a lesson body; write it again | built | planned (5) | `api/lessons.writeBody` | |
 | Complete a lesson at a depth | built | planned (5) | `api/lessons.patch` | |
 | Lesson blocks: chart, check, compare, steps, flow, picture | built (SVG + DOM) | planned (5) | `reader` | The same components inside the reader; every plot ships its figures on both. |
-| Contents band | built | planned (5) | `reader`, `core/sections` | One column on the phone. |
+| Contents band | built | planned (5) | `reader`, `core/sections` | One column on the phone. Travelling to a section writes the hash without a navigation; see `lib/hash.ts`. |
+| Lesson links out to other lessons | built | planned (5) | `reader`, `core/lessonLinks` | Named `lesson:<slug>` in the body, resolved when it is read against the topic and the topics its subjects hold. |
+| A named lesson that does not exist prints as a stub | built | planned (5) | `core/lessonLinks` | Faint ink and a dotted rule, no href, `title` saying so. Colour is not the carrier. |
 | Marks: draw kept passages onto the prose | built (DOM walk) | planned (5) | `reader/paintMarks` | The same walker, in the WebView. |
 | Marks: select any range and keep it, across elements | built | planned (5) | `reader/Highlighter` | Full parity through the reader (D9). The per-paragraph native fallback would be `partial` and is not the plan. |
 | Marks: a note on the lesson with no passage | built | planned (5) | — | *A note on this lesson* wording shared. |

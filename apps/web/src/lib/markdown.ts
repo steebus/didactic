@@ -11,8 +11,9 @@
  * allowed to be, and the much shorter list a note is allowed to be.
  */
 
-import { marked } from 'marked'
+import { Marked, type Tokens } from 'marked'
 import createDOMPurify from 'dompurify'
+import { LESSON_SCHEME, resolveLesson, type LessonLink } from './lessonLinks'
 
 /**
  * DOMPurify needs a DOM, and a client component is still rendered once
@@ -46,16 +47,69 @@ export const PROSE_TAGS = [
  */
 export const NOTE_TAGS = ['p', 'br', 'strong', 'em', 'del', 'code', 'ul', 'ol', 'li', 'a']
 
+/** What a link to a lesson that is not there says on hover. */
+export const STUB_NOTE = 'No lesson for this yet'
+
+/** An attribute value this module writes itself, made safe to print. */
+function attr(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+}
+
+/**
+ * A reader that knows what `lesson:` means.
+ *
+ * Resolving the scheme here rather than in the markdown is what keeps
+ * a name inside a code fence a name: marked has already decided what
+ * is prose and what is a specimen by the time a link token exists, so
+ * `[x](lesson:y)` in a shell example is printed, not followed. Every
+ * other kind of link falls through to marked's own renderer.
+ *
+ * A name nothing answers to is still printed, and still says what the
+ * sentence needed it to say -- it is only marked as ground not broken
+ * yet. `data-stub` carries that to the stylesheet, and the title
+ * carries it to anyone who cannot see the colour.
+ */
+function reader(lessons?: Map<string, LessonLink>) {
+  return new Marked({
+    renderer: {
+      link(token: Tokens.Link) {
+        const slug = LESSON_SCHEME.exec(token.href ?? '')?.[1]
+        if (!slug) return false
+
+        const text = this.parser.parseInline(token.tokens)
+        const found = lessons ? resolveLesson(lessons, slug) : null
+
+        return found
+          ? `<a href="${attr(found.href)}" title="${attr(found.label)}">${text}</a>`
+          : `<a data-stub title="${attr(STUB_NOTE)}">${text}</a>`
+      },
+    },
+  })
+}
+
 /**
  * Parse markdown and sanitise the result.
  *
  * Links out are opened beside what is being read rather than in place
  * of it, which is the one attribute worth adding after the fact.
+ *
+ * `lessons` is what the lesson being read can reach. Without it a
+ * `lesson:` name has nothing to resolve against and prints as a stub,
+ * which is the right answer for a note: a note is a remark about a
+ * passage and has no map around it.
  */
-export function renderMarkdown(markdown: string, allowed: string[] = PROSE_TAGS): string {
+export function renderMarkdown(
+  markdown: string,
+  allowed: string[] = PROSE_TAGS,
+  lessons?: Map<string, LessonLink>
+): string {
   const DOMPurify = purifier()
 
-  const raw = marked.parse(markdown, { async: false, gfm: true, breaks: false })
+  const raw = reader(lessons).parse(markdown, { async: false, gfm: true, breaks: false })
   DOMPurify.addHook('afterSanitizeAttributes', node => {
     if (node.tagName === 'A' && node.getAttribute('href')?.startsWith('http')) {
       node.setAttribute('target', '_blank')

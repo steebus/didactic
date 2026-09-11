@@ -71,7 +71,7 @@ the phone's query cache.
 | GET | `/api/topics/pending` | — | `PendingTopic[]` | |
 | GET | `/api/resources` | — | resources | |
 | GET | `/api/curricula/[id]` | — | curriculum with lessons and prereqs | |
-| GET | `/api/lessons/[id]` | — | lesson with body | |
+| GET | `/api/lessons/[id]` | — | lesson with body, and `links`: the lessons it may point at | `links` resolves the body's `lesson:` names at read time, so a reshaped route turns a link into a stub rather than a dead end. |
 | GET | `/api/highlights` | `q` | highlights, filtered when `q` is given | |
 | GET | `/api/books/search` | `q` | `BookMatch[]` from Open Library | Falls back to nothing silently. |
 | GET | `/api/settings` | — | nothing yet | **Planned (3).** Exists so the sheet has somewhere to grow. |

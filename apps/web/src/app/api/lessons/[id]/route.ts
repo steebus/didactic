@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { completeLesson, uncompleteLesson } from '@/lib/curriculum'
+import { completeLesson, lessonsWithinReach, uncompleteLesson } from '@/lib/curriculum'
 import { VALID_DEPTHS } from '@/lib/consume'
 import type { ExposureDepth, LessonStage } from '@/lib/types'
 import { ownerId } from '@/lib/auth'
@@ -48,6 +48,13 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     ? await db.from('topics').select('id, title').eq('id', curriculum.topic_id).single()
     : { data: null }
 
+  // What the body's `lesson:` names resolve against. Read here rather
+  // than frozen into the body when it was written: a curriculum is
+  // reshaped and a lesson is grubbed out long after its neighbours
+  // were written, and a link that has stopped reaching anything should
+  // say so. See `lib/lessonLinks.ts`.
+  const links = curriculum ? await lessonsWithinReach(db, curriculum.topic_id, id) : []
+
   return NextResponse.json({
     lesson,
     curriculum,
@@ -55,6 +62,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     resources: resources ?? [],
     highlights: highlights ?? [],
     requires: required ?? [],
+    links,
     // Availability is derived, so the page never has to trust a stored flag.
     available: (required ?? []).every(r => r.completed_at !== null),
   })
