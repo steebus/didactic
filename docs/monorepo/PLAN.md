@@ -410,11 +410,14 @@ deliberately not in CI — Vercel builds every push through its GitHub
 connection, so a CI build would be a second build of the same commit
 needing the service role key in Actions to report what Vercel reports.
 
-**Phase 2's tasks are all done, on the `refactor` branch**, pushed and
-not merged: 2.1 through 2.9 are complete and what remains is the exit
-gate below, which is checked against a deployment rather than a
-worktree. `git log main..refactor` is the commit list; each task is its
-own commit and reverts on its own.
+**Phase 2 is done and its exit gate has passed, on the `refactor`
+branch**, pushed and not merged: 2.1 through 2.9 are complete, 418
+tests pass across `core`, `tokens`, `api` and `web`, a bad bearer token
+answers 401 on the deploy while a cookie session answers the stock
+list, the publishable key reads nothing from any of the eighteen
+tables, and the deploy renders every sheet as the local app does.
+`git log main..refactor` is the commit list; each task is its own
+commit and reverts on its own.
 
 2.4 as built: `getOwner()` reads `Authorization: Bearer <jwt>` before it
 reads cookies and verifies it on the anon client, so a bad token is never
@@ -498,15 +501,31 @@ gte-small and answers a vector; `ingest` claims a queue message and
 calls `/api/internal/ingest`, where the maths already is. The Deno
 import map is not a follow-up anybody needs yet.
 
-**Next: Phase 2's exit gate**, which is not a code change. A bearer
-`curl` against `/api/home` on a deploy returns the stock list and the
-same URL without the header returns 401; a `select` on `topics` with the
-anon key and no session returns nothing; the web deploy is green and
-reads identically. Note that `apps/web/.env` points at the **remote**
-Supabase project while the local docker stack holds different seed data,
-so the anon-key check has to name which one it is testing. Then Phase 3,
-which is a visible design change on the web and wants showing before it
-is live.
+The gate found the one thing a worktree cannot: **024 had never been
+applied to the remote project.** The local stack had it, so 2.5 read as
+finished, while the publishable key that ships in the client bundle
+could read all forty-four topics, every subject, exposure, resource,
+curriculum, lesson and join row on the live database, `user_id` columns
+included. `highlights` was the tell — its policy comes from 020, which
+was applied, and it alone answered nothing.
+
+The migration was correct; it was simply absent. It is now idempotent
+(every policy drops before it creates, the publication is asked per
+table) because a project that was already live when a migration is
+written takes that migration by hand, and by hand means twice. It was
+applied to the cloud project manually, and re-checked from outside:
+eighteen tables, nothing readable without a session, every row still
+there on the service role.
+
+**A migration in the tree is not a migration on a database.** Anything
+later that turns on a rule rather than adding a column is worth
+checking against the project the app actually reads, which is the
+remote one — `apps/web/.env` points there, while the local docker stack
+holds different seed data and different ids.
+
+**Next: Phase 3**, the foot bar on the web. It is a visible design
+change, so it wants showing before it goes live rather than pushing
+itself to `main` the way Phase 2's tasks did.
 
 **Before starting anything, three things about this machine.** The local
 Supabase stack is what 2.5 must be verified against and what the
