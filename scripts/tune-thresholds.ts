@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
-import { embed } from '../src/lib/embedding'
-import { cosineSimilarity } from '../src/lib/resolver'
+import { embed } from '../apps/web/src/lib/embedding'
+import { cosineSimilarity } from '../apps/web/src/lib/resolver'
 
 /**
  * Measure the resolver's similarity bands against the real topic set.

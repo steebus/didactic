@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { embed } from '../src/lib/embedding'
+import { embed } from '../apps/web/src/lib/embedding'
 
 /**
  * Regenerate every topic's embedding through the current model. An

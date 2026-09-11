@@ -1,0 +1,38 @@
+# What the repo runs, run on every push, so a break is found here rather
+# than in a Vercel deploy or on someone's next checkout.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # lint, typecheck and test need no credentials: the unit tests mock
+      # the SDKs and the integration tests skip themselves when the local
+      # Postgres is absent, which it is here.
+      - run: npx turbo run lint typecheck test
+
+      # The build does need them -- every route builds an admin client at
+      # module load. These are the anon-side values plus a service role
+      # that CI alone holds; the deploy's own env comes from Vercel.
+      - name: Build the web app
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: npx turbo run build --filter=@didactic/web

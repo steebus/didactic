@@ -2,6 +2,9 @@ node_modules/
 .next/
 .env
 .env.local
-.impeccable/config.local.json
-.impeccable/review/
+*.tsbuildinfo
+.turbo/
+apps/web/.impeccable/hook.cache.json
+apps/web/.impeccable/config.local.json
+apps/web/.impeccable/review/
 .playwright-mcp/

@@ -1,5 +1,14 @@
 import { execSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+/**
+ * The repo root, from this file rather than from the working directory.
+ * `supabase/` and `scripts/` stay at the root while the app sits in
+ * `apps/web`, and the runner's cwd is the workspace under turbo and the
+ * root under a bare `npx vitest`. Resolving from here is true in both.
+ */
+const ROOT = join(import.meta.dirname, '..', '..', '..')
 
 /**
  * Integration tests wipe the tables to isolate themselves, which also
@@ -15,7 +24,7 @@ export async function teardown() {
   // is not portable to the Windows shell execSync defaults to.
   const run = (file: string) =>
     execSync('docker exec -i supabase_db_didactic psql -U postgres -q', {
-      input: readFileSync(file, 'utf-8'),
+      input: readFileSync(join(ROOT, file), 'utf-8'),
       stdio: ['pipe', 'ignore', 'ignore'],
     })
 
@@ -26,8 +35,8 @@ export async function teardown() {
     run('supabase/fixtures/exposures.sql')
     // Ability is a rollup, so the restored exposures have to be folded
     // back into the cached figures.
-    execSync('npx vite-node scripts/reembed.ts', { stdio: 'ignore' })
-    execSync('npx vite-node scripts/recompute.ts', { stdio: 'ignore' })
+    execSync('npx vite-node scripts/reembed.ts', { cwd: ROOT, stdio: 'ignore' })
+    execSync('npx vite-node scripts/recompute.ts', { cwd: ROOT, stdio: 'ignore' })
   } catch {
     // No local stack, or no Docker. Nothing to restore.
   }

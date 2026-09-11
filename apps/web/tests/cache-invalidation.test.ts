@@ -32,7 +32,9 @@ const MUTATES = /export async function (POST|PATCH|PUT|DELETE)\b/
 const NO_CACHED_READS = ['auth', 'qualify']
 
 describe('cache invalidation', () => {
-  const routes = routeFiles(join(process.cwd(), 'src', 'app', 'api'))
+  // From this file, not the working directory: vitest runs from the
+  // workspace under turbo and from the repo root under a bare run.
+  const routes = routeFiles(join(import.meta.dirname, '..', 'src', 'app', 'api'))
 
   it('finds the route handlers', () => {
     expect(routes.length).toBeGreaterThan(10)

@@ -20,11 +20,14 @@ const KEYS = [
   'SUPABASE_SERVICE_ROLE_KEY',
 ]
 
+// The env files live with the app that owns them, not at the repo root.
+const ENV_FILE = 'apps/web/.env'
+
 let file
 try {
-  file = readFileSync('.env', 'utf8')
+  file = readFileSync(ENV_FILE, 'utf8')
 } catch {
-  console.error('No .env to read. It holds the hosted project; see .env.example.')
+  console.error(`No ${ENV_FILE} to read. It holds the hosted project; see apps/web/.env.example.`)
   process.exit(1)
 }
 
@@ -43,7 +46,7 @@ for (const line of file.split('\n')) {
 
 const missing = KEYS.filter(k => !found.includes(k))
 if (missing.length) {
-  console.error(`.env is missing ${missing.join(', ')}.`)
+  console.error(`${ENV_FILE} is missing ${missing.join(', ')}.`)
   process.exit(1)
 }
 
@@ -60,5 +63,11 @@ if (/localhost|127\.0\.0\.1/.test(env.NEXT_PUBLIC_SUPABASE_URL)) {
 console.log(`Cloud: ${env.NEXT_PUBLIC_SUPABASE_URL}`)
 console.log('Writes go to the hosted database. Ctrl-C to stop.\n')
 
-spawn('next', ['dev'], { stdio: 'inherit', env, shell: true })
+// `next` is a dependency of the web workspace, not of the root, so it
+// is run from there rather than from wherever this script was called.
+spawn('npm', ['run', 'dev', '--workspace', '@didactic/web'], {
+  stdio: 'inherit',
+  env,
+  shell: true,
+})
   .on('exit', code => process.exit(code ?? 0))
