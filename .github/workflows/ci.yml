@@ -1,5 +1,6 @@
-# What the repo runs, run on every push, so a break is found here rather
-# than in a Vercel deploy or on someone's next checkout.
+# The checks that need no credentials, run on every push, so a break is
+# found here rather than on someone's next checkout. The build is Vercel's:
+# it builds every push through its GitHub connection.
 name: CI
 
 on:
@@ -26,13 +27,8 @@ jobs:
       # Postgres is absent, which it is here.
       - run: npx turbo run lint typecheck test
 
-      # The build does need them -- every route builds an admin client at
-      # module load. These are the anon-side values plus a service role
-      # that CI alone holds; the deploy's own env comes from Vercel.
-      - name: Build the web app
-        env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-        run: npx turbo run build --filter=@didactic/web
+      # The build is deliberately not run here. Vercel builds every push
+      # through its GitHub connection, so a build in CI would be a second
+      # build of the same commit -- and every route constructs a Supabase
+      # admin client at module load, so it would need the service role key
+      # in Actions to tell us what Vercel already tells us.
