@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { didactic, type AddResource } from '@didactic/api'
 import { bookNote, type BookMatch } from '@didactic/core/books'
 import { rungsFor, defaultRungFor, type Fidelity } from '@didactic/core/documents'
+import { useLabour, READINGS } from '@/components/useLabour'
 import styles from './page.module.css'
 
 const api = didactic()
@@ -73,6 +74,10 @@ export function ProofOfRoots({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileInput = useRef<HTMLInputElement>(null)
+  /** What the sheet says while a document goes up and is opened. The
+   *  same mechanism the sowing button uses, in the register of handling
+   *  a book rather than turning soil. */
+  const reading = useLabour(busy, READINGS)
 
   // Book lookup. `chosen` holds the matched record so the subjects
   // Open Library knows about are filed with it; typing again drops it,
@@ -278,10 +283,10 @@ export function ProofOfRoots({
                       once said and baffling when it is not. */}
                   {entry.chapters === 0 ? (
                     <p className={styles.followNone}>
-                      It carries no contents of its own — no bookmarks and no
-                      contents page — so there is no order for the bed to follow.
-                      It can still steer what the subject covers, and lessons
-                      written here can still cite it.
+                      No structure could be found in it — no bookmarks, no contents
+                      page, and no headings set apart from the text — so there is no
+                      order for the bed to follow. It can still steer what the
+                      subject covers, and lessons written here can still cite it.
                     </p>
                   ) : (
                     entry.chapters !== undefined && (
@@ -456,18 +461,32 @@ export function ProofOfRoots({
         )}
 
         {mode === 'file' ? (
-          <input
-            ref={fileInput}
-            className={styles.proofFile}
-            type="file"
-            accept="application/pdf,.pdf"
-            disabled={busy}
-            onChange={e => {
-              const picked = e.target.files?.[0]
-              if (picked) upload(picked)
-            }}
-            aria-label="Upload a PDF"
-          />
+          <>
+            <input
+              ref={fileInput}
+              className={styles.proofFile}
+              type="file"
+              accept="application/pdf,.pdf"
+              disabled={busy}
+              onChange={e => {
+                const picked = e.target.files?.[0]
+                if (picked) upload(picked)
+              }}
+              aria-label="Upload a PDF"
+            />
+
+            {/* The longest a reader waits anywhere in this app without a
+                word, and it used to pass in silence: a file input has no
+                busy state of its own, so picking a book and waiting for
+                it to go up and be opened looked exactly like nothing
+                happening. Polite, because it changes several times and
+                is not urgent. */}
+            {busy && (
+              <p className={styles.reading} role="status" aria-live="polite">
+                {reading}
+              </p>
+            )}
+          </>
         ) : (
           <button
             type="button"

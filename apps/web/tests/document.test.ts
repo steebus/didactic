@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { readOutline, readPages, close, extractFromPdf } from '@/lib/extract/pdf'
+import { readOutline, readPages, extractFromPdf } from '@/lib/extract/pdf'
 import { cutPassages } from '@didactic/core/passages'
 
 /**
@@ -146,37 +146,5 @@ describe('reading a document in rounds', () => {
       expect(passage.pageTo).toBeLessThanOrEqual(5)
       expect(passage.pageTo).toBeGreaterThanOrEqual(passage.pageFrom)
     }
-  })
-})
-
-describe('close', () => {
-  it('never ends a chapter before it starts', () => {
-    // Two bookmarks on the same page, which a document with a chapter
-    // and its first section on one page produces.
-    const closed = close(
-      [
-        { title: 'One', pageFrom: 4 },
-        { title: 'One, part two', pageFrom: 4 },
-      ],
-      1,
-      10
-    )
-
-    for (const entry of closed) expect(entry.pageTo).toBeGreaterThanOrEqual(entry.pageFrom)
-  })
-
-  it('sorts entries a document listed out of order', () => {
-    const closed = close(
-      [
-        { title: 'Later', pageFrom: 9 },
-        { title: 'Earlier', pageFrom: 2 },
-      ],
-      1,
-      12
-    )
-
-    expect(closed.map(c => c.title)).toEqual(['Earlier', 'Later'])
-    expect(closed[0].pageTo).toBe(8)
-    expect(closed[1].pageTo).toBe(12)
   })
 })

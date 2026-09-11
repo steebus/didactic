@@ -5,6 +5,7 @@ import {
   tail,
   headingAt,
   cutPassages,
+  closeOutline,
   pagesThisRound,
   MAX_WORDS,
   OVERLAP_WORDS,
@@ -181,5 +182,56 @@ describe('pagesThisRound', () => {
     const dense = pagesThisRound({ remaining: 1000, msLeft: 30_000, msPerPage: 2000 })
 
     expect(light).toBeGreaterThan(dense)
+  })
+})
+
+describe('closeOutline', () => {
+  it('ends each entry at the page before the next one starts', () => {
+    const closed = closeOutline(
+      [
+        { title: 'One', pageFrom: 2 },
+        { title: 'Two', pageFrom: 9 },
+      ],
+      20
+    )
+
+    expect(closed[0].pageTo).toBe(8)
+    // The last runs to the end of what contains it.
+    expect(closed[1].pageTo).toBe(20)
+  })
+
+  it('never ends an entry before it starts', () => {
+    // Two headings on the same page, which a chapter and its first
+    // section routinely produce.
+    const closed = closeOutline(
+      [
+        { title: 'One', pageFrom: 4 },
+        { title: 'One, part two', pageFrom: 4 },
+      ],
+      10
+    )
+
+    for (const entry of closed) expect(entry.pageTo).toBeGreaterThanOrEqual(entry.pageFrom)
+  })
+
+  it('sorts entries a document listed out of order', () => {
+    const closed = closeOutline(
+      [
+        { title: 'Later', pageFrom: 9 },
+        { title: 'Earlier', pageFrom: 2 },
+      ],
+      12
+    )
+
+    expect(closed.map(c => c.title)).toEqual(['Earlier', 'Later'])
+  })
+
+  it('keeps children that were closed already', () => {
+    const closed = closeOutline(
+      [{ title: 'One', pageFrom: 1, children: [{ title: 'A', pageFrom: 2, pageTo: 4 }] }],
+      10
+    )
+
+    expect(closed[0].children?.[0].title).toBe('A')
   })
 })

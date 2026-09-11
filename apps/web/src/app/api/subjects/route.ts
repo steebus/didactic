@@ -154,7 +154,7 @@ async function sow(req: Request) {
     // the part that does not need chapters.
     if (found.chapters.length === 0 && asked.fidelity !== 'source') {
       warnings.push(
-        `"${asked.title}" carries no contents of its own — no bookmarks and no contents page — so there was no order for the bed to follow. It still steers what the subject covers, and lessons written here can still cite it`
+        `"${asked.title}" has no structure that could be found — no bookmarks, no contents page, and no headings set apart from the text — so there was no order for the bed to follow. It still steers what the subject covers, and lessons written here can still cite it`
       )
     }
   }

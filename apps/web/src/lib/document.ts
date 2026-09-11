@@ -1,6 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { cutPassages, pagesThisRound, type OutlineEntry } from '@didactic/core/passages'
-import { readOutline, readPages, close, FRONT_PAGES } from './extract/pdf'
+import {
+  cutPassages,
+  pagesThisRound,
+  closeOutline,
+  type OutlineEntry,
+} from '@didactic/core/passages'
+import { outlineFromLines } from '@didactic/core/headings'
+import { readOutline, readPages, readLines, FRONT_PAGES } from './extract/pdf'
 import { readContentsPages } from './llm/outline'
 import { embed } from './embedding'
 
@@ -55,7 +61,7 @@ const URL_TTL_SECONDS = 900
 /** What a document turned out to be shaped like. */
 export interface DocumentShape {
   chapters: OutlineEntry[]
-  source: 'bookmarks' | 'model' | 'none'
+  source: 'bookmarks' | 'model' | 'headings' | 'none'
   pageCount: number
   /** True when this was read before and only loaded here. */
   alreadyHeld: boolean
@@ -102,7 +108,7 @@ export async function ensureOutline(
   if (held) {
     return {
       chapters: (held.chapters as OutlineEntry[] | null) ?? [],
-      source: (held.source as 'bookmarks' | 'model' | 'none') ?? 'none',
+      source: (held.source as DocumentShape['source']) ?? 'none',
       pageCount: (held.page_count as number | null) ?? 0,
       alreadyHeld: true,
       warnings,
@@ -133,7 +139,7 @@ export async function ensureOutline(
         front: front.pages,
       })
       if (proposed.length > 0) {
-        chapters = close(proposed, 1, read.pageCount)
+        chapters = closeOutline(proposed, read.pageCount)
         outlineSource = 'model'
       }
     } catch (e) {
@@ -141,6 +147,32 @@ export async function ensureOutline(
       // simply cannot be sown from it to the letter. Not fatal.
       warnings.push(
         `the contents could not be read: ${e instanceof Error ? e.message : String(e)}`
+      )
+    }
+  }
+
+  // Still nothing: no bookmarks and no contents page. Almost everything
+  // still has headings, and on the page a heading is unmistakable --
+  // set larger than the words around it, usually in another face. That
+  // is a fact about the file rather than a reading of it, so it costs
+  // nothing and guesses nothing.
+  //
+  // Last of the three because the first two are the author's own
+  // statement of the structure, at the granularity the author chose.
+  // Headings are the structure inferred from how the thing was set,
+  // which is very nearly as good and occasionally finer-grained than
+  // anyone wanted.
+  if (chapters.length === 0) {
+    try {
+      const lines = await readLines(source)
+      const found = outlineFromLines(lines, read.pageCount)
+      if (found.length > 0) {
+        chapters = found
+        outlineSource = 'headings'
+      }
+    } catch (e) {
+      warnings.push(
+        `the headings could not be read: ${e instanceof Error ? e.message : String(e)}`
       )
     }
   }
@@ -194,7 +226,7 @@ export interface RoundResult {
   /** Written this round, not in total. */
   passages: number
   embedded: number
-  outline: 'bookmarks' | 'model' | 'none' | 'already'
+  outline: 'bookmarks' | 'model' | 'headings' | 'none' | 'already'
   warnings: string[]
 }
 

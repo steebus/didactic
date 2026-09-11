@@ -29,13 +29,57 @@ export const LABOURS = [
   'Measuring the drills…',
   'Arguing with the compost…',
   'Spacing the rows…',
+  'Checking the drainage…',
+  'Testing the tilth…',
+  'Warming the frame…',
+  'Sharpening the dibber…',
+  'Untangling the twine…',
+  'Weighing up the shade…',
   'Naming the seedlings…',
   'Filing the labels…',
+  'Firming them in…',
+  'Labelling the awkward ones…',
   'Watering in…',
+  'Counting what came up…',
+  'Sweeping the path…',
   'Standing back…',
   // The last one holds until the bed comes back, so it has to be a
   // phrase that can be true for a while.
+  //
+  // How many come before it is not decoration. At 2.6 seconds a phrase,
+  // twelve of them wrapped in half a minute and left the reader looking
+  // at "Almost done" for the second half of a sowing that takes the
+  // better part of a minute -- which reads as stuck rather than as
+  // nearly there. The twenty-two before it carry the whole wait.
   'Almost done…',
+]
+
+/**
+ * What a sheet says while a document is being read.
+ *
+ * A different job from sowing and a different list. Uploading a book
+ * and opening it is not work done to a bed: the bytes go up, the file
+ * is opened, its bookmarks are looked for, its contents page is read if
+ * it has one and its headings if it has not. None of that is visible
+ * from the browser -- it is one request -- so this is the same kind of
+ * rumour as the others, in the register of handling a book rather than
+ * turning soil.
+ *
+ * It matters more than it looks. A fifty-megabyte upload followed by an
+ * outline read is the longest a reader waits anywhere in this app
+ * without a word, and it happens on the sowing sheet where they have
+ * just been asked to do something and are waiting to carry on.
+ */
+export const READINGS = [
+  'Carrying it in…',
+  'Cutting the string…',
+  'Turning to the front…',
+  'Looking for a contents…',
+  'Running a thumb down the edges…',
+  'Reading the headings…',
+  'Taking down the chapters…',
+  'Marking the pages…',
+  'Almost read…',
 ]
 
 /**

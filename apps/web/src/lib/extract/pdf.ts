@@ -1,5 +1,10 @@
 import { PDFParse } from 'pdf-parse'
-import type { OutlineEntry, PageText } from '@didactic/core/passages'
+import { closeOutline, type OutlineEntry, type PageText } from '@didactic/core/passages'
+
+/** Re-exported so a caller that opens a document has one import for
+ *  what to do with what comes out. The arithmetic is in core, where
+ *  all three ways of finding an outline can reach it. */
+export { closeOutline as close }
 
 /**
  * Opening a PDF.
@@ -178,48 +183,102 @@ export async function readOutline(source: DocumentSource): Promise<DocumentOutli
         const name = item.title?.trim()
         if (page === null || !name) continue
         const children = await walk(item.items ?? [])
-        out.push({ title: name, pageFrom: page, children: close(children, page, pageCount) })
+        out.push({ title: name, pageFrom: page, children: closeOutline(children, pageCount) })
       }
       return out
     }
 
-    const chapters = close(await walk(raw as Raw[]), 1, pageCount)
+    const chapters = closeOutline(await walk(raw as Raw[]), pageCount)
     return { chapters, source: 'bookmarks', pageCount, title }
   } finally {
     await doc.destroy()
   }
 }
 
-/**
- * Give every entry an end page.
- *
- * A bookmark says where a chapter starts and nothing about where it
- * stops, so a chapter runs until the next one begins. The last runs to
- * the end of whatever contains it -- the document, or the parent
- * chapter for a section.
- *
- * Exported so the same closing can be applied to an outline the model
- * read off a contents page, which arrives in exactly the same shape and
- * with exactly the same gap in it.
- */
-export function close<T extends { title: string; pageFrom: number; children?: OutlineEntry[] }>(
-  entries: T[],
-  _from: number,
-  endsAt: number
-): OutlineEntry[] {
-  const sorted = [...entries].sort((a, b) => a.pageFrom - b.pageFrom)
+/** A line of a document, with enough of its typography to tell a
+ *  heading from a paragraph. */
+export interface TextLine {
+  page: number
+  text: string
+  /** Point size, as the page sets it. */
+  size: number
+  /** 'serif', 'sans-serif', or whatever the font calls itself. */
+  font: string
+}
 
-  return sorted.map((entry, i) => {
-    const next = sorted[i + 1]
-    // One before the next sibling starts, or the end of the parent.
-    // Never before its own start, which a document with two bookmarks
-    // on one page would otherwise produce.
-    const pageTo = next ? Math.max(entry.pageFrom, next.pageFrom - 1) : endsAt
-    return {
-      title: entry.title,
-      pageFrom: entry.pageFrom,
-      pageTo,
-      ...(entry.children?.length ? { children: entry.children } : {}),
+/**
+ * The document as lines, each carrying the size it was set in.
+ *
+ * `getText` flattens all of this away, which is right for the passage
+ * cutter and useless for finding headings: on the page a heading is
+ * obvious and in the flattened text it is a short line like any other.
+ * So this goes to pdfjs directly, where a text item still knows its own
+ * transform and font.
+ *
+ * A line is the items sharing a baseline. The y is rounded before
+ * grouping because a run set in two faces -- bold lead-in, roman after
+ * -- can sit a fraction apart and would otherwise read as two lines.
+ */
+export async function readLines(
+  source: DocumentSource,
+  range?: { from: number; to: number }
+): Promise<TextLine[]> {
+  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
+  const doc = await pdfjs.getDocument({
+    ...load(source),
+    useWorkerFetch: false,
+    isEvalSupported: false,
+  }).promise
+
+  try {
+    const from = Math.max(1, range?.from ?? 1)
+    const to = Math.min(doc.numPages, range?.to ?? doc.numPages)
+    const lines: TextLine[] = []
+
+    for (let n = from; n <= to; n++) {
+      const page = await doc.getPage(n)
+      const content = await page.getTextContent()
+      const styles = content.styles as Record<string, { fontFamily?: string }> | undefined
+
+      // Keyed by baseline, and kept in the order the page lays them out
+      // rather than sorted: reading order is what an outline is about.
+      const byBaseline = new Map<number, { text: string; size: number; font: string }>()
+
+      for (const item of content.items) {
+        const run = item as { str?: string; transform?: number[]; fontName?: string; height?: number }
+        if (!run.str?.trim() || !run.transform) continue
+
+        const baseline = Math.round(run.transform[5])
+        const size = Math.abs(run.transform[0]) || run.height || 0
+        const font = styles?.[run.fontName ?? '']?.fontFamily ?? run.fontName ?? ''
+
+        const held = byBaseline.get(baseline)
+        if (held) {
+          held.text += run.str
+          // The largest run on the line decides what the line is: a
+          // heading with a small footnote marker in it is a heading.
+          if (size > held.size) {
+            held.size = size
+            held.font = font
+          }
+        } else {
+          byBaseline.set(baseline, { text: run.str, size, font })
+        }
+      }
+
+      // Down the page: PDF y grows upward, so the largest baseline is
+      // the top line.
+      const ordered = [...byBaseline.entries()].sort((a, b) => b[0] - a[0])
+      for (const [, line] of ordered) {
+        const text = line.text.replace(/\s+/g, ' ').trim()
+        if (text) lines.push({ page: n, text, size: line.size, font: line.font })
+      }
+
+      page.cleanup()
     }
-  })
+
+    return lines
+  } finally {
+    await doc.destroy()
+  }
 }

@@ -1,0 +1,27 @@
+-- A document's structure can now be read from how it is set.
+--
+-- `resource_outline.source` gained a fourth answer. The column is plain
+-- text and takes it without a schema change; what needs correcting is
+-- the comment, which is the only description of the column anyone
+-- reading the database will find.
+--
+-- The four, in the order they are tried and in descending order of how
+-- far to trust them:
+--
+--   bookmarks -- the document's own outline, with its destinations
+--                resolved to real pages. Exact, and the author's own.
+--   model     -- its contents page, transcribed. Nearly as good, and a
+--                reading rather than a fact.
+--   headings  -- inferred from typography: the lines set larger than
+--                the body text, ranked by size. No model call and no
+--                guessing -- the sizes are facts about the file -- but
+--                the granularity is whatever the designer chose rather
+--                than whatever the author meant.
+--   none      -- nothing could be found. A bed cannot follow this
+--                document, and the sheet says so instead of offering
+--                a rung that would quietly do nothing.
+--
+-- Nothing to migrate: every row already holds one of the first three or
+-- `none`, and a row written before this migration is still correct.
+comment on column resource_outline.source is
+  'bookmarks | model | headings | none — where the chapter list came from, and how far to trust it.';

@@ -440,6 +440,14 @@
 
 /* What was found in the document, printed above the rungs so the choice
    is made knowing what there is to choose from. */
+/* What the sheet says while a document goes up and is opened. */
+.reading {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  font-style: italic;
+  margin: var(--space-2) 0 0;
+}
+
 .followFound,
 .followNone {
   font-size: var(--step--2);

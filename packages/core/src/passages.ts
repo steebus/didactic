@@ -154,6 +154,38 @@ export function headingAt(outline: OutlineEntry[], page: number): string | null 
 }
 
 /**
+ * Give every entry in an outline an end page.
+ *
+ * A bookmark, a contents line and a heading all say where something
+ * starts and none of them says where it stops, so an entry runs until
+ * the next one at its own level begins. The last runs to the end of
+ * whatever contains it -- the document, or the parent chapter for a
+ * section.
+ *
+ * Here rather than beside the parser because all three ways of finding
+ * an outline need it and none of them needs a PDF to do it.
+ */
+export function closeOutline<
+  T extends { title: string; pageFrom: number; children?: OutlineEntry[] },
+>(entries: T[], endsAt: number): OutlineEntry[] {
+  const sorted = [...entries].sort((a, b) => a.pageFrom - b.pageFrom)
+
+  return sorted.map((entry, i) => {
+    const next = sorted[i + 1]
+    // One before the next sibling starts, or the end of the parent.
+    // Never before its own start, which a document with two entries on
+    // one page would otherwise produce.
+    const pageTo = next ? Math.max(entry.pageFrom, next.pageFrom - 1) : endsAt
+    return {
+      title: entry.title,
+      pageFrom: entry.pageFrom,
+      pageTo,
+      ...(entry.children?.length ? { children: entry.children } : {}),
+    }
+  })
+}
+
+/**
  * Cut pages into passages.
  *
  * `startOrdinal` is what makes this resumable. A long document is read
