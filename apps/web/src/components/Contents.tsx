@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, type RefObject } from 'react'
 import { lessonSections } from '@didactic/core/sections'
+import { setHash } from '@/lib/hash'
 import styles from './Contents.module.css'
 
 /** Below this a contents list is longer than what it lists. */
@@ -62,8 +63,10 @@ export function Contents({
                 e.preventDefault()
                 target.scrollIntoView({ behavior: 'smooth', block: 'start' })
                 // The address bar keeps up without stacking a history
-                // entry for every section anyone glanced at.
-                history.replaceState(null, '', `#${section.id}`)
+                // entry for every section anyone glanced at -- and
+                // without the router reading the new URL as somewhere
+                // to travel to. See `setHash`.
+                setHash(`#${section.id}`)
               }}
             >
               {section.text}

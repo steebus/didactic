@@ -32,7 +32,10 @@ export const highlights = (api: Api) => ({
   /** Search, or browse when there is nothing to search for. */
   list: (q?: string) => api.get<{ highlights: HighlightRow[] }>('/api/highlights', { q }),
   create: (body: NewHighlight) => api.post<Kept>('/api/highlights', body),
+  /** Answers how many names the saved note still points at: the index
+   *  is rewritten from the note, so a name taken back out stops being
+   *  drawn on the bed. */
   patch: (id: string, note: string | null) =>
-    api.patch<{ ok: true }>('/api/highlights', { id, note }),
+    api.patch<{ ok: true; tagged: number }>('/api/highlights', { id, note }),
   remove: (id: string) => api.del<{ ok: true }>('/api/highlights', { id }),
 })

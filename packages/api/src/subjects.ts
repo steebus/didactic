@@ -44,6 +44,18 @@ export interface Drawn {
 export interface TopicAdded {
   topicId: string
   action: 'created' | 'linked' | 'already-filed' | 'pending'
+  /**
+   * Which reading raised the question, where one was raised. The
+   * resolver reads the title against the whole map by embedding; the
+   * sort reads the topic against this bed. They say different things
+   * and "waiting for you" reads differently depending on which spoke.
+   */
+  queriedBy?: 'resolver' | 'sort' | null
+  /** Edges drawn between the new topic and the bed it was added to. */
+  placed?: number
+  /** One line about what the sort did, where it ran. */
+  note?: string | null
+  warnings?: string[]
 }
 
 /** Unfiling a topic, and whether it is now loose stock. */

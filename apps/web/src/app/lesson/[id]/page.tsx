@@ -2,11 +2,14 @@
 
 import { use, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Prose } from '@/components/Prose'
 import { Highlighter } from '@/components/Highlighter'
 import { Contents } from '@/components/Contents'
 import { didactic } from '@didactic/api'
 import type { ExposureDepth, Highlight as Mark } from '@didactic/core/types'
+import type { LessonLink } from '@didactic/core/lessonLinks'
+import { pressedLink } from '@/lib/pressedLink'
 import { useScrollMemory } from '@/lib/useScrollMemory'
 import { viabilityFigure } from '@didactic/core/scoring'
 import { SheetNav } from '@/components/SheetNav'
@@ -32,6 +35,12 @@ interface LessonData {
     resources: { id: string; title: string; kind: string; url: string | null; status: string }
   }>
   requires: Array<{ id: string; title: string; completed_at: string | null }>
+  /**
+   * Everything this lesson is allowed to point at: the rest of its
+   * topic first, then the topics its subjects hold. A `lesson:` name
+   * in the body that none of these answer to is printed as a stub.
+   */
+  links: LessonLink[]
   available: boolean
 }
 
@@ -53,6 +62,7 @@ export default function LessonPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = use(params)
+  const router = useRouter()
   // The rendered body, so the contents list can read its headings.
   const article = useRef<HTMLElement>(null)
   const [data, setData] = useState<LessonData | null>(null)
@@ -308,7 +318,18 @@ export default function LessonPage({
                 the body below once it is on the page. */}
             <Contents root={article} body={body} />
 
-            <article ref={article}>
+            {/* The links a lesson writes into its prose are anchors in
+                an HTML string, so following one would reload the whole
+                document. Read the press and turn the sheet instead. */}
+            <article
+              ref={article}
+              onClick={e => {
+                const href = pressedLink(e)
+                if (!href) return
+                e.preventDefault()
+                router.push(href)
+              }}
+            >
               {/* Selecting inside here offers to keep the passage. The
                   marks belong to the topic rather than to the lesson, so
                   they outlive a regenerated body. */}
@@ -317,7 +338,7 @@ export default function LessonPage({
                 existing={highlights}
                 onChanged={() => setRevision(r => r + 1)}
               >
-                <Prose markdown={body} />
+                <Prose markdown={body} lessons={data.links} />
               </Highlighter>
 
               {/* Quiet, and at the end of the reading rather than the

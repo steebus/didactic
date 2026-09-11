@@ -1,5 +1,6 @@
 import { cacheTag } from 'next/cache'
 import { computeFreshness } from '@didactic/core/scoring'
+import { markLabel, MARKS_ON_THE_BED } from '@didactic/core/graphMarks'
 import { tags } from '@didactic/core/tags'
 import { supabaseAdmin } from './supabase'
 
@@ -8,7 +9,9 @@ import { supabaseAdmin } from './supabase'
  * and lessons that hang off them.
  *
  * Read by `GET /api/topics` and by `GET /api/graph`, which differ only
- * in whether the subjects come with it. Written once because the shape
+ * in whether the subjects come with it. The marks are here rather than
+ * in either route for the same reason as the rest: a layer added to one
+ * bed and not the other is a bed that disagrees with itself. Written once because the shape
  * is the bed's, not a route's: two copies of this query would drift the
  * moment one grew a column.
  */
@@ -40,6 +43,20 @@ export async function getPlanting() {
       .not('topic_id', 'is', null),
   ])
 
+  // Marks, and what their notes name. A mark hangs off the topic its
+  // lesson teaches -- that is where it came from -- and off whatever
+  // the note itself points at, which is very often somewhere else:
+  // the thought a passage on custody leaves you with is usually about
+  // settlement. Newest first and capped, because a reader who marks
+  // everything would otherwise draw a bed nobody can read.
+  const [{ data: marks }, { data: marked }] = await Promise.all([
+    db.from('highlights')
+      .select('id, quote, note, topic_id, lesson_id')
+      .order('created_at', { ascending: false })
+      .limit(MARKS_ON_THE_BED),
+    db.from('highlight_tags').select('highlight_id, topic_id, lesson_id'),
+  ])
+
   // A topic may sit under several subjects, so the canvas filter needs
   // the whole membership set, not just the home subject it is coloured by.
   const subjectsFor = new Map<string, string[]>()
@@ -56,6 +73,16 @@ export async function getPlanting() {
     string,
     { id: string; title: string; kind: string; status: string; topic_ids: string[] }
   >()
+  // What each mark names, gathered onto the mark rather than left as
+  // rows: the canvas draws per node.
+  const named = new Map<string, { topic_ids: string[]; lesson_ids: string[] }>()
+  for (const tag of marked ?? []) {
+    const held = named.get(tag.highlight_id) ?? { topic_ids: [], lesson_ids: [] }
+    if (tag.topic_id) held.topic_ids.push(tag.topic_id)
+    if (tag.lesson_id) held.lesson_ids.push(tag.lesson_id)
+    named.set(tag.highlight_id, held)
+  }
+
   for (const link of resourceLinks ?? []) {
     const r = link.resources as unknown as {
       id: string; title: string; kind: string; status: string
@@ -77,5 +104,16 @@ export async function getPlanting() {
     edges: edges ?? [],
     resources: [...resourceMap.values()],
     lessons: lessons ?? [],
+    marks: (marks ?? []).map(m => ({
+      id: m.id as string,
+      // A mark has no title, so it is named by what it says: the note
+      // where there is one, because that is the reader's own words,
+      // and the passage where there is not.
+      label: markLabel(m.note, m.quote),
+      topic_id: m.topic_id as string | null,
+      lesson_id: m.lesson_id as string,
+      noted: Boolean(m.note),
+      ...(named.get(m.id as string) ?? { topic_ids: [], lesson_ids: [] }),
+    })),
   }
 }

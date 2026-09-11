@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { config } from '@didactic/core/config'
 import { recomputeAbility } from './scoring'
 import type { Highlight } from '@didactic/core/types'
+import { tagsIn, type Tag } from '@didactic/core/mentions'
 
 // The shape moved to `@didactic/core/shapes`, where the phone can name
 // it too; the query that builds it needs a client and the cache, so it
@@ -58,6 +59,16 @@ export async function createHighlight(
     .single()
   if (error) throw new Error(error.message)
 
+  // The mark is written. Indexing what its note names is the lesser
+  // half of the job, and it is not worth failing a kept passage over
+  // -- including on the deploy where the code is out and the table it
+  // writes to is not yet.
+  try {
+    await fileTags(db, input.userId, highlight.id, input.note ?? null)
+  } catch (e) {
+    console.error('highlights: could not file what the note names', e)
+  }
+
   // A scaffolding lesson teaches no single topic, so there is nothing
   // for the mark to count toward.
   if (!lesson.topic_id) {
@@ -88,6 +99,69 @@ export async function createHighlight(
     abilityBefore: before ? Number(before.ability) : null,
     abilityAfter: after.ability,
   }
+}
+
+/**
+ * Rewrite what a mark names, from the note it names it in.
+ *
+ * The note is the record: the reader put the name in a sentence and
+ * that sentence is where it reads. This is only its index, kept so
+ * the graph can draw the connection without re-reading every note
+ * ever written to lay out the bed.
+ *
+ * Rewritten whole rather than diffed. A note is short, it is saved
+ * whole, and one reading of it by one caller is what keeps the index
+ * and the note from ever disagreeing.
+ *
+ * A name that points at something gone -- a grubbed-out topic, a
+ * lesson from a reshaped route, a path someone typed by hand -- is
+ * dropped from the index and left alone in the note. The sentence
+ * still says what it said; there is simply nothing to draw.
+ */
+export async function fileTags(
+  db: SupabaseClient,
+  userId: string,
+  highlightId: string,
+  note: string | null
+): Promise<Tag[]> {
+  const named = tagsIn(note ?? '')
+
+  await db.from('highlight_tags').delete().eq('highlight_id', highlightId)
+  if (named.length === 0) return []
+
+  const topicIds = named.filter(t => t.kind === 'topic').map(t => t.id)
+  const lessonIds = named.filter(t => t.kind === 'lesson').map(t => t.id)
+
+  // Scoped to the owner as well as to the id. The admin client is past
+  // row-level security, so a tag is only ever allowed to reach a row
+  // this user actually holds.
+  const [{ data: topics }, { data: lessons }] = await Promise.all([
+    topicIds.length
+      ? db.from('topics').select('id').eq('user_id', userId).in('id', topicIds)
+      : Promise.resolve({ data: [] as Array<{ id: string }> }),
+    lessonIds.length
+      ? db.from('lessons').select('id').eq('user_id', userId).in('id', lessonIds)
+      : Promise.resolve({ data: [] as Array<{ id: string }> }),
+  ])
+
+  const real = new Set([
+    ...(topics ?? []).map(t => `topic:${t.id}`),
+    ...(lessons ?? []).map(l => `lesson:${l.id}`),
+  ])
+  const kept = named.filter(t => real.has(`${t.kind}:${t.id}`))
+  if (kept.length === 0) return []
+
+  const { error } = await db.from('highlight_tags').insert(
+    kept.map(t => ({
+      user_id: userId,
+      highlight_id: highlightId,
+      topic_id: t.kind === 'topic' ? t.id : null,
+      lesson_id: t.kind === 'lesson' ? t.id : null,
+    }))
+  )
+  if (error) throw new Error(error.message)
+
+  return kept
 }
 
 /** Every highlight taken against one topic, newest first. */

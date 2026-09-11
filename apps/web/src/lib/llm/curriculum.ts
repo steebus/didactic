@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { CurriculumShape, LessonStage } from '@didactic/core/types'
 import { blockPromptSection } from '@didactic/core/blocks'
+import { lessonSlug, type LessonLink } from '@didactic/core/lessonLinks'
 
 /** A lesson as the model proposes it, before it has an id. Branching is
  *  expressed with the model's own keys so it never has to invent uuids. */
@@ -36,6 +37,18 @@ export interface CurriculumBrief {
 }
 
 const STAGES: LessonStage[] = ['introductory', 'core', 'advanced']
+
+/**
+ * How many neighbouring lessons a body is written against.
+ *
+ * The list is read to the model in full, so it is a real cost in the
+ * prompt and a real one in attention: past a point the model is being
+ * shown a catalogue rather than a neighbourhood, and links it might
+ * have made well it makes at random. Near before far, and a ceiling
+ * on each so a wide subject cannot crowd out the reader's own topic.
+ */
+const LINKS_HERE = 40
+const LINKS_OVER = 25
 
 const TOOL = {
   name: 'record_curriculum',
@@ -199,7 +212,19 @@ export async function generateLessonBody(input: {
    *  library is not sorted the way the map is, so the piece that
    *  explains what this lesson leans on often sits one topic over. */
   nearby?: Array<{ title: string; summary: string | null; url: string | null; status: string }>
+  /** The other lessons on the reader's map that this one may point at:
+   *  its own topic first, then the topics its subjects hold. Named in
+   *  the prose rather than addressed, so the link is resolved when the
+   *  lesson is read. See `lessonLinks.ts`. */
+  links?: LessonLink[]
 }): Promise<string> {
+  const here = (input.links ?? []).filter(l => l.here).slice(0, LINKS_HERE)
+  const over = (input.links ?? []).filter(l => !l.here).slice(0, LINKS_OVER)
+  const named = (l: LessonLink) =>
+    `- "${l.title}" -> lesson:${lessonSlug(l.title)}${
+      l.here || !l.topicTitle ? '' : ` (under ${l.topicTitle})`
+    }`
+
   const prompt = `Write the lesson "${input.lesson.title}" from the curriculum "${input.curriculumTitle}" on the topic "${input.topicTitle}".
 ${input.lesson.summary ? `\nWhat it should cover: ${input.lesson.summary}` : ''}
 It is a ${input.lesson.stage} lesson${
@@ -233,6 +258,14 @@ ${input.nearby?.length
         }${r.summary ? `: ${r.summary}` : ''}`
       ).join('\n')
     }`
+  : ''}
+
+${here.length || over.length
+  ? `\nThe reader's own map, as lessons. A lesson that stands alone is a lesson that teaches the reader nothing about where they are, so point at these: link one inline, as a markdown link on the words that make the point, where this lesson genuinely leans on it or genuinely leads to it. The target is \`lesson:\` and the name below, exactly as written -- not a URL, not a title, not a name of your own. Two or three across the whole lesson is plenty, and none at all is better than a forced one. Never list them at the end and never link the lesson you are writing.${
+      over.length
+        ? ' The ones marked with a topic sit outside the topic this lesson is in, so say in passing what the reader would go there for.'
+        : ''
+    }\n${[...here, ...over].map(named).join('\n')}`
   : ''}
 
 Never announce a block or label it in the prose -- no "steps:", no "here is a chart", no "see the table below". Each block prints its own title, so a line introducing one is a line printed twice.

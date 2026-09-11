@@ -4,6 +4,8 @@
 .editor {
   border: 1px solid var(--paper-edge);
   background: var(--paper-deep);
+  /* The `@` menu is printed against the box it is being typed in. */
+  position: relative;
 }
 
 .editor:focus-within {
@@ -117,4 +119,85 @@
   color: inherit;
   text-decoration: underline;
   text-decoration-color: var(--plate-mustard);
+}
+
+/* --- Naming a topic or a lesson ------------------------------------
+
+   A slip of paper laid over the writing at the point the `@` was
+   typed. Ruled and square like everything else on the sheet: it is a
+   drawer of the catalogue pulled out where you are standing, not a
+   floating chrome popover. */
+.mentions {
+  position: absolute;
+  z-index: 30;
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+  min-width: 16rem;
+  max-width: min(24rem, 80vw);
+  max-height: 14rem;
+  overflow-y: auto;
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  /* Printed rather than floated: one hard shadow, no blur halo. */
+  box-shadow: 3px 3px 0 rgba(36, 29, 22, 0.12);
+}
+
+.mention {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  cursor: pointer;
+  font-family: var(--font-text);
+  font-size: var(--step-0);
+  color: var(--ink);
+}
+
+.mentions li:last-child .mention {
+  border-bottom: none;
+}
+
+/* Where the cursor stands, in the ink of the sheet. The same treatment
+   the formatting controls use when they are on, so one idea of
+   "chosen" runs through the box. */
+.chosen {
+  background: var(--plate-green);
+  color: var(--paper);
+}
+
+.mentionTitle {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Which drawer it came out of. A label, in the label register. */
+.mentionKind {
+  flex: none;
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.chosen .mentionKind {
+  color: var(--paper-deep);
+}
+
+/* A name already written in, inside the box. Set the same way it will
+   print once the note is saved, so what is typed looks like what is
+   kept. */
+.box a[href^='/topics/'],
+.box a[href^='/lesson/'] {
+  color: var(--plate-green);
+  text-decoration-color: var(--plate-green);
+  text-underline-offset: 0.22em;
 }

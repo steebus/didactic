@@ -7,7 +7,7 @@ in the same commit as the code that changes it.
 **Mobile runtime:** not yet scaffolded. When Phase 4 lands, record the Expo
 SDK and React Native versions here.
 
-**Shared packages, as at 2026-09-11:** `@didactic/core` (20 modules) and
+**Shared packages, as at 2026-09-11:** `@didactic/core` (24 modules) and
 `@didactic/tokens` exist and are read by `apps/web`. The *Shared via*
 column below names where a row's logic will live; for rows whose module
 has shipped, it now names something real rather than something planned.
@@ -62,15 +62,20 @@ or `—` when a row is rendering only.
 | Upload a PDF | built | planned (5) | `api/resources.upload` | Multipart on both. |
 | Mark a resource consumed at a depth | built | planned (5) | `api/resources.patch`, `core/config.DEPTH_WEIGHTS` | |
 | Adjudicate pending topics | built | planned (5) | `api/topics.decide` | Merge, split, keep. |
+| Add a topic by name, placed in the bed it was added to | built | planned (5) | `api/subjects.topics` | Two readings: the resolver against the whole map, then an LLM sort against this bed, which draws the edges that put it under something. The sort may raise an adjudication and may never settle one. |
 | Sow: qualifying questions answered during the form | built | planned (5) | `api/subjects.qualify` | |
 | Draft, reshape, approve a curriculum | built | planned (5) | `api/curricula`, `core/curriculum` | |
 | Write a lesson body; write it again | built | planned (5) | `api/lessons.writeBody` | |
 | Complete a lesson at a depth | built | planned (5) | `api/lessons.patch` | |
 | Lesson blocks: chart, check, compare, steps, flow, picture | built (SVG + DOM) | planned (5) | `reader` | The same components inside the reader; every plot ships its figures on both. |
-| Contents band | built | planned (5) | `reader`, `core/sections` | One column on the phone. |
+| Contents band | built | planned (5) | `reader`, `core/sections` | One column on the phone. Travelling to a section writes the hash without a navigation; see `lib/hash.ts`. |
+| Lesson links out to other lessons | built | planned (5) | `reader`, `core/lessonLinks` | Named `lesson:<slug>` in the body, resolved when it is read against the topic and the topics its subjects hold. |
+| A named lesson that does not exist prints as a stub | built | planned (5) | `core/lessonLinks` | Faint ink and a dotted rule, no href, `title` saying so. Colour is not the carrier. |
 | Marks: draw kept passages onto the prose | built (DOM walk) | planned (5) | `reader/paintMarks` | The same walker, in the WebView. |
 | Marks: select any range and keep it, across elements | built | planned (5) | `reader/Highlighter` | Full parity through the reader (D9). The per-paragraph native fallback would be `partial` and is not the plan. |
 | Marks: a note on the lesson with no passage | built | planned (5) | — | *A note on this lesson* wording shared. |
+| Marks: name a topic or a lesson in a note with `@` | built | planned (5) | `core/mentions`, `core/mentionSearch` | Suggestions as you type, from `api/mentions`. What is chosen is written in as a link to that thing's own address, so it needs no scheme and survives the editor's round trip. |
+| Marks on the bed, with what they are about | built | planned (6) | `core/graphMarks` | A layer like material and lessons, off until asked for. Two kinds of line: faint to the topic it was marked in, stronger to everything the note names. Newest 500. |
 | Marks: the list beside the reading, in the lesson's order | built | planned (5) | `reader/MarkList`, `core/marks.inReadingOrder` | `DESIGN.md` *The marks beside the reading*. Sorted by where `paintMarks` landed each mark, never by when it was kept. Pressing a passage travels to it. On a phone it is over the reading and puts itself away first; the swipe that opens it is the WebView's to carry (D9). |
 | Note editor with bold, italic, lists | built (`execCommand`) | planned (5) | `reader/NoteEditor` | The same editor, inside the reader; the soft keyboard is the native side's to handle. |
 | Refresher generation | built | planned (5) | `api/refresher.write` | |
@@ -95,7 +100,7 @@ or `—` when a row is rendering only.
 | Row-level security on every table | built; applied per project | `024_row_level_security.sql`: all 18 tables under `public`, owner policy on the nine carrying `user_id` (`highlights` kept its own from 020), join tables through their parent. Storage's `resources` bucket joins back through `resources.storage_path`, because upload paths carry no owner id. Service role unaffected. Every step is idempotent, because a project that was already live when this was written takes it by hand: a migration in the tree is not a migration on a database, and this one was found missing on the remote project while the local stack had it. Check with a publishable-key `select` on `topics` — it must return nothing. |
 | Realtime publication for `resources` and `topics` | built | For the phone's tally and inbox. A publication is not a grant: RLS still decides what a subscriber sees. |
 | Read endpoints for server-rendered sheets | built | `/api/home`, `/api/library`, `/api/inbox`, `/api/graph`, `…/area`, `…/sowing`. |
-| Typed API client (`@didactic/api`) | built | One function per route, `Result<T>` from `readJson`, never throws on an HTTP error. `ENDPOINTS` names the tags each write drops, read by the server cache and the phone's query cache both. |
+| Typed API client (`@didactic/api`) | built | One function per route, `Result<T>` from `readJson`, never throws on an HTTP error. `ENDPOINTS` names the tags each write drops, read by the server cache and the phone's query cache both. `mentions.search` is the one read asked on a keystroke; it drops a stale answer rather than aborting, because the client takes no signal and a menu only needs the newest. |
 | Scoring maths in the Deno edge functions | none duplicated | Checked at 2.8: neither function holds any. `embed` runs gte-small and answers a vector; `ingest` claims a queue message and calls `/api/internal/ingest`, where the maths already lives. A Deno import map at `packages/core/src` is only needed if one ever computes a figure of its own. |
 
 ## How to change this file

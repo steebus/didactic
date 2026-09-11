@@ -94,6 +94,20 @@
   text-decoration-color: var(--plate-terracotta);
 }
 
+/* A lesson named in the prose that is not on the map. The words stay
+   -- the sentence was built on them -- and what changes is that they
+   stop being a way anywhere: faint ink, and a broken rule under them
+   instead of a solid one. Colour is never the only carrier, so the
+   dotted rule reads the same without it and the title says it in
+   words. Printed without an href, so it is not in the tab order and
+   not pressable: there is nothing behind it yet. */
+.prose a[data-stub] {
+  color: var(--ink-faint);
+  text-decoration: underline dotted var(--rule);
+  text-underline-offset: 0.22em;
+  cursor: default;
+}
+
 /* Inline code: set in the ground's own tint, not a grey chip. */
 .prose code {
   font-family: ui-monospace, 'SFMono-Regular', 'Cascadia Mono', Menlo, monospace;

@@ -913,6 +913,26 @@ The chrome carries the design rather than defaulting:
   `border-radius: 0`, with a `3px solid var(--paper)` inset border on WebKit.
 - Links at rest — `text-decoration-color: var(--rule)`, `1px` thick,
   `0.22em` offset; hovering to `--plate-terracotta`.
+- A lesson named in prose that is not on the map — `--ink-faint`, and the
+  rule under it broken (`underline dotted var(--rule)`) rather than solid.
+  Printed with no `href`, so it is neither pressable nor in the tab order,
+  and carries a `title` saying there is no lesson for it yet.
+
+**Rule — a name in a note is a link, and looks like one.** `@` in a note
+names a topic or a lesson, and what is kept is a markdown link to that
+thing's own address. So it is set apart from a link out of the catalogue by
+where it points rather than by a class: `--plate-green` ink and underline
+against the terracotta a link out carries, hovering to terracotta like
+everything else. The `@` the reader typed stays in the words, which is what
+makes it read as a tag; the colour only says it goes somewhere inside.
+
+**Rule — a link to nothing keeps its words and loses its way.** A lesson
+links out to the lessons around it, and a body outlives the rows near it: a
+route is reshaped, a lesson is grubbed out, and a link that reached
+something in March reaches nothing in June. The sentence was built on those
+words, so the words stay and print — what goes is the way anywhere. Three
+carriers, none of them load-bearing alone: faint ink, a broken rule, and
+the title.
 
 ---
 
@@ -962,6 +982,17 @@ Recorded because the document is a description, not a defence.
   address is real, but it cannot check one, and a link that worked in March can
   be gone in June. The block is built to fail readably rather than to promise
   the picture will hold.
+- **The bed draws the newest 500 marks and no more.** A reader who marks
+  freely has thousands, and past a point they stop being a layer over the
+  planting and become the planting. The rest are on the marked sheet, where
+  they are searched rather than laid out. Named as `MARKS_ON_THE_BED`.
+- **A lesson names its neighbours, and cannot check them.** A body is
+  written once and cached on the row; the map under it goes on moving. The
+  names are resolved every time the lesson is read rather than frozen in
+  when it was written, which is what lets a link that has stopped reaching
+  anything say so — but nothing goes back and mends the prose around it, so
+  a sentence can end up leaning on a stub. The same ceiling as the picture
+  block, for the same reason: written from a map the writer cannot re-check.
 - **No dark mode**, by construction. See §1.
 - **No reduced-motion guard**, by decision rather than by oversight. See §7.
 - **Screenshots in `.impeccable/review/` are stale** — they predate several

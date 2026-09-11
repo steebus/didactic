@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { editorHtmlToMarkdown, markdownToEditorHtml } from '@/lib/richText'
+import { useMentions } from './useMentions'
 import styles from './NoteEditor.module.css'
 
 /** The formatting a note is allowed to carry, and what draws it. */
@@ -24,6 +25,10 @@ const COMMANDS = [
  * because the alternative is writing a text editor. For four commands
  * over a paragraph or two it is the right amount of machinery; if it
  * ever goes, this component is the only thing that has to change.
+ *
+ * `@` names a topic or a lesson. What is chosen is written in as a
+ * link to that thing's own address, which is all a tag is -- see
+ * `@didactic/core/mentions`.
  */
 export function NoteEditor({
   value,
@@ -58,6 +63,8 @@ export function NoteEditor({
     mine.current = markdown
     onChange(markdown)
   }, [onChange])
+
+  const mentions = useMentions(box, report)
 
   // Filled from the outside: on opening, and when the note is replaced
   // by something other than typing in it.
@@ -148,7 +155,13 @@ export function NoteEditor({
         aria-label={label}
         data-placeholder={placeholder}
         data-empty={empty || undefined}
-        onInput={report}
+        // While a name is being typed the menu owns the arrows and the
+        // return key, and nothing else.
+        onKeyDown={e => mentions.onKeyDown(e)}
+        onInput={() => {
+          report()
+          mentions.read()
+        }}
         // Pasted markup is not what was written: a paste out of another
         // page carries its styling, its links and whatever else was in
         // the clipboard. The words are taken and the rest is left.
@@ -159,6 +172,38 @@ export function NoteEditor({
         }}
         onBlur={report}
       />
+
+      {mentions.at && (
+        // Printed where the `@` is rather than where the cursor has
+        // got to, so it does not walk sideways as the name is typed.
+        <ul
+          className={styles.mentions}
+          style={{ left: mentions.at.left, top: mentions.at.top }}
+          role="listbox"
+          aria-label="Topics and lessons"
+        >
+          {mentions.suggestions.map((suggestion, i) => (
+            <li key={`${suggestion.kind}:${suggestion.id}`}>
+              <button
+                type="button"
+                className={`${styles.mention} ${i === mentions.active ? styles.chosen : ''}`}
+                role="option"
+                aria-selected={i === mentions.active}
+                // The press must not take the cursor out of the box,
+                // or there is nothing left to write the name into.
+                onMouseDown={e => e.preventDefault()}
+                onMouseEnter={() => mentions.setActive(i)}
+                onClick={() => mentions.choose(suggestion)}
+              >
+                <span className={styles.mentionTitle}>{suggestion.title}</span>
+                <span className={styles.mentionKind}>
+                  {suggestion.kind === 'topic' ? 'Topic' : 'Lesson'}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }

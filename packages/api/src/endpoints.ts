@@ -58,6 +58,7 @@ export const ENDPOINTS = {
   'curricula.get': { name: 'curricula.get', method: 'GET', path: '/api/curricula/[id]', invalidates: [] },
   'lessons.get': { name: 'lessons.get', method: 'GET', path: '/api/lessons/[id]', invalidates: [] },
   'highlights.list': { name: 'highlights.list', method: 'GET', path: '/api/highlights', invalidates: [] },
+  'mentions.search': { name: 'mentions.search', method: 'GET', path: '/api/mentions', invalidates: [] },
 
   /* writing */
   'subjects.sow': { name: 'subjects.sow', method: 'POST', path: '/api/subjects', invalidates: SOWING_WIDE },

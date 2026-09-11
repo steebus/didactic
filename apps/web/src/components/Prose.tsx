@@ -3,6 +3,7 @@
 import { useMemo } from 'react'
 import { renderMarkdown } from '@/lib/markdown'
 import { parseBlocks } from '@didactic/core/blocks'
+import { lessonRoster, type LessonLink } from '@didactic/core/lessonLinks'
 import { Block } from './blocks/Block'
 import styles from './Prose.module.css'
 
@@ -22,8 +23,22 @@ import styles from './Prose.module.css'
  * sanitised into safety. The prose around them is handled exactly as
  * it was.
  */
-export function Prose({ markdown }: { markdown: string }) {
+export function Prose({
+  markdown,
+  lessons,
+}: {
+  markdown: string
+  /**
+   * The lessons this one may point at: the rest of its topic, and the
+   * topics its subjects hold. A name in the prose that none of these
+   * answer to prints as a stub. Left off -- a refresher, a note --
+   * every such name is a stub, which is the truth: there is no map
+   * around that text to reach into.
+   */
+  lessons?: LessonLink[]
+}) {
   const parts = useMemo(() => parseBlocks(markdown), [markdown])
+  const roster = useMemo(() => lessonRoster(lessons ?? []), [lessons])
 
   return (
     <>
@@ -31,15 +46,21 @@ export function Prose({ markdown }: { markdown: string }) {
         part.kind === 'block' ? (
           <Block key={i} name={part.name} data={part.data} />
         ) : (
-          <ProseText key={i} markdown={part.text} />
+          <ProseText key={i} markdown={part.text} lessons={roster} />
         )
       )}
     </>
   )
 }
 
-function ProseText({ markdown }: { markdown: string }) {
-  const html = useMemo(() => renderMarkdown(markdown), [markdown])
+function ProseText({
+  markdown,
+  lessons,
+}: {
+  markdown: string
+  lessons: Map<string, LessonLink>
+}) {
+  const html = useMemo(() => renderMarkdown(markdown, undefined, lessons), [markdown, lessons])
 
   return (
     <div

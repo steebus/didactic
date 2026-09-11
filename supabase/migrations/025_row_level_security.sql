@@ -32,6 +32,10 @@
 
 -- 1. The nine tables that carry the owner's id.
 --
+-- `highlight_tags` is absent for the same reason `highlights` is: 024
+-- creates it with its own RLS and owner policy, so it arrives locked
+-- and this migration has nothing to add.
+--
 -- `highlights` is deliberately absent: 020 already enables RLS and
 -- creates highlights_owner with exactly this shape, so there is nothing
 -- for this migration to add. Listing it here would drop and recreate a

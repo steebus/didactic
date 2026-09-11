@@ -40,6 +40,25 @@ export interface Planting {
     completed_at: string | null
     curriculum_id: string
   }>
+  /**
+   * Kept passages, and what their notes name.
+   *
+   * `topic_id` is where the mark came from — the topic its lesson
+   * teaches. The tagged ids are what the reader said it was *about*,
+   * which is very often somewhere else: that is the whole reason for
+   * naming things in a note. Newest `MARKS_ON_THE_BED` only.
+   */
+  marks: Array<{
+    id: string
+    /** A mark has no title, so `core/graphMarks` names it by what it says. */
+    label: string
+    topic_id: string | null
+    lesson_id: string
+    /** Whether anything was written, or only a passage kept. */
+    noted: boolean
+    topic_ids: string[]
+    lesson_ids: string[]
+  }>
   subjects: Array<Pick<Subject, 'id' | 'title' | 'colour'>>
 }
 

@@ -100,17 +100,32 @@ export function SubjectBed({
       const { ok, body, error: failed } = await api.subjects.addTopic(subjectId, name)
       if (!ok) throw new Error(failed ?? 'Could not add that.')
 
-      // The resolver decides what actually happened, and saying so is
-      // the difference between a map the user trusts and one that
-      // quietly merges things behind them.
+      // What actually happened, said plainly. Two readings decide it
+      // now -- the resolver against the whole map, the sort against
+      // this bed -- and saying which one spoke is the difference
+      // between a map the user trusts and one that rearranges itself
+      // behind them.
+      // The count is absent where the sort never ran -- no key, an
+      // unreadable bed -- which is not the same as nought edges drawn.
+      // Either way there is nothing to say about placement.
+      const drawn = body.placed ?? 0
+      const placed =
+        drawn > 0 ? ` Related to ${drawn} ${drawn === 1 ? 'topic' : 'topics'} here.` : ''
+
       setNote(
-        body.action === 'linked'
-          ? `"${name}" already existed elsewhere on the map, so it has been filed here too — with its history.`
-          : body.action === 'already-filed'
-            ? `"${name}" is already in this subject.`
-            : body.action === 'pending'
-              ? `"${name}" looks close to something you already have, so it is waiting for you to say whether they are the same thing.`
-              : `"${name}" sown.`
+        [
+          body.action === 'linked'
+            ? `"${name}" already existed elsewhere on the map, so it has been filed here too — with its history.${placed}`
+            : body.action === 'already-filed'
+              ? `"${name}" is already in this subject.`
+              : body.action === 'pending'
+                ? body.queriedBy === 'sort'
+                  ? `"${name}" reads as something already in this bed under another name, so it is waiting for you to say whether they are the same thing.`
+                  : `"${name}" looks close to something you already have, so it is waiting for you to say whether they are the same thing.`
+                : `"${name}" sown.${placed}`,
+          body.note ?? '',
+          ...(body.warnings ?? []),
+        ].filter(Boolean).join(' ')
       )
       setTitle('')
       startTransition(() => router.refresh())

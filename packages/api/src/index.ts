@@ -22,6 +22,7 @@ import { home } from './home'
 import { inbox } from './inbox'
 import { lessons } from './lessons'
 import { library } from './library'
+import { mentions } from './mentions'
 import { refresher } from './refresher'
 import { resources } from './resources'
 import { settings } from './settings'
@@ -62,6 +63,7 @@ export function didactic(options: ApiOptions = {}) {
     inbox: inbox(api),
     lessons: lessons(api),
     library: library(api),
+    mentions: mentions(api),
     refresher: refresher(api),
     resources: resources(api),
     settings: settings(api),

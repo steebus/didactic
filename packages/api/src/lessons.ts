@@ -1,4 +1,5 @@
 import type { Api } from './client'
+import type { LessonLink } from '@didactic/core/lessonLinks'
 import type {
   Curriculum,
   ExposureDepth,
@@ -26,6 +27,14 @@ export interface LessonDetail {
   resources: Array<{ relevance: number; resources: Resource }>
   highlights: Highlight[]
   requires: Array<{ id: string; title: string; completed_at: string | null }>
+  /**
+   * Every lesson this one may point at: the rest of its topic first,
+   * then the topics its subjects hold. Resolved when the lesson is
+   * read rather than frozen into the body when it was written, so a
+   * `lesson:` name whose target has gone prints as a stub instead of
+   * a dead end.
+   */
+  links: LessonLink[]
   /** Derived, so the sheet never has to trust a stored flag. */
   available: boolean
 }

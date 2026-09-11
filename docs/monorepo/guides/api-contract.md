@@ -71,7 +71,7 @@ the phone's query cache.
 | GET | `/api/topics/pending` | — | `PendingTopic[]` | |
 | GET | `/api/resources` | — | resources | |
 | GET | `/api/curricula/[id]` | — | curriculum with lessons and prereqs | |
-| GET | `/api/lessons/[id]` | — | lesson with body | |
+| GET | `/api/lessons/[id]` | — | lesson with body, and `links`: the lessons it may point at | `links` resolves the body's `lesson:` names at read time, so a reshaped route turns a link into a stub rather than a dead end. |
 | GET | `/api/highlights` | `q` | highlights, filtered when `q` is given | |
 | GET | `/api/books/search` | `q` | `BookMatch[]` from Open Library | Falls back to nothing silently. |
 | GET | `/api/settings` | — | nothing yet | **Planned (3).** Exists so the sheet has somewhere to grow. |
@@ -83,7 +83,7 @@ the phone's query cache.
 | POST | `/api/subjects` | subject, roots, depth, confident, gaps, evidence, qualifiers | subjects, topics, resources | Sowing. Takes up to a minute; expect 504 sentences. |
 | POST | `/api/subjects/qualify` | subject, roots, confident, depth | — | The 5–10 questions, in difficulty order. |
 | DELETE | `/api/subjects/[id]` | — | subjects, topics | Grub out the bed. |
-| POST | `/api/subjects/[id]/topics` | title | subjects, topics | Add a topic to the bed. |
+| POST | `/api/subjects/[id]/topics` | title | subjects, topics, pending | Add a topic to the bed, and place it in it. Answers `action`, `queriedBy` (which reading raised an adjudication), `placed` (edges drawn), `note`, `warnings`. |
 | DELETE | `/api/subjects/[id]/topics` | topicId | subjects, topics | Grub a topic out. |
 | POST | `/api/subjects/[id]/relate` | — | topics | Draw the bed's connections. |
 | POST | `/api/subjects/[id]/resow` | — | subjects, topics | Lay the bed out again from its answers. |
@@ -103,7 +103,8 @@ the phone's query cache.
 | DELETE | `/api/lessons/[id]` | — | topics | |
 | POST | `/api/lessons/[id]/body` | regenerate? | — | Write, or write again. |
 | POST | `/api/refresher/[topicId]` | — | — | |
-| POST | `/api/highlights` | lessonId, quote, prefix, note | highlights, topics | A mark is the lightest exposure. |
+| POST | `/api/highlights` | lessonId, quote, prefix, note | highlights, topics | A mark is the lightest exposure. What the note names is indexed from the note. |
+| GET | `/api/mentions` | `q` | — | What an `@` in a note could mean: topics and lessons the owner holds, ranked for typing. Empty `q` offers the most recent. |
 | PATCH | `/api/highlights` | id, note | highlights | |
 | DELETE | `/api/highlights` | id | highlights, topics | |
 

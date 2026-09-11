@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { generateLessonBody } from '@/lib/llm/curriculum'
+import { lessonsWithinReach } from '@/lib/curriculum'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
 
@@ -90,6 +91,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         .limit(40)
     : { data: [] }
 
+  // The lessons this one may point at, so the body can be written into
+  // a map rather than into a page on its own. The same reading the
+  // reader's own request makes, so what is offered here is what will
+  // resolve there.
+  const links = await lessonsWithinReach(db, curriculum.topic_id, id)
+
   let body: string
   try {
     body = await generateLessonBody({
@@ -117,6 +124,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
             }]
           : []
       ),
+      links,
       nearby: dedupe(
         (nearby ?? []).flatMap(r =>
           r.resources
