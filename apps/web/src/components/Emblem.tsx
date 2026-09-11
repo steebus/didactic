@@ -1,3 +1,10 @@
+import { specimenIndex } from '@didactic/core/specimens'
+
+// Re-exported: the sheets that name a subject's plate take both from
+// here, and the rule for which specimen a slug draws is shared so the
+// phone picks the same one.
+export { slugify } from '@didactic/core/specimens'
+
 /**
  * Subject plates. Flat two-colour forms in the register of a catalogue
  * engraving: one silhouette, one ink, no gradients. Each subject gets a
@@ -125,19 +132,15 @@ const SPECIMENS: React.ReactNode[] = [
  * precisely the pair a reader most needs to tell apart.
  */
 function specimenFor(slug: string): React.ReactNode {
-  let n = 2166136261
-  for (let i = 0; i < slug.length; i++) {
-    n ^= slug.charCodeAt(i)
-    n = Math.imul(n, 16777619) >>> 0
-  }
-  return SPECIMENS[n % SPECIMENS.length]
+  return SPECIMENS[specimenIndex(slug, SPECIMENS.length)]
 }
 
 /**
- * The plate is printed as a solid colour field with the specimen
- * reversed out in paper, the way a chromolithograph catalogue prints
- * its illustrations. A line drawing floating on the ground is the
- * antiques-shop version of this world, not the world itself.
+ * A subject's plate: one silhouette reversed out of one ink.
+ *
+ * A named subject gets its own drawing; anything else gets a specimen
+ * chosen by `specimenIndex`, so the same subject keeps the same form
+ * between reloads, between sheets, and on the phone.
  */
 export function Emblem({
   slug,
@@ -170,8 +173,4 @@ export function Emblem({
       </g>
     </svg>
   )
-}
-
-export function slugify(title: string) {
-  return title.toLowerCase().replace(/&/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }

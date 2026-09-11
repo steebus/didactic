@@ -1,3 +1,4 @@
+import { EDGE_KIND_LABEL } from '@didactic/core/graph'
 import Link from 'next/link'
 import { NoteText } from '@/components/NoteText'
 import { notFound } from 'next/navigation'
@@ -12,13 +13,6 @@ import { routeProgress } from '@/lib/progress'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
 
-
-const EDGE_KIND_LABEL: Record<string, string> = {
-  prereq: 'sow first',
-  related: 'grows with',
-  specialises: 'variety of',
-  alternative: 'instead of',
-}
 
 export default async function TopicPage({
   params,

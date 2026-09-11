@@ -8,6 +8,16 @@ import FA2Supervisor from 'graphology-layout-forceatlas2/worker'
 import { SheetNav } from './SheetNav'
 import styles from './GraphCanvas.module.css'
 import { Setting } from '@/components/Setting'
+import {
+  EDGE_KIND_LABEL,
+  fade,
+  nodeSize,
+  edgeSize,
+  nodeFade,
+  hullFade,
+  labelInk,
+  LABEL_INK,
+} from '@didactic/core/graph'
 
 interface GraphTopic {
   id: string
@@ -53,33 +63,6 @@ interface GraphLesson {
   stage: string
   completed_at: string | null
   curriculum_id: string
-}
-
-const EDGE_KIND_LABEL: Record<string, string> = {
-  prereq: 'sow first',
-  related: 'grows with',
-  specialises: 'variety of',
-  alternative: 'instead of',
-}
-
-const PAPER = [239, 231, 214]
-
-/** Mix a plate colour toward the paper by the given amount. A dormant
- *  or unrelated seed sits back into the bed rather than disappearing.
- *
- *  Accepts hex or the rgb() strings this function itself returns, since
- *  hover fades colours that were already faded by freshness. */
-function fade(colour: string, amount: number) {
-  const rgb = colour.startsWith('#')
-    ? [
-        (parseInt(colour.slice(1), 16) >> 16) & 255,
-        (parseInt(colour.slice(1), 16) >> 8) & 255,
-        parseInt(colour.slice(1), 16) & 255,
-      ]
-    : (colour.match(/\d+/g) ?? ['0', '0', '0']).slice(0, 3).map(Number)
-
-  const mixed = rgb.map((c, i) => Math.round(PAPER[i] + (c - PAPER[i]) * amount))
-  return `rgb(${mixed.join(',')})`
 }
 
 export function GraphCanvas({
@@ -182,10 +165,10 @@ export function GraphCanvas({
       graph.addNode(t.id, {
         label: t.title,
         // Size by ability: a stronger holding is a larger seed.
-        size: 5 + t.ability * 2.4,
+        size: nodeSize(t.ability),
         // Dormancy is mixed into the fill itself. Sigma has no alpha
         // attribute, so a separate opacity key renders as nothing.
-        color: fade(colourFor(t), 0.3 + t.freshness * 0.7),
+        color: fade(colourFor(t), nodeFade(t.freshness)),
         x: Math.cos(base + jitter * 0.8) * radius,
         y: Math.sin(base + jitter * 0.8) * radius,
         freshness: t.freshness,
@@ -202,7 +185,7 @@ export function GraphCanvas({
       if (!visibleIds.has(e.from_topic) || !visibleIds.has(e.to_topic)) return
       if (graph.hasEdge(e.from_topic, e.to_topic)) return
       graph.addEdge(e.from_topic, e.to_topic, {
-        size: 0.9 + e.weight * 1.4,
+        size: edgeSize(e.weight),
         // Printed rules, not hairlines: the earlier value vanished on a
         // sunlit phone screen.
         color: 'rgba(90, 76, 56, 0.62)',
@@ -318,7 +301,7 @@ export function GraphCanvas({
       labelFont: 'var(--font-text-loaded), sans-serif',
       labelSize: 12,
       labelWeight: '500',
-      labelColor: { color: '#241d16' },
+      labelColor: { color: LABEL_INK },
       // Sigma hides labels that would collide; a larger grid cell means
       // it hides more of them rather than overprinting into mush.
       labelGridCellSize: 90,
@@ -418,7 +401,7 @@ export function GraphCanvas({
         const narrow = Math.min(1, width / 900)
         const size = (16 + Math.min(acc.n, 12) * 1.1) * (0.62 + narrow * 0.38)
         context.font = `600 ${size}px Georgia, serif`
-        context.fillStyle = fade(subject.colour, 0.35 + strength * 0.65)
+        context.fillStyle = fade(subject.colour, hullFade(strength))
         // A paper halo so a name over a dense bed stays readable.
         context.lineWidth = size * 0.28
         context.strokeStyle = 'rgba(239, 231, 214, 0.9)'
@@ -492,7 +475,7 @@ export function GraphCanvas({
 
       context.font = `500 ${settings.labelSize}px ${settings.labelFont}`
       context.globalAlpha = Math.min(1, Math.max(0.15, (1.5 - ratio) / 0.5))
-      context.fillStyle = d.freshness < 0.25 ? '#8a7d68' : '#241d16'
+      context.fillStyle = labelInk(d.freshness)
 
       // Flip the label to the left of its seed when it would otherwise
       // run off the right edge. On a phone the graph is narrow enough

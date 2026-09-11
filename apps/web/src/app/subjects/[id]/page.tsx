@@ -1,3 +1,4 @@
+import { EDITION_DATE as DATE } from '@didactic/core/copy'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { viabilityFigure } from '@/lib/scoring'
@@ -13,11 +14,6 @@ import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
 
 
-const DATE = new Intl.DateTimeFormat('en-GB', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-})
 
 export default async function SubjectPage({
   params,

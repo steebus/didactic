@@ -1,3 +1,4 @@
+import { EDITION_DATE as EDITION_DATE } from '@didactic/core/copy'
 import Link from 'next/link'
 import { viabilityFigure } from '@/lib/scoring'
 import { getHomeData } from '@/lib/home'
@@ -8,11 +9,6 @@ import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
 
 
-const EDITION_DATE = new Intl.DateTimeFormat('en-GB', {
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-})
 
 export default async function Home() {
   // The proxy has already turned unauthenticated traffic away; this is

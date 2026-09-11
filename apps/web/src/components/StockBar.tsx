@@ -3,39 +3,16 @@
  * so the state survives a monochrome screen or reduced colour vision —
  * see PRODUCT.md, Accessibility & Inclusion.
  *
- * Four named states, printed the way a stock table prints condition.
+ * The states, their labels and the hatch table live in
+ * `@didactic/core/stock`: the phone draws the same bar from the same
+ * numbers with `react-native-svg`. What is here is the `<svg>`.
  */
 
-export type StockState = 'in-season' | 'holding' | 'dormant' | 'unsown'
+import { stockState, STOCK_HATCH, stockFill, stockLabel } from '@didactic/core/stock'
 
-export function stockState(freshness: number, lastExposureAt: string | null): StockState {
-  if (lastExposureAt === null) return 'unsown'
-  if (freshness >= 0.6) return 'in-season'
-  if (freshness >= 0.25) return 'holding'
-  return 'dormant'
-}
-
-/**
- * Worst first: what has never been touched, then what has decayed
- * furthest. The order a bed is walked when deciding what to tend.
- */
-export const STOCK_ORDER: StockState[] = ['unsown', 'dormant', 'holding', 'in-season']
-
-export const STOCK_LABEL: Record<StockState, string> = {
-  'in-season': 'In season',
-  holding: 'Holding',
-  dormant: 'Dormant',
-  unsown: 'Unsown',
-}
-
-// Hatch density falls with viability: solid, then ruled, then sparse,
-// then an empty bed with only its outline.
-const HATCH: Record<StockState, { gap: number; width: number; angle: number }> = {
-  'in-season': { gap: 2, width: 2, angle: 45 },
-  holding: { gap: 4, width: 1.5, angle: 45 },
-  dormant: { gap: 7, width: 1, angle: 45 },
-  unsown: { gap: 0, width: 0, angle: 0 },
-}
+// Re-exported so the sheets that read a state alongside drawing a bar
+// keep their one import.
+export { type StockState, stockState, STOCK_LABEL, STOCK_ORDER } from '@didactic/core/stock'
 
 export function StockBar({
   freshness,
@@ -51,9 +28,9 @@ export function StockBar({
   height?: number
 }) {
   const state = stockState(freshness, lastExposureAt)
-  const hatch = HATCH[state]
+  const hatch = STOCK_HATCH[state]
   const id = `hatch-${state}-${colour.replace('#', '')}`
-  const filled = state === 'unsown' ? 0 : Math.max(0.06, freshness) * width
+  const filled = stockFill(freshness, state) * width
 
   return (
     <svg
@@ -66,7 +43,7 @@ export function StockBar({
          channels one name, so a screen reader heard 100 where the sheet
          printed 11 -- collapsing the distinction the product exists to
          make. The bar says what it actually shows. */
-      aria-label={`${STOCK_LABEL[state]}, freshness ${Math.round(freshness * 100)} per cent`}
+      aria-label={stockLabel(freshness, state)}
       style={{ display: 'block' }}
     >
       {hatch.gap > 0 && (

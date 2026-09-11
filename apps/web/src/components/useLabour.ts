@@ -21,39 +21,12 @@ import { useEffect, useState } from 'react'
  * ponytail: a plain sequence, no easing, no percentage. If the real
  * stages ever become legible, report those instead.
  */
-export const LABOURS = [
-  'Turning the ground…',
-  'Sifting the seed…',
-  'Reading the packet…',
-  'Consulting the almanac…',
-  'Squinting at the light…',
-  'Measuring the drills…',
-  'Arguing with the compost…',
-  'Spacing the rows…',
-  'Naming the seedlings…',
-  'Filing the labels…',
-  'Watering in…',
-  'Standing back…',
-  // The last one holds until the bed comes back, so it has to be a
-  // phrase that can be true for a while.
-  'Almost done…',
-]
+// The phrases live in `@didactic/core/copy`: the phone waits on the same
+// sowing and says the same things. What is here is the timing, which is
+// a React hook and cannot travel.
+import { LABOURS, labourPhrase } from '@didactic/core/copy'
 
-/**
- * Drawing the connections is one model call over the whole bed rather
- * than the sowing's several, so the list is shorter -- it holds on the
- * last phrase sooner, which is honest about there being one thing
- * happening rather than twelve.
- */
-export const DRAWINGS = [
-  'Walking the bed…',
-  'Looking for what leads to what…',
-  'Following the paths…',
-  'Tying in the runners…',
-  'Ruling the lines…',
-  'Standing back…',
-  'Almost done…',
-]
+export { LABOURS, DRAWINGS } from '@didactic/core/copy'
 
 /**
  * The phrase to print on a button while a bed is being laid out.
@@ -82,5 +55,5 @@ export function useLabour(busy: boolean, phrases: string[] = LABOURS): string {
     return () => clearInterval(tick)
   }, [busy])
 
-  return phrases[Math.min(step, phrases.length - 1)]
+  return labourPhrase(step, phrases)
 }
