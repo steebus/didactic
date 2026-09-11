@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseBlocks, blockPromptSection, BLOCKS } from '@/lib/blocks'
+import { parseBlocks, blockPromptSection, BLOCKS } from '../src/blocks'
 
 describe('parseBlocks', () => {
   it('leaves a body with no blocks alone', () => {

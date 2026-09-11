@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { lessonSections, outlineFrom, slugFor } from '@/lib/sections'
+import { lessonSections, outlineFrom, slugFor } from '../src/sections'
 
 describe('slugFor', () => {
   it('names a heading the way a link expects to be written', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { inReadingOrder, isUnsaved, UNSAVED } from '@/lib/marks'
-import type { Highlight as Mark } from '@/lib/types'
+import { inReadingOrder, isUnsaved, UNSAVED } from '../src/marks'
+import type { Highlight as Mark } from '../src/types'
 
 const mark = (id: string, quote = 'a passage'): Mark => ({
   id,

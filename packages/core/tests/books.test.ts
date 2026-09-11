@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { normaliseBooks, bookNote } from '@/lib/books'
+import { normaliseBooks, bookNote } from '../src/books'
 
 const doc = (over: Record<string, unknown> = {}) => ({
   key: '/works/OL1W',

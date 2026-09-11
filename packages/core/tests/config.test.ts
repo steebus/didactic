@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { config } from '@/lib/config'
+import { config } from '../src/config'
 
 describe('config', () => {
   it('exposes resolver thresholds with match above ambiguous', () => {

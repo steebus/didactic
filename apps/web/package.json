@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",
+    "@didactic/core": "*",
+    "@didactic/tokens": "*",
     "@mozilla/readability": "^0.6.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.115.0",

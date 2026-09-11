@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { panelSpot, pinSpot, type Box } from '@/lib/markAnchor'
+import { panelSpot, pinSpot, type Box } from '../src/markAnchor'
 
 /** A sheet of prose 640 wide, starting 20 in and 100 down the window. */
 const sheet: Box = { top: 100, bottom: 900, left: 20, right: 660 }
