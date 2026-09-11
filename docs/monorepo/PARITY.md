@@ -71,7 +71,7 @@ or `—` when a row is rendering only.
 | Contents band | built | planned (5) | `reader`, `core/sections` | One column on the phone. Travelling to a section writes the hash without a navigation; see `lib/hash.ts`. |
 | Lesson links out to other lessons | built | planned (5) | `reader`, `core/lessonLinks` | Named `lesson:<slug>` in the body, resolved when it is read against the topic and the topics its subjects hold. |
 | A named lesson that does not exist prints as a stub | built | planned (5) | `core/lessonLinks` | Faint ink and a dotted rule, no href, `title` saying so. Colour is not the carrier. |
-| Marks: draw kept passages onto the prose | built (DOM walk) | planned (5) | `reader/paintMarks` | The same walker, in the WebView. |
+| Marks: draw kept passages onto the prose | built (DOM walk) | planned (5) | `reader/paintMarks` | The same walker, in the WebView. Removing a mark takes the wash off the words on the press, from the panel and the list alike: both go through one removal that holds the id in `gone` until the sheet has caught up, or the next repaint draws the removed mark straight back. |
 | Marks: select any range and keep it, across elements | built | planned (5) | `reader/Highlighter` | Full parity through the reader (D9). The per-paragraph native fallback would be `partial` and is not the plan. |
 | Marks: a note on the lesson with no passage | built | planned (5) | — | *A note on this lesson* wording shared. |
 | Marks: name a topic or a lesson in a note with `@` | built | planned (5) | `core/mentions`, `core/mentionSearch` | Suggestions as you type, from `api/mentions`. What is chosen is written in as a link to that thing's own address, so it needs no scheme and survives the editor's round trip. |

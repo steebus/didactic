@@ -422,19 +422,20 @@ export function Highlighter({
     setBusy(false)
   }
 
-  async function remove() {
+  /**
+   * Remove the mark whose panel is open.
+   *
+   * The same removal the list does, so it behaves the same way: the
+   * passage comes off the prose on the press and the row is dropped
+   * behind the reader. It used to wait for the write and then only
+   * tell the sheet to re-read itself, which left the wash sitting on
+   * the words -- `gone` is what keeps a removed mark from being
+   * painted again, and this path never added to it. The next repaint
+   * drew it straight back, and the highlight stayed until a reload.
+   */
+  function remove() {
     if (!open || isUnsaved(open.mark.id)) return
-    setBusy(true)
-    setError(null)
-
-    const { ok, error: failed } = await api.highlights.remove(open.mark.id)
-    if (ok) {
-      setOpen(null)
-      onChanged?.()
-    } else {
-      setError(failed ?? 'Could not remove that.')
-    }
-    setBusy(false)
+    removeMark(open.mark.id)
   }
 
   // Escape closes whichever panel is up, which is the one keyboard
@@ -928,9 +929,9 @@ export function Highlighter({
                     type="button"
                     className={styles.cancel}
                     onClick={remove}
-                    disabled={busy || isUnsaved(open.mark.id)}
+                    disabled={isUnsaved(open.mark.id)}
                   >
-                    {busy ? 'Removing…' : 'Remove'}
+                    Remove
                   </button>
                   <button type="button" className={styles.cancel} onClick={() => setOpen(null)}>
                     Close
