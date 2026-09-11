@@ -5,8 +5,36 @@ curriculum), say how closely the bed should follow it, and have every lesson
 written under that subject cite the document — with a citation that opens the
 passage it came from.
 
-**Status:** plan. Nothing here is built. Written against the tree at
-`34e78b9`.
+**Status:** built, on `claude/pdf-subject-planning-kqx90m`. Written against
+the tree at `34e78b9` and kept as the record of why the thing is shaped
+the way it is.
+
+**Three things this plan got wrong, corrected in the building:**
+
+1. **The embeddings are 384-dimensional, not 1536.** The schema sketch
+   below copied `match_nodes` from `007`, which still says 1536 —
+   `015_local_embeddings` moved the whole map to gte-small's 384 and
+   `match_nodes` is simply a stale function nobody calls. The shipped
+   migration uses 384.
+2. **A `data-page` attribute would NOT have been stripped.** DOMPurify
+   passes `data-*` through by default (`ALLOW_DATA_ATTR`), which the
+   existing `a[data-stub]` styling should have told me. The page still
+   rides in the href's fragment, but because a citation ought to be a
+   whole address — followable, middle-clickable, copyable — not to get
+   round a restriction that was never there.
+3. **The bookmark spike was not a spike.** `pdf-parse`'s `getInfo()`
+   surfaces the outline directly, and `pdfjs-dist` — already underneath
+   it — resolves a destination to a page index. It went in as the
+   primary path, with the model reading the contents pages as the
+   fallback. Naming `pdfjs-dist` explicitly costs nothing: same copy,
+   same pinned version.
+
+**And one thing it found:** testing `extractFromPdf` against a real PDF
+for the first time showed that **no PDF had ever been ingested
+successfully**. It asked for text and info in a `Promise.all`, and pdfjs
+hands ownership of the backing array to its worker on the first call, so
+the second always died with a `DataCloneError`. Nothing caught it because
+the extractor's only fixture was an HTML article.
 
 ---
 
@@ -193,6 +221,8 @@ then create), all safe to run twice, because a merge to `main` applies them.
 
 ```sql
 -- 029: a document is read once, into passages.
+-- NOTE: as sketched this said vector(1536), copied from match_nodes.
+-- That was wrong; see the correction at the top. Shipped as 384.
 create table if not exists resource_passages (
   id uuid primary key default gen_random_uuid(),
   resource_id uuid not null references resources(id) on delete cascade,
@@ -202,7 +232,7 @@ create table if not exists resource_passages (
   page_to int not null,
   heading text,                      -- the chapter/section it fell under
   content text not null,
-  embedding vector(1536),
+  embedding vector(384),
   unique (resource_id, ordinal)
 );
 
@@ -247,9 +277,10 @@ it keep moving.
 
 `lib/markdown.ts:79` already overrides `marked`'s `link` renderer to intercept
 `lesson:`; `source:` slots in beside it. **Encode the page in the fragment, not
-in an attribute** — DOMPurify's `ALLOWED_ATTR` is `['href', 'title']`
-(`markdown.ts:122`) and a `data-page` would be stripped. This way nothing about
-the sanitiser changes.
+in an attribute** — though not for the reason given here when this was
+written: `data-*` survives DOMPurify by default. It stays in the fragment
+because a citation should be a whole address rather than an anchor plus a
+number, so it can be followed, middle-clicked and copied like any link.
 
 A `source:` name that no longer resolves prints as a stub, same as a dead
 `lesson:` link. The resolution logic goes in `packages/core/src/sourceLinks.ts`
@@ -330,7 +361,10 @@ too, which is mostly already there.
 the model invented is the failure mode to test for: assert every emitted
 `source:` name resolves to a passage that was in the prompt.
 
-**Phase 4 — the page image**, if tier 1 proves thin.
+**Phase 4 — the page image**, if tier 1 proves thin. *Not built.* It was
+conditional on the excerpt panel feeling thin in use, and that judgement
+needs the thing in front of a reader first. `getScreenshot()` is there
+when it is wanted.
 
 Each phase moves its rows in `docs/monorepo/PARITY.md` in the same commit, adds
 its routes to `docs/monorepo/guides/api-contract.md`, and keeps routes additive
