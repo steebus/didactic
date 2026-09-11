@@ -300,7 +300,14 @@ deploy from `main` is green before starting Phase 2.
   says row-level security is out of scope, and `PRODUCT.md` with it, in the
   same commit. `supabase/migrations/024_row_level_security.sql`: `enable row level security` on every table under `public` that lacks it, an owner policy `for all using (auth.uid() = user_id) with check (auth.uid() = user_id)` on the ten tables that carry `user_id` (subjects, topics, edges, resources, exposures, conversations, curricula, lessons, subject_sowings; highlights already has one), and for the join tables (`topic_subjects`, `resource_topics`, `resource_subjects`, `lesson_prereqs`, `lesson_resources`, `curriculum_sources`, `messages`, `ingestion_jobs`) a policy through `exists (select 1 from <parent> where id = <fk> and user_id = auth.uid())`. A storage policy on the bucket `017_sowings.sql` creates, owner-only. `tests/rls.integration.test.ts`: an anon client with no session reads zero rows from every table; with the owner's JWT it reads the owner's rows; the admin client is unaffected. Publish `resources` and `topics` to the `supabase_realtime` publication.
 - [x] **2.6 `packages/api`.** A typed client over every route in `guides/api-contract.md`: one function per endpoint, each naming the cache tag it invalidates, a `createApi({ baseUrl, headers })` factory so the web passes cookies and the phone passes a bearer token, and the request/response types imported from `@didactic/core` rather than restated. No React: callers wrap it in their own query layer.
-- [ ] **2.7 The web's client components use the client.** *Also clears the debt from 2.2:* every module moved to `core` left a one-line re-export at its old `@/lib/…` path so no call site had to move. Those shims come out in this pass, along with the halves of `scoring`, `curriculum` and `subject` that re-export their own core half. Until then `@/lib/x` and `@didactic/core/x` are both live and both correct. Replace the raw `fetch('/api/…')` calls in `GraphCanvas`, `PendingQueue`, `AddResource`, `InboxTally`, `Highlighter`, `SignOut`, `DraftCurriculum`, `subjects/new/page`, `ProofOfRoots`, `MarkedSheet`, `curriculum/[id]/page`, `lesson/[id]/page`, `refresher/[topicId]/page` with `@didactic/api`. Behaviour identical; the diff is mechanical and the gate is the existing tests plus a click through every sheet.
+- [ ] **2.7 The web's client components use the client.** *Enumerated from the tree on 2026-09-11, because the list this plan first carried was written before the code was counted and named thirteen call sites where there are forty-one.* Replace every raw `fetch('/api/…')` in `apps/web/src` with `@didactic/api`. **Seventeen files, forty-one call sites:** `components/Highlighter.tsx` (5), `app/marked/MarkedSheet.tsx` (3), `app/curriculum/[id]/page.tsx` (3), `app/lesson/[id]/page.tsx` (4), `app/subjects/new/ProofOfRoots.tsx` (4), `app/subjects/[id]/SubjectBed.tsx` (4), `components/GraphCanvas.tsx` (4), `app/subjects/new/page.tsx` (2), `app/subjects/[id]/GrubOut.tsx` (2), `app/library/LibrarySheet.tsx` (2), `app/refresher/[topicId]/page.tsx` (2), `components/AddResource.tsx`, `components/InboxTally.tsx`, `components/PendingQueue.tsx`, `components/ResourceList.tsx`, `components/SignOut.tsx`, `app/topics/[id]/DraftCurriculum.tsx` (1 each). The four this plan never named are `ResourceList`, `GrubOut`, `SubjectBed` and `LibrarySheet`; re-run the sweep rather than trusting this list a second time:
+  `grep -rn "fetch('/api/\|fetch(\`/api/" apps/web/src --include=*.tsx --include=*.ts`
+
+  The web calls `didactic({})` with no base URL and no headers — relative paths, cookies as they are now. Nothing throws, so a call site that read `res.ok` now reads `result.ok` and prints `result.error`, which is the sentence `readJson` already built. That is the one place the diff is not purely mechanical: a `catch` around a fetch becomes a branch on `ok`.
+
+  *Also clears the debt from 2.2 and 2.6:* twenty-one re-exports stand at old `@/lib/…` paths so no call site had to move when the code did. **Eleven are pure shims** whose whole body is one `export * from '@didactic/core/…'` — `blocks`, `books`, `config`, `http`, `markAnchor`, `marks`, `outline`, `progress`, `sections`, `tags`, `types` — and those files are deleted once their importers point at the package. **Three are split modules** that keep their own writing half beside a re-export of the pure half: `scoring` (60 lines), `curriculum` (66) and `subject` (230); these keep their files and lose only the `export *` line. **Seven re-export response shapes** added by 2.6 — `highlights`, `home`, `library`, `pending`, `sowing`, `subject`, `topic` — and those keep both the import and the file, because each module names its own shape in its own signatures; only the `export type { … }` line goes. Until this pass, `@/lib/x` and `@didactic/core/x` are both live and both correct.
+
+  **Gate:** `npx turbo run lint typecheck test` green, `npx turbo run build --filter=@didactic/web` green, and a click through every sheet — the tests do not cover a component's fetch, which is the whole reason this is a click-through rather than a diff review.
 - [ ] **2.8 Scripts and edge functions.** `scripts/*.ts` import from `@didactic/core`. Leave `supabase/functions` on their own copies of any maths for now and record the duplication in `PARITY.md` under *Backend*; a Deno import map pointing at `packages/core/src` is a follow-up, not a blocker.
 - [ ] **2.9 Agent files.** `docs/monorepo/agents/packages.CLAUDE.md` to `packages/CLAUDE.md`.
 
@@ -392,7 +399,9 @@ sits beside the web's at 390px in the PR, and the web sheet was not touched
 
 ## 2a. Where the work stands
 
-*Written 2026-09-11, at the end of a working session.*
+*Written 2026-09-11, at the end of a working session, and kept current
+through it. Read this section and the one after it before starting: they
+are what the last session knew and this one does not.*
 
 **Phase 1 is landed on `main`** and deployed: the web app lives in
 `apps/web`, the repo runs through turbo, Vercel's Root Directory is set,
@@ -401,10 +410,11 @@ deliberately not in CI — Vercel builds every push through its GitHub
 connection, so a CI build would be a second build of the same commit
 needing the service role key in Actions to report what Vercel reports.
 
-**Phase 2 is most of the way done, on the `refactor` branch** (eight
-commits, pushed, not merged): 2.1 through 2.6 are complete. 366 tests
-pass — 226 in the web, 127 in core and 13 in the new `api` — plus
-tokens' 51.
+**Phase 2 is most of the way done, on the `refactor` branch**, pushed and
+not merged: 2.1 through 2.6 are complete, 2.7 through 2.9 are open. 366
+tests pass — 226 in the web, 127 in core and 13 in the new `api` — plus
+tokens' 51. `git log main..refactor` is the commit list; each task is its
+own commit and reverts on its own.
 
 2.4 as built: `getOwner()` reads `Authorization: Bearer <jwt>` before it
 reads cookies and verifies it on the anon client, so a bad token is never
@@ -444,8 +454,21 @@ nothing throwing on an HTTP error. `library.ts` is a fourteenth module
 in a package whose `lib` is `esnext` — the body type is `FormData` and is
 otherwise inferred, which keeps `dom` out of a package the phone reads.
 
-**Next, in order:** 2.7 (the web's client components use the client, and
-the `@/lib/…` shims come out), then 2.8–2.9.
+**Next: 2.7**, whose entry above was re-counted against the tree and now
+names all forty-one call sites and all twenty-one re-exports. Then 2.8
+(scripts import from `core`) and 2.9 (the agent file moves), both small.
+
+**Before starting anything, three things about this machine.** The local
+Supabase stack is what 2.5 must be verified against and what the
+integration tests need: `npx supabase status` to see it, `npx supabase
+migration up` to bring it current — it was found nine migrations behind
+mid-2.5 and a table list read from a stale schema is how a table stays
+silently unlocked. There is no `psql` on PATH; reach the database with
+`docker exec -i supabase_db_didactic psql -U postgres -d postgres`, and
+note the `-i`, without which a heredoc silently does nothing. And a
+heredoc through the Bash tool breaks on apostrophes in prose comments —
+write files with the editor tool rather than `cat <<EOF` when the content
+has any.
 
 ### Things that cost time, so they are written down
 
@@ -475,6 +498,16 @@ the `@/lib/…` shims come out), then 2.8–2.9.
   the schema rather than the row. It reads exactly like a broken RLS
   policy, which is what made it expensive to find during 2.5. The seed now
   writes them empty, on both the insert and the conflict-update path.
+- **A re-export does not bind the name locally.** `export type { X } from
+  './y'` makes `X` available to importers and *not* to the file that wrote
+  the line. Seven modules in 2.6 used their own shapes in their own
+  signatures and needed `import type { X }` beside the re-export; the
+  first typecheck after the move printed twenty-five errors that were all
+  this one mistake.
+- **The plan's own lists go stale, and quietly.** 2.5's table list was
+  three tables short, and 2.7's call-site list was twenty-eight short.
+  Both were right when written. Enumerate from the tree or the live schema
+  at the start of a task, and correct the entry in the same commit.
 - **Run all four gates, not the fast ones.** Lifting `slugify` out of
   `Emblem.tsx` destroyed the component; every test still passed, because no
   test imports it. Typecheck and the build caught it.
