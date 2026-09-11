@@ -562,6 +562,38 @@ rather than a roots stage name — never "Seedling" where the figure means lesso
 The drawing is shared; the words are not.
 
 
+### A model the reader can push on
+
+`chart` plots figures the writer already had. `model` computes them, from
+sliders the reader drags: what a rate rise does to a repayment, what doubling
+a contribution does to a pot. The difference is what it can teach — a plotted
+line shows one case, and the *shape of a response* is a thing you find by
+moving a number and watching.
+
+**Rule — the controls are above the plot.** They are the question; the plot is
+the answer. Two sliders to a row where there is room and one where there is
+not, never narrower than about ten characters, or the control cannot be dragged
+with any precision.
+
+**Rule — the slider is drawn, not inherited.** Rail in the sheet's own rule,
+thumb a mustard plate with an ink edge, on both engines' pseudo-elements. The
+one control a reader actually drives must not be the one thing on the sheet
+drawn by the operating system.
+
+**Rule — a figure that has no answer prints an em dash and says why.** The
+arithmetic runs out at the ends of some sliders (a payment formula divides by
+the rate, so a rate of nought has no answer in it). A line quietly missing its
+first point is exactly the kind of thing that spends the reader's trust in
+every other figure on the sheet, so the gap is stated in terracotta under the
+plot.
+
+**Rule — the payload stays data.** The formulas are read by `core/expression`,
+a closed arithmetic grammar: numbers, the names the block declared, five
+operators and eleven functions. No property access, no call but a whitelisted
+one, no globals, no strings. A lesson body is downstream of ingested web pages,
+so a formula is never only the model's own idea; `eval` would have traded away
+the whole reason blocks are safe.
+
 ### Lesson standing → the same stamp, one level down
 
 What the route chip does for a topic on a bed, the standing stamp does for a

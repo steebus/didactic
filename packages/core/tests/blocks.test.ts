@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { parseBlocks, blockPromptSection, BLOCKS } from '../src/blocks'
 import { parseBlanks, acceptsAnswer, allCorrect } from '../src/answers'
+import { readModel, runModel, type ModelSpec } from '../src/model'
 
 describe('parseBlocks', () => {
   it('leaves a body with no blocks alone', () => {
@@ -89,6 +90,41 @@ describe('the question examples are answerable', () => {
     const sort = payload<{ groups: string[]; items: Array<{ group: string }> }>('sort')
     const used = new Set(sort.items.map(i => i.group))
     for (const group of sort.groups) expect(used.has(group)).toBe(true)
+  })
+
+  it('the model example reads, runs, and pays itself off', () => {
+    // The example is what every model block written afterwards is
+    // modelled on, so it has to be a model that actually works --
+    // not merely one that parses.
+    const model = readModel(payload<ModelSpec>('model'))
+    expect(model).not.toBeNull()
+
+    const run = runModel(
+      model!,
+      Object.fromEntries(model!.sliders.map(s => [s.id, s.value]))
+    )
+    expect(run.incomplete).toBe(false)
+    expect(run.readouts[0].value).toBeGreaterThan(0)
+
+    // A repayment mortgage owes nothing at the end of its term. If the
+    // example's own arithmetic does not do that, it is teaching the
+    // shape of a wrong model.
+    const balance = run.series[0].values
+    expect(balance[0]).toBeGreaterThan(0)
+    expect(balance.at(-1)).toBeCloseTo(0, 4)
+  })
+
+  it('the model example works at both ends of every slider', () => {
+    // The prompt tells the writing agent to check this, so the example
+    // it is told to copy had better survive it.
+    const model = readModel(payload<ModelSpec>('model'))!
+    for (const slider of model.sliders) {
+      for (const end of [slider.min, slider.max]) {
+        const at = Object.fromEntries(model.sliders.map(s => [s.id, s.value]))
+        const run = runModel(model, { ...at, [slider.id]: end })
+        expect(run.incomplete, `${slider.id} at ${end}`).toBe(false)
+      }
+    }
   })
 
   it('the check example has exactly one right answer', () => {

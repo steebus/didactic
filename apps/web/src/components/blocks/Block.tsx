@@ -1,6 +1,7 @@
 'use client'
 
 import { Chart, type ChartData } from './Chart'
+import { Model, type ModelData } from './Model'
 import { Check, type CheckData } from './Check'
 import { Blank, type BlankData } from './Blank'
 import { Sort, type SortData } from './Sort'
@@ -25,6 +26,8 @@ export function Block({ name, data }: { name: string; data: unknown }) {
   switch (name) {
     case 'chart':
       return <Chart data={data as ChartData} />
+    case 'model':
+      return <Model data={data as ModelData} />
     case 'check':
       return <Check data={data as CheckData} />
     case 'blank':

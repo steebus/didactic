@@ -54,6 +54,34 @@ export const BLOCKS: BlockSpec[] = [
 }`,
   },
   {
+    name: 'model',
+    when:
+      'the lesson is about how one quantity responds to another and the shape of that response is the point -- what a rate rise does to a repayment, what doubling a contribution does to a pot. `chart` plots figures you already have; this computes them from sliders the reader moves, which is the only way to teach a response rather than one case of it. The formulas are arithmetic over the names you declare: + - * / % ^, brackets, and min, max, abs, sqrt, pow, exp, ln, log10, floor, ceil, round. Nothing else -- no conditionals, no text, no other functions. Every `let` may read the inputs and the lets above it; only a `series` may read the x. Check your formulas work at BOTH ends of every slider: one that divides by a rate has no answer at a rate of nought',
+    example: `{
+  "title": "What a rate rise does to a repayment",
+  "inputs": [
+    { "id": "principal", "label": "Borrowed", "unit": "£", "min": 50000, "max": 1000000, "step": 5000, "value": 250000 },
+    { "id": "rate", "label": "Rate", "unit": "%", "min": 0.5, "max": 12, "step": 0.1, "value": 5.5 },
+    { "id": "years", "label": "Term", "unit": "years", "min": 5, "max": 40, "step": 1, "value": 25 }
+  ],
+  "let": [
+    { "id": "r", "is": "rate / 100 / 12" },
+    { "id": "n", "is": "years * 12" },
+    { "id": "payment", "is": "principal * r / (1 - (1 + r) ^ (0 - n))" }
+  ],
+  "readouts": [
+    { "label": "Every month", "is": "payment", "unit": "£" },
+    { "label": "Interest over the term", "is": "payment * n - principal", "unit": "£" }
+  ],
+  "x": { "id": "year", "label": "Year", "from": 0, "to": "years", "steps": 26 },
+  "y": { "label": "Still owed (£)" },
+  "series": [
+    { "name": "Still owed", "is": "principal * ((1 + r) ^ n - (1 + r) ^ (year * 12)) / ((1 + r) ^ n - 1)" }
+  ],
+  "caption": "Drag the rate. The monthly figure moves less than you expect; the total interest moves far more."
+}`,
+  },
+  {
     name: 'check',
     when:
       'a point has just been made that is easy to nod along to and easy to get wrong; put the misconception in as a wrong answer',

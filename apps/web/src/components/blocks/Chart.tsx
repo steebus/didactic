@@ -65,6 +65,12 @@ export function Chart({ data }: { data: ChartData }) {
   const yAt = (v: number) => PAD.top + plotH - (v / max) * plotH
 
   const ticks = [0, 0.25, 0.5, 0.75, 1].map(f => Math.round(max * f))
+  // Label every nth point, for the largest n that still leaves about
+  // eight labels along the axis. Dropping every other one was enough
+  // while a chart meant a handful of figures typed into a lesson; a
+  // model computes its own points -- two dozen and more -- and every
+  // other one of those is still a solid line of overlapping type.
+  const every = Math.max(1, Math.ceil(count / 8))
   const bar = data.kind === 'bar'
   const slotW = plotW / Math.max(1, count - 1)
 
@@ -173,7 +179,7 @@ export function Chart({ data }: { data: ChartData }) {
           ))}
 
           {xs.slice(0, count).map((label, i) =>
-            count > 8 && i % 2 === 1 ? null : (
+            i % every !== 0 && i !== count - 1 ? null : (
               <text
                 key={i}
                 x={bar ? PAD.left + (i + 0.5) * (plotW / count) : xAt(i)}
