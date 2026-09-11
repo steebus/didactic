@@ -83,7 +83,7 @@ the phone's query cache.
 | POST | `/api/subjects` | subject, roots, depth, confident, gaps, evidence, qualifiers | subjects, topics, resources | Sowing. Takes up to a minute; expect 504 sentences. |
 | POST | `/api/subjects/qualify` | subject, roots, confident, depth | — | The 5–10 questions, in difficulty order. |
 | DELETE | `/api/subjects/[id]` | — | subjects, topics | Grub out the bed. |
-| POST | `/api/subjects/[id]/topics` | title | subjects, topics | Add a topic to the bed. |
+| POST | `/api/subjects/[id]/topics` | title | subjects, topics, pending | Add a topic to the bed, and place it in it. Answers `action`, `queriedBy` (which reading raised an adjudication), `placed` (edges drawn), `note`, `warnings`. |
 | DELETE | `/api/subjects/[id]/topics` | topicId | subjects, topics | Grub a topic out. |
 | POST | `/api/subjects/[id]/relate` | — | topics | Draw the bed's connections. |
 | POST | `/api/subjects/[id]/resow` | — | subjects, topics | Lay the bed out again from its answers. |

@@ -108,17 +108,30 @@ export function SubjectBed({
       const body = await res.json()
       if (!res.ok) throw new Error(body.error ?? 'Could not add that.')
 
-      // The resolver decides what actually happened, and saying so is
-      // the difference between a map the user trusts and one that
-      // quietly merges things behind them.
+      // What actually happened, said plainly. Two readings decide it
+      // now -- the resolver against the whole map, the sort against
+      // this bed -- and saying which one spoke is the difference
+      // between a map the user trusts and one that rearranges itself
+      // behind them.
+      const placed =
+        body.placed > 0
+          ? ` Related to ${body.placed} ${body.placed === 1 ? 'topic' : 'topics'} here.`
+          : ''
+
       setNote(
-        body.action === 'linked'
-          ? `"${name}" already existed elsewhere on the map, so it has been filed here too — with its history.`
-          : body.action === 'already-filed'
-            ? `"${name}" is already in this subject.`
-            : body.action === 'pending'
-              ? `"${name}" looks close to something you already have, so it is waiting for you to say whether they are the same thing.`
-              : `"${name}" sown.`
+        [
+          body.action === 'linked'
+            ? `"${name}" already existed elsewhere on the map, so it has been filed here too — with its history.${placed}`
+            : body.action === 'already-filed'
+              ? `"${name}" is already in this subject.`
+              : body.action === 'pending'
+                ? body.queriedBy === 'sort'
+                  ? `"${name}" reads as something already in this bed under another name, so it is waiting for you to say whether they are the same thing.`
+                  : `"${name}" looks close to something you already have, so it is waiting for you to say whether they are the same thing.`
+                : `"${name}" sown.${placed}`,
+          body.note ?? '',
+          ...(body.warnings ?? []),
+        ].filter(Boolean).join(' ')
       )
       setTitle('')
       startTransition(() => router.refresh())

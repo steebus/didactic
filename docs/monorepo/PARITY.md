@@ -57,6 +57,7 @@ or `—` when a row is rendering only.
 | Upload a PDF | built | planned (5) | `api/resources.upload` | Multipart on both. |
 | Mark a resource consumed at a depth | built | planned (5) | `api/resources.patch`, `core/config.DEPTH_WEIGHTS` | |
 | Adjudicate pending topics | built | planned (5) | `api/topics.decide` | Merge, split, keep. |
+| Add a topic by name, placed in the bed it was added to | built | planned (5) | `api/subjects.topics` | Two readings: the resolver against the whole map, then an LLM sort against this bed, which draws the edges that put it under something. The sort may raise an adjudication and may never settle one. |
 | Sow: qualifying questions answered during the form | built | planned (5) | `api/subjects.qualify` | |
 | Draft, reshape, approve a curriculum | built | planned (5) | `api/curricula`, `core/curriculum` | |
 | Write a lesson body; write it again | built | planned (5) | `api/lessons.writeBody` | |
