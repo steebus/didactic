@@ -38,7 +38,7 @@ or `—` when a row is rendering only.
 | `/subjects/[id]` | Subject bed (outline) | built | planned (5) | `core/tree.buildTopicTree`, `core/outline`, `core/progress` | Grub out, add topic, relate, resow. |
 | `/subjects/[id]/reading` | The reading | built | planned (5) | `core/tree.readVerdict`, `core/specimens` | Two plates at the same size in the subject's ink. |
 | `/settings` | Settings | planned (3) | planned (4) | — | Holds Close to begin with; a sheet that can grow. |
-| `/topics/[id]` | Topic | built | planned (5) | `core/shapes.TopicArea`, `core/scoring.viabilityFigure`, `core/stock`, `core/progress` | Band in the subject's own plate ink. |
+| `/topics/[id]` | Topic | built | planned (5) | `core/shapes.TopicArea`, `core/scoring.viabilityFigure`, `core/stock`, `core/progress`, `core/lessonState` | Band in the subject's own plate ink. Lessons carry a standing stamp and the route's *Up next* mark. |
 | `/curriculum/[id]` | Curriculum | built | planned (5) | `core/curriculum.viewLessons`, `tierLessons` | Ultramarine band on both. |
 | `/lesson/[id]` | Lesson | built | planned (5) | `reader` (the whole body), `core/blocks`, `core/sections` | The body is the same reader on both, in a WebView on the phone. |
 | `/refresher/[topicId]` | Refresher | built | planned (5) | `reader` | Eyebrowless on both. |
@@ -57,6 +57,7 @@ or `—` when a row is rendering only.
 | Emblems | built | planned (4) | `core/specimens` silhouettes | `react-native-svg` on the phone. Forms must read at 48px on both. |
 | Roots gauge and specimen | built | planned (5) | `core/specimens` geometry, stage names | Stroke drawn on through dash offset on both. |
 | Route progress chip and specimen | built | planned (5) | `core/progress` | Word is the carrier; tick and colour redundant. |
+| Lesson standing stamp, and *Up next* | built | planned (5) | `core/lessonState` | The route chip's question asked one level down: **Not written**, **Ready**, **Started**, **Worked**, least-worked first, on the route chip's own colour ladder. Word is the carrier; tick and colour redundant. `started` rests on marks, which under-reports by construction, so *Up next* — the first unworked lesson in the route — is what answers "where am I", from position and completion alone. A draft route has no next. `has_body` is a stored generated column (026), so the sheet never carries sixteen lesson bodies to print one bit each. |
 | Add a resource: link, book, note | built | planned (5) | `api/resources.add`, `api/books.search` | One field and one press for a link. |
 | Share a URL into the inbox from another app | n/a (browser share target not built) | planned (5) | `api/resources.add` | The phone's reason to exist. A web share target is a possible follow-up. |
 | Upload a PDF | built | planned (5) | `api/resources.upload` | Multipart on both. |
@@ -65,7 +66,7 @@ or `—` when a row is rendering only.
 | Add a topic by name, placed in the bed it was added to | built | planned (5) | `api/subjects.topics` | Two readings: the resolver against the whole map, then an LLM sort against this bed, which draws the edges that put it under something. The sort may raise an adjudication and may never settle one. |
 | Sow: qualifying questions answered during the form | built | planned (5) | `api/subjects.qualify` | |
 | Draft, reshape, approve a curriculum | built | planned (5) | `api/curricula`, `core/curriculum` | |
-| Write a lesson body; write it again | built | planned (5) | `api/lessons.writeBody` | |
+| Write a lesson body; write it again | built | planned (5) | `api/lessons.writeBody`, `core/copy.WRITINGS` | Written on first open, and askable from the topic sheet for any lesson standing at **Not written** — two presses, because it is a minute of compute that cannot be taken back. The reader need not watch it; the body is stored on the row and the sheet re-reads when it lands. The tab has to stay open, because the body is saved in one piece at the end. |
 | Complete a lesson at a depth | built | planned (5) | `api/lessons.patch` | |
 | Lesson blocks: chart, check, compare, steps, flow, picture | built (SVG + DOM) | planned (5) | `reader` | The same components inside the reader; every plot ships its figures on both. |
 | Contents band | built | planned (5) | `reader`, `core/sections` | One column on the phone. Travelling to a section writes the hash without a navigation; see `lib/hash.ts`. |

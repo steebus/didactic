@@ -55,6 +55,28 @@ export const DRAWINGS = [
 ]
 
 /**
+ * The same again for writing a lesson, which is one model call and
+ * sometimes a second to finish a body that hit the token ceiling.
+ *
+ * A different register on purpose: sowing and relating are work done to
+ * the bed, and this is work done at the desk. The reader who presses
+ * "Write this lesson" from a topic sheet is waiting on a page being
+ * written, not on ground being turned, and a wait that describes the
+ * wrong thing is a wait that reads as the wrong button.
+ */
+export const WRITINGS = [
+  'Sharpening the pencil…',
+  'Reading round the subject…',
+  'Finding the thread…',
+  'Drafting the opening…',
+  'Working the middle…',
+  'Drawing the figures…',
+  'Checking it against the shelf…',
+  'Reading it back…',
+  'Almost done…',
+]
+
+/**
  * The phrase for a given tick of a wait, holding on the last.
  *
  * The timing stays with each platform -- an interval on the web, a

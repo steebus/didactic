@@ -79,7 +79,7 @@ export async function readTopicArea(
   const [{ data: lessons }, { data: neighbourTopics }] = await Promise.all([
     curriculumIds.length
       ? db.from('lessons')
-          .select('id, curriculum_id, title, summary, position, stage, estimated_minutes, completed_at')
+          .select('id, curriculum_id, title, summary, position, stage, estimated_minutes, completed_at, has_body')
           .in('curriculum_id', curriculumIds)
           .order('position')
       : Promise.resolve({
@@ -92,6 +92,7 @@ export async function readTopicArea(
             stage: string
             estimated_minutes: number | null
             completed_at: string | null
+            has_body: boolean
           }>,
         }),
     neighbourIds.length
@@ -126,6 +127,9 @@ export async function readTopicArea(
           minutes: l.estimated_minutes ?? null,
           completed_at: l.completed_at ?? null,
           marks: (lessonMarks ?? []).filter(m => m.lesson_id === l.id).length,
+          // Generated in the database from the body itself, so the row
+          // never carries the prose to say whether there is any.
+          has_body: l.has_body ?? false,
         })),
       }
     }),

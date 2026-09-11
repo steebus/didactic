@@ -26,7 +26,7 @@ import { useEffect, useState } from 'react'
 // a React hook and cannot travel.
 import { LABOURS, labourPhrase } from '@didactic/core/copy'
 
-export { LABOURS, DRAWINGS } from '@didactic/core/copy'
+export { LABOURS, DRAWINGS, WRITINGS } from '@didactic/core/copy'
 
 /**
  * The phrase to print on a button while a bed is being laid out.

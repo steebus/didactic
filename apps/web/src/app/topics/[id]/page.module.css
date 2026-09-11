@@ -656,18 +656,134 @@
   text-transform: uppercase;
 }
 
-/* A marked lesson carries the same mustard as the marks themselves, so
-   the count and the wash on the passage read as one thing. */
-.lessonMarks {
-  color: var(--ink-faint);
-  border-bottom: 2px solid var(--plate-mustard);
-  padding-bottom: 1px;
+/* The standing, printed as the bed prints a topic's route: the word is
+   the carrier, the tick and the colour repeat it. Four states, quietest
+   first, so a list of sixteen reads as a run of progress rather than as
+   sixteen badges.
+
+   The ladder is deliberately the route chip's own — faint outline, then
+   ink-soft outline, then filled mustard, then filled green — because
+   these are the same question asked one level down, and a reader who
+   has learned the bed should not have to learn this. */
+.lessonStamp {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.4em;
+  width: max-content;
+  padding: 0.15em 0.5em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
   white-space: nowrap;
 }
 
-.lessonWorked {
-  color: var(--plate-green);
+.lessonTick {
+  font-size: 0.85em;
+  line-height: 1;
+}
+
+.lessonWord {
   white-space: nowrap;
+}
+
+/* Filled, loud: work has happened here. */
+.lessonStamp[data-lesson='worked'] {
+  background: var(--plate-green);
+  color: var(--paper);
+}
+
+.lessonStamp[data-lesson='started'] {
+  background: var(--plate-mustard);
+  color: var(--ink);
+}
+
+/* Outlined, quiet: there is something to read, or there is not yet. */
+.lessonStamp[data-lesson='ready'] {
+  border: 1px solid var(--rule-strong);
+  color: var(--ink-soft);
+}
+
+.lessonStamp[data-lesson='unwritten'] {
+  border: 1px dashed var(--rule);
+  color: var(--ink-faint);
+}
+
+/* Where the reader is. It sits before the stamp and in the sheet's own
+   ink rather than a plate colour: it is not a fifth state, it is a
+   pointer at one of the four. */
+.lessonNext {
+  color: var(--ink);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* The row carries it too, as a rule down the near edge — the same
+   gesture the hover uses, held on. A reader scrolling a long route
+   finds their place by the edge before they read a word of it. */
+.lesson[data-next] {
+  box-shadow: inset 3px 0 0 var(--plate-mustard);
+  background: var(--paper-deep);
+}
+
+.lessonItem {
+  list-style: none;
+}
+
+/* Asking for a lesson that has not been written. Set under the row and
+   indented to the title, so it reads as belonging to that lesson rather
+   than to the list. */
+.lessonAsk {
+  padding: 0 var(--space-2) var(--space-3);
+  margin-top: calc(var(--space-2) * -1);
+}
+
+.lessonAskNote {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  font-style: italic;
+  margin: 0 0 var(--space-2);
+  max-width: 44ch;
+}
+
+.lessonAskRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.lessonWrite {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule-strong);
+  padding: 2px 0;
+  cursor: pointer;
+  transition: color var(--dur-feedback) var(--ease-settle);
+}
+
+.lessonWrite:hover:not(:disabled) {
+  color: var(--ink);
+  border-bottom-color: var(--plate-mustard);
+}
+
+.lessonWrite:disabled {
+  cursor: default;
+  color: var(--ink-faint);
+}
+
+.lessonNote {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  margin: var(--space-2) 0 0;
+}
+
+.lessonProblem {
+  font-size: var(--step--1);
+  color: var(--plate-terracotta);
+  margin: var(--space-2) 0 0;
 }
 
 @media (max-width: 40rem) {

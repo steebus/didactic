@@ -561,6 +561,39 @@ band's route-progress plate both. To keep them apart the band passes an explicit
 rather than a roots stage name — never "Seedling" where the figure means lessons.
 The drawing is shared; the words are not.
 
+
+### Lesson standing → the same stamp, one level down
+
+What the route chip does for a topic on a bed, the standing stamp does for a
+lesson on a topic sheet. The sheet used to print a small *worked* against the
+lessons that were finished and nothing at all against the rest, so the one
+surface where the work actually happens was the one that had to be read line by
+line to find out where you were.
+
+Four states, worked-least first, derived from the lesson rather than stored
+(`lessonState`, `packages/core/src/lessonState.ts`): **Not written** (no body
+yet; opening it writes it), **Ready** (written and waiting), **Started**
+(passages marked in it), **Worked**.
+
+**Rule — the ladder is the route chip's ladder.** Dashed faint outline →
+ink-soft outline → filled mustard → filled green, the same progression in the
+same inks as `No route → … → Worked` on a bed row. These are the same question
+asked one level down; a reader who has learned the bed must not have to learn
+this. The word carries it, the tick (`○ ◐ ●`) and the colour repeat it.
+
+**Rule — *Up next* is a pointer, not a fifth state.** The first unworked lesson
+in the route carries it, in the sheet's own ink rather than a plate colour, and
+the row takes the hover's mustard edge and holds it. It is what answers "where
+am I", and it answers from position and completion, which are exact — `Started`
+rests on marks and under-reports by construction, since a reader can read
+closely and mark nothing. A draft route has no next: nothing counts until it is
+approved.
+
+**Rule — a lesson that is not written offers to be written, under its own row.**
+Two presses, the same as a rewrite, because it is a minute of compute that
+cannot be taken back. The control sits under the row rather than inside it: a
+button inside an anchor is not a thing a browser or a screen reader can make
+sense of.
 ---
 
 ## 6. The Graph

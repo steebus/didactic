@@ -129,6 +129,10 @@ export interface LessonRow {
   /** How many passages were marked while reading it. A lesson you
    *  argued with is worth finding again. */
   marks: number
+  /** Whether the body has been written. Derived in the database from
+   *  `body` itself, so the sheet can print the state without carrying
+   *  sixteen lessons' prose to answer one bit. */
+  has_body: boolean
 }
 
 export interface CurriculumCard extends Curriculum {
