@@ -5,9 +5,9 @@ import {
   routeLevel,
   routeCaption,
   ROUTE_LABEL,
-} from '@/lib/progress'
-import { orderSubjectOutline } from '@/lib/outline'
-import type { SubjectTopicRow, TopicTreeNode } from '@/lib/subject'
+} from '../src/progress'
+import { orderSubjectOutline } from '../src/outline'
+import type { SubjectTopicRow, TopicTreeNode } from '../src/subject'
 
 const route = (status: 'draft' | 'active' | 'archived', total: number, complete: number) => ({
   status,

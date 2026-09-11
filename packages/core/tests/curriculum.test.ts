@@ -5,8 +5,8 @@ import {
   curriculumProgress,
   findPrereqCycle,
   linearPrereqs,
-} from '@/lib/curriculum'
-import type { Lesson } from '@/lib/types'
+} from '../src/curriculum'
+import type { Lesson } from '../src/types'
 
 const lesson = (id: string, over: Partial<Lesson> = {}): Lesson => ({
   id,

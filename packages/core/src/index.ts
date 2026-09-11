@@ -6,6 +6,10 @@
  * the drift is otherwise silent and one-way -- the web keeps working and
  * the phone cannot import the file at all.
  *
+ * Where a module has a pure half and a writing half, only the pure half
+ * is here; the writer stays in `apps/web` and re-exports this one, so a
+ * caller still has a single import.
+ *
  * Modules are also importable directly (`@didactic/core/scoring`) for
  * the places that want one thing and not the barrel.
  */
@@ -19,3 +23,8 @@ export * from './blocks'
 export * from './books'
 export * from './marks'
 export * from './sections'
+export * from './scoring'
+export * from './curriculum'
+export * from './subject'
+export * from './outline'
+export * from './progress'

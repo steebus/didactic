@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildTopicTree } from '@/lib/subject'
+import { buildTopicTree } from '../src/subject'
 
 const topic = (id: string, title = id) => ({ id, title })
 

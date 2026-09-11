@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { computeAbility, computeFreshness, subjectAggregate } from '@/lib/scoring'
-import type { Exposure } from '@/lib/types'
+import { computeAbility, computeFreshness, subjectAggregate } from '../src/scoring'
+import type { Exposure } from '../src/types'
 
 function exposure(over: Partial<Exposure> = {}): Exposure {
   return {
