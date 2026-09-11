@@ -71,7 +71,7 @@ the phone's query cache.
 | GET | `/api/topics/pending` | — | `PendingTopic[]` | |
 | GET | `/api/resources` | — | resources | |
 | GET | `/api/curricula/[id]` | — | curriculum with lessons and prereqs | |
-| GET | `/api/lessons/[id]` | — | lesson with body, `links`: the lessons it may point at, and `neighbours`: the lessons either side of it in its route | `links` resolves the body's `lesson:` names at read time, so a reshaped route turns a link into a stub rather than a dead end. `neighbours` is `{ previous, next }`, each `{ id, title }` or null, derived from the route's position order for the way on at the foot of the reading — added, so a client that has never heard of it reads the lesson exactly as before. Neither side is gated on completion: nothing here is locked. |
+| GET | `/api/lessons/[id]` | — | lesson with body, `links`: the lessons it may point at, and `neighbours`: the lessons either side of it in its route | `links` resolves the body's `lesson:` names at read time, so a reshaped route turns a link into a stub rather than a dead end. `neighbours` is `{ previous, next }`, each `{ id, title }` or null, derived from the route's position order for the way on at the foot of the reading. Neither side is gated on completion: nothing here is locked. `answered` maps `questionKey` → whether it was got right, for the questions in this lesson the owner has already answered; `{}` for a request with no owner. Both added, so a client that has never heard of either reads the lesson exactly as before. |
 | GET | `/api/highlights` | `q` | highlights, filtered when `q` is given | |
 | GET | `/api/books/search` | `q` | `BookMatch[]` from Open Library | Falls back to nothing silently. |
 | GET | `/api/settings` | — | nothing yet | **Planned (3).** Exists so the sheet has somewhere to grow. |
@@ -102,6 +102,7 @@ the phone's query cache.
 | PATCH | `/api/lessons/[id]` | action, depth, title, summary, body, stage, position, estimated_minutes | topics, subjects | `action: 'complete'` at a depth is an exposure. |
 | DELETE | `/api/lessons/[id]` | — | topics | |
 | POST | `/api/lessons/[id]/body` | regenerate? | — | Write, or write again. |
+| POST | `/api/lessons/[id]/answers` | key, correct | topics, subjects | Answer a question inside the lesson. `key` is `questionKey` of the question's own text. Answers `{ counted, exposureWritten, topicTitle, abilityBefore, abilityAfter }`. Only the first answer to a question counts — enforced by a unique index, not a read, so two presses racing cannot both pay — and a wrong one writes no exposure. Invalidates only when a figure actually moved. |
 | POST | `/api/refresher/[topicId]` | — | — | |
 | POST | `/api/highlights` | lessonId, quote, prefix, note | highlights, topics | A mark is the lightest exposure. What the note names is indexed from the note. |
 | GET | `/api/mentions` | `q` | — | What an `@` in a note could mean: topics and lessons the owner holds, ranked for typing. Empty `q` offers the most recent. |

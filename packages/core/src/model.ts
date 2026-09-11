@@ -281,3 +281,29 @@ export function runModel(model: ReadModel, at: Record<string, number>): ModelRun
     incomplete: broken || readouts.some(r => r.value === null),
   }
 }
+
+/**
+ * A slider's own value, at the precision its step implies.
+ *
+ * A step of 1 never prints a decimal and a step of 0.1 prints exactly
+ * one, so dragging never makes a figure grow and shrink a decimal place
+ * under the reader's thumb.
+ *
+ * Here rather than in the component because the phone prints the same
+ * sliders, and a figure that reads differently on the two platforms is
+ * the one kind of drift nobody notices until they are looking at both
+ * at once.
+ */
+export function sliderFigure(value: number, step: number): string {
+  const fraction = step >= 1 ? 0 : Math.min(String(step).split('.')[1]?.length ?? 0, 3)
+  return figure(value, fraction)
+}
+
+/** A model's figure, grouped the way the rest of the sheet groups
+ *  thousands. */
+export function figure(value: number, dp: number): string {
+  return value.toLocaleString('en-GB', {
+    minimumFractionDigits: dp,
+    maximumFractionDigits: dp,
+  })
+}

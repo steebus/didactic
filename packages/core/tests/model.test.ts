@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readModel, runModel, type ModelSpec } from '../src/model'
+import { readModel, runModel, sliderFigure, figure, type ModelSpec } from '../src/model'
 
 /** The block's own example, near enough: a repayment mortgage. */
 const mortgage: ModelSpec = {
@@ -228,5 +228,26 @@ describe('runModel', () => {
     // x = 0 is dropped, since one line has no answer there.
     expect(run.x.values).not.toContain(0)
     expect(run.incomplete).toBe(true)
+  })
+})
+
+describe('printing a figure', () => {
+  it('prints a whole-numbered slider without a decimal', () => {
+    expect(sliderFigure(25, 1)).toBe('25')
+    expect(sliderFigure(25.4, 1)).toBe('25')
+  })
+
+  it('holds the decimal place a fractional step implies', () => {
+    // So a figure does not grow and shrink a decimal place under the
+    // reader's thumb as they drag.
+    expect(sliderFigure(5.5, 0.1)).toBe('5.5')
+    expect(sliderFigure(5, 0.1)).toBe('5.0')
+    expect(sliderFigure(5.25, 0.01)).toBe('5.25')
+  })
+
+  it('groups thousands the way the rest of the sheet does', () => {
+    expect(sliderFigure(250000, 5000)).toBe('250,000')
+    expect(figure(1535.12, 2)).toBe('1,535.12')
+    expect(figure(1535.12, 0)).toBe('1,535')
   })
 })

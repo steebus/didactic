@@ -1,7 +1,13 @@
 'use client'
 
 import { useId, useMemo, useState } from 'react'
-import { readModel, runModel, type ModelSpec } from '@didactic/core/model'
+import {
+  readModel,
+  runModel,
+  sliderFigure,
+  figure,
+  type ModelSpec,
+} from '@didactic/core/model'
 import { Chart } from './Chart'
 import styles from './blocks.module.css'
 
@@ -53,7 +59,7 @@ export function Model({ data }: { data: ModelData }) {
               {slider.label}
               <span className={styles.modelValue}>
                 {slider.unit === '£' && '£'}
-                {format(values[slider.id], slider.step)}
+                {sliderFigure(values[slider.id], slider.step)}
                 {slider.unit && slider.unit !== '£' && ` ${slider.unit}`}
               </span>
             </span>
@@ -83,7 +89,7 @@ export function Model({ data }: { data: ModelData }) {
                 ) : (
                   <>
                     {readout.unit === '£' && '£'}
-                    {money(readout.value, readout.dp)}
+                    {figure(readout.value, readout.dp)}
                     {readout.unit && readout.unit !== '£' && (
                       <span className={styles.modelUnit}> {readout.unit}</span>
                     )}
@@ -101,7 +107,7 @@ export function Model({ data }: { data: ModelData }) {
         <Chart
           data={{
             kind: 'line',
-            x: { label: run.x.label, values: run.x.values.map(v => format(v, 1)) },
+            x: { label: run.x.label, values: run.x.values.map(v => sliderFigure(v, 1)) },
             y: run.y,
             series: run.series,
           }}
@@ -122,21 +128,4 @@ export function Model({ data }: { data: ModelData }) {
       {model.caption && <figcaption className={styles.caption}>{model.caption}</figcaption>}
     </figure>
   )
-}
-
-/** A slider's own value, at the precision its step implies: a step of
- *  1 never prints a decimal, a step of 0.1 prints exactly one. */
-function format(value: number, step: number): string {
-  const dp = step >= 1 ? 0 : Math.min(String(step).split('.')[1]?.length ?? 0, 3)
-  return value.toLocaleString('en-GB', {
-    minimumFractionDigits: dp,
-    maximumFractionDigits: dp,
-  })
-}
-
-function money(value: number, dp: number): string {
-  return value.toLocaleString('en-GB', {
-    minimumFractionDigits: dp,
-    maximumFractionDigits: dp,
-  })
 }
