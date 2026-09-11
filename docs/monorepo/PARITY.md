@@ -7,6 +7,11 @@ in the same commit as the code that changes it.
 **Mobile runtime:** not yet scaffolded. When Phase 4 lands, record the Expo
 SDK and React Native versions here.
 
+**Shared packages, as at 2026-09-11:** `@didactic/core` (19 modules) and
+`@didactic/tokens` exist and are read by `apps/web`. The *Shared via*
+column below names where a row's logic will live; for rows whose module
+has shipped, it now names something real rather than something planned.
+
 ## Status words
 
 | Word | Meaning |

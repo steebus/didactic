@@ -264,7 +264,7 @@ under `src/` changed).
 - [x] **1.1 Move the web app.** `git mv` `src public tests next.config.ts next-env.d.ts eslint.config.mjs vitest.config.mts tsconfig.json .impeccable` into `apps/web/`. `tsconfig.tsbuildinfo` is not moved: it is a build artifact that is tracked by accident and dirties the tree on every typecheck. Drop it instead — `git rm --cached tsconfig.tsbuildinfo` and add `*.tsbuildinfo` to `.gitignore`, which covers it wherever the build later writes it. `git mv` keeps history; do not copy. Update `vitest.config.mts` paths (`./tests/setup.ts`, `./tests/restore-fixture.ts`) and `tests/local-db.ts` if it reaches for `supabase/` by relative path (it now lives two levels up).
 - [x] **1.2 Root workspace.** Root `package.json` becomes `{ "private": true, "workspaces": ["apps/*", "packages/*"] }` with `dev`, `build`, `lint`, `test`, `typecheck` delegating to `turbo run …`. `apps/web/package.json` keeps the app's dependencies and scripts, named `@didactic/web`. Add `turbo.json` with `build` depending on `^build`, `test` and `lint` with no outputs, `typecheck` running `tsc --noEmit`. Add `tsconfig.base.json`; `apps/web/tsconfig.json` extends it and keeps the Next plugin and `@/*` path.
 - [x] **1.3 Scripts.** `scripts/*.ts` import from `src/lib/…` today; point them at `../apps/web/src/lib/…` for now (they move to `packages/core` imports in Phase 2). `scripts/seed-dev.sh` and `dev-cloud.mjs`: check every relative path.
-- [ ] **1.4 Vercel.** In the project settings set Root Directory to `apps/web` and leave the install command at the root (Vercel runs `npm install` at the repo root when it detects workspaces). Confirm with a preview deploy from this branch *before* merging. The deploy's own variables come from project settings and are unaffected by the move; what moved is the *local* `.env`, which now sits in `apps/web` because Next loads env files from its project directory and nothing else does so implicitly. `turbo.json` names the four the build reads, because turbo runs tasks in strict env mode.
+- [x] **1.4 Vercel.** In the project settings set Root Directory to `apps/web` and leave the install command at the root (Vercel runs `npm install` at the repo root when it detects workspaces). Confirm with a preview deploy from this branch *before* merging. The deploy's own variables come from project settings and are unaffected by the move; what moved is the *local* `.env`, which now sits in `apps/web` because Next loads env files from its project directory and nothing else does so implicitly. `turbo.json` names the four the build reads, because turbo runs tasks in strict env mode.
 - [x] **1.5 CI.** `.github/workflows/ci.yml`: checkout, `npm ci`, `npx turbo run lint typecheck test`. The integration tests need the local Postgres (`tests/local-db.ts`) and skip themselves when it is absent, which it is in CI. The build is deliberately **not** run here: Vercel builds every push through its GitHub connection, so a CI build would be a second build of the same commit, and every route constructs a Supabase admin client at module load -- it would need the service role key in Actions to report what Vercel already reports. `deploy-functions.yml` is untouched: `supabase/` did not move.
 - [x] **1.6 Agent files.** Move `docs/monorepo/agents/root.CLAUDE.md` over the root `CLAUDE.md` (keep the `@AGENTS.md` line and the Next.js notice block; the notice's `node_modules/next/dist/docs/` path now resolves from `apps/web/`, so the root `AGENTS.md` should say so). Move `apps-web.CLAUDE.md` to `apps/web/CLAUDE.md`.
 
@@ -284,9 +284,23 @@ deploy from `main` is green before starting Phase 2.
 - [x] **2.2 `packages/core`.** Move, with their tests: `types.ts`, `config.ts`, `tags.ts`, `scoring.ts` (split: `computeAbility`, `computeFreshness`, `subjectAggregate`, `viabilityFigure` move; `recomputeAbility` and `recomputeAbilities` take a Supabase client and stay in `apps/web`; with the pure half in `core` the phone may compute a projected ability from the exposures it already holds and print that at once, while the authoritative write stays server-side — the figure is shown locally, never saved locally), `progress.ts`, `outline.ts`, `sections.ts`, `blocks.ts`, `curriculum.ts` (the same split: `viewLessons`, `tierLessons`, `curriculumProgress`, `findPrereqCycle`, `linearPrereqs` move; `completeLesson`, `uncompleteLesson` stay), `http.ts`, `markAnchor.ts`, `marks.ts` (`UNSAVED`, `isUnsaved`, `inReadingOrder` — the reading-order sort is pure and both platforms need it), `books.ts` (`normaliseBooks`, `bookNote` move; the fetch stays), the `buildTopicTree` and `readVerdict` halves of `subject.ts`, and the interfaces of `home.ts`, `topic.ts`, `library.ts`, `pending.ts`, `subject.ts`. New in `core`: `stock.ts` (`stockState`, `STOCK_LABEL`, the hatch table from `StockBar.tsx`), `specimens.ts` (the path data and stage names from `Emblem.tsx` and `RootsSpecimen.tsx`, plus `slugify`), `graph.ts` (node size, fade, label ink and label-side rules from `GraphCanvas.tsx`), `copy.ts` (`LABOURS`, `DRAWINGS`, the edition date format, empty-state sentences that both apps print). Each web component then imports its geometry and words from `core` and keeps its rendering. Nothing in `core` may import `next`, `react`, `dompurify`, `jsdom` or `@supabase/*` except as `import type`; an ESLint `no-restricted-imports` rule in the package enforces it.
 - [x] **2.3 Read endpoints for the sheets the server renders.** Add `GET /api/home` returning `HomeData`, `GET /api/subjects/[id]/area` returning `SubjectArea`, `GET /api/subjects/[id]/sowing` returning `Sowing`, `GET /api/topics/[id]/area` returning `TopicArea` (the existing `GET /api/topics/[id]` stays as it is), `GET /api/library` returning `LibraryRow[]`, `GET /api/inbox` returning `{ pending: PendingTopic[], queued: Resource[] }`, `GET /api/graph` returning the whole planting with its subjects. Each calls the same `get…` function the page calls, so the cache and its tags are shared with the page. These are thin: a handler, an owner check, a `NextResponse.json`. *As built:* `graph/page.tsx` assembles nothing — `GraphCanvas` fetches `/api/topics` and `/api/subjects` itself and merges them — so `/api/graph` is that merge done server-side, and the query behind it moved to `getPlanting` in `apps/web/src/lib/` so the two routes read one thing rather than two copies.
 - [ ] **2.4 Bearer auth in the gate.** `getOwner()` in `apps/web/src/lib/auth.ts`: when the request carries `Authorization: Bearer <jwt>`, verify it with `createClient(url, anonKey).auth.getUser(jwt)` instead of the cookie client; `proxy.ts` does the same for API paths so a bearer request is neither redirected nor refreshed. The web keeps cookies. Add `tests/auth-bearer.test.ts`: a valid token passes, an expired one answers 401, a token with no header falls through to the cookie path. Document both modes in `guides/api-contract.md`.
-- [ ] **2.5 Row-level security.** `supabase/migrations/024_row_level_security.sql`: `enable row level security` on every table under `public` that lacks it, an owner policy `for all using (auth.uid() = user_id) with check (auth.uid() = user_id)` on the ten tables that carry `user_id` (subjects, topics, edges, resources, exposures, conversations, curricula, lessons, subject_sowings; highlights already has one), and for the join tables (`topic_subjects`, `resource_topics`, `resource_subjects`, `lesson_prereqs`, `lesson_resources`, `curriculum_sources`, `messages`, `ingestion_jobs`) a policy through `exists (select 1 from <parent> where id = <fk> and user_id = auth.uid())`. A storage policy on the bucket `017_sowings.sql` creates, owner-only. `tests/rls.integration.test.ts`: an anon client with no session reads zero rows from every table; with the owner's JWT it reads the owner's rows; the admin client is unaffected. Publish `resources` and `topics` to the `supabase_realtime` publication.
+- [ ] **2.5 Row-level security.** *Before starting, three things established
+  2026-09-11 by survey:* **(a)** No API call needs changing. Every server read
+  goes through `supabaseAdmin()` on the service role, which bypasses RLS;
+  the anon key appears only in `auth.ts` and `proxy.ts` (sessions, not table
+  reads), in `embedding.ts` (an edge-function header), and in
+  `supabaseBrowser()`, which nothing imports. D1 predicted this and it holds.
+  **(b)** Enumerate the tables from the live schema, not from the list below:
+  `012` renamed `clusters`→`subjects`, `nodes`→`topics`,
+  `resource_nodes`→`resource_topics`, and a policy naming a missing table
+  fails loudly while a *missed* table stays silently open. **(c)** Verify on
+  `refactor` against a local stack before this reaches production: a wrong
+  join-table policy does not error, it returns zero rows, and the app looks
+  empty rather than broken. Also amend `auth.ts`, whose gate comment still
+  says row-level security is out of scope, and `PRODUCT.md` with it, in the
+  same commit. `supabase/migrations/024_row_level_security.sql`: `enable row level security` on every table under `public` that lacks it, an owner policy `for all using (auth.uid() = user_id) with check (auth.uid() = user_id)` on the ten tables that carry `user_id` (subjects, topics, edges, resources, exposures, conversations, curricula, lessons, subject_sowings; highlights already has one), and for the join tables (`topic_subjects`, `resource_topics`, `resource_subjects`, `lesson_prereqs`, `lesson_resources`, `curriculum_sources`, `messages`, `ingestion_jobs`) a policy through `exists (select 1 from <parent> where id = <fk> and user_id = auth.uid())`. A storage policy on the bucket `017_sowings.sql` creates, owner-only. `tests/rls.integration.test.ts`: an anon client with no session reads zero rows from every table; with the owner's JWT it reads the owner's rows; the admin client is unaffected. Publish `resources` and `topics` to the `supabase_realtime` publication.
 - [ ] **2.6 `packages/api`.** A typed client over every route in `guides/api-contract.md`: one function per endpoint, each naming the cache tag it invalidates, a `createApi({ baseUrl, headers })` factory so the web passes cookies and the phone passes a bearer token, and the request/response types imported from `@didactic/core` rather than restated. No React: callers wrap it in their own query layer.
-- [ ] **2.7 The web's client components use the client.** Replace the raw `fetch('/api/…')` calls in `GraphCanvas`, `PendingQueue`, `AddResource`, `InboxTally`, `Highlighter`, `SignOut`, `DraftCurriculum`, `subjects/new/page`, `ProofOfRoots`, `MarkedSheet`, `curriculum/[id]/page`, `lesson/[id]/page`, `refresher/[topicId]/page` with `@didactic/api`. Behaviour identical; the diff is mechanical and the gate is the existing tests plus a click through every sheet.
+- [ ] **2.7 The web's client components use the client.** *Also clears the debt from 2.2:* every module moved to `core` left a one-line re-export at its old `@/lib/…` path so no call site had to move. Those shims come out in this pass, along with the halves of `scoring`, `curriculum` and `subject` that re-export their own core half. Until then `@/lib/x` and `@didactic/core/x` are both live and both correct. Replace the raw `fetch('/api/…')` calls in `GraphCanvas`, `PendingQueue`, `AddResource`, `InboxTally`, `Highlighter`, `SignOut`, `DraftCurriculum`, `subjects/new/page`, `ProofOfRoots`, `MarkedSheet`, `curriculum/[id]/page`, `lesson/[id]/page`, `refresher/[topicId]/page` with `@didactic/api`. Behaviour identical; the diff is mechanical and the gate is the existing tests plus a click through every sheet.
 - [ ] **2.8 Scripts and edge functions.** `scripts/*.ts` import from `@didactic/core`. Leave `supabase/functions` on their own copies of any maths for now and record the duplication in `PARITY.md` under *Backend*; a Deno import map pointing at `packages/core/src` is a follow-up, not a blocker.
 - [ ] **2.9 Agent files.** `docs/monorepo/agents/packages.CLAUDE.md` to `packages/CLAUDE.md`.
 
@@ -375,6 +389,50 @@ sits beside the web's at 390px in the PR, and the web sheet was not touched
 - Additive API rule (D10) enforced at review; deprecations recorded.
 
 ---
+
+## 2a. Where the work stands
+
+*Written 2026-09-11, at the end of a working session.*
+
+**Phase 1 is landed on `main`** and deployed: the web app lives in
+`apps/web`, the repo runs through turbo, Vercel's Root Directory is set,
+and CI runs lint, typecheck and the tests on every push. The build is
+deliberately not in CI — Vercel builds every push through its GitHub
+connection, so a CI build would be a second build of the same commit
+needing the service role key in Actions to report what Vercel reports.
+
+**Phase 2 is half done, on the `refactor` branch** (five commits, pushed,
+not merged): 2.1, 2.2 and 2.3 are complete. 344 tests still pass — 217 in
+the web, 127 in core — plus tokens' 51 new ones.
+
+**Next, in order:** 2.4 (bearer auth), then 2.5 (row-level security) with
+its three caveats recorded above, then 2.6–2.9.
+
+### Things that cost time, so they are written down
+
+- **Two Supabase CLIs disagree on this machine.** `supabase` on PATH is
+  2.98.2 from scoop; `npx supabase` is 2.117.0. The older one rejects
+  `[local_smtp]` in `supabase/config.toml` as an invalid key. The config is
+  correct: 2.117.0 generates exactly that section, and the older
+  `[inbucket]` name now warns as deprecated. Fix with `scoop update
+  supabase`, or prefix with `npx`. Do not rename the config section.
+- **This Next version diverges from training data, twice proved.** There is
+  no `next build --env-file`; and `loadEnvConfig` in `next.config.ts` does
+  not reach the prerender workers, which are separate processes. Env files
+  live in `apps/web` because that is where Next looks. Read
+  `apps/web/node_modules/next/dist/docs/` before writing Next code.
+- **Turbo runs tasks in strict env mode.** A task sees only the variables
+  its `turbo.json` entry declares, and the build needs four.
+- **Run all four gates, not the fast ones.** Lifting `slugify` out of
+  `Emblem.tsx` destroyed the component; every test still passed, because no
+  test imports it. Typecheck and the build caught it.
+
+### Known duplication, deliberately left
+
+`sowing.ts` keeps its own `ROOT_STAGES` (plain strings, a different shape
+from the gauge's six objects), and three files declare a local `slugify`.
+Both predate this work and sit outside 2.2's list. Worth a pass; not worth
+widening a commit for.
 
 ## 3. Risks, named
 
