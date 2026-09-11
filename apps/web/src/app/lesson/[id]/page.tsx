@@ -8,6 +8,7 @@ import { Highlighter } from '@/components/Highlighter'
 import { Contents } from '@/components/Contents'
 import { Answering } from '@/components/blocks/answering'
 import { useBench } from '@/components/Bench'
+import { useWriteLesson } from '@/components/useWriteLesson'
 import { didactic } from '@didactic/api'
 import type { ExposureDepth, Highlight as Mark } from '@didactic/core/types'
 import type { LessonLink } from '@didactic/core/lessonLinks'
@@ -27,6 +28,8 @@ interface LessonData {
     title: string
     summary: string | null
     body: string | null
+    /** False while more rounds of it are still to be written. */
+    body_finished: boolean
     stage: 'introductory' | 'core' | 'advanced'
     estimated_minutes: number | null
     completed_at: string | null
@@ -90,11 +93,10 @@ export default function LessonPage({
    * A failure is offered again by hand, below, and never on a loop.
    */
   const attempted = useRef(false)
-  // Pulled out because it is stable, where the bench itself changes
-  // identity whenever any job does. In the read effect's dependencies
-  // the whole bench would re-read the lesson every time a notice in the
-  // corner so much as ticked over.
-  const { start: setGoing } = bench
+  // Stable, where the bench itself changes identity whenever any job
+  // does -- in the read effect's dependencies the whole bench would
+  // re-read the lesson every time a notice in the corner ticked over.
+  const writeLesson = useWriteLesson()
   // Asking for the lesson again, and the press that confirms it. Two
   // presses because it cannot be undone: the body it replaces is not
   // kept anywhere.
@@ -132,7 +134,58 @@ export default function LessonPage({
   // A different lesson is a fresh sheet, whatever this one did.
   useEffect(() => {
     attempted.current = false
+    offered.current = false
   }, [id])
+
+  /**
+   * Offer to write the next lesson, once the reader is properly into
+   * this one.
+   *
+   * A lesson is written on first open, so reaching the end of one and
+   * pressing Next means waiting a minute at the exact moment the reader
+   * had momentum. Asked half way through, the writing happens while
+   * they finish reading and the next sheet is there when they arrive.
+   *
+   * Half way rather than on open: opening a lesson is not evidence
+   * anyone is going to read it, and writing the next one off the back
+   * of a glance is a model call bought with nothing.
+   *
+   * It goes on the bench rather than into the prose -- an offer set
+   * into the middle of a lesson is an interruption, and this is
+   * deliberately something to ignore.
+   */
+  const offered = useRef(false)
+  useEffect(() => {
+    const next = data?.neighbours?.next
+    if (!body || !next || next.written || offered.current) return
+    if (bench.running('writing', next.id)) return
+
+    const look = () => {
+      const el = article.current
+      if (!el || offered.current) return
+      const box = el.getBoundingClientRect()
+      // How much of the reading has passed the bottom of the window.
+      const read = Math.min(Math.max(window.innerHeight - box.top, 0), box.height)
+      if (box.height <= 0 || read / box.height < 0.5) return
+
+      offered.current = true
+      bench.offer({
+        key: `write-next:${next.id}`,
+        title: `Next: ${next.title}`,
+        note: 'Not written yet. Start it now and it will be ready when you get there.',
+        label: 'Write it now',
+        take: () => void writeLesson({ id: next.id, title: next.title }),
+      })
+    }
+
+    window.addEventListener('scroll', look, { passive: true })
+    window.addEventListener('resize', look)
+    look()
+    return () => {
+      window.removeEventListener('scroll', look)
+      window.removeEventListener('resize', look)
+    }
+  }, [body, data?.neighbours?.next, bench, writeLesson])
 
   useEffect(() => {
     let cancelled = false
@@ -148,7 +201,13 @@ export default function LessonPage({
       setData(payload)
       setBody(payload.lesson.body)
       setHighlights(payload.highlights ?? [])
-      if (payload.lesson.body) return
+
+      // A body that is there but unfinished is a lesson whose rounds
+      // were interrupted -- the reader reloaded, or closed the tab --
+      // and the rounds so far are on the row. It is shown while the
+      // rest is written rather than held back: it is real prose, and
+      // half a lesson to read beats a blank sheet and a wait.
+      if (payload.lesson.body && payload.lesson.body_finished) return
       if (attempted.current) return
       attempted.current = true
 
@@ -162,14 +221,7 @@ export default function LessonPage({
       // write going, so the bench is what stops opening the lesson
       // starting a second one -- it joins the first instead, and the
       // watcher below picks the body up when it lands.
-      const made = await setGoing(
-        { kind: 'writing', id, name: payload.lesson.title },
-        async () => {
-          const written = await api.lessons.writeBody(id)
-          if (!written.ok) throw new Error(written.error ?? 'The lesson could not be written.')
-          return { href: `/lesson/${id}`, text: written.body.body }
-        }
-      )
+      const made = await writeLesson({ id, title: payload.lesson.title })
       if (cancelled) return
       // 'joined' means the topic sheet set this same write going and
       // this sheet is now waiting on it; the watcher above reads the
@@ -181,7 +233,7 @@ export default function LessonPage({
     return () => {
       cancelled = true
     }
-  }, [id, revision, setGoing])
+  }, [id, revision, writeLesson])
 
   /**
    * Write the lesson again.

@@ -104,28 +104,40 @@ describe('the vocabulary', () => {
 
 describe('lessonNeighbours', () => {
   const route = [
-    { id: 'a', title: 'Why it matters' },
-    { id: 'b', title: 'Measuring it' },
-    { id: 'c', title: 'Core vitals' },
+    { id: 'a', title: 'Why it matters', has_body: true },
+    { id: 'b', title: 'Measuring it', has_body: true },
+    { id: 'c', title: 'Core vitals', has_body: true },
   ]
 
   it('gives both ways from the middle', () => {
     expect(lessonNeighbours(route, 'b')).toEqual({
-      previous: { id: 'a', title: 'Why it matters' },
-      next: { id: 'c', title: 'Core vitals' },
+      previous: { id: 'a', title: 'Why it matters', written: true },
+      next: { id: 'c', title: 'Core vitals', written: true },
     })
   })
 
   it('has no previous at the start', () => {
     const { previous, next } = lessonNeighbours(route, 'a')
     expect(previous).toBeNull()
-    expect(next).toEqual({ id: 'b', title: 'Measuring it' })
+    expect(next).toEqual({ id: 'b', title: 'Measuring it', written: true })
   })
 
   it('has no next at the end', () => {
     const { previous, next } = lessonNeighbours(route, 'c')
-    expect(previous).toEqual({ id: 'b', title: 'Measuring it' })
+    expect(previous).toEqual({ id: 'b', title: 'Measuring it', written: true })
     expect(next).toBeNull()
+  })
+
+  it('says when the next one has not been written', () => {
+    const half = [route[0], { id: 'b', title: 'Measuring it', has_body: false }]
+    expect(lessonNeighbours(half, 'a').next?.written).toBe(false)
+  })
+
+  it('calls a neighbour unwritten when nothing says either way', () => {
+    // Offering to write a lesson that exists wastes a press; failing to
+    // offer one that does not wastes a minute of the reader's time.
+    const bare = [{ id: 'a', title: 'One' }, { id: 'b', title: 'Two' }]
+    expect(lessonNeighbours(bare, 'a').next?.written).toBe(false)
   })
 
   it('has neither for a lesson the route does not hold', () => {
@@ -144,6 +156,10 @@ describe('lessonNeighbours', () => {
     // Nothing in this app is locked. A prerequisite not met is said out
     // loud on the lesson's own sheet, never enforced by hiding the way
     // there -- so the neighbours do not depend on completion at all.
-    expect(lessonNeighbours(route, 'a').next).toEqual({ id: 'b', title: 'Measuring it' })
+    expect(lessonNeighbours(route, 'a').next).toEqual({
+      id: 'b',
+      title: 'Measuring it',
+      written: true,
+    })
   })
 })

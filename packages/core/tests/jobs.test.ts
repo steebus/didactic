@@ -5,6 +5,7 @@ import {
   jobNote,
   jobWay,
   jobSettles,
+  jobPhrases,
   type JobKind,
   type JobLike,
   type JobState,
@@ -123,5 +124,27 @@ describe('jobSettles', () => {
 
   it('never puts away something still running', () => {
     expect(jobSettles(job(), false)).toBe(false)
+  })
+})
+
+describe('jobPhrases', () => {
+  it('gives each kind the list its own sheet already uses', () => {
+    // Sowing waits in the sowing sheet's voice, writing in the writing
+    // one. The words live in copy.ts; this only says which set.
+    expect(jobPhrases('sowing')[0]).toMatch(/ground/i)
+    expect(jobPhrases('writing')[0]).toMatch(/pencil/i)
+  })
+
+  it('gives every kind something to say', () => {
+    for (const kind of KINDS) {
+      expect(jobPhrases(kind).length).toBeGreaterThan(2)
+    }
+  })
+
+  it('ends both lists on a phrase that can stay true for a while', () => {
+    // The last one holds until the work lands, so it cannot be a step.
+    for (const kind of KINDS) {
+      expect(jobPhrases(kind).at(-1)).toMatch(/almost/i)
+    }
   })
 })

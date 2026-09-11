@@ -106,6 +106,11 @@ export const LESSON_ORDER: LessonState[] = ['unwritten', 'ready', 'started', 'wo
 export interface LessonNeighbour {
   id: string
   title: string
+  /** Whether there is a whole lesson there to read. A reader who
+   *  reaches the end of one lesson and finds the next unwritten waits a
+   *  minute for it; knowing in advance is what lets the offer to write
+   *  it come while they are still reading. */
+  written: boolean
 }
 
 export interface LessonNeighbours {
@@ -114,7 +119,7 @@ export interface LessonNeighbours {
 }
 
 export function lessonNeighbours(
-  route: Array<{ id: string; title: string }>,
+  route: Array<{ id: string; title: string; has_body?: boolean }>,
   lessonId: string
 ): LessonNeighbours {
   const at = route.findIndex(l => l.id === lessonId)
@@ -126,7 +131,10 @@ export function lessonNeighbours(
 
   const cell = (i: number): LessonNeighbour | null => {
     const l = route[i]
-    return l ? { id: l.id, title: l.title } : null
+    // Absent reads as unwritten rather than written: offering to write
+    // a lesson that already exists wastes a press, where failing to
+    // offer one that does not wastes a minute of the reader's time.
+    return l ? { id: l.id, title: l.title, written: l.has_body === true } : null
   }
 
   return { previous: cell(at - 1), next: cell(at + 1) }

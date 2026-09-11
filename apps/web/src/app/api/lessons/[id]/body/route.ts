@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { generateLessonBody } from '@/lib/llm/curriculum'
+import { generateLessonBody, ROUNDS_MAX } from '@/lib/llm/curriculum'
 import { lessonsWithinReach } from '@/lib/curriculum'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
@@ -31,10 +31,21 @@ function dropCache() {
 export const maxDuration = 60
 
 /**
- * Write the lesson, once. Most drafted lessons are never reached and a
- * reshaped curriculum invalidates anything written early, so the body is
- * generated on first open and cached on the row. Pass `regenerate` to
- * overwrite one the user was not happy with.
+ * Write one round of the lesson.
+ *
+ * Most drafted lessons are never reached and a reshaped curriculum
+ * invalidates anything written early, so the body is generated on first
+ * open and cached on the row. Pass `regenerate` to start again on one
+ * the reader was not happy with.
+ *
+ * One round, not one lesson. A full lesson takes longer to generate
+ * than the sixty seconds this function is allowed, so asking for all of
+ * it in one request meant being cut off part way with nothing saved.
+ * Each call writes as much as fits, saves it, and says whether there is
+ * more; the caller comes back for the rest. Which also makes it
+ * resumable -- a reader who reloads mid-way finds the rounds so far on
+ * the row, and the next call carries on from them rather than starting
+ * the lesson again.
  */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -44,8 +55,35 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { data: lesson } = await db.from('lessons').select('*').eq('id', id).single()
   if (!lesson) return NextResponse.json({ error: 'not found' }, { status: 404 })
 
-  if (lesson.body && !regenerate) {
-    return NextResponse.json({ body: lesson.body, cached: true })
+  // Finished and not being asked for again: there is nothing to do.
+  if (lesson.body && lesson.body_finished && !regenerate) {
+    return NextResponse.json({
+      body: lesson.body,
+      cached: true,
+      done: true,
+      round: lesson.body_rounds ?? 1,
+      words: words(lesson.body),
+    })
+  }
+
+  // What has been written so far, unless this is a fresh start.
+  const carried: string = regenerate ? '' : (lesson.body ?? '')
+  const roundsSoFar: number = regenerate ? 0 : (lesson.body_rounds ?? 0)
+
+  // A lesson the model will not stop writing is called finished rather
+  // than billed for indefinitely. What is on the row is real prose and
+  // readable; it simply stops sooner than it meant to.
+  if (roundsSoFar >= ROUNDS_MAX) {
+    await db.from('lessons').update({ body_finished: true }).eq('id', id)
+    dropCache()
+    return NextResponse.json({
+      body: carried,
+      cached: false,
+      done: true,
+      round: roundsSoFar,
+      words: words(carried),
+      warning: 'The lesson ran long and was stopped where it stands.',
+    })
   }
 
   const { data: curriculum } = await db.from('curricula')
@@ -97,9 +135,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // resolve there.
   const links = await lessonsWithinReach(db, curriculum.topic_id, id)
 
-  let body: string
+  let written: { text: string; finished: boolean }
   try {
-    body = await generateLessonBody({
+    written = await generateLessonBody({
       topicTitle: topic?.title ?? 'this topic',
       curriculumTitle: curriculum.title,
       goal: curriculum.goal,
@@ -137,7 +175,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
           r.resources ? [(r.resources as unknown as { title: string }).title] : []
         )
       ),
-    })
+    },
+    carried
+    )
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)
     dropCache()
@@ -147,11 +187,37 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     )
   }
 
-  const { error } = await db.from('lessons').update({ body }).eq('id', id)
+  const round = roundsSoFar + 1
+  const { error } = await db
+    .from('lessons')
+    .update({
+      body: written.text,
+      body_finished: written.finished,
+      body_rounds: round,
+    })
+    .eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  dropCache()
-  return NextResponse.json({ body, cached: false })
+  // Only a finished lesson changes what any sheet prints: until then
+  // `has_body` is still false and the stamp still reads "Not written".
+  // Dropping the cache on every round would re-read the whole map three
+  // times for one lesson.
+  if (written.finished) dropCache()
+
+  return NextResponse.json({
+    body: written.text,
+    cached: false,
+    done: written.finished,
+    round,
+    words: words(written.text),
+  })
+}
+
+/** Roughly, for the reader. Whitespace-separated runs are close enough
+ *  to a word count for a progress note and cost nothing to count. */
+function words(text: string): number {
+  const trimmed = text.trim()
+  return trimmed ? trimmed.split(/\s+/).length : 0
 }
 
 /** Drop anything already offered on the near shelf, and any repeat. */

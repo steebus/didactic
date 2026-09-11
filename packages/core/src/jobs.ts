@@ -19,6 +19,8 @@
  * is true: what is underway, and then what came of it.
  */
 
+import { LABOURS, WRITINGS } from './copy'
+
 export type JobState = 'running' | 'done' | 'failed'
 
 export type JobKind = 'sowing' | 'writing'
@@ -73,6 +75,26 @@ export function jobNote(job: JobLike): string | null {
   return job.kind === 'sowing'
     ? 'A minute or so. Carry on reading — you will be told when the bed is laid.'
     : 'Up to a minute. Carry on reading — you will be told when it is ready.'
+}
+
+/**
+ * What to say about a running job that has not reported anything.
+ *
+ * Writing a lesson can say something true -- which round, how many
+ * words are down -- because it happens in rounds this app drives
+ * itself. Sowing cannot: it is one model call and a pile of embeddings
+ * behind a single request, and nothing inside it reports out. Rather
+ * than a bar pretending to know, the wait is described in the same
+ * voice the sowing sheet already uses, from `copy.LABOURS` -- a
+ * gardener's rumour of a step, explicitly not a measurement.
+ *
+ * The phrase for a given tick is `copy.labourPhrase`, which every other
+ * wait in the app already reads -- this only says which list a job's
+ * kind draws from, so there is one set of words and one rule for
+ * holding on the last of them.
+ */
+export function jobPhrases(kind: JobKind): string[] {
+  return kind === 'sowing' ? LABOURS : WRITINGS
 }
 
 /** What the way to the finished thing is called. Null while it runs:

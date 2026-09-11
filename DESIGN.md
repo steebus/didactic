@@ -593,6 +593,21 @@ green when it lands, terracotta when it fails — and the notice takes the only
 drop shadow in the catalogue, because it is a slip of paper laid on the sheet
 rather than something printed on it.
 
+**Rule — a running job says only what it knows.** Writing a lesson happens in
+rounds this app drives, so it can honestly report the round and the words down.
+Sowing is one request with nothing reporting out of it, so it gets the sowing
+sheet's own `LABOURS` — a gardener's rumour of a step, never dressed as a
+measurement. Neither ever gets a bar: a bar that cannot know its total lies
+about how much is left.
+
+**Rule — an offer is not a job, and does not look like one.** The bench also
+carries notices that *ask* — the next lesson is unwritten, shall I start it —
+in ultramarine rather than any of the three working inks, so it never reads as
+work that has gone wrong. It is offered half way through the reading, not on
+open: opening a lesson is not evidence anyone will read it, and it goes in the
+corner rather than into the prose, because an offer set into the middle of a
+lesson is an interruption.
+
 ### A model the reader can push on
 
 `chart` plots figures the writer already had. `model` computes them, from

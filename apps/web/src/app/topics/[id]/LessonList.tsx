@@ -2,13 +2,11 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { didactic } from '@didactic/api'
 import { lessonStandings, LESSON_LABEL, LESSON_NOTE } from '@didactic/core/lessonState'
 import type { LessonRow } from '@didactic/core/shapes'
 import { useBench } from '@/components/Bench'
+import { useWriteLesson } from '@/components/useWriteLesson'
 import styles from './page.module.css'
-
-const api = didactic()
 
 /**
  * The lessons of a topic, each carrying its own standing.
@@ -48,6 +46,7 @@ export function LessonList({
   // it rewrites a body.
   const [confirming, setConfirming] = useState<string | null>(null)
   const bench = useBench()
+  const writeLesson = useWriteLesson()
 
   const standings = lessonStandings(lessons)
 
@@ -69,14 +68,7 @@ export function LessonList({
    */
   function write(lesson: LessonRow) {
     setConfirming(null)
-    void bench.start(
-      { kind: 'writing', id: lesson.id, name: lesson.title },
-      async () => {
-        const { ok, error: failed } = await api.lessons.writeBody(lesson.id)
-        if (!ok) throw new Error(failed ?? 'The lesson could not be written.')
-        return { href: `/lesson/${lesson.id}` }
-      }
-    )
+    void writeLesson(lesson)
   }
 
   return (

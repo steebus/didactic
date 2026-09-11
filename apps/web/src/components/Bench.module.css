@@ -66,6 +66,18 @@
   border-left: 3px solid var(--plate-terracotta);
 }
 
+/* An offer is not work in hand -- nothing is happening yet, and the
+   reader is free to ignore it. Ultramarine rather than any of the three
+   working inks, so it reads as a different kind of thing at a glance
+   and never as a job that has gone wrong. */
+.notice[data-state='offer'] {
+  border-left: 3px solid var(--plate-ultramarine);
+}
+
+.notice[data-state='offer'] .mark {
+  color: var(--plate-ultramarine);
+}
+
 @keyframes laid {
   from {
     opacity: 0;

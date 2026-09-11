@@ -4,6 +4,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -14,17 +15,23 @@ import { useRouter } from 'next/navigation'
 import {
   jobKey,
   jobNote,
+  jobPhrases,
   jobSettles,
   jobTitle,
   jobWay,
   type JobKind,
   type JobState,
 } from '@didactic/core/jobs'
+import { labourPhrase } from '@didactic/core/copy'
 import styles from './Bench.module.css'
 
 /** How long a finished job with nowhere to go stays up. Long enough to
  *  be read at reading speed, short enough not to sit there. */
 const SETTLE_MS = 6000
+
+/** How often the rumour advances for work that cannot report on itself.
+ *  The same beat the sowing sheet's own labours keep. */
+const RUMOUR_MS = 2600
 
 export interface Job {
   key: string
@@ -34,6 +41,9 @@ export interface Job {
   /** Where the finished thing is. Null until there is one. */
   href: string | null
   reason: string | null
+  /** What the work last said about itself: "round 2 · about 900 words".
+   *  Null where it has not said anything yet, or has nothing to say. */
+  progress: string | null
   /** Anything the job wants said that is not a failure -- a bed laid
    *  with two topics the sort could not place. */
   warnings: string[]
@@ -61,8 +71,31 @@ export type Outcome<T> =
   | { kind: 'done'; made: T }
   | { kind: 'failed'; reason: string }
 
+/**
+ * A notice that asks rather than reports.
+ *
+ * The bench holds work in hand; an offer is the other thing that
+ * belongs in the same corner -- something the app could do next, put
+ * where the reader can take it or leave it without losing their place.
+ * It is the same slip of paper, with a question on it.
+ */
+export interface Offer {
+  key: string
+  title: string
+  note: string | null
+  /** What the control says, and what it does. Taking it puts the offer
+   *  away: it has asked its question and been answered. */
+  label: string
+  take: () => void
+}
+
 interface Bench {
   jobs: Job[]
+  offers: Offer[]
+  /** Put an offer up. The same key twice is the same offer, not two. */
+  offer: (offer: Offer) => void
+  /** Take it down without taking it. */
+  withdraw: (key: string) => void
   /** Whether this exact piece of work is already underway. */
   running: (kind: JobKind, id: string) => boolean
   /**
@@ -83,12 +116,20 @@ interface Bench {
    */
   start: <T extends Made>(
     job: { kind: JobKind; id: string; name: string },
-    work: () => Promise<T>
+    /**
+     * `report` says where the work has got to, in words the reader can
+     * read. Work that knows nothing useful simply never calls it, and
+     * the notice says the ordinary thing instead.
+     */
+    work: (report: (progress: string) => void) => Promise<T>
   ) => Promise<Outcome<T>>
 }
 
 const NOWHERE: Bench = {
   jobs: [],
+  offers: [],
+  offer: () => {},
+  withdraw: () => {},
   running: () => false,
   jobFor: () => null,
   start: async (_job, work) => {
@@ -96,7 +137,7 @@ const NOWHERE: Bench = {
     // A component rendered outside the provider (a test, a sheet not
     // yet wrapped) must not silently stop doing its job.
     try {
-      return { kind: 'done', made: await work() }
+      return { kind: 'done', made: await work(() => {}) }
     } catch (e) {
       return { kind: 'failed', reason: e instanceof Error ? e.message : 'Something went wrong.' }
     }
@@ -128,6 +169,7 @@ const Channel = createContext<Bench>(NOWHERE)
  */
 export function Bench({ children }: { children: React.ReactNode }) {
   const [jobs, setJobs] = useState<Job[]>([])
+  const [offers, setOffers] = useState<Offer[]>([])
   const router = useRouter()
   const [, startTransition] = useTransition()
   // Read inside `start` without making it a dependency: what matters is
@@ -138,6 +180,14 @@ export function Bench({ children }: { children: React.ReactNode }) {
   const forget = useCallback((key: string) => {
     live.current.delete(key)
     setJobs(list => list.filter(j => j.key !== key))
+  }, [])
+
+  const withdraw = useCallback((key: string) => {
+    setOffers(list => list.filter(o => o.key !== key))
+  }, [])
+
+  const offer = useCallback((next: Offer) => {
+    setOffers(list => (list.some(o => o.key === next.key) ? list : [...list, next]))
   }, [])
 
   /**
@@ -178,7 +228,16 @@ export function Bench({ children }: { children: React.ReactNode }) {
 
       setJobs(list => [
         ...list.filter(j => j.key !== key),
-        { key, kind: job.kind, name: job.name, state: 'running', href: null, reason: null, warnings: [] },
+        {
+          key,
+          kind: job.kind,
+          name: job.name,
+          state: 'running',
+          href: null,
+          reason: null,
+          progress: null,
+          warnings: [],
+        },
       ])
 
       const settle = (made: Made | null, reason: string | null) => {
@@ -188,7 +247,12 @@ export function Bench({ children }: { children: React.ReactNode }) {
 
         live.current.delete(key)
         setJobs(list =>
-          list.map(j => (j.key === key ? { ...j, state, href, reason, warnings } : j))
+          list.map(j =>
+            // The progress goes with it: "round 2" under a line that
+            // says the lesson is written is a notice arguing with
+            // itself.
+            j.key === key ? { ...j, state, href, reason, warnings, progress: null } : j
+          )
         )
 
         // The sheets are stale the moment this lands: a bed now has
@@ -204,8 +268,11 @@ export function Bench({ children }: { children: React.ReactNode }) {
         }
       }
 
+      const report = (progress: string) =>
+        setJobs(list => list.map(j => (j.key === key ? { ...j, progress } : j)))
+
       try {
-        const made = await work()
+        const made = await work(report)
         settle(made, null)
         return { kind: 'done', made }
       } catch (e) {
@@ -218,20 +285,48 @@ export function Bench({ children }: { children: React.ReactNode }) {
   )
 
   const value = useMemo(
-    () => ({ jobs, running, jobFor, start }),
-    [jobs, running, jobFor, start]
+    () => ({ jobs, offers, offer, withdraw, running, jobFor, start }),
+    [jobs, offers, offer, withdraw, running, jobFor, start]
   )
 
   return (
     <Channel.Provider value={value}>
       {children}
-      <Notices jobs={jobs} onDismiss={forget} />
+      <Notices jobs={jobs} offers={offers} onDismiss={forget} onWithdraw={withdraw} />
     </Channel.Provider>
   )
 }
 
 export function useBench(): Bench {
   return useContext(Channel)
+}
+
+/**
+ * What a running job is saying about itself.
+ *
+ * Its own reported progress where it has any, and the rumour otherwise.
+ * The ticker runs per notice rather than one for the bench, so a job
+ * that starts later does not join someone else's phrase half way down
+ * the list.
+ */
+function Rumour({ job }: { job: Job }) {
+  const [step, setStep] = useState(0)
+  const phrases = jobPhrases(job.kind)
+
+  useEffect(() => {
+    if (job.progress) return
+    const tick = setInterval(() => setStep(n => n + 1), RUMOUR_MS)
+    return () => clearInterval(tick)
+  }, [job.progress])
+
+  return (
+    <>
+      <p className={styles.note}>{job.progress ?? labourPhrase(step, phrases)}</p>
+      {/* The one thing worth saying while it runs, kept under whatever
+          it is saying about itself: that leaving is safe. */}
+      <p className={styles.note}>{jobNote(job)}</p>
+    </>
+  )
 }
 
 /**
@@ -242,8 +337,18 @@ export function useBench(): Bench {
  * on before saying so. The whole mechanism exists so that walking away
  * is safe, and a notice that seizes the page would undo that.
  */
-function Notices({ jobs, onDismiss }: { jobs: Job[]; onDismiss: (key: string) => void }) {
-  if (jobs.length === 0) return null
+function Notices({
+  jobs,
+  offers,
+  onDismiss,
+  onWithdraw,
+}: {
+  jobs: Job[]
+  offers: Offer[]
+  onDismiss: (key: string) => void
+  onWithdraw: (key: string) => void
+}) {
+  if (jobs.length === 0 && offers.length === 0) return null
 
   // Newest first. Nothing here puts itself away while it carries a way
   // to what it made, so a reader who sets four lessons writing ends up
@@ -254,6 +359,38 @@ function Notices({ jobs, onDismiss }: { jobs: Job[]; onDismiss: (key: string) =>
 
   return (
     <div className={styles.bench} role="status" aria-live="polite" aria-label="Work in hand">
+      {offers.map(offer => (
+        <div key={offer.key} className={styles.notice} data-state="offer">
+          <div className={styles.body}>
+            <p className={styles.title}>
+              <span className={styles.mark} aria-hidden="true">
+                ○
+              </span>
+              {offer.title}
+            </p>
+            {offer.note && <p className={styles.note}>{offer.note}</p>}
+            <button
+              type="button"
+              className={styles.way}
+              onClick={() => {
+                onWithdraw(offer.key)
+                offer.take()
+              }}
+            >
+              {offer.label}
+            </button>
+          </div>
+          <button
+            type="button"
+            className={styles.put}
+            onClick={() => onWithdraw(offer.key)}
+            aria-label={`Put away: ${offer.title}`}
+          >
+            ×
+          </button>
+        </div>
+      ))}
+
       {newest.map(job => {
         const way = jobWay(job)
         const note = jobNote(job)
@@ -270,7 +407,17 @@ function Notices({ jobs, onDismiss }: { jobs: Job[]; onDismiss: (key: string) =>
                 </span>
                 {jobTitle(job)}
               </p>
-              {note && <p className={styles.note}>{note}</p>}
+              {job.state === 'running' ? (
+                // What it can honestly say about itself. Writing a
+                // lesson knows -- this app drives its rounds, so it can
+                // count them and the words they put down. Sowing is one
+                // request with nothing reporting out of it, so it gets
+                // the sowing sheet's own rumour of a step instead: not
+                // a measurement, and never dressed as one.
+                <Rumour job={job} />
+              ) : (
+                note && <p className={styles.note}>{note}</p>
+              )}
               {job.warnings.length > 0 && (
                 <p className={styles.note}>{job.warnings.join(' ')}</p>
               )}

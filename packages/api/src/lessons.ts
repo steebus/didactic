@@ -70,10 +70,26 @@ export interface Completion {
   abilityAfter?: number | null
 }
 
-/** The body, and whether it was already written. */
+/**
+ * One round of a lesson: the prose so far, and whether that is all of
+ * it.
+ *
+ * A lesson takes longer to generate than a serverless function is
+ * allowed to run, so it is written a round at a time and each round is
+ * saved. `done` false means come back for more; the body on the row is
+ * real prose either way, just unfinished.
+ */
 export interface Written {
   body: string
   cached: boolean
+  /** False while there is more of the lesson still to write. */
+  done: boolean
+  /** Which round this was, counting every one ever written for it. */
+  round: number
+  /** Roughly how many words are down, for telling the reader. */
+  words: number
+  /** Said when a lesson ran past the round cap and was stopped. */
+  warning?: string
 }
 
 /**

@@ -178,46 +178,93 @@ ${brief.sources.length
 }
 
 /**
- * What one lesson is allowed to run to.
+ * How much of a lesson is written in one request.
  *
- * Three thousand was the old figure and it was too low: a lesson is a
- * thousand words of prose plus whatever blocks it uses, and a block is
- * a JSON payload written out in full. A chart and a check together are
- * most of a thousand tokens before the prose starts, which is how a
- * lesson came to be printed with its last sentence cut in half. Output
- * is paid for by what is written rather than by what is allowed, so
- * the headroom costs nothing on a lesson that does not need it.
+ * Not how long a lesson may be -- that is ROUNDS x this -- but how much
+ * work one HTTP request is allowed to do. The function that calls this
+ * is cut off at sixty seconds by the platform, and eight thousand
+ * tokens of prose takes rather longer than that to generate, so a
+ * full-length lesson could not be written inside one request at all: it
+ * was killed part way, the reader was told it had failed, and nothing
+ * was saved.
+ *
+ * So a lesson is written in rounds, each one its own request, each one
+ * saved. Two and a half thousand tokens is comfortably inside the
+ * minute with the database round trips either side of it, and is most
+ * of a lesson on its own -- most finish in one round and never know the
+ * difference.
  */
-const LESSON_TOKENS = 8000
+const ROUND_TOKENS = 2500
 
 /**
- * Write one lesson. Called when the lesson is first opened rather than
- * at generation time: most drafted lessons are never reached, and a
- * curriculum the user reshapes would waste every word written early.
+ * How many rounds a lesson may take before it is called finished
+ * whatever state it is in.
+ *
+ * Six is far more than any honest lesson needs -- fifteen thousand
+ * tokens, several times the longest thing this app has written. It is
+ * here so that a model which will not stop cannot bill indefinitely,
+ * not as a length anyone should reach.
  */
-export async function generateLessonBody(input: {
-  topicTitle: string
-  curriculumTitle: string
-  goal: string | null
-  lesson: { title: string; summary: string | null; stage: LessonStage; estimatedMinutes: number | null }
-  /** Titles of the lessons already completed, so it can build on them. */
-  covered: string[]
-  /** Material the reader chose to steer the curriculum. */
-  sources: Array<{ title: string; summary: string | null; url?: string | null }>
-  /** Everything else already filed against this topic, read or not. The
-   *  lesson can point at it rather than sending the reader looking for
-   *  material they already have. */
-  library: Array<{ title: string; summary: string | null; url: string | null; status: string }>
-  /** Filed against neighbouring topics in the same subjects. A reader's
-   *  library is not sorted the way the map is, so the piece that
-   *  explains what this lesson leans on often sits one topic over. */
-  nearby?: Array<{ title: string; summary: string | null; url: string | null; status: string }>
-  /** The other lessons on the reader's map that this one may point at:
-   *  its own topic first, then the topics its subjects hold. Named in
-   *  the prose rather than addressed, so the link is resolved when the
-   *  lesson is read. See `lessonLinks.ts`. */
-  links?: LessonLink[]
-}): Promise<string> {
+export const ROUNDS_MAX = 6
+
+/**
+ * What the model is told when it is handed its own half-written lesson.
+ *
+ * It is a user turn rather than a continued assistant one. Handing the
+ * model the start of its own answer -- an assistant prefill -- is how
+ * this used to be done, and it is refused outright by every current
+ * model: `claude-sonnet-5` answers a last-turn assistant prefill with a
+ * 400. So every lesson long enough to reach the ceiling failed on the
+ * request that was meant to finish it, which is the other half of why
+ * a long lesson never appeared.
+ */
+const CARRY_ON =
+  'Carry straight on from exactly where that stops, mid-sentence if that is where it stops. ' +
+  'Do not repeat a word of it, do not summarise it, do not start again, and do not say you are continuing. ' +
+  'Write only the rest of the lesson.'
+
+/**
+ * Write one round of a lesson.
+ *
+ * Called when the lesson is first opened rather than at generation
+ * time: most drafted lessons are never reached, and a curriculum the
+ * user reshapes would waste every word written early.
+ *
+ * One model call, and it answers with everything written so far and
+ * whether that is the whole lesson. The caller saves what it gets
+ * either way and comes back for the rest, so no single request has to
+ * fit a whole lesson inside the platform's minute.
+ */
+export async function generateLessonBody(
+  input: {
+    topicTitle: string
+    curriculumTitle: string
+    goal: string | null
+    lesson: { title: string; summary: string | null; stage: LessonStage; estimatedMinutes: number | null }
+    /** Titles of the lessons already completed, so it can build on them. */
+    covered: string[]
+    /** Material the reader chose to steer the curriculum. */
+    sources: Array<{ title: string; summary: string | null; url?: string | null }>
+    /** Everything else already filed against this topic, read or not. The
+     *  lesson can point at it rather than sending the reader looking for
+     *  material they already have. */
+    library: Array<{ title: string; summary: string | null; url: string | null; status: string }>
+    /** Filed against neighbouring topics in the same subjects. A reader's
+     *  library is not sorted the way the map is, so the piece that
+     *  explains what this lesson leans on often sits one topic over. */
+    nearby?: Array<{ title: string; summary: string | null; url: string | null; status: string }>
+    /** The other lessons on the reader's map that this one may point at:
+     *  its own topic first, then the topics its subjects hold. Named in
+     *  the prose rather than addressed, so the link is resolved when the
+     *  lesson is read. See `lessonLinks.ts`. */
+    links?: LessonLink[]
+  },
+  /**
+   * The lesson as far as it has been written, where this is carrying on
+   * from a round that filled up. Empty on the first round.
+   */
+  carried?: string
+): Promise<{ text: string; finished: boolean }> {
   const here = (input.links ?? []).filter(l => l.here).slice(0, LINKS_HERE)
   const over = (input.links ?? []).filter(l => !l.here).slice(0, LINKS_OVER)
   const named = (l: LessonLink) =>
@@ -275,46 +322,56 @@ Use markdown headings and prose. Explain the idea, show one worked example, and 
 ${blockPromptSection()}`
 
   const client = getClient()
-  const res = await client.messages.create({
+
+  // The prompt is the same on every round of a lesson -- the same
+  // topic, library and map -- and only the prose after it grows. Marked
+  // for caching, a second round reads that whole prefix back at about a
+  // tenth of the price instead of paying for it again.
+  const asked: Anthropic.MessageParam[] = [
+    {
+      role: 'user',
+      content: [{ type: 'text', text: prompt, cache_control: { type: 'ephemeral' } }],
+    },
+  ]
+
+  // Carrying on is a user turn, not a continued assistant one. Handing
+  // the model the start of its own answer is an assistant prefill, and
+  // every current model refuses one: it comes back a 400 rather than a
+  // finished lesson.
+  const messages: Anthropic.MessageParam[] = carried
+    ? [...asked, { role: 'assistant', content: carried }, { role: 'user', content: CARRY_ON }]
+    : asked
+
+  // Streamed. A round is most of a minute of generation, and a request
+  // that sends nothing for that long is a request something between
+  // here and the model will eventually give up on.
+  const stream = client.messages.stream({
     model: 'claude-sonnet-5',
-    max_tokens: LESSON_TOKENS,
-    messages: [{ role: 'user', content: prompt }],
+    max_tokens: ROUND_TOKENS,
+    messages,
   })
+  const res = await stream.finalMessage()
 
   const block = res.content.find(c => c.type === 'text')
   if (!block || block.type !== 'text') throw new Error('curriculum: no text returned')
 
-  if (res.stop_reason !== 'max_tokens') return block.text
+  // Whether the model stopped because it had finished, or because it
+  // ran out of room and there is more to come.
+  const finished = res.stop_reason !== 'max_tokens'
+  if (!finished) {
+    console.error(
+      `curriculum: "${input.lesson.title}" filled a round at ${
+        res.usage?.output_tokens ?? '?'
+      } tokens; there is more to write`
+    )
+  }
 
-  // The lesson ran into the ceiling, and what came back stops mid
-  // sentence. It used to be stored exactly like that -- a lesson whose
-  // last paragraph breaks off in the middle of a word, cached on the
-  // row, printed to the reader as the finished article.
+  // The whole lesson so far, not just this round's share: what is
+  // stored is always the complete prose, so a round that never comes
+  // leaves a readable lesson rather than a fragment.
   //
-  // So it is asked to finish. Handing the model its own half a lesson
-  // back as the start of its turn is how the API is told to carry on
-  // from there rather than begin again, and what comes back is the
-  // rest of the same sentence. One continuation only: a lesson that
-  // cannot be finished in two goes at this ceiling is not a lesson
-  // that a third would finish either.
-  console.error(
-    `curriculum: "${input.lesson.title}" hit the token ceiling at ${
-      res.usage?.output_tokens ?? '?'
-    }; asking it to finish`
-  )
-
-  // The API refuses a turn that ends in whitespace, and the model
-  // continues from the last character either way.
-  const carried = block.text.trimEnd()
-  const rest = await client.messages.create({
-    model: 'claude-sonnet-5',
-    max_tokens: LESSON_TOKENS,
-    messages: [
-      { role: 'user', content: prompt },
-      { role: 'assistant', content: carried },
-    ],
-  })
-
-  const more = rest.content.find(c => c.type === 'text')
-  return more && more.type === 'text' ? carried + more.text : carried
+  // Trailing whitespace goes because the next round is asked to carry
+  // on from the last character, and a turn that ends in a space is
+  // refused by the API besides.
+  return { text: (carried ? carried + block.text : block.text).trimEnd(), finished }
 }

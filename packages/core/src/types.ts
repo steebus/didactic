@@ -102,8 +102,18 @@ export interface Lesson {
   title: string
   slug: string
   summary: string | null
-  /** Written on demand; null until the lesson is first opened. */
+  /** Written on demand; null until the lesson is first opened. A body
+   *  is written a round at a time, so this can hold a lesson that stops
+   *  mid-sentence with more still to come -- `body_finished` is what
+   *  says which. */
   body: string | null
+  /** Whether `body` is the whole lesson. */
+  body_finished: boolean
+  /** Model calls that have gone into `body`. */
+  body_rounds: number
+  /** Derived in the database: there is a whole lesson here to read.
+   *  Never written directly. */
+  has_body: boolean
   position: number
   stage: LessonStage
   estimated_minutes: number | null

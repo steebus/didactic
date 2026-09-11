@@ -48,7 +48,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     // The route this lesson sits in, in the order it is meant to be
     // worked, so the foot of the reading can offer the way on. Titles
     // and ids only: the neighbours are two links, not two lessons.
-    db.from('lessons').select('id, title, position')
+    db.from('lessons').select('id, title, position, has_body')
       .eq('curriculum_id', lesson.curriculum_id).order('position'),
   ])
 
