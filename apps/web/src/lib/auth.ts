@@ -1,17 +1,19 @@
 import { cache } from 'react'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createServerClient } from '@supabase/ssr'
 import type { User } from '@supabase/supabase-js'
-import { supabaseAdmin } from './supabase'
+import { supabaseAdmin, supabaseBrowser } from './supabase'
 
 /**
  * The gate.
  *
  * This is a single-user app: there is exactly one account, it owns
  * everything, and the login exists to keep the catalogue private rather
- * than to tell two people apart. Sharing, tenancy and row level
- * security remain out of scope — see PRODUCT.md.
+ * than to tell two people apart. Sharing and tenancy remain out of
+ * scope — see PRODUCT.md. Row level security does not: the phone reads
+ * rows directly under the owner's token, so the database enforces
+ * ownership too rather than trusting this gate alone.
  *
  * What the account does carry is the id every row is written against.
  * Before this, that id was a constant compiled into the client, which
@@ -48,12 +50,23 @@ export async function supabaseSession() {
 /**
  * The signed-in account, or null.
  *
- * `getUser` is used rather than `getSession` deliberately: it verifies
- * the token with Supabase instead of trusting what the cookie claims.
- * `cache` keeps that to one call per request however many times a
- * render asks.
+ * Two ways in, one answer. The web sends session cookies; the phone
+ * sends `Authorization: Bearer <jwt>`, because a native app has no
+ * cookie jar the server can refresh. A bearer token is verified on the
+ * anon client, which holds no session of its own — the token is the
+ * whole claim, so nothing is read from cookies when one is present.
+ *
+ * `getUser` is used rather than `getSession` deliberately, on either
+ * path: it verifies the token with Supabase instead of trusting what
+ * the request claims. `cache` keeps that to one call per request
+ * however many times a render asks.
  */
 export const getOwner = cache(async (): Promise<User | null> => {
+  const bearer = (await headers()).get('authorization')?.match(/^Bearer (.+)$/)
+  if (bearer) {
+    const { data } = await supabaseBrowser().auth.getUser(bearer[1])
+    return data.user ?? null
+  }
   const supabase = await supabaseSession()
   const { data } = await supabase.auth.getUser()
   return data.user ?? null

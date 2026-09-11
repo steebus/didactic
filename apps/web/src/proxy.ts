@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { isOpenPath, isApiPath } from '@/lib/auth-paths'
 
 /**
@@ -17,6 +18,26 @@ import { isOpenPath, isApiPath } from '@/lib/auth-paths'
  * see node_modules/next/dist/docs/01-app/01-getting-started/16-proxy.md.
  */
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  // The phone's path. A bearer token is the whole claim: there is no
+  // cookie to refresh, so building the cookie client here would spend a
+  // round trip only to find no session and turn a signed-in phone away.
+  // The handler's own `getOwner()` verifies the token; what happens here
+  // is that a bad one is stopped at the door, as a cookie request is.
+  const bearer = request.headers.get('authorization')?.match(/^Bearer (.+)$/)
+  if (bearer && isApiPath(pathname)) {
+    if (isOpenPath(pathname)) return NextResponse.next({ request })
+    const anon = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { auth: { persistSession: false } }
+    )
+    const { data } = await anon.auth.getUser(bearer[1])
+    if (data.user) return NextResponse.next({ request })
+    return NextResponse.json({ error: 'not signed in' }, { status: 401 })
+  }
+
   const response = NextResponse.next({ request })
 
   const supabase = createServerClient(
@@ -39,7 +60,6 @@ export async function proxy(request: NextRequest) {
   // runs on every request.
   const { data } = await supabase.auth.getUser()
 
-  const { pathname } = request.nextUrl
   if (data.user || isOpenPath(pathname)) return response
 
   if (isApiPath(pathname)) {

@@ -283,7 +283,7 @@ deploy from `main` is green before starting Phase 2.
 - [x] **2.1 `packages/tokens`.** `src/index.ts` exporting `colour`, `scale` (rem values *and* their px at 16), `space`, `motion`, `plates` (the six plate inks in assignment order), `reversed` (the paper-at-alpha steps), and `graph` (the graph-only inks), sourced from `apps/web/.impeccable/design-tokens.json` and `globals.css`. A Vitest test parses `apps/web/src/app/globals.css`'s `:root` block and asserts every `--` custom property in it has the same value in the module. This is what stops the phone's palette drifting.
 - [x] **2.2 `packages/core`.** Move, with their tests: `types.ts`, `config.ts`, `tags.ts`, `scoring.ts` (split: `computeAbility`, `computeFreshness`, `subjectAggregate`, `viabilityFigure` move; `recomputeAbility` and `recomputeAbilities` take a Supabase client and stay in `apps/web`; with the pure half in `core` the phone may compute a projected ability from the exposures it already holds and print that at once, while the authoritative write stays server-side — the figure is shown locally, never saved locally), `progress.ts`, `outline.ts`, `sections.ts`, `blocks.ts`, `curriculum.ts` (the same split: `viewLessons`, `tierLessons`, `curriculumProgress`, `findPrereqCycle`, `linearPrereqs` move; `completeLesson`, `uncompleteLesson` stay), `http.ts`, `markAnchor.ts`, `marks.ts` (`UNSAVED`, `isUnsaved`, `inReadingOrder` — the reading-order sort is pure and both platforms need it), `books.ts` (`normaliseBooks`, `bookNote` move; the fetch stays), the `buildTopicTree` and `readVerdict` halves of `subject.ts`, and the interfaces of `home.ts`, `topic.ts`, `library.ts`, `pending.ts`, `subject.ts`. New in `core`: `stock.ts` (`stockState`, `STOCK_LABEL`, the hatch table from `StockBar.tsx`), `specimens.ts` (the path data and stage names from `Emblem.tsx` and `RootsSpecimen.tsx`, plus `slugify`), `graph.ts` (node size, fade, label ink and label-side rules from `GraphCanvas.tsx`), `copy.ts` (`LABOURS`, `DRAWINGS`, the edition date format, empty-state sentences that both apps print). Each web component then imports its geometry and words from `core` and keeps its rendering. Nothing in `core` may import `next`, `react`, `dompurify`, `jsdom` or `@supabase/*` except as `import type`; an ESLint `no-restricted-imports` rule in the package enforces it.
 - [x] **2.3 Read endpoints for the sheets the server renders.** Add `GET /api/home` returning `HomeData`, `GET /api/subjects/[id]/area` returning `SubjectArea`, `GET /api/subjects/[id]/sowing` returning `Sowing`, `GET /api/topics/[id]/area` returning `TopicArea` (the existing `GET /api/topics/[id]` stays as it is), `GET /api/library` returning `LibraryRow[]`, `GET /api/inbox` returning `{ pending: PendingTopic[], queued: Resource[] }`, `GET /api/graph` returning the whole planting with its subjects. Each calls the same `get…` function the page calls, so the cache and its tags are shared with the page. These are thin: a handler, an owner check, a `NextResponse.json`. *As built:* `graph/page.tsx` assembles nothing — `GraphCanvas` fetches `/api/topics` and `/api/subjects` itself and merges them — so `/api/graph` is that merge done server-side, and the query behind it moved to `getPlanting` in `apps/web/src/lib/` so the two routes read one thing rather than two copies.
-- [ ] **2.4 Bearer auth in the gate.** `getOwner()` in `apps/web/src/lib/auth.ts`: when the request carries `Authorization: Bearer <jwt>`, verify it with `createClient(url, anonKey).auth.getUser(jwt)` instead of the cookie client; `proxy.ts` does the same for API paths so a bearer request is neither redirected nor refreshed. The web keeps cookies. Add `tests/auth-bearer.test.ts`: a valid token passes, an expired one answers 401, a token with no header falls through to the cookie path. Document both modes in `guides/api-contract.md`.
+- [x] **2.4 Bearer auth in the gate.** `getOwner()` in `apps/web/src/lib/auth.ts`: when the request carries `Authorization: Bearer <jwt>`, verify it with `createClient(url, anonKey).auth.getUser(jwt)` instead of the cookie client; `proxy.ts` does the same for API paths so a bearer request is neither redirected nor refreshed. The web keeps cookies. Add `tests/auth-bearer.test.ts`: a valid token passes, an expired one answers 401, a token with no header falls through to the cookie path. Document both modes in `guides/api-contract.md`.
 - [ ] **2.5 Row-level security.** *Before starting, three things established
   2026-09-11 by survey:* **(a)** No API call needs changing. Every server read
   goes through `supabaseAdmin()` on the service role, which bypasses RLS;
@@ -401,12 +401,20 @@ deliberately not in CI — Vercel builds every push through its GitHub
 connection, so a CI build would be a second build of the same commit
 needing the service role key in Actions to report what Vercel reports.
 
-**Phase 2 is half done, on the `refactor` branch** (five commits, pushed,
-not merged): 2.1, 2.2 and 2.3 are complete. 344 tests still pass — 217 in
-the web, 127 in core — plus tokens' 51 new ones.
+**Phase 2 is half done, on the `refactor` branch** (six commits, pushed,
+not merged): 2.1, 2.2, 2.3 and 2.4 are complete. 348 tests pass — 221 in
+the web, up four with 2.4's, and 127 in core — plus tokens' 51.
 
-**Next, in order:** 2.4 (bearer auth), then 2.5 (row-level security) with
-its three caveats recorded above, then 2.6–2.9.
+2.4 as built: `getOwner()` reads `Authorization: Bearer <jwt>` before it
+reads cookies and verifies it on the anon client, so a bad token is never
+rescued by a browser session that happens to be signed in. `proxy.ts`
+answers a bearer API request without building the cookie client at all —
+there is nothing to refresh — and 401s a bad one at the door. The contract
+in `guides/api-contract.md` already described both modes and now matches
+the code.
+
+**Next, in order:** 2.5 (row-level security) with its three caveats
+recorded above, then 2.6–2.9.
 
 ### Things that cost time, so they are written down
 

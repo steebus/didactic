@@ -47,7 +47,7 @@ or `—` when a row is rendering only.
 
 | Capability | Web | Mobile | Shared via | Notes |
 | --- | --- | --- | --- | --- |
-| Session: sign in, stay signed in, close | built (cookies) | planned (4) | `api/client` header provider | Bearer path in the gate is Phase 2.4. |
+| Session: sign in, stay signed in, close | built (cookies and bearer) | planned (4) | `api/client` header provider | The gate takes either; the phone sends `Authorization: Bearer <jwt>` and is never redirected or refreshed server-side. |
 | Foot bar (five sheets + Settings, with glyphs) | planned (3) | planned (4) | `core/specimens` glyph paths, `tokens.footBar`, the same six addresses | Replaces the running head's sheet links on both. Word under every glyph. |
 | Running head: back, Sow | built (with sheet links and Close) | planned (4) | — | Slims to two items in Phase 3; Close moves to Settings. |
 | Inbox tally on the inbox link | built | planned (4) | `api/inbox.count` | Stamped mustard on ink, same wording. |
