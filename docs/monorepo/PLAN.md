@@ -300,7 +300,7 @@ deploy from `main` is green before starting Phase 2.
   says row-level security is out of scope, and `PRODUCT.md` with it, in the
   same commit. `supabase/migrations/024_row_level_security.sql`: `enable row level security` on every table under `public` that lacks it, an owner policy `for all using (auth.uid() = user_id) with check (auth.uid() = user_id)` on the ten tables that carry `user_id` (subjects, topics, edges, resources, exposures, conversations, curricula, lessons, subject_sowings; highlights already has one), and for the join tables (`topic_subjects`, `resource_topics`, `resource_subjects`, `lesson_prereqs`, `lesson_resources`, `curriculum_sources`, `messages`, `ingestion_jobs`) a policy through `exists (select 1 from <parent> where id = <fk> and user_id = auth.uid())`. A storage policy on the bucket `017_sowings.sql` creates, owner-only. `tests/rls.integration.test.ts`: an anon client with no session reads zero rows from every table; with the owner's JWT it reads the owner's rows; the admin client is unaffected. Publish `resources` and `topics` to the `supabase_realtime` publication.
 - [x] **2.6 `packages/api`.** A typed client over every route in `guides/api-contract.md`: one function per endpoint, each naming the cache tag it invalidates, a `createApi({ baseUrl, headers })` factory so the web passes cookies and the phone passes a bearer token, and the request/response types imported from `@didactic/core` rather than restated. No React: callers wrap it in their own query layer.
-- [ ] **2.7 The web's client components use the client.** *Enumerated from the tree on 2026-09-11, because the list this plan first carried was written before the code was counted and named thirteen call sites where there are forty-one.* Replace every raw `fetch('/api/…')` in `apps/web/src` with `@didactic/api`. **Seventeen files, forty-one call sites:** `components/Highlighter.tsx` (5), `app/marked/MarkedSheet.tsx` (3), `app/curriculum/[id]/page.tsx` (3), `app/lesson/[id]/page.tsx` (4), `app/subjects/new/ProofOfRoots.tsx` (4), `app/subjects/[id]/SubjectBed.tsx` (4), `components/GraphCanvas.tsx` (4), `app/subjects/new/page.tsx` (2), `app/subjects/[id]/GrubOut.tsx` (2), `app/library/LibrarySheet.tsx` (2), `app/refresher/[topicId]/page.tsx` (2), `components/AddResource.tsx`, `components/InboxTally.tsx`, `components/PendingQueue.tsx`, `components/ResourceList.tsx`, `components/SignOut.tsx`, `app/topics/[id]/DraftCurriculum.tsx` (1 each). The four this plan never named are `ResourceList`, `GrubOut`, `SubjectBed` and `LibrarySheet`; re-run the sweep rather than trusting this list a second time:
+- [x] **2.7 The web's client components use the client.** *Enumerated from the tree on 2026-09-11, because the list this plan first carried was written before the code was counted and named thirteen call sites where there are forty-one.* Replace every raw `fetch('/api/…')` in `apps/web/src` with `@didactic/api`. **Seventeen files, forty-one call sites:** `components/Highlighter.tsx` (5), `app/marked/MarkedSheet.tsx` (3), `app/curriculum/[id]/page.tsx` (3), `app/lesson/[id]/page.tsx` (4), `app/subjects/new/ProofOfRoots.tsx` (4), `app/subjects/[id]/SubjectBed.tsx` (4), `components/GraphCanvas.tsx` (4), `app/subjects/new/page.tsx` (2), `app/subjects/[id]/GrubOut.tsx` (2), `app/library/LibrarySheet.tsx` (2), `app/refresher/[topicId]/page.tsx` (2), `components/AddResource.tsx`, `components/InboxTally.tsx`, `components/PendingQueue.tsx`, `components/ResourceList.tsx`, `components/SignOut.tsx`, `app/topics/[id]/DraftCurriculum.tsx` (1 each). The four this plan never named are `ResourceList`, `GrubOut`, `SubjectBed` and `LibrarySheet`; re-run the sweep rather than trusting this list a second time:
   `grep -rn "fetch('/api/\|fetch(\`/api/" apps/web/src --include=*.tsx --include=*.ts`
 
   The web calls `didactic({})` with no base URL and no headers — relative paths, cookies as they are now. Nothing throws, so a call site that read `res.ok` now reads `result.ok` and prints `result.error`, which is the sentence `readJson` already built. That is the one place the diff is not purely mechanical: a `catch` around a fetch becomes a branch on `ok`.
@@ -410,11 +410,11 @@ deliberately not in CI — Vercel builds every push through its GitHub
 connection, so a CI build would be a second build of the same commit
 needing the service role key in Actions to report what Vercel reports.
 
-**Phase 2 is most of the way done, on the `refactor` branch**, pushed and
-not merged: 2.1 through 2.6 are complete, 2.7 through 2.9 are open. 366
-tests pass — 226 in the web, 127 in core and 13 in the new `api` — plus
-tokens' 51. `git log main..refactor` is the commit list; each task is its
-own commit and reverts on its own.
+**Phase 2 is nearly done, on the `refactor` branch**, pushed and not
+merged: 2.1 through 2.7 are complete, 2.8 and 2.9 are open. 417 tests
+pass — 226 in the web, 127 in core, 13 in `api` and 51 in tokens.
+`git log main..refactor` is the commit list; each task is its own commit
+and reverts on its own.
 
 2.4 as built: `getOwner()` reads `Authorization: Bearer <jwt>` before it
 reads cookies and verifies it on the anon client, so a bad token is never
@@ -454,9 +454,37 @@ nothing throwing on an HTTP error. `library.ts` is a fourteenth module
 in a package whose `lib` is `esnext` — the body type is `FormData` and is
 otherwise inferred, which keeps `dom` out of a package the phone reads.
 
-**Next: 2.7**, whose entry above was re-counted against the tree and now
-names all forty-one call sites and all twenty-one re-exports. Then 2.8
-(scripts import from `core`) and 2.9 (the agent file moves), both small.
+2.7 as built: all forty-one call sites in seventeen files now go through
+`didactic({})` — no base URL, no headers, cookies as they were — and
+`grep -rn "fetch('/api/" apps/web/src` finds nothing. The twenty-one
+re-exports are gone with it: the eleven pure shims deleted, the three
+split modules keeping only their writing halves, the seven shape
+re-export lines dropped. Two things the plan did not anticipate:
+
+- **Eight of 2.6's response types disagreed with the shipped routes**,
+  because they were written before the routes were read. The client was
+  the wrong half each time and was corrected to match: `subjects.sow`
+  answers `{ subjectId, topicsCreated, linked, reading, warnings }` and
+  not a `Sown` with an `id`; `subjects.qualify` answers `{ questions }`
+  and not `{ qualifiers }`, whose `probes` is a string; `highlights.create`
+  answers the row and the figure it moved; `topics.get` has a real
+  six-key shape; `topics.list` is a `Planting` minus its subjects;
+  `curricula.create` answers `{ curriculumId, … }`; `lessons.patch`
+  carries `ok`; `resources.add` and `upload` carry the 202's `warning`.
+  A call site that destructures is how a type like this is caught, which
+  is the argument for doing 2.7 rather than deferring it.
+- **Deleting a shim breaks relative imports, not just `@/lib` ones.**
+  Modules inside `src/lib` import their siblings as `'./tags'`,
+  `'./config'`, `'../types'`, so a sweep over `@/lib/x` leaves them
+  behind and typecheck fails in fourteen files at once. Sweep both
+  spellings. Two tests in `mark-list.test.tsx` also stubbed `fetch` as
+  `{ ok, json }`: the client reads the body as text first, so a double
+  that only answers `json()` is no longer a response, and one of them
+  needed an `await act` because the client asks for its headers before
+  it calls `fetch`, putting the call a microtask behind the press.
+
+**Next: 2.8** (scripts import from `core`) and 2.9 (the agent file
+moves), both small.
 
 **Before starting anything, three things about this machine.** The local
 Supabase stack is what 2.5 must be verified against and what the

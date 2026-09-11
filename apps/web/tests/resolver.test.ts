@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { resolveConcept, cosineSimilarity, neighboursFor } from '@/lib/resolver'
 import cases from './fixtures/resolver-cases.json'
-import { config } from '@/lib/config'
+import { config } from '@didactic/core/config'
 
 // Build two unit vectors with a known cosine similarity, so fixture
 // similarities drive the real code path rather than being stubbed.

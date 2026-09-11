@@ -5,13 +5,15 @@ import Link from 'next/link'
 import { Prose } from '@/components/Prose'
 import { Highlighter } from '@/components/Highlighter'
 import { Contents } from '@/components/Contents'
-import type { Highlight as Mark } from '@/lib/types'
+import { didactic } from '@didactic/api'
+import type { ExposureDepth, Highlight as Mark } from '@didactic/core/types'
 import { useScrollMemory } from '@/lib/useScrollMemory'
-import { readJson } from '@/lib/http'
-import { viabilityFigure } from '@/lib/scoring'
+import { viabilityFigure } from '@didactic/core/scoring'
 import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
 import { Setting } from '@/components/Setting'
+
+const api = didactic()
 
 interface LessonData {
   lesson: {
@@ -81,36 +83,29 @@ export default function LessonPage({
   useEffect(() => {
     let cancelled = false
 
-    fetch(`/api/lessons/${id}`)
-      .then(async res => {
-        const payload = await res.json()
-        if (cancelled) return
-        if (!res.ok) {
-          setError(payload.error ?? 'Could not read it.')
-          return
-        }
-        setData(payload)
-        setBody(payload.lesson.body)
-        setHighlights(payload.highlights ?? [])
-        if (payload.lesson.body) return
+    void (async () => {
+      const { ok, body: payload, error: failed } = await api.lessons.get(id)
+      if (cancelled) return
+      if (!ok) {
+        setError(failed ?? 'Could not read it.')
+        return
+      }
 
-        // The body is written on first open rather than at draft time:
-        // most drafted lessons are never reached, and reshaping the
-        // curriculum would waste anything written early.
-        setWriting(true)
-        try {
-          const r = await fetch(`/api/lessons/${id}/body`, { method: 'POST' })
-          const b = await r.json()
-          if (cancelled) return
-          if (!r.ok) setError(b.error ?? 'Could not write it.')
-          else setBody(b.body)
-        } catch {
-          if (!cancelled) setError('Could not reach the server.')
-        } finally {
-          if (!cancelled) setWriting(false)
-        }
-      })
-      .catch(() => !cancelled && setError('Could not reach the server.'))
+      setData(payload)
+      setBody(payload.lesson.body)
+      setHighlights(payload.highlights ?? [])
+      if (payload.lesson.body) return
+
+      // The body is written on first open rather than at draft time:
+      // most drafted lessons are never reached, and reshaping the
+      // curriculum would waste anything written early.
+      setWriting(true)
+      const written = await api.lessons.writeBody(id)
+      if (cancelled) return
+      if (written.ok) setBody(written.body.body)
+      else setError(written.error ?? 'Could not write it.')
+      setWriting(false)
+    })()
 
     return () => {
       cancelled = true
@@ -136,25 +131,20 @@ export default function LessonPage({
     setRewriting(true)
     setConfirming(false)
     setError(null)
-    try {
-      const res = await fetch(`/api/lessons/${id}/body`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ regenerate: true }),
-      })
-      const { ok, body: payload, error: failed } = await readJson<{ body?: string }>(res)
-      if (!ok || !payload.body) throw new Error(failed ?? 'Could not write it again.')
 
-      setBody(payload.body)
-      // So the marks are re-read against the new text and the count
-      // beneath it tells the truth about what can still be drawn.
-      setRevision(r => r + 1)
-      window.scrollTo({ top: 0 })
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.')
-    } finally {
+    const { ok, body: payload, error: failed } = await api.lessons.writeBody(id, true)
+    if (!ok || !payload.body) {
+      setError(failed ?? 'Could not write it again.')
       setRewriting(false)
+      return
     }
+
+    setBody(payload.body)
+    // So the marks are re-read against the new text and the count
+    // beneath it tells the truth about what can still be drawn.
+    setRevision(r => r + 1)
+    window.scrollTo({ top: 0 })
+    setRewriting(false)
   }
 
   /**
@@ -185,36 +175,34 @@ export default function LessonPage({
         : d
     )
 
-    try {
-      const res = await fetch(`/api/lessons/${id}`, {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ action, depth }),
-      })
-      const payload = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(payload.error ?? 'Could not save that.')
+    const { ok, body: payload, error: failed } = await api.lessons.patch(id, {
+      action,
+      depth: depth as ExposureDepth | undefined,
+    })
 
-      // What the work was worth, in the figure it moved. Held only for
-      // this visit: it is an acknowledgement, not a record — the record
-      // is the exposure log.
-      if (action === 'complete' && payload.exposureWritten) {
-        setEntry({
-          topicTitle: payload.topicTitle,
-          before: payload.abilityBefore,
-          after: payload.abilityAfter,
-        })
-      } else {
-        setEntry(null)
-      }
-
-      setRevision(r => r + 1)
-    } catch (e) {
+    if (!ok) {
       setData(d => (d ? { ...d, lesson: { ...d.lesson, completed_at: before } } : d))
       setEntry(null)
-      setError(e instanceof Error ? e.message : 'Something went wrong.')
-    } finally {
+      setError(failed ?? 'Could not save that.')
       setBusy(false)
+      return
     }
+
+    // What the work was worth, in the figure it moved. Held only for
+    // this visit: it is an acknowledgement, not a record — the record
+    // is the exposure log.
+    if (action === 'complete' && payload.exposureWritten) {
+      setEntry({
+        topicTitle: payload.topicTitle ?? null,
+        before: payload.abilityBefore ?? null,
+        after: payload.abilityAfter ?? null,
+      })
+    } else {
+      setEntry(null)
+    }
+
+    setRevision(r => r + 1)
+    setBusy(false)
   }
 
   if (!data) {

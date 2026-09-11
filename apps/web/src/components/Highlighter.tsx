@@ -4,17 +4,20 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { createPortal } from 'react-dom'
 // The DOM has a Highlight of its own, so ours is aliased rather than
 // left to whichever the compiler reaches for first.
-import type { Highlight as Mark } from '@/lib/types'
+import { didactic } from '@didactic/api'
+import type { Highlight as Mark } from '@didactic/core/types'
 import { paintMarks } from '@/lib/paintMarks'
-import { panelSpot, pinSpot, type Spot } from '@/lib/markAnchor'
+import { panelSpot, pinSpot, type Spot } from '@didactic/core/markAnchor'
 import { NoteEditor } from './NoteEditor'
 import { NoteIcon } from './NoteIcon'
 import { MarksIcon } from './MarksIcon'
 import { MarkList } from './MarkList'
-import { UNSAVED, isUnsaved, inReadingOrder } from '@/lib/marks'
+import { UNSAVED, isUnsaved, inReadingOrder } from '@didactic/core/marks'
 import { ExpandIcon } from './ExpandIcon'
 import { NoteText } from './NoteText'
 import styles from './Highlighter.module.css'
+
+const api = didactic()
 
 /**
  * How long a selection has to stop changing before the offer to keep it
@@ -383,30 +386,24 @@ export function Highlighter({
     window.getSelection()?.removeAllRanges()
 
     void (async () => {
-      try {
-        const res = await fetch('/api/highlights', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(written),
-        })
-        const body = await res.json().catch(() => ({}))
-        if (!res.ok) throw new Error(body.error ?? 'Could not keep that.')
-
-        // The real row, under the id the rest of the app knows it by,
-        // so it can be edited or removed without a reload. It drops
-        // out of this list as soon as the sheet is re-read.
-        if (body.highlight) {
-          setKept(k => k.map(m => (m.id === draft.id ? (body.highlight as Mark) : m)))
-        }
-        onChanged?.()
-      } catch (e) {
+      const { ok, body, error: failed } = await api.highlights.create(written)
+      if (!ok) {
         setKept(k => k.filter(m => m.id !== draft.id))
         setLost(
           `That mark was not kept: ${
-            e instanceof Error ? e.message : 'something went wrong'
+            failed ?? 'something went wrong'
           }. Select the passage again to try once more.`
         )
+        return
       }
+
+      // The real row, under the id the rest of the app knows it by,
+      // so it can be edited or removed without a reload. It drops
+      // out of this list as soon as the sheet is re-read.
+      if (body.highlight) {
+        setKept(k => k.map(m => (m.id === draft.id ? body.highlight : m)))
+      }
+      onChanged?.()
     })()
   }
 
@@ -414,40 +411,30 @@ export function Highlighter({
     if (!open || isUnsaved(open.mark.id)) return
     setBusy(true)
     setError(null)
-    try {
-      const res = await fetch('/api/highlights', {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ id: open.mark.id, note }),
-      })
-      if (!res.ok) throw new Error('Could not save that note.')
+
+    const { ok, error: failed } = await api.highlights.patch(open.mark.id, note)
+    if (ok) {
       setOpen(null)
       onChanged?.()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.')
-    } finally {
-      setBusy(false)
+    } else {
+      setError(failed ?? 'Could not save that note.')
     }
+    setBusy(false)
   }
 
   async function remove() {
     if (!open || isUnsaved(open.mark.id)) return
     setBusy(true)
     setError(null)
-    try {
-      const res = await fetch('/api/highlights', {
-        method: 'DELETE',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ id: open.mark.id }),
-      })
-      if (!res.ok) throw new Error('Could not remove that.')
+
+    const { ok, error: failed } = await api.highlights.remove(open.mark.id)
+    if (ok) {
       setOpen(null)
       onChanged?.()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.')
-    } finally {
-      setBusy(false)
+    } else {
+      setError(failed ?? 'Could not remove that.')
     }
+    setBusy(false)
   }
 
   // Escape closes whichever panel is up, which is the one keyboard
@@ -648,12 +635,10 @@ export function Highlighter({
 
   /** Save a note against a mark from the list beside the reading. */
   async function saveNoteFor(id: string, text: string) {
-    const res = await fetch('/api/highlights', {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ id, note: text }),
-    })
-    if (!res.ok) throw new Error('Could not save that note.')
+    // Throws rather than answering: the list beside the reading awaits
+    // this and shows its own failure, so the sentence has to travel.
+    const { ok, error: failed } = await api.highlights.patch(id, text)
+    if (!ok) throw new Error(failed ?? 'Could not save that note.')
     // Kept in hand as well as re-read, so the list does not sit with
     // the old note while the sheet comes back.
     setKept(k => {
@@ -681,19 +666,14 @@ export function Highlighter({
     if (open?.mark.id === id) setOpen(null)
 
     void (async () => {
-      try {
-        const res = await fetch('/api/highlights', {
-          method: 'DELETE',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ id }),
-        })
-        if (!res.ok) throw new Error('Could not remove that.')
+      const { ok, error: failed } = await api.highlights.remove(id)
+      if (ok) {
         onChanged?.()
-      } catch (e) {
+      } else {
         setGone(g => g.filter(x => x !== id))
         setLost(
           `That mark was not removed: ${
-            e instanceof Error ? e.message : 'something went wrong'
+            failed ?? 'something went wrong'
           }. It is still here.`
         )
       }

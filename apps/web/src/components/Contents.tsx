@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, type RefObject } from 'react'
-import { lessonSections } from '@/lib/sections'
+import { lessonSections } from '@didactic/core/sections'
 import styles from './Contents.module.css'
 
 /** Below this a contents list is longer than what it lists. */

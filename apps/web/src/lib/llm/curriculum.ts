@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
-import type { CurriculumShape, LessonStage } from '../types'
-import { blockPromptSection } from '../blocks'
+import type { CurriculumShape, LessonStage } from '@didactic/core/types'
+import { blockPromptSection } from '@didactic/core/blocks'
 
 /** A lesson as the model proposes it, before it has an id. Branching is
  *  expressed with the model's own keys so it never has to invent uuids. */

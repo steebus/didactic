@@ -1,13 +1,12 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { config } from './config'
+import { config } from '@didactic/core/config'
 import { recomputeAbility } from './scoring'
-import type { Highlight } from './types'
+import type { Highlight } from '@didactic/core/types'
 
 // The shape moved to `@didactic/core/shapes`, where the phone can name
 // it too; the query that builds it needs a client and the cache, so it
 // stays here. Re-exported so `@/lib/highlights` still answers for both.
 import type { HighlightRow } from '@didactic/core/shapes'
-export type { HighlightRow } from '@didactic/core/shapes'
 
 const SELECT = '*, lesson:lessons(id, title), topic:topics(id, title)'
 

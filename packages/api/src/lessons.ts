@@ -5,6 +5,7 @@ import type {
   Highlight,
   Lesson,
   LessonStage,
+  Resource,
 } from '@didactic/core/types'
 
 export interface LessonPatch {
@@ -22,22 +23,31 @@ export interface LessonDetail {
   lesson: Lesson
   curriculum: Pick<Curriculum, 'id' | 'title' | 'goal' | 'topic_id' | 'status'> | null
   topic: { id: string; title: string } | null
-  resources: Array<{
-    relevance: number
-    resources: { id: string; title: string; kind: string; url: string | null; status: string }
-  }>
+  resources: Array<{ relevance: number; resources: Resource }>
   highlights: Highlight[]
   requires: Array<{ id: string; title: string; completed_at: string | null }>
   /** Derived, so the sheet never has to trust a stored flag. */
   available: boolean
 }
 
-/** What completing a lesson answers with: the figure before and after. */
+/**
+ * What completing a lesson answers with: the figure before and after.
+ *
+ * Held for the visit only — it is an acknowledgement, not a record. The
+ * record is the exposure log.
+ */
 export interface Completion {
-  exposureWritten: boolean
+  ok: true
+  exposureWritten?: boolean
   topicTitle?: string | null
   abilityBefore?: number | null
   abilityAfter?: number | null
+}
+
+/** The body, and whether it was already written. */
+export interface Written {
+  body: string
+  cached: boolean
 }
 
 export const lessons = (api: Api) => ({
@@ -50,5 +60,5 @@ export const lessons = (api: Api) => ({
 
   /** Write the body, or write it again. */
   writeBody: (id: string, regenerate = false) =>
-    api.post<{ body: string }>(`/api/lessons/${id}/body`, { regenerate }),
+    api.post<Written>(`/api/lessons/${id}/body`, { regenerate }),
 })

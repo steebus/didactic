@@ -1,7 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { config } from './config'
+import { config } from '@didactic/core/config'
 import { recomputeAbility } from './scoring'
-import type { ExposureDepth, ResourceStatus } from './types'
+import type { ExposureDepth, ResourceStatus } from '@didactic/core/types'
 
 export const VALID_STATUSES: ResourceStatus[] = ['queued', 'reading', 'consumed', 'abandoned']
 export const VALID_DEPTHS: ExposureDepth[] = ['skim', 'read', 'applied']

@@ -2,7 +2,10 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { didactic, type PendingAction } from '@didactic/api'
 import styles from '@/app/inbox/page.module.css'
+
+const api = didactic()
 
 interface PendingTopic {
   id: string
@@ -50,33 +53,20 @@ export function PendingQueue({ topics }: { topics: PendingTopic[] }) {
   const [, startTransition] = useTransition()
   const router = useRouter()
 
-  function adjudicate(
-    topicId: string,
-    action: 'confirm' | 'merge' | 'discard',
-    mergeInto?: string
-  ) {
+  function adjudicate(topicId: string, action: PendingAction, mergeInto?: string) {
     setBusy(topicId)
     setError(null)
     setDecided(gone => [...gone, topicId])
 
     void (async () => {
-      try {
-        const res = await fetch('/api/topics/pending', {
-          method: 'PATCH',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ topicId, action, mergeInto }),
-        })
-        if (!res.ok) {
-          const { error } = await res.json().catch(() => ({ error: 'Request failed' }))
-          throw new Error(error ?? 'Request failed')
-        }
+      const { ok, error: failed } = await api.topics.decide(topicId, action, mergeInto)
+      if (ok) {
         startTransition(() => router.refresh())
-      } catch (e) {
+      } else {
         setDecided(gone => gone.filter(id => id !== topicId))
-        setError(e instanceof Error ? e.message : 'Could not save that. Try again.')
-      } finally {
-        setBusy(null)
+        setError(failed ?? 'Could not save that. Try again.')
       }
+      setBusy(null)
     })()
   }
 

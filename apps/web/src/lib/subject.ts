@@ -1,6 +1,6 @@
 import { cacheTag } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { computeFreshness, subjectAggregate } from './scoring'
+import { computeFreshness, subjectAggregate } from '@didactic/core/scoring'
 import type { CurriculumStatus, Resource } from '@didactic/core/types'
 import type { SubjectTopicRow, TopicTreeNode } from '@didactic/core/subject'
 import { buildTopicTree } from '@didactic/core/subject'
@@ -11,14 +11,12 @@ import { supabaseAdmin } from './supabase'
 // it too; the query that builds it needs a client and the cache, so it
 // stays here. Re-exported so `@/lib/subject` still answers for both.
 import type { SubjectArea, Assessment, Sowing } from '@didactic/core/shapes'
-export type { SubjectArea, Assessment, Sowing } from '@didactic/core/shapes'
 
 
 // The outline and the verdict moved to `@didactic/core`: both are pure
 // and the phone draws the same bed. What stays here reaches the database
 // and carries the cache tags. Re-exported so `@/lib/subject` still
 // answers for both halves.
-export * from '@didactic/core/subject'
 
 /**
  * How the app's reading sits against the user's own figure.

@@ -5,8 +5,11 @@ import Graph from 'graphology'
 import Sigma from 'sigma'
 import forceAtlas2 from 'graphology-layout-forceatlas2'
 import FA2Supervisor from 'graphology-layout-forceatlas2/worker'
+import { didactic } from '@didactic/api'
 import { SheetNav } from './SheetNav'
 import styles from './GraphCanvas.module.css'
+
+const api = didactic()
 import { Setting } from '@/components/Setting'
 import {
   EDGE_KIND_LABEL,
@@ -104,11 +107,10 @@ export function GraphCanvas({
   const [reload, setReload] = useState(0)
 
   useEffect(() => {
-    Promise.all([
-      fetch('/api/topics').then(r => r.json()),
-      fetch('/api/subjects').then(r => r.json()),
-    ]).then(([graph, subjects]) => {
-      setData({ ...graph, subjects: subjects.subjects ?? [] })
+    // One call rather than two: `/api/graph` is this same merge done
+    // server-side, and both read `getPlanting`, so they cannot drift.
+    void api.graph.read().then(({ ok, body }) => {
+      if (ok) setData(body)
     })
   }, [reload])
 
@@ -727,15 +729,12 @@ function TopicPanel({
   async function grub() {
     setBusy(true)
     setError(null)
-    try {
-      const res = await fetch(`/api/topics/${topic.id}`, { method: 'DELETE' })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.error ?? 'Could not grub that out.')
-      }
+
+    const { ok, error: failed } = await api.topics.remove(topic.id)
+    if (ok) {
       onRemoved()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.')
+    } else {
+      setError(failed ?? 'Could not grub that out.')
       setBusy(false)
     }
   }
@@ -755,10 +754,9 @@ function TopicPanel({
 
   useEffect(() => {
     let cancelled = false
-    fetch(`/api/topics/${topic.id}`)
-      .then(r => r.json())
-      .then(d => !cancelled && setDetail(d))
-      .catch(() => {})
+    void api.topics.get(topic.id).then(({ ok, body }) => {
+      if (ok && !cancelled) setDetail(body)
+    })
     return () => {
       cancelled = true
     }

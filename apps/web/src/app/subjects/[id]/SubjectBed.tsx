@@ -3,14 +3,16 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { viabilityFigure } from '@/lib/scoring'
+import { didactic } from '@didactic/api'
+import { viabilityFigure } from '@didactic/core/scoring'
 import { StockBar, stockState, STOCK_LABEL, STOCK_ORDER } from '@/components/StockBar'
-import { readJson } from '@/lib/http'
 import { useLabour, DRAWINGS } from '@/components/useLabour'
-import { routeProgress, ROUTE_LABEL } from '@/lib/progress'
-import { orderSubjectOutline } from '@/lib/outline'
-import type { SubjectTopicRow, TopicTreeNode } from '@/lib/subject'
+import { routeProgress, ROUTE_LABEL } from '@didactic/core/progress'
+import { orderSubjectOutline } from '@didactic/core/outline'
+import type { SubjectTopicRow, TopicTreeNode } from '@didactic/core/subject'
 import styles from './page.module.css'
+
+const api = didactic()
 
 /**
  * The bed as a fixed outline: every topic in the subject, nested under
@@ -70,12 +72,7 @@ export function SubjectBed({
     setError(null)
     setNote(null)
     try {
-      const res = await fetch(`/api/subjects/${subjectId}/resow`, { method: 'POST' })
-      const { ok, body, error: failed } = await readJson<{
-        topicsCreated?: number
-        linked?: number
-        warnings?: string[]
-      }>(res)
+      const { ok, body, error: failed } = await api.subjects.resow(subjectId)
       if (!ok) throw new Error(failed ?? 'Could not lay out the bed.')
 
       const sownCount = (body.topicsCreated ?? 0) + (body.linked ?? 0)
@@ -100,13 +97,8 @@ export function SubjectBed({
     setError(null)
     setNote(null)
     try {
-      const res = await fetch(`/api/subjects/${subjectId}/topics`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ title: name }),
-      })
-      const body = await res.json()
-      if (!res.ok) throw new Error(body.error ?? 'Could not add that.')
+      const { ok, body, error: failed } = await api.subjects.addTopic(subjectId, name)
+      if (!ok) throw new Error(failed ?? 'Could not add that.')
 
       // The resolver decides what actually happened, and saying so is
       // the difference between a map the user trusts and one that
@@ -143,12 +135,7 @@ export function SubjectBed({
     setError(null)
     setNote(null)
     try {
-      const res = await fetch(`/api/subjects/${subjectId}/relate`, { method: 'POST' })
-      const { ok, body, error: failed } = await readJson<{
-        drawn?: number
-        considered?: number
-        warnings?: string[]
-      }>(res)
+      const { ok, body, error: failed } = await api.subjects.relate(subjectId)
       if (!ok) throw new Error(failed ?? 'Could not draw the connections.')
 
       const count = body.drawn ?? 0
@@ -174,13 +161,8 @@ export function SubjectBed({
     setError(null)
     setNote(null)
     try {
-      const res = await fetch(`/api/subjects/${subjectId}/topics`, {
-        method: 'DELETE',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ topicId: topic.id }),
-      })
-      const body = await res.json()
-      if (!res.ok) throw new Error(body.error ?? 'Could not remove that.')
+      const { ok, body, error: failed } = await api.subjects.removeTopic(subjectId, topic.id)
+      if (!ok) throw new Error(failed ?? 'Could not remove that.')
 
       setNote(
         body.loose

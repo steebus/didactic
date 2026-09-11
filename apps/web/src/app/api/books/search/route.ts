@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { ownerId } from '@/lib/auth'
-import { normaliseBooks } from '@/lib/books'
+import { normaliseBooks } from '@didactic/core/books'
 
 const OPEN_LIBRARY = 'https://openlibrary.org/search.json'
 

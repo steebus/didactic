@@ -28,6 +28,21 @@ export interface NewLesson {
   scaffolding?: boolean
 }
 
+/**
+ * What drafting answers with. A draft is a proposal and counts for
+ * nothing until approved — PRODUCT.md principle 5.
+ *
+ * `droppedPrereqs` is a sentence rather than a flag: a draft that looped
+ * back on itself had its ordering left out, and the reader has to be
+ * told so they can set it themselves.
+ */
+export interface Drafted {
+  curriculumId: string
+  lessonsCreated: number
+  shape: CurriculumShape
+  droppedPrereqs: string | null
+}
+
 export interface CurriculumDetail {
   curriculum: Curriculum
   topic: {
@@ -48,10 +63,8 @@ export interface CurriculumDetail {
 }
 
 export const curricula = (api: Api) => ({
-  /** Drafts with the agent. A draft is a proposal and counts for
-   *  nothing until approved — PRODUCT.md principle 5. */
   create: (topicId: string, goal?: string, sourceResourceIds?: string[]) =>
-    api.post<{ id: string }>('/api/curricula', { topicId, goal, sourceResourceIds }),
+    api.post<Drafted>('/api/curricula', { topicId, goal, sourceResourceIds }),
 
   get: (id: string) => api.get<CurriculumDetail>(`/api/curricula/${id}`),
 
@@ -59,5 +72,5 @@ export const curricula = (api: Api) => ({
     api.patch<{ ok: true }>(`/api/curricula/${id}`, body),
   remove: (id: string) => api.del<{ ok: true }>(`/api/curricula/${id}`),
   addLesson: (id: string, body: NewLesson) =>
-    api.post<Lesson>(`/api/curricula/${id}/lessons`, body),
+    api.post<{ lesson: Lesson }>(`/api/curricula/${id}/lessons`, body),
 })

@@ -2,8 +2,11 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import type { Resource } from '@/lib/types'
+import { didactic } from '@didactic/api'
+import type { ExposureDepth, Resource, ResourceStatus } from '@didactic/core/types'
 import styles from '@/app/inbox/page.module.css'
+
+const api = didactic()
 
 const DEPTHS = [
   { value: 'skim', label: 'Skimmed' },
@@ -37,8 +40,8 @@ export function ResourceList({ resources }: { resources: Resource[] }) {
   // other list, or that already says what the server says, is a key
   // nothing reads.
 
-  function patch(id: string, body: Record<string, unknown>) {
-    const status = body.status as Resource['status'] | undefined
+  function patch(id: string, body: { status?: ResourceStatus; depth?: ExposureDepth }) {
+    const status = body.status
     const previous = settled[id]
 
     setBusy(id)
@@ -51,18 +54,10 @@ export function ResourceList({ resources }: { resources: Resource[] }) {
     if (status === 'consumed' || status === 'abandoned') setLeaving(id)
 
     void (async () => {
-      try {
-        const res = await fetch(`/api/resources/${id}`, {
-          method: 'PATCH',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(body),
-        })
-        if (!res.ok) {
-          const { error } = await res.json().catch(() => ({ error: 'Request failed' }))
-          throw new Error(error ?? 'Request failed')
-        }
+      const { ok, error: failed } = await api.resources.patch(id, body)
+      if (ok) {
         startTransition(() => router.refresh())
-      } catch (e) {
+      } else {
         // Back where it was, because a row that says "sown" over a
         // write that never landed is worse than no answer at all.
         setSettled(held => {
@@ -72,10 +67,9 @@ export function ResourceList({ resources }: { resources: Resource[] }) {
           return next
         })
         setLeaving(null)
-        setError(e instanceof Error ? e.message : 'Could not save that. Try again.')
-      } finally {
-        setBusy(null)
+        setError(failed ?? 'Could not save that. Try again.')
       }
+      setBusy(null)
     })()
   }
 

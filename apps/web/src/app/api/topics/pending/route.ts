@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getPendingTopics } from '@/lib/pending'
 import { revalidateTag } from 'next/cache'
-import { tags } from '@/lib/tags'
+import { tags } from '@didactic/core/tags'
 
 /**
  * Drop what this route just changed.

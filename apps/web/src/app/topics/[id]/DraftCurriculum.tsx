@@ -2,7 +2,10 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { didactic } from '@didactic/api'
 import styles from './page.module.css'
+
+const api = didactic()
 
 interface Candidate {
   id: string
@@ -36,19 +39,15 @@ export function DraftCurriculum({
   async function draft() {
     setBusy(true)
     setError(null)
-    try {
-      const res = await fetch('/api/curricula', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ topicId, goal, sourceResourceIds: sources }),
-      })
-      const body = await res.json()
-      if (!res.ok) throw new Error(body.error ?? 'Could not draft it.')
-      startTransition(() => router.push(`/curriculum/${body.curriculumId}`))
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.')
+
+    const { ok, body, error: failed } = await api.curricula.create(topicId, goal, sources)
+    if (!ok) {
+      setError(failed ?? 'Could not draft it.')
       setBusy(false)
+      return
     }
+
+    startTransition(() => router.push(`/curriculum/${body.curriculumId}`))
   }
 
   if (!open) {

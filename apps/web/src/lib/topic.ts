@@ -1,17 +1,16 @@
 import { cacheTag } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { tags } from './tags'
-import type { HighlightRow } from './highlights'
-import { computeFreshness } from './scoring'
-import { curriculumProgress } from './curriculum'
-import type { Resource, Subject } from './types'
+import { tags } from '@didactic/core/tags'
+import type { HighlightRow } from '@didactic/core/shapes'
+import { computeFreshness } from '@didactic/core/scoring'
+import { curriculumProgress } from '@didactic/core/curriculum'
+import type { Resource, Subject } from '@didactic/core/types'
 import { supabaseAdmin } from './supabase'
 
 // The shape moved to `@didactic/core/shapes`, where the phone can name
 // it too; the query that builds it needs a client and the cache, so it
 // stays here. Re-exported so `@/lib/topic` still answers for both.
 import type { TopicArea } from '@didactic/core/shapes'
-export type { TopicNeighbour, CurriculumCard, LessonRow, TopicArea } from '@didactic/core/shapes'
 
 /**
  * Everything the topic area shows: the curriculum and the material,

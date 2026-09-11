@@ -57,7 +57,7 @@ the phone's query cache.
 | Method | Path | Query / body | Returns | Notes |
 | --- | --- | --- | --- | --- |
 | GET | `/api/home` | — | `HomeData` | The stock list's own `getHomeData`, so the read shares its cache tags. |
-| GET | `/api/graph` | — | `{ topics, edges, resources, lessons, subjects }` | The whole bed in one call. The web's canvas asks `/api/topics` and `/api/subjects` separately and merges them itself; both read `getPlanting`, so they cannot drift. |
+| GET | `/api/graph` | — | `{ topics, edges, resources, lessons, subjects }` | The whole bed in one call, and what the web's canvas reads. It asked `/api/topics` and `/api/subjects` separately and merged them itself until 2.7; both read `getPlanting`, so they cannot drift. |
 | GET | `/api/inbox` | — | `{ pending: PendingTopic[], queued: Resource[] }` | The sheet in one call. `/api/inbox/count` stays separate and stays cheap. |
 | GET | `/api/inbox/count` | — | `{ decisions, waiting, total }` | Counts on an index; cheap enough for a nav. |
 | GET | `/api/library` | — | `LibraryRow[]` | The library sheet's own `getLibrary`. |
@@ -65,7 +65,7 @@ the phone's query cache.
 | GET | `/api/subjects/[id]` | — | subject with topics | |
 | GET | `/api/subjects/[id]/area` | — | `SubjectArea` | The outline's data. 404 when the bed is not there. |
 | GET | `/api/subjects/[id]/sowing` | — | `Sowing \| null` | The reading's data. Null for a bed sown before the sowing sheet existed, which the reading prints as *unstated*. |
-| GET | `/api/topics` | — | topics | |
+| GET | `/api/topics` | — | the planting without its subjects: `{ topics, edges, resources, lessons }` | `getPlanting`, the same read `/api/graph` answers with the subjects added. |
 | GET | `/api/topics/[id]` | — | topic, subjects, exposures, resources, edges, curricula with counts | |
 | GET | `/api/topics/[id]/area` | — | `TopicArea` | What the topic sheet prints. `/api/topics/[id]` stays as it is: it answers the graph panel's question, and the two shapes differ on purpose. |
 | GET | `/api/topics/pending` | — | `PendingTopic[]` | |

@@ -2,18 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { didactic, type SubjectReckoning } from '@didactic/api'
 import styles from './page.module.css'
 
-interface Reckoning {
-  title: string
-  topics: number
-  topicsKeptElsewhere: number
-  curricula: number
-  lessons: number
-  marks: number
-  exposures: number
-  resources: number
-}
+const api = didactic()
+
+type Reckoning = SubjectReckoning
 
 const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
 
@@ -40,33 +34,31 @@ export function GrubOut({ subjectId, title }: { subjectId: string; title: string
   async function ask() {
     setBusy(true)
     setError(null)
-    try {
-      const res = await fetch(`/api/subjects/${subjectId}`)
-      const body = await res.json()
-      if (!res.ok) throw new Error(body.error ?? 'Could not read the bed.')
+
+    const { ok, body, error: failed } = await api.subjects.get(subjectId)
+    if (ok) {
       setReckoning(body)
       setAsked(true)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.')
-    } finally {
-      setBusy(false)
+    } else {
+      setError(failed ?? 'Could not read the bed.')
     }
+    setBusy(false)
   }
 
   async function grub() {
     setBusy(true)
     setError(null)
-    try {
-      const res = await fetch(`/api/subjects/${subjectId}`, { method: 'DELETE' })
-      const body = await res.json()
-      if (!res.ok) throw new Error(body.error ?? 'Could not grub it out.')
-      // Back to the stock list: the sheet this was on no longer exists.
-      router.push('/')
-      router.refresh()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.')
+
+    const { ok, error: failed } = await api.subjects.remove(subjectId)
+    if (!ok) {
+      setError(failed ?? 'Could not grub it out.')
       setBusy(false)
+      return
     }
+
+    // Back to the stock list: the sheet this was on no longer exists.
+    router.push('/')
+    router.refresh()
   }
 
   if (!asked) {

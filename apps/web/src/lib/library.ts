@@ -1,13 +1,12 @@
 import { cacheTag } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { tags } from './tags'
+import { tags } from '@didactic/core/tags'
 import { supabaseAdmin } from './supabase'
 
 // The shape moved to `@didactic/core/shapes`, where the phone can name
 // it too; the query that builds it needs a client and the cache, so it
 // stays here. Re-exported so `@/lib/library` still answers for both.
 import type { LibraryRow } from '@didactic/core/shapes'
-export type { LibraryRow } from '@didactic/core/shapes'
 
 
 /**

@@ -1,6 +1,7 @@
 import type { Api } from './client'
-import type { Topic } from '@didactic/core/types'
+import type { Curriculum, Exposure, Resource, Subject, Topic } from '@didactic/core/types'
 import type { PendingTopic, TopicArea } from '@didactic/core/shapes'
+import type { Planting } from './graph'
 
 export interface TopicPatch {
   title?: string
@@ -10,17 +11,40 @@ export interface TopicPatch {
   remove_subject_ids?: string[]
 }
 
-/** Merge folds one topic into another; split and keep resolve it as it stands. */
-export type PendingAction = 'merge' | 'split' | 'keep'
+/**
+ * Merge folds one topic into another and cannot be undone; `confirm`
+ * keeps it as it stands and `discard` drops it.
+ *
+ * These are the route's own words. A wrong merge destroys history
+ * irrecoverably and a wrong keep costs one click, which is why the
+ * resolver defers here at all.
+ */
+export type PendingAction = 'confirm' | 'merge' | 'discard'
+
+/**
+ * What the graph panel asks for: the topic and everything filed against
+ * it. `area` answers the topic sheet's question instead, and the two
+ * shapes differ on purpose — see the API contract.
+ */
+export interface TopicDetail {
+  topic: Topic & { freshness: number }
+  subjects: Array<Pick<Subject, 'id' | 'title' | 'colour'>>
+  exposures: Exposure[]
+  resources: Array<{ relevance: number; resources: Resource }>
+  edges: Array<{ from_topic: string; to_topic: string; kind: string; weight: number }>
+  curricula: Array<Curriculum & { lessonCount: number; completedCount: number }>
+}
 
 export const topics = (api: Api) => ({
-  list: () => api.get<{ topics: Topic[] }>('/api/topics'),
-
   /**
-   * The graph panel's own question. `area` answers the topic sheet's,
-   * and the two shapes differ on purpose — see the API contract.
+   * The whole bed, minus its subjects.
+   *
+   * This and `/api/graph` both read `getPlanting`; the graph route adds
+   * the subjects in one call, which is why the canvas prefers it.
    */
-  get: (id: string) => api.get<Record<string, unknown>>(`/api/topics/${id}`),
+  list: () => api.get<Omit<Planting, 'subjects'>>('/api/topics'),
+
+  get: (id: string) => api.get<TopicDetail>(`/api/topics/${id}`),
   area: (id: string) => api.get<TopicArea>(`/api/topics/${id}/area`),
 
   /** Curation only; never ability. */

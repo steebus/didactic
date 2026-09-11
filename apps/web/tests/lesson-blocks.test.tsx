@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { Block } from '@/components/blocks/Block'
-import { BLOCKS } from '@/lib/blocks'
+import { BLOCKS } from '@didactic/core/blocks'
 
 /**
  * The two blocks added after the first four, drawn from the payloads a

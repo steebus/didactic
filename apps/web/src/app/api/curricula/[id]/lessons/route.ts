@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import type { LessonStage } from '@/lib/types'
+import type { LessonStage } from '@didactic/core/types'
 import { revalidateTag } from 'next/cache'
-import { tags } from '@/lib/tags'
+import { tags } from '@didactic/core/tags'
 
 /**
  * Drop what this route just changed.

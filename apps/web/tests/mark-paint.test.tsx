@@ -4,7 +4,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { Highlighter } from '@/components/Highlighter'
 import { Prose } from '@/components/Prose'
-import type { Highlight as Mark } from '@/lib/types'
+import type { Highlight as Mark } from '@didactic/core/types'
 
 const PROSE = 'Seeds germinate when the soil is warm enough for them.'
 

@@ -1,15 +1,14 @@
 import { cacheTag } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { cosineSimilarity } from './resolver'
-import { config } from './config'
-import { tags } from './tags'
+import { config } from '@didactic/core/config'
+import { tags } from '@didactic/core/tags'
 import { supabaseAdmin } from './supabase'
 
 // The shape moved to `@didactic/core/shapes`, where the phone can name
 // it too; the query that builds it needs a client and the cache, so it
 // stays here. Re-exported so `@/lib/pending` still answers for both.
 import type { PendingTopic } from '@didactic/core/shapes'
-export type { PendingTopic } from '@didactic/core/shapes'
 
 /**
  * The adjudication queue: topics the resolver would not decide alone.

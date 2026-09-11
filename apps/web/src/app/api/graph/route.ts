@@ -4,13 +4,13 @@ import { getPlanting } from '@/lib/planting'
 import { ownerId } from '@/lib/auth'
 
 /**
- * The bed, in one call.
+ * The bed, in one call, and what both front ends read.
  *
- * The web's canvas asks `/api/topics` and `/api/subjects` separately and
- * merges them itself, which is two round trips before anything can be
- * drawn. The phone will be on a worse connection than a laptop, so it
- * asks once. Both read `getPlanting`, so neither can drift from the
- * other.
+ * The web's canvas asked `/api/topics` and `/api/subjects` separately
+ * and merged them itself, which is two round trips before anything can
+ * be drawn; it reads this instead as of 2.7, and the phone — on a worse
+ * connection than a laptop — will do the same. Both this and
+ * `/api/topics` read `getPlanting`, so neither can drift from the other.
  */
 export async function GET() {
   const userId = await ownerId()

@@ -1,6 +1,6 @@
 import { EDITION_DATE as EDITION_DATE } from '@didactic/core/copy'
 import Link from 'next/link'
-import { viabilityFigure } from '@/lib/scoring'
+import { viabilityFigure } from '@didactic/core/scoring'
 import { getHomeData } from '@/lib/home'
 import { Emblem, slugify } from '@/components/Emblem'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'

@@ -31,12 +31,22 @@ import { topics } from './topics'
 export * from './client'
 export * from './endpoints'
 export type { Planting } from './graph'
-export type { Qualifier, SowBody, Sown, SubjectReckoning } from './subjects'
-export type { PendingAction, TopicPatch } from './topics'
-export type { AddResource } from './resources'
-export type { CurriculumDetail, CurriculumPatch, NewLesson } from './curricula'
-export type { Completion, LessonDetail, LessonPatch } from './lessons'
-export type { NewHighlight } from './highlights'
+export type {
+  Drawn,
+  Qualifier,
+  Resown,
+  SowBody,
+  Sown,
+  SubjectReckoning,
+  TopicAdded,
+  TopicUnfiled,
+} from './subjects'
+export type { PendingAction, TopicDetail, TopicPatch } from './topics'
+export type { AddResource, Filed } from './resources'
+export type { CurriculumDetail, CurriculumPatch, Drafted, NewLesson } from './curricula'
+export type { Completion, LessonDetail, LessonPatch, Written } from './lessons'
+export type { Kept, NewHighlight } from './highlights'
+export type { PriorResource, Refresher } from './refresher'
 
 /** Every endpoint, grouped as `ARCHITECTURE.md` §4 lays them out. */
 export function didactic(options: ApiOptions = {}) {

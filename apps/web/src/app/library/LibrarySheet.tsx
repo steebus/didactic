@@ -3,8 +3,11 @@
 import { useMemo, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import type { LibraryRow } from '@/lib/library'
+import { didactic } from '@didactic/api'
+import type { LibraryRow } from '@didactic/core/shapes'
 import styles from './page.module.css'
+
+const api = didactic()
 
 const KIND_LABEL: Record<string, string> = {
   article: 'Article',
@@ -58,37 +61,21 @@ export function LibrarySheet({ resources }: { resources: LibraryRow[] }) {
   async function merge(keep: LibraryRow, mergeId: string) {
     setBusy(keep.id)
     setError(null)
-    try {
-      const res = await fetch(`/api/resources/${keep.id}/merge`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ mergeId }),
-      })
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(body.error ?? 'Could not merge those.')
-      startTransition(() => router.refresh())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.')
-    } finally {
-      setBusy(null)
-    }
+
+    const { ok, error: failed } = await api.resources.merge(keep.id, mergeId)
+    if (ok) startTransition(() => router.refresh())
+    else setError(failed ?? 'Could not merge those.')
+    setBusy(null)
   }
 
   async function remove(row: LibraryRow) {
     setBusy(row.id)
     setError(null)
-    try {
-      const res = await fetch(`/api/resources/${row.id}`, { method: 'DELETE' })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.error ?? 'Could not remove that.')
-      }
-      startTransition(() => router.refresh())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.')
-    } finally {
-      setBusy(null)
-    }
+
+    const { ok, error: failed } = await api.resources.remove(row.id)
+    if (ok) startTransition(() => router.refresh())
+    else setError(failed ?? 'Could not remove that.')
+    setBusy(null)
   }
 
   return (

@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { readJson } from '@/lib/http'
-import { bookNote, type BookMatch } from '@/lib/books'
+import { didactic, type AddResource } from '@didactic/api'
+import { bookNote, type BookMatch } from '@didactic/core/books'
 import styles from './page.module.css'
+
+const api = didactic()
 
 export interface ProofEntry {
   /** The resource row it became. Present once it has been filed. */
@@ -101,8 +103,7 @@ export function ProofOfRoots({
     const timer = setTimeout(async () => {
       setLooking(true)
       try {
-        const res = await fetch(`/api/books/search?q=${encodeURIComponent(q)}`)
-        const { body } = await readJson<{ books?: BookMatch[] }>(res)
+        const { body } = await api.books.search(q)
         if (!cancelled.current) setMatches(Array.isArray(body.books) ? body.books : [])
       } catch {
         // The manual field is right there, so a failed lookup is
@@ -125,73 +126,66 @@ export function ProofOfRoots({
   async function file() {
     setBusy(true)
     setError(null)
-    try {
-      const payload =
-        mode === 'link'
-          ? { kind: 'article', url: url.trim(), title: title.trim() || url.trim() }
-          : mode === 'book'
-            ? {
-                kind: 'book',
-                title: title.trim(),
-                // A matched book files with what Open Library says it
-                // is about, which is what lets the ingester place it on
-                // the map. The app never holds a book's contents, so
-                // this is the honest most it can record.
-                ...(chosen
-                  ? { url: `https://openlibrary.org${chosen.key}`, text: bookNote(chosen) }
-                  : {}),
-              }
-            : {
-                kind: 'note',
-                title: title.trim(),
-                // A qualification with nothing said about it is still a
-                // sentence the ingester can work with.
-                text: detail.trim() || title.trim(),
-              }
 
-      const res = await fetch('/api/resources', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ ...payload, consumed: true }),
-      })
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok && res.status !== 202) throw new Error(body.error ?? 'Could not file that.')
+    const payload: AddResource =
+      mode === 'link'
+        ? { kind: 'article', url: url.trim(), title: title.trim() || url.trim() }
+        : mode === 'book'
+          ? {
+              kind: 'book',
+              title: title.trim(),
+              // A matched book files with what Open Library says it
+              // is about, which is what lets the ingester place it on
+              // the map. The app never holds a book's contents, so
+              // this is the honest most it can record.
+              ...(chosen
+                ? { url: `https://openlibrary.org${chosen.key}`, text: bookNote(chosen) }
+                : {}),
+            }
+          : {
+              kind: 'note',
+              title: title.trim(),
+              // A qualification with nothing said about it is still a
+              // sentence the ingester can work with.
+              text: detail.trim() || title.trim(),
+            }
 
-      onChange([
-        ...entries,
-        {
-          resourceId: body.id,
-          title: body.title ?? (title.trim() || url.trim()),
-          kind: payload.kind,
-        },
-      ])
-      clear()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.')
-    } finally {
+    // 202 is filed-but-not-queued, which is still filed.
+    const { ok, status, body, error: failed } = await api.resources.add({
+      ...payload,
+      consumed: true,
+    })
+    if (!ok && status !== 202) {
+      setError(failed ?? 'Could not file that.')
       setBusy(false)
+      return
     }
+
+    onChange([
+      ...entries,
+      {
+        resourceId: body.id,
+        title: body.title ?? (title.trim() || url.trim()),
+        kind: payload.kind,
+      },
+    ])
+    clear()
+    setBusy(false)
   }
 
   async function upload(picked: File) {
     setBusy(true)
     setError(null)
-    try {
-      const form = new FormData()
-      form.set('file', picked)
-      form.set('consumed', 'true')
 
-      const res = await fetch('/api/resources/upload', { method: 'POST', body: form })
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok && res.status !== 202) throw new Error(body.error ?? 'Could not take that file.')
-
+    const { ok, status, body, error: failed } = await api.resources.upload(picked, true)
+    if (!ok && status !== 202) {
+      setError(failed ?? 'Could not take that file.')
+    } else {
       onChange([...entries, { resourceId: body.id, title: body.title, kind: 'pdf' }])
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.')
-    } finally {
-      setBusy(false)
-      if (fileInput.current) fileInput.current.value = ''
     }
+
+    setBusy(false)
+    if (fileInput.current) fileInput.current.value = ''
   }
 
   async function remove(entry: ProofEntry) {
@@ -199,7 +193,7 @@ export function ProofOfRoots({
     // Filed already, so taking it off the list has to take it out of the
     // library too. It was never read into the record, so nothing rests
     // on it and it can simply go.
-    await fetch(`/api/resources/${entry.resourceId}`, { method: 'DELETE' }).catch(() => {})
+    await api.resources.remove(entry.resourceId)
   }
 
   return (

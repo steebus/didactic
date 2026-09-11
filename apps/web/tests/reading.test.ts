@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { readVerdict } from '@/lib/subject'
-import { readJson } from '@/lib/http'
+import { readVerdict } from '@didactic/core/subject'
+import { readJson } from '@didactic/core/http'
 
 describe('readVerdict', () => {
   it('calls it matching when the two figures are within a rung', () => {

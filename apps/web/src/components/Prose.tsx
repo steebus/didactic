@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react'
 import { renderMarkdown } from '@/lib/markdown'
-import { parseBlocks } from '@/lib/blocks'
+import { parseBlocks } from '@didactic/core/blocks'
 import { Block } from './blocks/Block'
 import styles from './Prose.module.css'
 

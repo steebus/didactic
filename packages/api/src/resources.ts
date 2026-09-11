@@ -17,9 +17,25 @@ export interface AddResource {
   consumed?: boolean
 }
 
+/**
+ * What filing something answers with.
+ *
+ * `warning` comes back with a 202: it saved, but the queue refused it,
+ * which is worth saying since nothing will read it until that is fixed.
+ * `alreadyFiled` says the link was already in the library rather than
+ * filed twice.
+ */
+export interface Filed {
+  id: string
+  title: string
+  warning?: string
+  alreadyFiled?: boolean
+  filedHereToo?: boolean
+}
+
 export const resources = (api: Api) => ({
   list: () => api.get<{ resources: Resource[] }>('/api/resources'),
-  add: (body: AddResource) => api.post<{ id: string; title: string }>('/api/resources', body),
+  add: (body: AddResource) => api.post<Filed>('/api/resources', body),
 
   /**
    * The one multipart route. `consumed` marks a PDF as evidence of
@@ -29,10 +45,7 @@ export const resources = (api: Api) => ({
     const form = new FormData()
     form.append('file', file)
     if (consumed) form.append('consumed', 'true')
-    return api.upload<{ id: string; title: string; warning?: string }>(
-      '/api/resources/upload',
-      form
-    )
+    return api.upload<Filed>('/api/resources/upload', form)
   },
 
   /** The consumed transition is what writes the exposure. */

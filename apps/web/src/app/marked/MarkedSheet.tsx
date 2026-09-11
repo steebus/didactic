@@ -3,10 +3,13 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import type { HighlightRow } from '@/lib/highlights'
+import { didactic } from '@didactic/api'
+import type { HighlightRow } from '@didactic/core/shapes'
 import { NoteEditor } from '@/components/NoteEditor'
 import { NoteText } from '@/components/NoteText'
 import styles from './page.module.css'
+
+const api = didactic()
 
 /**
  * The marks, with a box to narrow them.
@@ -45,17 +48,10 @@ export function MarkedSheet({
 
   async function saveNote(id: string) {
     setBusy(true)
-    try {
-      await fetch('/api/highlights', {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ id, note: draft }),
-      })
-      setEditing(null)
-      startTransition(() => router.refresh())
-    } finally {
-      setBusy(false)
-    }
+    await api.highlights.patch(id, draft)
+    setEditing(null)
+    startTransition(() => router.refresh())
+    setBusy(false)
   }
 
   /**
@@ -75,21 +71,15 @@ export function MarkedSheet({
     setRemoved(gone => [...gone, mark.id])
 
     void (async () => {
-      try {
-        const res = await fetch('/api/highlights', {
-          method: 'DELETE',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ id: mark.id }),
-        })
-        if (!res.ok) throw new Error('Could not remove that.')
+      const { ok, error: failed } = await api.highlights.remove(mark.id)
+      if (ok) {
         startTransition(() => router.refresh())
-      } catch (e) {
+      } else {
         setRemoved(gone => gone.filter(id => id !== mark.id))
         setUndo(null)
-        setError(e instanceof Error ? e.message : 'Could not remove that.')
-      } finally {
-        setBusy(false)
+        setError(failed ?? 'Could not remove that.')
       }
+      setBusy(false)
     })()
   }
 
@@ -102,25 +92,20 @@ export function MarkedSheet({
   async function putBack() {
     if (!undo?.lesson_id) return
     setBusy(true)
-    try {
-      const res = await fetch('/api/highlights', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          lessonId: undo.lesson_id,
-          quote: undo.quote,
-          prefix: undo.prefix,
-          note: undo.note,
-        }),
-      })
-      if (!res.ok) throw new Error('Could not put that back.')
+
+    const { ok, error: failed } = await api.highlights.create({
+      lessonId: undo.lesson_id,
+      quote: undo.quote,
+      prefix: undo.prefix,
+      note: undo.note,
+    })
+    if (ok) {
       setUndo(null)
       startTransition(() => router.refresh())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not put that back.')
-    } finally {
-      setBusy(false)
+    } else {
+      setError(failed ?? 'Could not put that back.')
     }
+    setBusy(false)
   }
 
   // What is on the sheet after this reader's own removals. An id the

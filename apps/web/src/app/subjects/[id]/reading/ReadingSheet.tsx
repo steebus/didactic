@@ -1,5 +1,6 @@
 import Link from 'next/link'
-import { readVerdict, type Sowing, type Verdict } from '@/lib/subject'
+import { readVerdict, type Verdict } from '@didactic/core/subject'
+import type { Sowing } from '@didactic/core/shapes'
 import { RootsSpecimen, ROOT_STAGES } from '@/components/RootsSpecimen'
 import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'

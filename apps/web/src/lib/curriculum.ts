@@ -6,7 +6,6 @@ import type { ExposureDepth } from '@didactic/core/types'
 // Tiering, availability and progress moved to `@didactic/core`;
 // completing a lesson writes an exposure and so stays here. Re-exported
 // so `@/lib/curriculum` still answers for both halves.
-export * from '@didactic/core/curriculum'
 
 /**
  * Mark a lesson done and record what that taught. Completion is the only

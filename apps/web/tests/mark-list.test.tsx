@@ -4,7 +4,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { Highlighter } from '@/components/Highlighter'
 import { Prose } from '@/components/Prose'
-import type { Highlight as Mark } from '@/lib/types'
+import type { Highlight as Mark } from '@didactic/core/types'
 
 /**
  * The list of what is marked, beside the reading.
@@ -208,9 +208,20 @@ describe('travelling to a passage', () => {
   })
 })
 
+/**
+ * A real response, because the typed client reads the body as text
+ * before parsing it: a double that only answers `json()` is not a
+ * response any more.
+ */
+const answer = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
+
 describe('editing and removing from the list', () => {
   it('writes a note against the mark', async () => {
-    const fetched = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: true }) })
+    const fetched = vi.fn().mockResolvedValue(answer({ ok: true }))
     vi.stubGlobal('fetch', fetched)
     render()
     press(tally())
@@ -231,7 +242,7 @@ describe('editing and removing from the list', () => {
     expect(JSON.parse(init.body).id).toBe('first')
   })
 
-  it('removes the mark, and the wash on the words, without waiting for the server', () => {
+  it('removes the mark, and the wash on the words, without waiting for the server', async () => {
     // The request never answers: what is under test is that the page
     // does not wait for it.
     const fetched = vi.fn().mockReturnValue(new Promise(() => {}))
@@ -240,9 +251,16 @@ describe('editing and removing from the list', () => {
     press(tally())
     expect(container.querySelectorAll('mark[data-mark]').length).toBe(2)
 
-    press(
-      Array.from(rows()[0].querySelectorAll('button')).find(b => b.textContent === 'Remove')!
-    )
+    // Awaited only so the request is on the record by the time it is
+    // read: the client asks for its headers before it calls fetch, so
+    // the call is a microtask behind the press. What the answer never
+    // does is arrive — the promise above stays pending — so the state
+    // below is the page acting without one.
+    await act(async () => {
+      Array.from(rows()[0].querySelectorAll('button'))
+        .find(b => b.textContent === 'Remove')!
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
 
     const [, init] = fetched.mock.calls[0]
     expect(init.method).toBe('DELETE')
@@ -251,7 +269,7 @@ describe('editing and removing from the list', () => {
   })
 
   it('puts the mark back when the server refuses to remove it', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) }))
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(answer({}, 500)))
     render()
     press(tally())
 
@@ -268,7 +286,7 @@ describe('editing and removing from the list', () => {
 
 describe('what the list holds until the sheet catches up', () => {
   it('prints an edited note at once, rather than the sheet\'s old copy', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: true }) }))
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(answer({ ok: true })))
     render()
     press(tally())
 

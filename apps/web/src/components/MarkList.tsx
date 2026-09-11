@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import type { Highlight as Mark } from '@/lib/types'
-import { isUnsaved } from '@/lib/marks'
+import type { Highlight as Mark } from '@didactic/core/types'
+import { isUnsaved } from '@didactic/core/marks'
 import { NoteEditor } from './NoteEditor'
 import { NoteText } from './NoteText'
 import styles from './MarkList.module.css'

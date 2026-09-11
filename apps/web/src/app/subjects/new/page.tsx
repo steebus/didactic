@@ -4,10 +4,12 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { SheetNav } from '@/components/SheetNav'
 import { RootsGauge, ROOT_STAGES } from '@/components/RootsGauge'
-import { readJson } from '@/lib/http'
+import { didactic } from '@didactic/api'
 import { useLabour } from '@/components/useLabour'
 import { ProofOfRoots, type ProofEntry } from './ProofOfRoots'
 import styles from './page.module.css'
+
+const api = didactic()
 
 interface QualifyingQuestion {
   prompt: string
@@ -72,12 +74,7 @@ export default function NewSubjectPage() {
   async function writeQuestions(name: string) {
     setQualifying('writing')
     try {
-      const res = await fetch('/api/subjects/qualify', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ subject: name }),
-      })
-      const { ok, body } = await readJson<{ questions?: QualifyingQuestion[] }>(res)
+      const { ok, body } = await api.subjects.qualify({ subject: name })
       if (!ok || !Array.isArray(body.questions) || body.questions.length === 0) {
         throw new Error('empty set')
       }
@@ -109,36 +106,27 @@ export default function NewSubjectPage() {
     setBusy(true)
     setError(null)
     try {
-      const res = await fetch('/api/subjects', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          subject: named,
-          // Untouched is not the same answer as nought: nought says
-          // there is nothing here, and the slider not having been moved
-          // says nothing at all.
-          roots: rootsSet ? roots : null,
-          confident,
-          gaps,
-          depth,
-          evidence: proof.map(p => ({
-            resourceId: p.resourceId,
-            title: p.title,
-            kind: p.kind,
-          })),
-          qualifiers: questions.map((q, i) => ({
-            prompt: q.prompt,
-            level: q.level,
-            probes: q.probes,
-            answer: answers[i] ?? '',
-          })),
-        }),
+      const { ok, body, error: failed } = await api.subjects.sow({
+        subject: named!,
+        // Untouched is not the same answer as nought: nought says
+        // there is nothing here, and the slider not having been moved
+        // says nothing at all.
+        roots: rootsSet ? roots : null,
+        confident,
+        gaps,
+        depth,
+        evidence: proof.map(p => ({
+          resourceId: p.resourceId,
+          title: p.title,
+          kind: p.kind,
+        })),
+        qualifiers: questions.map((q, i) => ({
+          prompt: q.prompt,
+          level: q.level,
+          probes: q.probes,
+          answer: answers[i] ?? '',
+        })),
       })
-      const { ok, body, error: failed } = await readJson<{
-        subjectId?: string
-        reading?: boolean
-        warnings?: string[]
-      }>(res)
       if (!ok || !body.subjectId) throw new Error(failed ?? 'Could not draw the map.')
 
       // Straight to the reading when there is one — the comparison

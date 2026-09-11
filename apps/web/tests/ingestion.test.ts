@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { config } from '@/lib/config'
+import { config } from '@didactic/core/config'
 
 const html = readFileSync(join(__dirname, 'fixtures/article.html'), 'utf-8')
 

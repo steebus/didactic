@@ -3,14 +3,13 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { embed } from './embedding'
 import { resolveConcept, fetchCandidates, neighboursFor } from './resolver'
 import { recomputeAbilities } from './scoring'
-import { config } from './config'
+import { config } from '@didactic/core/config'
 import { proposeEdges } from './llm/edges'
 
 // The shape moved to `@didactic/core/shapes`, where the phone can name
 // it too; the query that builds it needs a client and the cache, so it
 // stays here. Re-exported so `@/lib/sowing` still answers for both.
 import type { Assessment } from '@didactic/core/shapes'
-export type { Assessment } from '@didactic/core/shapes'
 
 
 /**

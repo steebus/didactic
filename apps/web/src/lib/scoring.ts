@@ -3,9 +3,8 @@ import { computeAbility } from '@didactic/core/scoring'
 import type { Exposure } from '@didactic/core/types'
 
 // The maths moved to `@didactic/core`; what stays here is the writing,
-// which needs a database client and so cannot follow it. Re-exported so
-// `@/lib/scoring` still answers for both halves.
-export * from '@didactic/core/scoring'
+// which needs a database client and so cannot follow it. Callers of the
+// pure half read the package directly.
 
 /**
  * The ONLY function permitted to write topics.ability. Ability is a

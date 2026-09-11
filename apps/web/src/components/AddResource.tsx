@@ -2,7 +2,10 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import { didactic } from '@didactic/api'
 import styles from '@/app/inbox/page.module.css'
+
+const api = didactic()
 
 type Kind = 'article' | 'book' | 'note'
 
@@ -47,41 +50,36 @@ export function AddResource({
   async function add() {
     setBusy(true)
     setError(null)
-    try {
-      const res = await fetch('/api/resources', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          topicId,
-          kind,
-          url: kind === 'article' ? url.trim() : null,
-          title: title.trim() || null,
-          text: kind === 'note' ? text.trim() : null,
-        }),
-      })
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok && res.status !== 202) {
-        throw new Error(body.error ?? 'Could not save that.')
-      }
 
-      // 202 means it saved but the queue refused it: worth saying, since
-      // nothing will read it until that is fixed.
-      setSaved(
-        body.warning
-          ? 'Saved, but not queued for reading yet.'
-          : topicTitle
-            ? `Filed under ${topicTitle}.`
-            : 'Filed. It will find its place shortly.'
-      )
-      setUrl('')
-      setTitle('')
-      setText('')
-      startTransition(() => router.refresh())
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.')
-    } finally {
+    const { ok, status, body, error: failed } = await api.resources.add({
+      topicId,
+      kind,
+      url: kind === 'article' ? url.trim() : undefined,
+      title: title.trim() || undefined,
+      text: kind === 'note' ? text.trim() : undefined,
+    })
+
+    // 202 means it saved but the queue refused it, which is not a
+    // failure: the row exists and the warning below says what is
+    // missing.
+    if (!ok && status !== 202) {
+      setError(failed ?? 'Could not save that.')
       setBusy(false)
+      return
     }
+
+    setSaved(
+      body.warning
+        ? 'Saved, but not queued for reading yet.'
+        : topicTitle
+          ? `Filed under ${topicTitle}.`
+          : 'Filed. It will find its place shortly.'
+    )
+    setUrl('')
+    setTitle('')
+    setText('')
+    startTransition(() => router.refresh())
+    setBusy(false)
   }
 
   return (

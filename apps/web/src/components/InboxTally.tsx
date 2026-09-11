@@ -1,13 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { didactic } from '@didactic/api'
+import type { InboxCount } from '@didactic/core/shapes'
 import styles from './SheetNav.module.css'
 
-interface Counts {
-  decisions: number
-  waiting: number
-  total: number
-}
+const api = didactic()
+
+type Counts = InboxCount
 
 /**
  * The last figure this browser was told, held for as long as the tab
@@ -38,20 +38,18 @@ export function InboxTally() {
   useEffect(() => {
     let cancelled = false
 
-    fetch('/api/inbox/count')
-      .then(res => (res.ok ? res.json() : null))
-      .then((body: Counts | null) => {
-        if (cancelled || !body) return
-        held = {
-          decisions: Number(body.decisions) || 0,
-          waiting: Number(body.waiting) || 0,
-          total: Number(body.total) || 0,
-        }
-        setCounts(held)
-      })
-      // A tally that cannot be got is a tally that is not printed. It
-      // is a count in a nav; it does not get to interrupt anything.
-      .catch(() => {})
+    // A tally that cannot be got is a tally that is not printed. It is
+    // a count in a nav; it does not get to interrupt anything, so the
+    // failure branch simply leaves the last figure standing.
+    void api.inbox.count().then(({ ok, body }) => {
+      if (cancelled || !ok) return
+      held = {
+        decisions: Number(body.decisions) || 0,
+        waiting: Number(body.waiting) || 0,
+        total: Number(body.total) || 0,
+      }
+      setCounts(held)
+    })
 
     return () => {
       cancelled = true

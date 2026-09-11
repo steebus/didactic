@@ -13,7 +13,7 @@
  * the topic sheet, which is where it does its real work.
  */
 
-import { panelSpot } from './markAnchor'
+import { panelSpot } from '@didactic/core/markAnchor'
 
 export interface PaintableMark {
   id: string

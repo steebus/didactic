@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
-import type { EdgeKind } from '../types'
+import type { EdgeKind } from '@didactic/core/types'
 
 let client: Anthropic | null = null
 

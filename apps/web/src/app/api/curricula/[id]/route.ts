@@ -1,10 +1,15 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { viewLessons, curriculumProgress, findPrereqCycle, linearPrereqs } from '@/lib/curriculum'
-import type { Lesson } from '@/lib/types'
+import {
+  viewLessons,
+  curriculumProgress,
+  findPrereqCycle,
+  linearPrereqs,
+} from '@didactic/core/curriculum'
+import type { Lesson } from '@didactic/core/types'
 import { ownerId } from '@/lib/auth'
 import { revalidateTag } from 'next/cache'
-import { tags } from '@/lib/tags'
+import { tags } from '@didactic/core/tags'
 
 /**
  * Drop what this route just changed.

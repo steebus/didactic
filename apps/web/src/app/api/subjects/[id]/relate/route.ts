@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { ownerId } from '@/lib/auth'
 import { revalidateTag } from 'next/cache'
-import { tags } from '@/lib/tags'
+import { tags } from '@didactic/core/tags'
 import { drawConnections, neighboursOfBed } from '@/lib/sowing'
 
 /** Edges change every sheet the bed appears on and the graph itself,

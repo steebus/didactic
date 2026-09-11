@@ -5,9 +5,12 @@ import Link from 'next/link'
 import { NudgeIcon } from '@/components/NudgeIcon'
 import { SheetNav } from '@/components/SheetNav'
 import { RouteSpecimen } from '@/components/RouteSpecimen'
-import { routeProgress } from '@/lib/progress'
+import { didactic, type CurriculumPatch } from '@didactic/api'
+import { routeProgress } from '@didactic/core/progress'
 import styles from './page.module.css'
 import { Setting } from '@/components/Setting'
+
+const api = didactic()
 
 interface Lesson {
   id: string
@@ -74,37 +77,28 @@ export default function CurriculumPage({
 
   useEffect(() => {
     let cancelled = false
-    fetch(`/api/curricula/${id}`)
-      .then(async res => {
-        const body = await res.json()
-        if (cancelled) return
-        if (!res.ok) setError(body.error ?? 'Could not read it.')
-        else setData(body)
-      })
-      .catch(() => !cancelled && setError('Could not reach the server.'))
+    void api.curricula.get(id).then(({ ok, body, error: failed }) => {
+      if (cancelled) return
+      if (ok) setData(body)
+      else setError(failed ?? 'Could not read it.')
+    })
     return () => {
       cancelled = true
     }
   }, [id, revision])
 
-  async function patch(payload: Record<string, unknown>, undo?: () => void) {
+  async function patch(payload: CurriculumPatch, undo?: () => void) {
     setBusy(true)
     setError(null)
-    try {
-      const res = await fetch(`/api/curricula/${id}`, {
-        method: 'PATCH',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(body.error ?? 'Could not save that.')
+
+    const { ok, error: failed } = await api.curricula.patch(id, payload)
+    if (ok) {
       setRevision(r => r + 1)
-    } catch (e) {
+    } else {
       undo?.()
-      setError(e instanceof Error ? e.message : 'Something went wrong.')
-    } finally {
-      setBusy(false)
+      setError(failed ?? 'Could not save that.')
     }
+    setBusy(false)
   }
 
   /**
@@ -152,22 +146,16 @@ export default function CurriculumPage({
     if (!newTitle.trim()) return
     setBusy(true)
     setError(null)
-    try {
-      const res = await fetch(`/api/curricula/${id}/lessons`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ title: newTitle.trim() }),
-      })
-      const body = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(body.error ?? 'Could not add it.')
+
+    const { ok, error: failed } = await api.curricula.addLesson(id, { title: newTitle.trim() })
+    if (ok) {
       setNewTitle('')
       setAdding(false)
       setRevision(r => r + 1)
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Something went wrong.')
-    } finally {
-      setBusy(false)
+    } else {
+      setError(failed ?? 'Could not add it.')
     }
+    setBusy(false)
   }
 
   if (error && !data) {

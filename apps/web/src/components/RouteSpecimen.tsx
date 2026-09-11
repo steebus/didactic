@@ -1,5 +1,5 @@
 import { RootsSpecimen } from './RootsSpecimen'
-import { routeLevel, routeCaption, type RouteProgress } from '@/lib/progress'
+import { routeLevel, routeCaption, type RouteProgress } from '@didactic/core/progress'
 import styles from './RouteSpecimen.module.css'
 
 /**

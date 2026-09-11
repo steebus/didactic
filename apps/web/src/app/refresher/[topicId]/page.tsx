@@ -2,15 +2,12 @@
 
 import { use, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { didactic, type PriorResource } from '@didactic/api'
 import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
 import { Setting } from '@/components/Setting'
 
-interface PriorResource {
-  title: string
-  summary: string | null
-  url: string | null
-}
+const api = didactic()
 
 interface RefresherState {
   content?: string
@@ -28,16 +25,15 @@ export default function RefresherPage({
   const [state, setState] = useState<RefresherState | null>(null)
 
   useEffect(() => {
-    fetch(`/api/topics/${topicId}`)
-      .then(r => r.json())
-      .then(d => d.topic && setTopic(d.topic))
+    void api.topics.get(topicId).then(({ ok, body }) => {
+      if (ok && body.topic) setTopic(body.topic)
+    })
 
-    fetch(`/api/refresher/${topicId}`, { method: 'POST' })
-      .then(async r => {
-        const body = await r.json()
-        setState(r.ok ? body : { error: body.error, resources: body.resources ?? [] })
-      })
-      .catch(() => setState({ error: 'Could not reach the server.', resources: [] }))
+    // A 502 or 503 still carries the reader's own material, so the
+    // failure branch keeps `resources` rather than emptying the sheet.
+    void api.refresher.write(topicId).then(({ ok, body, error }) => {
+      setState(ok ? body : { error: error ?? undefined, resources: body.resources ?? [] })
+    })
   }, [topicId])
 
   const viability = topic ? Math.max(0, Math.round(((topic.ability - 1) / 4) * 100)) : null

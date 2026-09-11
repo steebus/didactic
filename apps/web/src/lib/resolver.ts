@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { config } from './config'
+import { config } from '@didactic/core/config'
 
 export type Resolution =
   | { action: 'link'; topicId: string; similarity: number }
