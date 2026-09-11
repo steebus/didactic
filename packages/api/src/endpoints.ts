@@ -75,6 +75,8 @@ export const ENDPOINTS = {
 
   'resources.add': { name: 'resources.add', method: 'POST', path: '/api/resources', invalidates: MATERIAL },
   'resources.upload': { name: 'resources.upload', method: 'POST', path: '/api/resources/upload', invalidates: MATERIAL },
+  'resources.uploadUrl': { name: 'resources.uploadUrl', method: 'POST', path: '/api/resources/upload-url', invalidates: [] },
+  'resources.uploaded': { name: 'resources.uploaded', method: 'POST', path: '/api/resources/uploaded', invalidates: MATERIAL },
   'resources.patch': { name: 'resources.patch', method: 'PATCH', path: '/api/resources/[id]', invalidates: [tags.resources, tags.topics, tags.subjects] },
   'resources.remove': { name: 'resources.remove', method: 'DELETE', path: '/api/resources/[id]', invalidates: [tags.resources, tags.topics, tags.subjects] },
   'resources.merge': { name: 'resources.merge', method: 'POST', path: '/api/resources/[id]/merge', invalidates: MATERIAL },

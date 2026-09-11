@@ -1,4 +1,4 @@
-import type { Api } from './client'
+import type { Api, Result } from './client'
 import type {
   ExposureDepth,
   Resource,
@@ -40,12 +40,81 @@ export const resources = (api: Api) => ({
   /**
    * The one multipart route. `consumed` marks a PDF as evidence of
    * something already done rather than an item on the reading list.
+   *
+   * Kept because a phone runs the build it has, and an older one still
+   * calls this. It can only carry a small file — the platform refuses a
+   * request body over four and a half megabytes before the handler runs
+   * — so anything that might be a book goes through `uploadDocument`
+   * below instead.
    */
   upload: (file: File | Blob, consumed = false) => {
     const form = new FormData()
     form.append('file', file)
     if (consumed) form.append('consumed', 'true')
     return api.upload<Filed>('/api/resources/upload', form)
+  },
+
+  /** Permission to put a document straight into the bucket. */
+  uploadUrl: (body: { filename: string; size: number; contentType?: string }) =>
+    api.post<{ path: string; token: string; signedUrl: string }>(
+      '/api/resources/upload-url',
+      body
+    ),
+
+  /** The bytes have landed at `path`; file them. */
+  uploaded: (body: { path: string; filename: string; consumed?: boolean }) =>
+    api.post<Filed>('/api/resources/uploaded', body),
+
+  /**
+   * File a document of any size: sign, PUT, then tell the API.
+   *
+   * Three steps rather than one because the middle one must not go
+   * through a function. Composed here so neither front end has to know
+   * that, and so both do it the same way.
+   *
+   * The PUT is a plain `fetch` rather than supabase-js, because the
+   * signed URL is the whole credential — there is no session to carry
+   * and no client to construct, and the phone would otherwise need one
+   * here for this alone.
+   */
+  uploadDocument: async (
+    file: File,
+    { consumed = false }: { consumed?: boolean } = {}
+  ): Promise<Result<Filed>> => {
+    const signed = await api.post<{ path: string; token: string; signedUrl: string }>(
+      '/api/resources/upload-url',
+      { filename: file.name, size: file.size, contentType: file.type }
+    )
+    if (!signed.ok) return signed as unknown as Result<Filed>
+
+    try {
+      const put = await fetch(signed.body.signedUrl, {
+        method: 'PUT',
+        headers: { 'content-type': 'application/pdf' },
+        body: file,
+      })
+      if (!put.ok) {
+        return {
+          ok: false,
+          status: put.status,
+          body: {} as Filed,
+          error: `The upload did not finish (${put.status}).`,
+        }
+      }
+    } catch {
+      return {
+        ok: false,
+        status: 0,
+        body: {} as Filed,
+        error: 'The connection dropped during the upload.',
+      }
+    }
+
+    return api.post<Filed>('/api/resources/uploaded', {
+      path: signed.body.path,
+      filename: file.name,
+      consumed,
+    })
   },
 
   /** The consumed transition is what writes the exposure. */

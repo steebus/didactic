@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { ownerId } from '@/lib/auth'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
+import { MAX_PROXIED_BYTES } from '@didactic/core/documents'
 
 /**
  * Drop what this route just changed.
@@ -17,9 +18,22 @@ function dropCache() {
 }
 
 
-/** Big enough for a scanned certificate or a course handbook, small
- *  enough that a mis-picked file fails fast rather than uploading. */
-const MAX_BYTES = 15 * 1024 * 1024
+/**
+ * What can actually get here.
+ *
+ * This route carries the bytes itself, and the platform refuses a
+ * request body over four and a half megabytes before the handler runs.
+ * The fifteen megabytes this used to advertise was therefore a promise
+ * it could not keep: anything genuinely large died at the platform with
+ * an error the app never saw and could not explain.
+ *
+ * So the ceiling is now the real one, and it is checked here so the
+ * refusal is a sentence rather than a 413 from somewhere else. Anything
+ * bigger goes through `/api/resources/upload-url`, which does not carry
+ * the file at all. The route stays because a phone runs the build it
+ * has, and an older one still calls it.
+ */
+const MAX_BYTES = MAX_PROXIED_BYTES
 
 /**
  * A file handed over as evidence: a course handbook, a paper, a
@@ -45,7 +59,10 @@ export async function POST(req: Request) {
     )
   }
   if (file.size > MAX_BYTES) {
-    return NextResponse.json({ error: 'That file is over 15 MB.' }, { status: 413 })
+    return NextResponse.json(
+      { error: 'That file is too big for this route — upload it from a rebuilt client.' },
+      { status: 413 }
+    )
   }
 
   const db = supabaseAdmin()

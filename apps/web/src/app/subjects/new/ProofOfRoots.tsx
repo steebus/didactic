@@ -32,7 +32,11 @@ const MODES: Array<{ value: Mode; label: string; hint: string }> = [
     label: 'A qualification',
     hint: 'A degree, a certification, a job you did this in for two years.',
   },
-  { value: 'file', label: 'A PDF', hint: 'A handbook, a paper, a certificate. Under 15 MB.' },
+  {
+    value: 'file',
+    label: 'A PDF',
+    hint: 'A handbook, a paper, a book. Under 50 MB, and it can be followed when the bed is laid out.',
+  },
 ]
 
 /**
@@ -177,7 +181,13 @@ export function ProofOfRoots({
     setBusy(true)
     setError(null)
 
-    const { ok, status, body, error: failed } = await api.resources.upload(picked, true)
+    // Straight to storage rather than through a function: a book is
+    // far over the four and a half megabytes a request body may carry,
+    // and this used to fail at the platform with an error the app could
+    // not explain.
+    const { ok, status, body, error: failed } = await api.resources.uploadDocument(picked, {
+      consumed: true,
+    })
     if (!ok && status !== 202) {
       setError(failed ?? 'Could not take that file.')
     } else {
