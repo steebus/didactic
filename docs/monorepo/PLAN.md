@@ -284,7 +284,7 @@ deploy from `main` is green before starting Phase 2.
 - [x] **2.2 `packages/core`.** Move, with their tests: `types.ts`, `config.ts`, `tags.ts`, `scoring.ts` (split: `computeAbility`, `computeFreshness`, `subjectAggregate`, `viabilityFigure` move; `recomputeAbility` and `recomputeAbilities` take a Supabase client and stay in `apps/web`; with the pure half in `core` the phone may compute a projected ability from the exposures it already holds and print that at once, while the authoritative write stays server-side — the figure is shown locally, never saved locally), `progress.ts`, `outline.ts`, `sections.ts`, `blocks.ts`, `curriculum.ts` (the same split: `viewLessons`, `tierLessons`, `curriculumProgress`, `findPrereqCycle`, `linearPrereqs` move; `completeLesson`, `uncompleteLesson` stay), `http.ts`, `markAnchor.ts`, `marks.ts` (`UNSAVED`, `isUnsaved`, `inReadingOrder` — the reading-order sort is pure and both platforms need it), `books.ts` (`normaliseBooks`, `bookNote` move; the fetch stays), the `buildTopicTree` and `readVerdict` halves of `subject.ts`, and the interfaces of `home.ts`, `topic.ts`, `library.ts`, `pending.ts`, `subject.ts`. New in `core`: `stock.ts` (`stockState`, `STOCK_LABEL`, the hatch table from `StockBar.tsx`), `specimens.ts` (the path data and stage names from `Emblem.tsx` and `RootsSpecimen.tsx`, plus `slugify`), `graph.ts` (node size, fade, label ink and label-side rules from `GraphCanvas.tsx`), `copy.ts` (`LABOURS`, `DRAWINGS`, the edition date format, empty-state sentences that both apps print). Each web component then imports its geometry and words from `core` and keeps its rendering. Nothing in `core` may import `next`, `react`, `dompurify`, `jsdom` or `@supabase/*` except as `import type`; an ESLint `no-restricted-imports` rule in the package enforces it.
 - [x] **2.3 Read endpoints for the sheets the server renders.** Add `GET /api/home` returning `HomeData`, `GET /api/subjects/[id]/area` returning `SubjectArea`, `GET /api/subjects/[id]/sowing` returning `Sowing`, `GET /api/topics/[id]/area` returning `TopicArea` (the existing `GET /api/topics/[id]` stays as it is), `GET /api/library` returning `LibraryRow[]`, `GET /api/inbox` returning `{ pending: PendingTopic[], queued: Resource[] }`, `GET /api/graph` returning the whole planting with its subjects. Each calls the same `get…` function the page calls, so the cache and its tags are shared with the page. These are thin: a handler, an owner check, a `NextResponse.json`. *As built:* `graph/page.tsx` assembles nothing — `GraphCanvas` fetches `/api/topics` and `/api/subjects` itself and merges them — so `/api/graph` is that merge done server-side, and the query behind it moved to `getPlanting` in `apps/web/src/lib/` so the two routes read one thing rather than two copies.
 - [x] **2.4 Bearer auth in the gate.** `getOwner()` in `apps/web/src/lib/auth.ts`: when the request carries `Authorization: Bearer <jwt>`, verify it with `createClient(url, anonKey).auth.getUser(jwt)` instead of the cookie client; `proxy.ts` does the same for API paths so a bearer request is neither redirected nor refreshed. The web keeps cookies. Add `tests/auth-bearer.test.ts`: a valid token passes, an expired one answers 401, a token with no header falls through to the cookie path. Document both modes in `guides/api-contract.md`.
-- [ ] **2.5 Row-level security.** *Before starting, three things established
+- [x] **2.5 Row-level security.** *Before starting, three things established
   2026-09-11 by survey:* **(a)** No API call needs changing. Every server read
   goes through `supabaseAdmin()` on the service role, which bypasses RLS;
   the anon key appears only in `auth.ts` and `proxy.ts` (sessions, not table
@@ -401,9 +401,9 @@ deliberately not in CI — Vercel builds every push through its GitHub
 connection, so a CI build would be a second build of the same commit
 needing the service role key in Actions to report what Vercel reports.
 
-**Phase 2 is half done, on the `refactor` branch** (six commits, pushed,
-not merged): 2.1, 2.2, 2.3 and 2.4 are complete. 348 tests pass — 221 in
-the web, up four with 2.4's, and 127 in core — plus tokens' 51.
+**Phase 2 is most of the way done, on the `refactor` branch** (seven
+commits, pushed, not merged): 2.1 through 2.5 are complete. 353 tests
+pass — 226 in the web, and 127 in core — plus tokens' 51.
 
 2.4 as built: `getOwner()` reads `Authorization: Bearer <jwt>` before it
 reads cookies and verifies it on the anon client, so a bad token is never
@@ -413,8 +413,21 @@ there is nothing to refresh — and 401s a bad one at the door. The contract
 in `guides/api-contract.md` already described both modes and now matches
 the code.
 
-**Next, in order:** 2.5 (row-level security) with its three caveats
-recorded above, then 2.6–2.9.
+2.5 as built, against the live schema rather than the list this plan
+guessed: eighteen tables under `public`, not the fifteen-plus-three the
+plan named. Nine carry `user_id` and take the owner policy; `highlights`
+kept the one 020 gave it; eight join tables reach their parent, including
+`resource_subjects`, which 023 added after this plan was written.
+`lesson_prereqs` keys on `lesson_id` rather than `requires_lesson_id`: it
+has two foreign keys into `lessons` and the row belongs to the lesson that
+has the prerequisite. The storage policy could not be the usual
+`foldername(name)[1] = auth.uid()`, because uploads are named
+`evidence/<uuid>.pdf` and carry no owner id; it joins back through
+`resources.storage_path` instead. Verified on a local stack: the owner
+sees their object, a stranger sees none, the anon key reads nothing from
+any of the eighteen, and the admin client is untouched.
+
+**Next, in order:** 2.6 (`packages/api`), then 2.7–2.9.
 
 ### Things that cost time, so they are written down
 
@@ -431,6 +444,19 @@ recorded above, then 2.6–2.9.
   `apps/web/node_modules/next/dist/docs/` before writing Next code.
 - **Turbo runs tasks in strict env mode.** A task sees only the variables
   its `turbo.json` entry declares, and the build needs four.
+- **The local database was nine migrations behind.** It stopped at 014,
+  so `highlights`, `subject_sowings` and `resource_subjects` did not exist
+  and a table list read from it would have missed three tables and
+  invented a policy for none of them. `npx supabase migration up` before
+  trusting anything the schema says. This is what caveat (b) was about,
+  and it very nearly bit.
+- **The dev seed could not sign in, and had not been able to for months.**
+  GoTrue scans four `auth.users` token columns into Go strings, and
+  `seed.sql` left them NULL, so every password grant answered 500
+  `Database error querying schema` — which names no column and points at
+  the schema rather than the row. It reads exactly like a broken RLS
+  policy, which is what made it expensive to find during 2.5. The seed now
+  writes them empty, on both the insert and the conflict-update path.
 - **Run all four gates, not the fast ones.** Lifting `slugify` out of
   `Emblem.tsx` destroyed the component; every test still passed, because no
   test imports it. Typecheck and the build caught it.

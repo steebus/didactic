@@ -77,7 +77,7 @@ or `—` when a row is rendering only.
 | Grub out a subject or topic; delete flows | built | planned (5) | `core/copy` confirmation wording | |
 | Deep links to any address | built (they are URLs) | planned (4) | the address table in `ARCHITECTURE.md` §6 | Universal links on the web origin. |
 | Realtime: tally and inbox refresh when an ingestion lands | n/a (the web refetches on navigation) | planned (5) | `api/endpoints` tags | Scoped by RLS; a signal to refetch, never a source of truth. |
-| Direct row reads from Supabase | n/a | none yet | — | Allowed under RLS per row with a reason; the API is the default. Add a row per read taken. |
+| Direct row reads from Supabase | n/a | none yet | — | Now enforced by RLS rather than only permitted by it. Allowed per row with a reason; the API is the default. Add a row per read taken. |
 | Galley loading states | built | planned (4) | — | Same three shapes: prose, rows, panel. |
 | Motion: sheet and band arrive, feedback on controls | built | planned (4) | `tokens.motion`, `tokens.ease` | Reanimated on the phone; no reduced-motion guard on either, by decision. |
 | Scroll memory across navigation | built | planned (5) | — | Native stacks keep it by construction. |
@@ -91,10 +91,10 @@ or `—` when a row is rendering only.
 | Item | Status | Notes |
 | --- | --- | --- |
 | Supabase project, migrations, edge functions | shared, unchanged | `supabase/` stays at the repo root. |
-| API routes as the backend for both | built for web; bearer auth planned (2) | `guides/api-contract.md`. |
-| Row-level security on every table | `highlights` only; the rest planned (2) | Owner policy; join tables through the parent. Service role unaffected. |
-| Realtime publication for `resources` and `topics` | planned (2) | For the phone's tally and inbox. |
-| Read endpoints for server-rendered sheets | planned (2) | `/api/home`, `/api/library`, `/api/inbox`, `/api/graph`, `…/area`, `…/sowing`. |
+| API routes as the backend for both | built | `guides/api-contract.md`. Cookie or bearer, both verified in `getOwner()`. |
+| Row-level security on every table | built | `024_row_level_security.sql`: all 18 tables under `public`, owner policy on the nine carrying `user_id` (`highlights` kept its own from 020), join tables through their parent. Storage's `resources` bucket joins back through `resources.storage_path`, because upload paths carry no owner id. Service role unaffected. |
+| Realtime publication for `resources` and `topics` | built | For the phone's tally and inbox. A publication is not a grant: RLS still decides what a subscriber sees. |
+| Read endpoints for server-rendered sheets | built | `/api/home`, `/api/library`, `/api/inbox`, `/api/graph`, `…/area`, `…/sowing`. |
 | Scoring maths in the Deno edge functions | duplicated | Edge functions keep their own copies until a Deno import map points at `packages/core/src`. Record any divergence here. |
 
 ## How to change this file

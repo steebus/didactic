@@ -131,8 +131,12 @@ that flatters its owner.
   the gate; the only exception is the queue worker, which carries its own
   shared key and no session.
 - **The account is also the owner id every row is written against**, taken
-  from the session rather than sent by the client. Sharing, tenancy and
-  row-level security remain out of scope.
+  from the session rather than sent by the client. Sharing and tenancy
+  remain out of scope. Row-level security does not: the phone reads rows
+  from Supabase directly under the owner's token, where there is no route
+  handler to check anything, so every table carries an owner policy and
+  the database enforces ownership itself. The API is unaffected — it runs
+  on the service role, which bypasses all of it.
 - Full-book text ingestion is out of scope; books carry metadata and the
   user's own notes.
 - **A curriculum is drafted with the agent and owned by the user.** The agent
