@@ -7,6 +7,7 @@ import { didactic } from '@didactic/api'
 import { viabilityFigure } from '@didactic/core/scoring'
 import { StockBar, stockState, STOCK_LABEL, STOCK_ORDER } from '@/components/StockBar'
 import { useLabour, DRAWINGS } from '@/components/useLabour'
+import { useOpenBed } from '@/components/useOpenBed'
 import { routeProgress, ROUTE_LABEL } from '@didactic/core/progress'
 import { orderSubjectOutline } from '@didactic/core/outline'
 import type { SubjectTopicRow, TopicTreeNode } from '@didactic/core/subject'
@@ -57,6 +58,7 @@ export function SubjectBed({
   const [drawing, setDrawing] = useState(false)
   const drawn = useLabour(drawing, DRAWINGS)
   const [, startTransition] = useTransition()
+  const openBed = useOpenBed()
   const router = useRouter()
 
   /**
@@ -74,6 +76,12 @@ export function SubjectBed({
     try {
       const { ok, body, error: failed } = await api.subjects.resow(subjectId)
       if (!ok) throw new Error(failed ?? 'Could not lay out the bed.')
+
+      // The same as a first sowing: a bed appearing is a bed appearing,
+      // and it is opened at its beginning. The bench carries it from
+      // here, so pressing this button does not tie the reader to the
+      // sheet for the couple of minutes it takes.
+      openBed(body.first)
 
       const sownCount = (body.topicsCreated ?? 0) + (body.linked ?? 0)
       setNote(

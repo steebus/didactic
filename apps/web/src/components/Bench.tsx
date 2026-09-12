@@ -44,6 +44,18 @@ export interface Job {
   /** What the work last said about itself: "round 2 · about 900 words".
    *  Null where it has not said anything yet, or has nothing to say. */
   progress: string | null
+  /**
+   * Other work this job has taken over, by key.
+   *
+   * A job does not always know at the outset everything it is going to
+   * do. Opening a freshly sown bed drafts a route and then writes that
+   * route's first lesson, and the lesson does not exist when the job
+   * starts -- so `writing:<that lesson>` cannot be its key, and without
+   * this the lesson's own sheet would cheerfully start a second write
+   * of the same body the moment anyone opened it. Claimed as soon as it
+   * is known, and given back when the job settles.
+   */
+  covers: string[]
   /** Anything the job wants said that is not a failure -- a bed laid
    *  with two topics the sort could not place. */
   warnings: string[]
@@ -120,8 +132,16 @@ interface Bench {
      * `report` says where the work has got to, in words the reader can
      * read. Work that knows nothing useful simply never calls it, and
      * the notice says the ordinary thing instead.
+     *
+     * `cover` claims another piece of work as this job's, for work that
+     * only learns part way through what it is going to do. A sheet
+     * asking for something already covered joins this job rather than
+     * starting its own.
      */
-    work: (report: (progress: string) => void) => Promise<T>
+    work: (
+      report: (progress: string) => void,
+      cover: (kind: JobKind, id: string) => void
+    ) => Promise<T>
   ) => Promise<Outcome<T>>
 }
 
@@ -137,7 +157,7 @@ const NOWHERE: Bench = {
     // A component rendered outside the provider (a test, a sheet not
     // yet wrapped) must not silently stop doing its job.
     try {
-      return { kind: 'done', made: await work(() => {}) }
+      return { kind: 'done', made: await work(() => {}, () => {}) }
     } catch (e) {
       return { kind: 'failed', reason: e instanceof Error ? e.message : 'Something went wrong.' }
     }
@@ -176,11 +196,26 @@ export function Bench({ children }: { children: React.ReactNode }) {
   // whether the work is underway at the moment of the press, and state
   // captured in a closure is a render behind.
   const live = useRef<Set<string>>(new Set())
+  // What each job took over along the way, so it can be given back
+  // whether the job settles or is put away by hand. Beside `live`
+  // rather than read off the jobs: both are consulted from callbacks
+  // that run after the render that would have told them.
+  const taken = useRef<Map<string, string[]>>(new Map())
 
-  const forget = useCallback((key: string) => {
+  /** Let go of a job's key and of anything it took over. */
+  const release = useCallback((key: string) => {
     live.current.delete(key)
-    setJobs(list => list.filter(j => j.key !== key))
+    for (const other of taken.current.get(key) ?? []) live.current.delete(other)
+    taken.current.delete(key)
   }, [])
+
+  const forget = useCallback(
+    (key: string) => {
+      release(key)
+      setJobs(list => list.filter(j => j.key !== key))
+    },
+    [release]
+  )
 
   const withdraw = useCallback((key: string) => {
     setOffers(list => list.filter(o => o.key !== key))
@@ -205,7 +240,12 @@ export function Bench({ children }: { children: React.ReactNode }) {
   const jobFor = useCallback(
     (kind: JobKind, id: string) => {
       const key = jobKey(kind, id)
-      return jobs.find(j => j.key === key) ?? null
+      // A job it took over counts. The lesson sheet asks whether *this
+      // lesson* is being written, and "yes, by the job opening the bed
+      // it belongs to" is the true answer -- it is what stops the sheet
+      // starting a second write, and what tells it to re-read when the
+      // body lands.
+      return jobs.find(j => j.key === key || j.covers.includes(key)) ?? null
     },
     [jobs]
   )
@@ -236,6 +276,7 @@ export function Bench({ children }: { children: React.ReactNode }) {
           href: null,
           reason: null,
           progress: null,
+          covers: [],
           warnings: [],
         },
       ])
@@ -245,7 +286,10 @@ export function Bench({ children }: { children: React.ReactNode }) {
         const warnings = made?.warnings ?? []
         const state: JobState = reason ? 'failed' : 'done'
 
-        live.current.delete(key)
+        // The key goes, but what it took over is not handed back to
+        // anyone else: a finished write is finished, and a failed one
+        // is asked for again by hand.
+        release(key)
         setJobs(list =>
           list.map(j =>
             // The progress goes with it: "round 2" under a line that
@@ -271,8 +315,32 @@ export function Bench({ children }: { children: React.ReactNode }) {
       const report = (progress: string) =>
         setJobs(list => list.map(j => (j.key === key ? { ...j, progress } : j)))
 
+      /**
+       * Take over another piece of work as part of this job.
+       *
+       * For work that only learns part way through what it is going to
+       * do: opening a bed writes a lesson that did not exist when the
+       * job started, so it cannot be keyed on it. Claimed here, a sheet
+       * asking for that lesson joins this job instead of starting a
+       * second write of the same body.
+       *
+       * Never taken from someone else. Where the work is already
+       * underway this does nothing and leaves it where it is -- two
+       * jobs both believing they own one key is worse than one job not
+       * knowing it has company.
+       */
+      const cover = (kind: JobKind, id: string) => {
+        const other = jobKey(kind, id)
+        if (other === key || live.current.has(other)) return
+        live.current.add(other)
+        taken.current.set(key, [...(taken.current.get(key) ?? []), other])
+        setJobs(list =>
+          list.map(j => (j.key === key ? { ...j, covers: [...j.covers, other] } : j))
+        )
+      }
+
       try {
-        const made = await work(report)
+        const made = await work(report, cover)
         settle(made, null)
         return { kind: 'done', made }
       } catch (e) {
@@ -281,7 +349,7 @@ export function Bench({ children }: { children: React.ReactNode }) {
         return { kind: 'failed', reason }
       }
     },
-    [forget, router]
+    [forget, release, router]
   )
 
   const value = useMemo(

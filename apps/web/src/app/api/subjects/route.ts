@@ -257,6 +257,13 @@ async function sow(req: Request) {
     // Where to send them next: a reading exists only when they gave the
     // app something to read.
     reading: assessment !== null,
+    // Where the bed starts, so the client can set the first route and
+    // the first lesson going without asking the bed a second time. The
+    // work itself is not done here: drafting a route and writing a
+    // lesson are each about as long as this request has already been,
+    // and three of them in one function is a timeout with a subject
+    // half built behind it.
+    first: planting.first,
     warnings: [...warnings, ...planting.warnings],
   })
 }

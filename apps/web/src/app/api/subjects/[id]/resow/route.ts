@@ -162,6 +162,10 @@ async function resow(subjectId: string) {
     topicsCreated: planting.created.length,
     linked: planting.linked,
     reading: assessment !== null || held !== null,
+    // The same as a first sowing: where the bed starts, for the client
+    // to set going. A bed laid out again is a bed appearing for the
+    // first time as far as the reader is concerned.
+    first: planting.first,
     warnings: [...warnings, ...planting.warnings],
   })
 }

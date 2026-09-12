@@ -18,7 +18,7 @@ const job = (over: Partial<JobLike> = {}): JobLike => ({
   ...over,
 })
 
-const KINDS: JobKind[] = ['sowing', 'writing']
+const KINDS: JobKind[] = ['sowing', 'writing', 'opening']
 const STATES: JobState[] = ['running', 'done', 'failed']
 
 describe('jobKey', () => {
@@ -41,6 +41,20 @@ describe('jobTitle', () => {
     expect(jobTitle(job())).toBe('Sowing Photography')
     expect(jobTitle(job({ kind: 'writing', name: 'Core Web Vitals' }))).toBe(
       'Writing Core Web Vitals'
+    )
+  })
+
+  it('names the topic when the app opens a bed, not the lesson it wrote', () => {
+    // Nobody asked for this lesson and nobody has seen its name, so a
+    // notice naming it would be a notice about a stranger.
+    expect(jobTitle(job({ kind: 'opening', name: 'Exposure' }))).toBe(
+      'Preparing your first lesson in Exposure'
+    )
+    expect(jobTitle(job({ kind: 'opening', name: 'Exposure', state: 'done' }))).toBe(
+      'Your first lesson in Exposure is ready'
+    )
+    expect(jobTitle(job({ kind: 'opening', name: 'Exposure', state: 'failed' }))).toBe(
+      'The first lesson in Exposure could not be prepared'
     )
   })
 
@@ -100,6 +114,10 @@ describe('jobWay', () => {
     expect(jobWay(job({ kind: 'writing', state: 'done' }))).toBe('Read it')
   })
 
+  it('hands over the lesson an opening wrote, which is why it ran', () => {
+    expect(jobWay(job({ kind: 'opening', state: 'done' }))).toBe('Read it')
+  })
+
   it('offers nothing while it runs, because there is nowhere to go', () => {
     expect(jobWay(job())).toBeNull()
   })
@@ -137,6 +155,7 @@ describe('jobPhrases', () => {
     // one. The words live in copy.ts; this only says which set.
     expect(jobPhrases('sowing')[0]).toMatch(/ground/i)
     expect(jobPhrases('writing')[0]).toMatch(/pencil/i)
+    expect(jobPhrases('opening')[0]).toMatch(/bed/i)
   })
 
   it('gives every kind something to say', () => {
@@ -145,7 +164,7 @@ describe('jobPhrases', () => {
     }
   })
 
-  it('ends both lists on a phrase that can stay true for a while', () => {
+  it('ends every list on a phrase that can stay true for a while', () => {
     // The last one holds until the work lands, so it cannot be a step.
     for (const kind of KINDS) {
       expect(jobPhrases(kind).at(-1)).toMatch(/almost/i)

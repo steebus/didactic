@@ -102,6 +102,7 @@ function topicRow(over: Partial<SubjectTopicRow> & { id: string }): SubjectTopic
     freshness: 0,
     last_exposure_at: null,
     state: 'active',
+    position: null,
     alsoIn: [],
     resources: [],
     curricula: [],
@@ -161,6 +162,44 @@ describe('orderSubjectOutline', () => {
       ]),
     ])
     expect(ordered[0].children.map(n => n.topic.id)).toEqual(['child-warm', 'child-cold'])
+  })
+
+  it('runs a freshly sown bed in the order it was laid out, simplest first', () => {
+    // Nothing here has a lesson between them, which is the state every
+    // bed is in the moment it is sown: without the sown order the
+    // outline could only fall back on the alphabet.
+    const ordered = orderSubjectOutline([
+      node({ id: 'zone-system', title: 'Zone system', position: 2 }),
+      node({ id: 'aperture', title: 'Aperture', position: 0 }),
+      node({ id: 'metering', title: 'Metering', position: 1 }),
+    ])
+    expect(ordered.map(n => n.topic.id)).toEqual(['aperture', 'metering', 'zone-system'])
+  })
+
+  it('sorts a topic the bed never placed last, not first', () => {
+    const ordered = orderSubjectOutline([
+      node({ id: 'added-by-hand', title: 'Aaa' }),
+      node({ id: 'sown-last', title: 'Zzz', position: 9 }),
+    ])
+    expect(ordered.map(n => n.topic.id)).toEqual(['sown-last', 'added-by-hand'])
+  })
+
+  it('still reads the lessons where the bed placed neither topic', () => {
+    const ordered = orderSubjectOutline([
+      node({ id: 'hard', title: 'Aaa', curricula: advancedLessons }),
+      node({ id: 'easy', title: 'Zzz' }),
+    ])
+    expect(ordered.map(n => n.topic.id)).toEqual(['easy', 'hard'])
+  })
+
+  it('keeps what is being worked above what the bed called introductory', () => {
+    // Attention is still the first reading: a route mid-work is where
+    // the reader actually is, whatever the bed said about complexity.
+    const ordered = orderSubjectOutline([
+      node({ id: 'first-in-the-bed', position: 0 }),
+      node({ id: 'in-hand', position: 7, curricula: activeRoute }),
+    ])
+    expect(ordered.map(n => n.topic.id)).toEqual(['in-hand', 'first-in-the-bed'])
   })
 
   it('is a pure function of the data, so the same bed prints the same way twice', () => {

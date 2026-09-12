@@ -1,11 +1,20 @@
 import { describe, it, expect } from 'vitest'
-import { LABOURS, DRAWINGS, WRITINGS, READINGS, labourPhrase, editionDate } from '../src/copy'
+import {
+  LABOURS,
+  DRAWINGS,
+  WRITINGS,
+  READINGS,
+  OPENINGS,
+  labourPhrase,
+  roundPhrase,
+  editionDate,
+} from '../src/copy'
 
 /** How often the waiting label advances, from `useLabour`. Kept here so
  *  a list can be checked against the wait it has to cover. */
 const TICK_SECONDS = 2.6
 
-const LISTS = { LABOURS, DRAWINGS, WRITINGS, READINGS }
+const LISTS = { LABOURS, DRAWINGS, WRITINGS, READINGS, OPENINGS }
 
 describe('the waiting lists', () => {
   it('ends each on a phrase that can stay true for a while', () => {
@@ -42,6 +51,11 @@ describe('the waiting lists', () => {
     // that are not taking place.
     expect(DRAWINGS.length).toBeLessThan(LABOURS.length)
     expect(WRITINGS.length).toBeLessThan(LABOURS.length)
+    // Starting a bed runs far longer than a sowing, but only the
+    // drafting is a rumour: once the route is back the rounds report
+    // themselves, and a list that tried to cover the whole wait would
+    // be inventing steps for work that is already speaking.
+    expect(OPENINGS.length).toBeLessThan(LABOURS.length)
   })
 
   it('gives reading a document its own register', () => {
@@ -49,6 +63,15 @@ describe('the waiting lists', () => {
     // wrong thing reads as the wrong button.
     expect(READINGS.some(p => /contents|headings|pages|string/i.test(p))).toBe(true)
     for (const phrase of READINGS) expect(LABOURS).not.toContain(phrase)
+  })
+})
+
+describe('roundPhrase', () => {
+  it('says the round and the words, and never an estimate of what is left', () => {
+    // Nothing here knows how much lesson is still to come, so nothing
+    // here may imply it.
+    expect(roundPhrase(2, 900)).toBe('Round 2 done · about 900 words so far')
+    expect(roundPhrase(2, 900)).not.toMatch(/%|remaining|left/i)
   })
 })
 

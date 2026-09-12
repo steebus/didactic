@@ -77,7 +77,9 @@ that flatters its owner.
   by what specialises or precedes what, with the material, curricula and
   lessons filed under each — where topics are added and removed. The nesting is
   fixed; the sibling order carries attention, floating what is being worked to
-  the top and running simpler-first, while staying a pure function of the data.
+  the top and then running simpler-first — the order the bed was sown in, which
+  is the model's own answer to where someone should start — while staying a
+  pure function of the data.
   The graph is the other reading of the same data and is one press away from it.
 
 ## Capabilities and Constraints
@@ -113,6 +115,15 @@ that flatters its owner.
   just its labels: curiosity gets 6–10 broad topics, a working knowledge
   10–16, mastery 16–24 finely cut. This is the one input that changes what
   gets laid out rather than how it is scored.
+- **A sown bed arrives with somewhere to start.** The map is asked for
+  its topics in the order they should be met — most introductory first —
+  and that order is kept, so the bed prints simplest-first rather than
+  alphabetically. The app then lays a route through that first topic and
+  writes the route's first lesson, unasked, and says so once when the
+  lesson is ready. Only the first topic: the rest of the bed is untouched
+  until someone asks. The route lands as a draft like any other and
+  counts for nothing until approved — what this removes is the blank
+  page, not the decision.
 - **Roots of nought writes nothing.** "No prior knowledge" is a stated fact,
   not a missing answer, so no exposure is recorded and the topics sit at the
   floor with no history and no confidence. The proof filed on the sheet does

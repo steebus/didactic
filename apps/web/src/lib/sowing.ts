@@ -4,6 +4,7 @@ import { embed } from './embedding'
 import { resolveConcept, fetchCandidates, neighboursFor } from './resolver'
 import { recomputeAbilities } from './scoring'
 import { config } from '@didactic/core/config'
+import { pickRoute } from '@didactic/core/progress'
 import { proposeEdges } from './llm/edges'
 import type { Fidelity } from '@didactic/core/documents'
 import type { OutlineEntry } from '@didactic/core/passages'
@@ -156,7 +157,7 @@ const TOOL = {
         type: 'array',
         minItems: 6,
         description:
-          'The topics, six at the very least. A subject always has topics in it: recording none is not an answer, and an empty list is never the right one.',
+          'The topics, six at the very least, in the order they should be met: the most introductory first, the most advanced last. The order is kept and is what the reader is shown, so it is part of the answer rather than the order they happened to occur to you. A subject always has topics in it: recording none is not an answer, and an empty list is never the right one.',
         items: {
           type: 'object',
           properties: {
@@ -545,6 +546,8 @@ Record exactly one topic for each of the ${verbatim.chapters.length} entries abo
 Give each a canonical name: the concept it teaches, named as a knowledge graph would name it, not as the chapter is titled. "Getting started" is not a concept; whatever that chapter actually introduces is. Where a chapter title already is the canonical name, use it unchanged. Record the chapter title verbatim in the \`chapter\` field so each topic can be matched back to it.`
     : `Break the subject "${subject}" into learnable topics. Topics are areas within the subject; they need not relate to one another. Use canonical names that would match an existing knowledge graph.
 
+Record them in the order someone should meet them: the most introductory first, then what leans on it, and the most advanced last. This order is kept and is the order the bed is printed in, so it decides where the reader starts — and the first one in the list is what the app lays a route through straight away. Judge it on how much a topic assumes rather than on how interesting it is; where two assume about the same, put the broader one first.
+
 ${scopeInstruction(depth)}`
 
   const instruction = `${opening}
@@ -814,10 +817,32 @@ export function isReadable(brief: Brief): boolean {
   )
 }
 
+/**
+ * Where a freshly laid bed is meant to be started.
+ *
+ * The first topic in the bed's own order -- the most introductory one
+ * the map proposed -- skipping anything waiting on an adjudication,
+ * because a topic that may turn out to be a duplicate is not somewhere
+ * to send a reader. Null for a bed with nothing active in it.
+ *
+ * `curriculumId` is a route the topic already carries. A topic is
+ * shared across every subject it sits under, so the most introductory
+ * thing in a new bed can be something already worked elsewhere on the
+ * map; drafting a second route through it would be noise rather than a
+ * head start.
+ */
+export interface FirstOfBed {
+  id: string
+  title: string
+  curriculumId: string | null
+}
+
 export interface Planting {
   created: Array<{ id: string; title: string }>
   /** Existing topics filed under this subject rather than duplicated. */
   linked: number
+  /** Where to start, for the caller that offers to start it. */
+  first: FirstOfBed | null
   warnings: string[]
   /** Named so the sheet can say which topics did not make it. */
   dropped: string[]
@@ -868,6 +893,7 @@ export async function plantMap(
     return {
       created: [],
       linked: 0,
+      first: null,
       warnings,
       dropped,
       problem:
@@ -900,6 +926,19 @@ export async function plantMap(
   // own name, so matching by title after the fact would miss exactly
   // the topics that matter most.
   const placed = new Map<string, string>()
+
+  // The bed in the order the map proposed it, simplest first.
+  //
+  // That order is an answer to a question the model was asked -- where
+  // should someone start, and what leans on what -- and it used to be
+  // thrown away here, because a proposal either became a row or was
+  // filed against one and neither carried a place in a list. Held as
+  // the resolution runs, since this is again the only point where a
+  // proposal and the row it landed on are both in hand. A proposal that
+  // turned out to restate one already accepted takes no place of its
+  // own: it is the same topic, and it is already in the list.
+  const bed: Array<{ link: string } | { create: number }> = []
+
   // Proposals already accepted in this pass, so the resolver can see
   // them before they exist in the database. Their ids are marked so a
   // match against one is not mistaken for a row to link.
@@ -926,11 +965,13 @@ export async function plantMap(
       // nothing to create; the first one stands.
       if (!resolution.topicId.startsWith('batch:')) {
         toLink.push(resolution.topicId)
+        bed.push({ link: resolution.topicId })
         if (candidate.chapter) placed.set(candidate.chapter, resolution.topicId)
       }
       continue
     }
 
+    bed.push({ create: toCreate.length })
     toCreate.push({
       name: candidate.name,
       summary: candidate.summary,
@@ -972,18 +1013,73 @@ export async function plantMap(
     return {
       created: [],
       linked: toLink.length,
+      first: null,
       warnings,
       dropped,
       problem: `The topics could not be written: ${createError.message}`,
     }
   }
 
+  // Which row each proposal became.
+  //
+  // By position rather than by title where the counts agree, because a
+  // multi-row insert returns its rows in the order they were inserted
+  // and two proposals can carry the same name. The title map stays as
+  // the fallback for the case that cannot happen -- an insert that
+  // answered with a different number of rows than it was given.
+  const createdIds: Array<string | null> = (() => {
+    const rows = created ?? []
+    if (rows.length === toCreate.length) return rows.map(r => r.id as string)
+    const idByTitle = new Map(rows.map(r => [r.title as string, r.id as string]))
+    return toCreate.map(t => idByTitle.get(t.name) ?? null)
+  })()
+
   // The chapters that became new topics, now that those rows have ids.
-  if (created?.length) {
-    const idByTitle = new Map(created.map(t => [t.title as string, t.id as string]))
-    for (const entry of toCreate) {
-      const id = entry.chapter ? idByTitle.get(entry.name) : undefined
-      if (entry.chapter && id) placed.set(entry.chapter, id)
+  for (const [i, entry] of toCreate.entries()) {
+    const id = createdIds[i]
+    if (entry.chapter && id) placed.set(entry.chapter, id)
+  }
+
+  // The bed's own order, written onto the membership.
+  //
+  // Every topic in it, linked and created alike, because the order is a
+  // fact about the whole bed rather than about the rows this sowing
+  // happened to write. On the join and not on the topic: a topic sits
+  // under every subject it genuinely belongs to, and where it falls is
+  // true of it in one bed and not in another.
+  //
+  // A failure here costs the order, not the bed. The outline falls back
+  // on what the lessons say and then on the alphabet, which is what it
+  // did before any of this existed.
+  //
+  // Deduplicated, keeping the earliest place: two proposals with
+  // different names can resolve onto one existing topic, and the same
+  // row twice in one upsert is rejected outright by Postgres -- "ON
+  // CONFLICT DO UPDATE command cannot affect row a second time" -- so
+  // the whole order would be lost for one repeated topic. Earliest
+  // rather than last because the list runs simplest-first, and the
+  // first mention is the one that placed it.
+  const orderedIds = [
+    ...new Set(
+      bed.flatMap(entry =>
+        'link' in entry ? [entry.link] : (id => (id ? [id] : []))(createdIds[entry.create])
+      )
+    ),
+  ]
+
+  if (orderedIds.length > 0) {
+    const { error: orderError } = await db.from('topic_subjects').upsert(
+      orderedIds.map((topic_id, position) => ({
+        topic_id,
+        subject_id: subject.id,
+        position,
+      })),
+      { onConflict: 'topic_id,subject_id' }
+    )
+    if (orderError) {
+      warnings.push(
+        `the bed was sown but not put in order, so it prints alphabetically: ${orderError.message}`
+      )
     }
   }
 
@@ -1165,12 +1261,52 @@ export async function plantMap(
   return {
     created: created ?? [],
     linked: toLink.length,
+    // Asked for last, so that a bed which stands but could not be read
+    // back is still a bed. A failure here means nothing is offered to
+    // start, not that the sowing failed.
+    first: await firstOfBed(db, orderedIds).catch(() => null),
     warnings,
     dropped,
     problem:
       (created?.length ?? 0) === 0 && toLink.length === 0
         ? 'Nothing could be sown for that subject.'
         : null,
+  }
+}
+
+/**
+ * The first topic of a bed that is worth starting, and whatever route
+ * it already carries.
+ *
+ * The first that is *active*, which is not always the first in the
+ * list: a proposal the resolver could not tell apart from something
+ * already on the map is written `pending` and waits for the reader to
+ * say whether it is the same thing. Laying a route through it would
+ * mean writing lessons against a topic that may be about to be merged
+ * into another.
+ */
+async function firstOfBed(
+  db: SupabaseClient,
+  orderedIds: string[]
+): Promise<FirstOfBed | null> {
+  if (orderedIds.length === 0) return null
+
+  const { data: rows } = await db
+    .from('topics').select('id, title, state').in('id', orderedIds)
+
+  const byId = new Map((rows ?? []).map(r => [r.id as string, r]))
+  const first = orderedIds
+    .map(id => byId.get(id))
+    .find(row => row !== undefined && row.state === 'active')
+  if (!first) return null
+
+  const { data: routes } = await db
+    .from('curricula').select('id, status').eq('topic_id', first.id)
+
+  return {
+    id: first.id as string,
+    title: first.title as string,
+    curriculumId: pickRoute(routes ?? [])?.id ?? null,
   }
 }
 

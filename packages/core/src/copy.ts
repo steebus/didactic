@@ -121,6 +121,53 @@ export const WRITINGS = [
 ]
 
 /**
+ * What a sheet says while a freshly sown bed is being started.
+ *
+ * A different job again: a route is laid through the first topic and
+ * then its first lesson is written, which is drafting and then writing
+ * rather than either alone. The list only has to carry the drafting —
+ * once the route is back there are real things to report, a lesson's
+ * rounds and the words down, and a rumour gives way to a measurement
+ * the moment there is one.
+ */
+export const OPENINGS = [
+  'Reading the bed back…',
+  'Finding where to start…',
+  'Taking the first topic down…',
+  'Weighing what it assumes…',
+  'Sketching the route…',
+  'Ordering the lessons…',
+  'Deciding what comes first…',
+  'Numbering the pages…',
+  'Sharpening the pencil…',
+  'Almost ready…',
+]
+
+/**
+ * What a lesson can honestly say about itself mid-write.
+ *
+ * A measurement rather than a rumour: this app drives the rounds, so it
+ * can count them and the words they put down. Not an ETA — nothing here
+ * knows how much lesson is left — but enough that a reader can see it
+ * moving. Here rather than at the call site because two jobs report it
+ * now and a sentence written twice is a sentence that drifts.
+ */
+export function roundPhrase(round: number, words: number): string {
+  return `Round ${round} done · about ${words} words so far`
+}
+
+/**
+ * What an opening says the moment the route is back.
+ *
+ * The first honest thing it can report: the drafting is over, the size
+ * of the route is known, and the lesson is being written. After this the
+ * rounds speak for themselves.
+ */
+export function routePhrase(total: number): string {
+  return `A route of ${total} ${total === 1 ? 'lesson' : 'lessons'} · writing the first`
+}
+
+/**
  * The phrase for a given tick of a wait, holding on the last.
  *
  * The timing stays with each platform -- an interval on the web, a

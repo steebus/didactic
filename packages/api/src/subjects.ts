@@ -4,6 +4,25 @@ import type { SubjectArea, Sowing } from '@didactic/core/shapes'
 import type { Fidelity } from '@didactic/core/documents'
 
 /**
+ * Where a freshly laid bed is meant to be started: its most
+ * introductory topic, and whatever route that topic already carries.
+ *
+ * The bed is laid out simplest-first and the order is kept, so this is
+ * the first of it — skipping anything waiting on an adjudication, since
+ * a topic that may turn out to be a duplicate is not somewhere to send
+ * a reader. Null for a bed with nothing active in it.
+ *
+ * Additive: a client that has never heard of it sows exactly as before
+ * and offers nothing to start.
+ */
+export interface FirstOfBed {
+  id: string
+  title: string
+  /** A route it already has. Null means there is none to follow yet. */
+  curriculumId: string | null
+}
+
+/**
  * What a sowing answers with. Takes the better part of a minute.
  *
  * Read off the route rather than reasoned about: it answers with the id
@@ -17,6 +36,13 @@ export interface Sown {
   /** Existing topics filed under the bed rather than duplicated. */
   linked: number
   reading: boolean
+  /**
+   * Where the bed starts. The route and the first lesson are not
+   * written here — each is about as long as the sowing already was, and
+   * three of them in one function is a timeout with a subject half
+   * built behind it — so the client sets that going itself.
+   */
+  first?: FirstOfBed | null
   warnings: string[]
 }
 
@@ -25,6 +51,8 @@ export interface Resown {
   topicsCreated: number
   linked: number
   reading: boolean
+  /** The same as a first sowing: where the bed starts. */
+  first?: FirstOfBed | null
   warnings: string[]
 }
 

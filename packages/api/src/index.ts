@@ -34,6 +34,7 @@ export * from './endpoints'
 export type { Planting } from './graph'
 export type {
   Drawn,
+  FirstOfBed,
   Qualifier,
   Resown,
   SowBody,
@@ -44,8 +45,8 @@ export type {
 } from './subjects'
 export type { PendingAction, TopicDetail, TopicPatch } from './topics'
 export type { AddResource, Filed } from './resources'
-export type { CurriculumDetail, CurriculumPatch, Drafted, NewLesson } from './curricula'
-export type { Completion, LessonDetail, LessonPatch, Written } from './lessons'
+export type { CurriculumDetail, CurriculumPatch, Drafted, NewLesson, Opened } from './curricula'
+export type { Completion, LessonDetail, LessonPatch, Written, WrittenWhole } from './lessons'
 export type { Kept, NewHighlight } from './highlights'
 export type { PriorResource, Refresher } from './refresher'
 

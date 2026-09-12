@@ -1,4 +1,5 @@
-import type { Api } from './client'
+import type { Api, Result } from './client'
+import { roundPhrase } from '@didactic/core/copy'
 import type { LessonLink } from '@didactic/core/lessonLinks'
 import type { SourceLink } from '@didactic/core/sourceLinks'
 import type { LessonNeighbours } from '@didactic/core/lessonState'
@@ -123,23 +124,87 @@ export interface Answered {
   abilityAfter: number | null
 }
 
-export const lessons = (api: Api) => ({
-  get: (id: string) => api.get<LessonDetail>(`/api/lessons/${id}`),
+/**
+ * A lesson written all the way through, however many rounds it took.
+ *
+ * `warnings` carries the one thing a finished body may still have to
+ * say: that it ran past the round cap and was stopped where it stands.
+ */
+export interface WrittenWhole {
+  lessonId: string
+  body: string
+  /** How many rounds it took, counting every one ever written for it. */
+  rounds: number
+  warnings: string[]
+}
 
-  /** `action: 'complete'` at a depth is an exposure. */
-  patch: (id: string, body: LessonPatch) =>
-    api.patch<Completion>(`/api/lessons/${id}`, body),
-  remove: (id: string) => api.del<{ ok: true }>(`/api/lessons/${id}`),
-
-  /** Write the body, or write it again. */
-  writeBody: (id: string, regenerate = false) =>
-    api.post<Written>(`/api/lessons/${id}/body`, { regenerate }),
+export const lessons = (api: Api) => {
+  const writeBody = (id: string, regenerate = false) =>
+    api.post<Written>(`/api/lessons/${id}/body`, { regenerate })
 
   /**
-   * Answer one of the lesson's questions. `key` is `questionKey` of the
-   * question's own text, so it survives everything but a rewrite of
-   * the question itself.
+   * Write a lesson, however many rounds it takes.
+   *
+   * The loop that drives the rounds, composed here rather than in a
+   * front end because three callers set the same work going now -- the
+   * topic sheet's control, the lesson's own first open, and the opening
+   * of a freshly sown bed -- and a loop written three times is a cap
+   * enforced three times and a progress note worded three times.
+   *
+   * What it is not is a retry. A round that fails ends it; only a round
+   * that succeeds and says there is more goes round again. The cap
+   * itself is the server's (`ROUNDS_MAX`), which answers `done` with a
+   * warning rather than going round for ever, so there is no second
+   * ceiling here to disagree with it.
    */
-  answer: (id: string, key: string, correct: boolean) =>
-    api.post<Answered>(`/api/lessons/${id}/answers`, { key, correct }),
-})
+  const writeWhole = async (
+    id: string,
+    report: (progress: string) => void = () => {}
+  ): Promise<Result<WrittenWhole>> => {
+    for (;;) {
+      const round = await writeBody(id)
+      if (!round.ok) {
+        return { ok: false, status: round.status, body: {} as WrittenWhole, error: round.error }
+      }
+
+      if (round.body.done) {
+        return {
+          ok: true,
+          status: round.status,
+          error: null,
+          body: {
+            lessonId: id,
+            body: round.body.body,
+            rounds: round.body.round,
+            warnings: round.body.warning ? [round.body.warning] : [],
+          },
+        }
+      }
+
+      report(roundPhrase(round.body.round, round.body.words))
+    }
+  }
+
+  return {
+    get: (id: string) => api.get<LessonDetail>(`/api/lessons/${id}`),
+
+    /** `action: 'complete'` at a depth is an exposure. */
+    patch: (id: string, body: LessonPatch) =>
+      api.patch<Completion>(`/api/lessons/${id}`, body),
+    remove: (id: string) => api.del<{ ok: true }>(`/api/lessons/${id}`),
+
+    /** Write the body, or write it again. One round. */
+    writeBody,
+
+    /** Every round of it, reporting as it goes. */
+    writeWhole,
+
+    /**
+     * Answer one of the lesson's questions. `key` is `questionKey` of the
+     * question's own text, so it survives everything but a rewrite of
+     * the question itself.
+     */
+    answer: (id: string, key: string, correct: boolean) =>
+      api.post<Answered>(`/api/lessons/${id}/answers`, { key, correct }),
+  }
+}

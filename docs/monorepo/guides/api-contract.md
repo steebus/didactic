@@ -80,13 +80,13 @@ the phone's query cache.
 
 | Method | Path | Body | Invalidates | Notes |
 | --- | --- | --- | --- | --- |
-| POST | `/api/subjects` | subject, roots, depth, confident, gaps, evidence, qualifiers | subjects, topics, resources | Sowing. Takes up to a minute; expect 504 sentences. |
+| POST | `/api/subjects` | subject, roots, depth, confident, gaps, evidence, qualifiers | subjects, topics, resources | Sowing. Takes up to a minute; expect 504 sentences. The bed is laid out simplest-first and the order is kept on `topic_subjects.position` (`033`; the subject reader asks for the column and falls back to a read without it, because the web build and the migration are not one transaction). Answers `first: { id, title, curriculumId } \| null` — the most introductory topic in it, skipping anything `pending`, with whatever route it already carries. Additive; a client that has never heard of it sows exactly as before. The route and the first lesson are **not** written here: each is about as long as the sowing already was, and three of them in one function is a timeout with a subject half built behind it. |
 | POST | `/api/subjects/qualify` | subject, roots, confident, depth | — | The 5–10 questions, in difficulty order. |
 | DELETE | `/api/subjects/[id]` | — | subjects, topics | Grub out the bed. |
 | POST | `/api/subjects/[id]/topics` | title | subjects, topics, pending | Add a topic to the bed, and place it in it. Answers `action`, `queriedBy` (which reading raised an adjudication), `placed` (edges drawn), `note`, `warnings`. |
 | DELETE | `/api/subjects/[id]/topics` | topicId | subjects, topics | Grub a topic out. |
 | POST | `/api/subjects/[id]/relate` | — | topics | Draw the bed's connections. |
-| POST | `/api/subjects/[id]/resow` | — | subjects, topics | Lay the bed out again from its answers. |
+| POST | `/api/subjects/[id]/resow` | — | subjects, topics | Lay the bed out again from its answers. Answers `first` exactly as the sowing does. |
 | PATCH | `/api/topics/[id]` | title, summary, primary_subject_id, add_subject_ids, remove_subject_ids | subjects, topics, highlights | Curation only; never ability. |
 | DELETE | `/api/topics/[id]` | — | subjects, topics, highlights | |
 | PATCH | `/api/topics/pending` | topicId, action, mergeInto? | topics | Merge, split, keep. |
@@ -97,13 +97,13 @@ the phone's query cache.
 | PATCH | `/api/resources/[id]` | status, depth | resources, topics, subjects | The consumed transition writes the exposure. |
 | DELETE | `/api/resources/[id]` | — | resources, topics | |
 | POST | `/api/resources/[id]/merge` | mergeId | resources, topics | Moves exposures; cannot be undone. |
-| POST | `/api/curricula` | topicId, goal?, sourceResourceIds? | topics | Drafts with the agent. |
+| POST | `/api/curricula` | topicId, goal?, sourceResourceIds? | topics | Drafts with the agent. `curricula.draftAndOpen` composes this with `curricula.get` and `lessons.writeWhole` — draft a route through a topic and write its first lesson — so neither front end has to know the work does not fit in one request. |
 | PATCH | `/api/curricula/[id]` | action, title, goal, shape, status, lessonOrder, prereqs | topics | Approve, reshape, archive. |
 | DELETE | `/api/curricula/[id]` | — | topics | |
 | POST | `/api/curricula/[id]/lessons` | title, summary, stage, position, estimated_minutes, requires, scaffolding | topics | |
 | PATCH | `/api/lessons/[id]` | action, depth, title, summary, body, stage, position, estimated_minutes | topics, subjects | `action: 'complete'` at a depth is an exposure. |
 | DELETE | `/api/lessons/[id]` | — | topics | |
-| POST | `/api/lessons/[id]/body` | regenerate? | topics, on the last round only | Write **one round** of the lesson, or start again with `regenerate`. Answers `{ body, cached, done, round, words, warning? }`. A lesson takes longer to generate than the function is allowed to run, so each call writes what fits, saves it with `body_finished` false, and says whether to come back. Resumable: a call on a lesson with an unfinished body carries on from it. Capped at six rounds, after which the lesson is called finished where it stands and `warning` says so. Only the last round drops cache — until then `has_body` is still false and no sheet prints anything different. |
+| POST | `/api/lessons/[id]/body` | regenerate? | topics, on the last round only | Write **one round** of the lesson, or start again with `regenerate`. Answers `{ body, cached, done, round, words, warning? }`. A lesson takes longer to generate than the function is allowed to run, so each call writes what fits, saves it with `body_finished` false, and says whether to come back. Resumable: a call on a lesson with an unfinished body carries on from it. Capped at six rounds, after which the lesson is called finished where it stands and `warning` says so. Only the last round drops cache — until then `has_body` is still false and no sheet prints anything different. The loop over the rounds is composed as `lessons.writeWhole(id, report)`, so the cap and the progress wording exist once for three callers rather than three times. |
 | POST | `/api/lessons/[id]/answers` | key, correct | topics, subjects | Answer a question inside the lesson. `key` is `questionKey` of the question's own text. Answers `{ counted, exposureWritten, topicTitle, abilityBefore, abilityAfter }`. Only the first answer to a question counts — enforced by a unique index, not a read, so two presses racing cannot both pay — and a wrong one writes no exposure. Invalidates only when a figure actually moved. |
 | POST | `/api/refresher/[topicId]` | — | — | |
 | POST | `/api/highlights` | lessonId, quote, prefix, note | highlights, topics | A mark is the lightest exposure. What the note names is indexed from the note. |

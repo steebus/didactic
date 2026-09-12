@@ -62,9 +62,29 @@ export async function readSubjectArea(
 
   const subjectResources = await getSubjectResources(db, subjectId)
 
-  const { data: memberships } = await db
-    .from('topic_subjects').select('topic_id').eq('subject_id', subjectId)
+  // The order the bed was laid out in rides on the membership, because
+  // that is what it is a fact about: a topic is introductory in one
+  // subject and advanced in another, and only the join can say both.
+  //
+  // Asked for again without it if it is not there. A migration merged
+  // to `main` is applied on the push, and the web build is not in the
+  // same transaction as it -- so for the minute or two either way, this
+  // read has to work against the schema on both sides of `033`. Losing
+  // the column costs the order, which the outline already has a fallback
+  // for; letting the read fail would cost the whole bed, which prints as
+  // a subject with nothing in it.
+  const asked = await db
+    .from('topic_subjects').select('topic_id, position').eq('subject_id', subjectId)
+  const memberships = asked.error
+    ? (await db.from('topic_subjects').select('topic_id').eq('subject_id', subjectId)).data
+    : asked.data
   const topicIds = (memberships ?? []).map(m => m.topic_id)
+  const sownAt = new Map(
+    (memberships ?? []).map(m => {
+      const held = (m as { position?: number | null }).position
+      return [m.topic_id as string, held === null || held === undefined ? null : Number(held)]
+    })
+  )
 
   if (topicIds.length === 0) {
     return {
@@ -142,6 +162,7 @@ export async function readSubjectArea(
       freshness: computeFreshness(t.last_exposure_at, ability),
       last_exposure_at: t.last_exposure_at,
       state: t.state,
+      position: sownAt.get(t.id) ?? null,
       alsoIn: alsoFor.get(t.id) ?? [],
       resources: (resourcesFor.get(t.id) ?? []).sort((a, b) => a.title.localeCompare(b.title)),
       curricula: own.map(c => {

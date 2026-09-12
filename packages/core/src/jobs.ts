@@ -13,17 +13,24 @@
  * words are here, where the phone can print the same ones, and the
  * machinery that runs them is the platform's own.
  *
- * Two kinds so far, and the two the reader actually walks away from.
- * A job is not a progress bar and never becomes one -- neither of these
- * can honestly say how far along it is -- so what is reported is what
- * is true: what is underway, and then what came of it.
+ * Three kinds, and the three the reader actually walks away from. A job
+ * is not a progress bar and never becomes one -- none of these can
+ * honestly say how far along it is -- so what is reported is what is
+ * true: what is underway, and then what came of it.
+ *
+ * `opening` is the longest of them and the only one nobody pressed a
+ * button for: a bed that has just been sown lays a route through its
+ * most introductory topic and writes that route's first lesson, so that
+ * a subject arrives with somewhere to start rather than with twenty
+ * topics and a blank page. It reports once, at the end, with the way to
+ * the lesson -- the steps inside it are not separate news.
  */
 
-import { LABOURS, WRITINGS } from './copy'
+import { LABOURS, OPENINGS, WRITINGS } from './copy'
 
 export type JobState = 'running' | 'done' | 'failed'
 
-export type JobKind = 'sowing' | 'writing'
+export type JobKind = 'sowing' | 'writing' | 'opening'
 
 export interface JobLike {
   kind: JobKind
@@ -48,17 +55,34 @@ export function jobKey(kind: JobKind, id: string): string {
   return `${kind}:${id}`
 }
 
-/** The line the bench prints. */
+/**
+ * The line the bench prints.
+ *
+ * `opening` names the topic rather than the lesson, because the lesson
+ * has no name the reader has ever seen: it was written by the app, for
+ * a bed they sowed a minute ago, and "Bracketing and exposure
+ * compensation is written" would be a notice about a stranger.
+ */
 export function jobTitle(job: JobLike): string {
   switch (job.state) {
     case 'running':
-      return job.kind === 'sowing' ? `Sowing ${job.name}` : `Writing ${job.name}`
+      return job.kind === 'sowing'
+        ? `Sowing ${job.name}`
+        : job.kind === 'opening'
+          ? `Preparing your first lesson in ${job.name}`
+          : `Writing ${job.name}`
     case 'done':
-      return job.kind === 'sowing' ? `${job.name} is sown` : `${job.name} is written`
+      return job.kind === 'sowing'
+        ? `${job.name} is sown`
+        : job.kind === 'opening'
+          ? `Your first lesson in ${job.name} is ready`
+          : `${job.name} is written`
     case 'failed':
       return job.kind === 'sowing'
         ? `${job.name} could not be sown`
-        : `${job.name} could not be written`
+        : job.kind === 'opening'
+          ? `The first lesson in ${job.name} could not be prepared`
+          : `${job.name} could not be written`
   }
 }
 
@@ -72,9 +96,17 @@ export function jobTitle(job: JobLike): string {
 export function jobNote(job: JobLike): string | null {
   if (job.state === 'failed') return job.reason ?? 'Something went wrong.'
   if (job.state === 'done') return null
-  return job.kind === 'sowing'
-    ? 'A minute or so. Carry on reading — you will be told when the bed is laid.'
-    : 'Up to a minute. Carry on reading — you will be told when it is ready.'
+  switch (job.kind) {
+    case 'sowing':
+      return 'A minute or so. Carry on reading — you will be told when the bed is laid.'
+    case 'opening':
+      // Longer than either of the others, and worth saying so: a couple
+      // of minutes of silence from something nobody asked for reads as
+      // something stuck rather than something working.
+      return 'A couple of minutes — a route through the first topic, then its first lesson. Carry on reading; you will be told once.'
+    case 'writing':
+      return 'Up to a minute. Carry on reading — you will be told when it is ready.'
+  }
 }
 
 /**
@@ -94,7 +126,17 @@ export function jobNote(job: JobLike): string | null {
  * holding on the last of them.
  */
 export function jobPhrases(kind: JobKind): string[] {
-  return kind === 'sowing' ? LABOURS : WRITINGS
+  switch (kind) {
+    case 'sowing':
+      return LABOURS
+    case 'opening':
+      // Only the drafting, which is the part with nothing reporting out
+      // of it. Once the route is back the lesson's rounds report
+      // themselves and the rumour gives way to a measurement.
+      return OPENINGS
+    case 'writing':
+      return WRITINGS
+  }
 }
 
 /**
@@ -107,11 +149,16 @@ export function jobPhrases(kind: JobKind): string[] {
  * showed, and what the bed was laid out from — which is the question
  * anyone has the moment a bed they did not write appears. The bed is
  * one press from it.
+ *
+ * An opening goes to the lesson it wrote, which is the whole reason it
+ * ran: a reader told their first lesson is ready and not handed it
+ * would have to go and find it through two sheets they have never seen.
  */
 export function jobWay(job: JobLike): string | null {
   if (job.state !== 'done') return null
   return job.kind === 'sowing' ? 'See the reading' : 'Read it'
 }
+
 
 /**
  * Whether the bench may put this one away on its own.

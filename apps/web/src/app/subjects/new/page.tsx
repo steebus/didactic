@@ -7,6 +7,7 @@ import { RootsGauge, ROOT_STAGES } from '@/components/RootsGauge'
 import { didactic } from '@didactic/api'
 import { useLabour } from '@/components/useLabour'
 import { useBench } from '@/components/Bench'
+import { useOpenBed } from '@/components/useOpenBed'
 import { ProofOfRoots, type ProofEntry } from './ProofOfRoots'
 import styles from './page.module.css'
 
@@ -71,6 +72,7 @@ export default function NewSubjectPage() {
    *  may as well not have been written. */
   const [partial, setPartial] = useState<{ href: string; warnings: string[] } | null>(null)
   const bench = useBench()
+  const openBed = useOpenBed()
   /** Whether this sheet is still on screen when the bed lands. A reader
    *  who waited is taken to it; one who walked off is left where they
    *  went, with the bench's notice carrying the way there. */
@@ -201,6 +203,16 @@ export default function NewSubjectPage() {
         })),
       })
       if (!ok || !body.subjectId) throw new Error(failed ?? 'Could not draw the map.')
+
+      // The bed is laid; set its beginning going before answering.
+      //
+      // Started from inside the sowing's own job rather than after it,
+      // so it happens whether or not anyone is still standing in front
+      // of this sheet — which is the ordinary case, since the sheet has
+      // just told them they may walk away. It is a job of its own on
+      // the bench, so the sowing still reports the moment the bed
+      // lands rather than waiting two minutes for a lesson.
+      openBed(body.first)
 
       // Always the reading, for a bed just sown.
       //

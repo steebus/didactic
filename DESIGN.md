@@ -567,13 +567,17 @@ The drawing is shared; the words are not.
 Sowing a subject and writing a lesson each take the better part of a minute.
 Both were held by the sheet that started them, so walking off to read something
 else orphaned the request: the row was written and the reader was never told.
+A third job now runs here too, and it is the odd one: opening a freshly sown
+bed — a route through its most introductory topic, then that route's first
+lesson — which nobody pressed a button for and which runs for a couple of
+minutes.
 
 **Rule — the notice's one job while it runs is to say that leaving is safe.**
 "Carry on reading — you will be told when the bed is laid." A reader who does
 not know they can walk away will sit and watch, which is the thing the bench
 exists to stop.
 
-**Rule — a mark, never a bar.** Neither job can honestly say how far along it
+**Rule — a mark, never a bar.** No job here can honestly say how far along it
 is, and a bar that cannot know its total lies about how much is left. The mark
 breathes, which says *working* without claiming progress.
 
@@ -597,8 +601,19 @@ rather than something printed on it.
 rounds this app drives, so it can honestly report the round and the words down.
 Sowing is one request with nothing reporting out of it, so it gets the sowing
 sheet's own `LABOURS` — a gardener's rumour of a step, never dressed as a
-measurement. Neither ever gets a bar: a bar that cannot know its total lies
-about how much is left.
+measurement. Opening a bed is both in turn: `OPENINGS` while the route is being
+drafted, because that is one request too, and then the lesson's own rounds. None
+of them ever gets a bar: a bar that cannot know its total lies about how much is
+left.
+
+**Rule — work the app started itself reports once, at the end.** Every other
+notice answers a press. Opening a bed does not: it begins the moment a bed is
+laid, and a reader who sowed a subject did not ask for a route or a lesson. So
+it says what is underway and then says one thing — *your first lesson in X is
+ready* — with the way to it. The route it drafted on the way is a step, not
+news, and a second notice for it would turn a helpful thing into a thing that
+talks. It names the topic and never the lesson: nobody has seen that lesson's
+name, and a notice naming it would be a notice about a stranger.
 
 **Rule — an offer is not a job, and does not look like one.** The bench also
 carries notices that *ask* — the next lesson is unwritten, shall I start it —

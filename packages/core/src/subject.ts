@@ -18,6 +18,12 @@ export interface SubjectTopicRow {
   freshness: number
   last_exposure_at: string | null
   state: string
+  /**
+   * Where this topic falls in the order its bed was laid out in,
+   * simplest first. Null where the bed never said -- a topic added by
+   * hand afterwards, or a bed sown before the sowing recorded an order.
+   */
+  position: number | null
   /** Subjects other than this one that the topic is also filed under. */
   alsoIn: Array<{ id: string; title: string }>
   resources: Array<Pick<Resource, 'id' | 'title' | 'kind' | 'status' | 'url'>>
