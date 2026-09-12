@@ -5,6 +5,7 @@ import { getHomeData } from '@/lib/home'
 import { Emblem, slugify } from '@/components/Emblem'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
 import { SheetNav } from '@/components/SheetNav'
+import { GardenLine } from '@/components/GardenLine'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
 
@@ -45,6 +46,11 @@ export default async function Home() {
       <div className={styles.headRule} />
 
       <div className={styles.sheetBody}>
+      {/* The way into the garden from the sheet the reader lands on.
+          It prints nothing at all until something has been planted, so
+          a new catalogue is not advertised at about a feature it has
+          no use for yet. */}
+      <GardenLine />
       {data.totals.topics === 0 ? (
         <div className={styles.blank}>
           <h2 className={styles.blankTitle}>Nothing sown yet</h2>

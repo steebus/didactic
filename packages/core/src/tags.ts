@@ -28,4 +28,6 @@ export const tags = {
   curriculum: (id: string) => `curriculum:${id}`,
   /** The adjudication queue. */
   pending: 'pending',
+  /** The garden: what is due, and what stands against a lesson. */
+  clozes: 'clozes',
 } as const

@@ -7,7 +7,11 @@ import { createPortal } from 'react-dom'
 import { didactic } from '@didactic/api'
 import type { Highlight as Mark } from '@didactic/core/types'
 import { paintMarks } from '@/lib/paintMarks'
+import { paintClozes } from '@/lib/paintClozes'
 import { panelSpot, pinSpot, type Spot } from '@didactic/core/markAnchor'
+import type { ClozeCard as Card } from '@didactic/core/clozes'
+import { ClozeCard } from './ClozeCard'
+import { ClozeMaker } from './ClozeMaker'
 import { NoteEditor } from './NoteEditor'
 import { NoteIcon } from './NoteIcon'
 import { MarksIcon } from './MarksIcon'
@@ -70,12 +74,23 @@ interface Offer {
 export function Highlighter({
   lessonId,
   existing,
+  clozes = [],
   onChanged,
+  onTended,
   children,
 }: {
   lessonId: string
   existing: Mark[]
+  /**
+   * The passages this lesson is being tended on, drawn in plum under
+   * the prose. Defaults to none, so a caller that has never heard of
+   * the garden -- the refresher renders this same body -- reads exactly
+   * as before.
+   */
+  clozes?: Card[]
   onChanged?: () => void
+  /** A cloze was planted, answered, rewritten or pulled up here. */
+  onTended?: () => void
   children: React.ReactNode
 }) {
   const holder = useRef<HTMLDivElement>(null)
@@ -86,6 +101,15 @@ export function Highlighter({
   const [pending, setPending] = useState<{ quote: string; prefix: string } | null>(null)
   const [offer, setOffer] = useState<Offer | null>(null)
   const [open, setOpen] = useState<{ mark: Mark; at: Spot } | null>(null)
+  /** The tended passage the reader pressed, and where its card stands. */
+  const [openCloze, setOpenCloze] = useState<{ cloze: Card; at: Spot } | null>(null)
+  /** Making a cloze out of the passage the composer is holding. */
+  const [making, setMaking] = useState(false)
+  /** Clozes planted or pulled up here, which the sheet has not caught
+   *  up with yet -- without this a planted one is not drawn until the
+   *  lesson is read again, and a pulled-up one is drawn after it. */
+  const [planted, setPlanted] = useState<Card[]>([])
+  const [uprooted, setUprooted] = useState<string[]>([])
   const [note, setNote] = useState('')
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -170,6 +194,24 @@ export function Highlighter({
     return [...merged, ...extras].filter(m => !gone.includes(m.id))
   }, [existing, kept, gone])
 
+  /**
+   * The clozes of this lesson: the sheet's, and what this session has
+   * done to them since.
+   *
+   * The same arrangement the marks have, and for the same reason:
+   * planting one and pulling one up both happen behind the reader, and
+   * until the sheet comes back the page would otherwise print what the
+   * server last said. Matched by id throughout -- unlike a mark, a
+   * cloze is never drawn before the server has answered for it, because
+   * the whole of it (its blank, its schedule) is the server's answer.
+   */
+  const tended = useMemo(() => {
+    const changed = new Map(planted.map(c => [c.id, c]))
+    const merged = clozes.map(c => changed.get(c.id) ?? c)
+    const extras = planted.filter(c => !clozes.some(e => e.id === c.id))
+    return [...merged, ...extras].filter(c => !uprooted.includes(c.id))
+  }, [clozes, planted, uprooted])
+
   // --- Marking ---------------------------------------------------
 
   /** What is selected inside the prose, if anything worth keeping is. */
@@ -210,6 +252,8 @@ export function Highlighter({
     (chosen: Offer | null) => {
       if (!chosen) return
       setOffer(null)
+      setOpenCloze(null)
+      setMaking(false)
       setAt(chosen.panel)
       setPending({ quote: chosen.quote, prefix: chosen.prefix })
       setNote('')
@@ -237,16 +281,16 @@ export function Highlighter({
   }
 
   const take = useCallback(() => {
-    if (pending || open) return
+    if (pending || open || openCloze) return
     compose(readSelection())
-  }, [pending, open, compose, readSelection])
+  }, [pending, open, openCloze, compose, readSelection])
 
   /** Float the offer near the selection and otherwise stay out of the
    *  way. The finger's way in: the selection is still being made. */
   const offerToKeep = useCallback(() => {
-    if (pending || open) return
+    if (pending || open || openCloze) return
     setOffer(readSelection())
-  }, [pending, open, readSelection])
+  }, [pending, open, openCloze, readSelection])
 
   useEffect(() => {
     // When the reader has finished choosing, by whichever of the ways
@@ -330,6 +374,32 @@ export function Highlighter({
   useLayoutEffect(() => {
     const root = holder.current
     if (!root) return
+
+    // The tended passages go down first, and the marks over them.
+    // Neither layer skips the other's wrappers, so the order is not
+    // load-bearing -- it is simply the reading order of the two: a
+    // sentence is tended because of what it says, and marked because
+    // of what the reader thought about it.
+    paintClozes(
+      root,
+      tended.map(c => ({ id: c.id, text: c.text, prefix: c.prefix })),
+      (id, piece) => {
+        const cloze = tended.find(c => c.id === id)
+        if (!cloze) return
+        setOpenCloze({
+          cloze,
+          at: panelSpot(piece.getBoundingClientRect(), root.getBoundingClientRect(), {
+            width: window.innerWidth,
+            height: window.innerHeight,
+          }),
+        })
+        setOpen(null)
+        setPending(null)
+        setOffer(null)
+        setMaking(false)
+      }
+    )
+
     const painted = paintMarks(
       root,
       marks.map(h => ({
@@ -342,6 +412,7 @@ export function Highlighter({
         const mark = marks.find(h => h.id === id)
         if (!mark) return
         setOpen({ mark, at: where })
+        setOpenCloze(null)
         setPending(null)
         setOffer(null)
         setNote(mark.note ?? '')
@@ -356,7 +427,7 @@ export function Highlighter({
         ? before
         : painted
     )
-  }, [marks, children])
+  }, [marks, tended, children])
 
   // --- Writing ---------------------------------------------------
 
@@ -786,7 +857,7 @@ export function Highlighter({
           edge with the reading and leaves when the reading is done --
           and so it needs no measuring, no scroll listener, and nothing
           to keep in step with the layout. */}
-      {!pending && !open && !offer && (
+      {!pending && !open && !offer && !openCloze && (
         <div className={styles.desk}>
           <div className={styles.deskStack} ref={deskStack}>
             {marks.length > 0 && (
@@ -861,6 +932,7 @@ export function Highlighter({
       {offer &&
         !pending &&
         !open &&
+        !openCloze &&
         float(
           <button
             type="button"
@@ -892,6 +964,26 @@ export function Highlighter({
               )}
               {opener}
             </div>
+            {/* The other thing a chosen passage can become. Keeping it
+                is about what the reader thought; making a cloze of it
+                is about whether they will still have it in a month, and
+                the same selection answers either question. */}
+            {making && pending.quote ? (
+              <ClozeMaker
+                lessonId={lessonId}
+                quote={pending.quote}
+                prefix={pending.prefix.trim() || null}
+                onPlanted={cloze => {
+                  setPlanted(p => [...p, cloze])
+                  setMaking(false)
+                  setPending(null)
+                  window.getSelection()?.removeAllRanges()
+                  onTended?.()
+                }}
+                onCancel={() => setMaking(false)}
+              />
+            ) : (
+            <>
             <NoteEditor
               className={styles.note}
               fill={big}
@@ -919,6 +1011,15 @@ export function Highlighter({
               >
                 Keep it
               </button>
+              {pending.quote && (
+                <button
+                  type="button"
+                  className={styles.cancel}
+                  onClick={() => setMaking(true)}
+                >
+                  Make a cloze
+                </button>
+              )}
               <button
                 type="button"
                 className={styles.cancel}
@@ -930,8 +1031,52 @@ export function Highlighter({
                 Cancel
               </button>
             </div>
+            </>
+            )}
           </div>,
           at
+        )}
+
+      {/* A tended passage, pressed in the reading. The same card the
+          Tend sheet shows -- answered, rewritten or pulled up here
+          without leaving the lesson. Two renderings of a flashcard
+          would be two sets of answer buttons that could come to mean
+          different things, which is the one thing a scheduler cannot
+          survive. */}
+      {openCloze &&
+        stand(
+          <div className={panelClass(openCloze.at)} style={placed(openCloze.at)} role="dialog">
+            <div className={styles.panelHead}>
+              <p className={styles.about}>Tended here</p>
+              <button
+                type="button"
+                className={styles.cancel}
+                onClick={() => setOpenCloze(null)}
+              >
+                Close
+              </button>
+            </div>
+            <ClozeCard
+              key={openCloze.cloze.id}
+              cloze={openCloze.cloze}
+              where="lesson"
+              onAnswered={next => {
+                setPlanted(p => [...p.filter(c => c.id !== next.id), next])
+                onTended?.()
+              }}
+              onEdited={next => {
+                setPlanted(p => [...p.filter(c => c.id !== next.id), next])
+                setOpenCloze(o => (o ? { ...o, cloze: next } : o))
+                onTended?.()
+              }}
+              onRemoved={id => {
+                setUprooted(u => [...u, id])
+                setOpenCloze(null)
+                onTended?.()
+              }}
+            />
+          </div>,
+          openCloze.at
         )}
 
       {open &&

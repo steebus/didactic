@@ -1,0 +1,52 @@
+/* One line, printed under the head of a sheet: what the garden wants
+   from here. Set as a caption rather than as a control -- it is an
+   offer, and the sheet it sits on is about something else. */
+
+.line {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  flex-wrap: wrap;
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin: 0 0 var(--space-4);
+}
+
+/* Something is actually waiting, so it is stated in the plate rather
+   than in the faint ink the rest of the line takes. */
+.due {
+  color: var(--plate-plum);
+  font-weight: 600;
+  border-bottom: 1px solid var(--plate-plum);
+  text-decoration: none;
+  padding-bottom: 2px;
+}
+
+.due:hover {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom-color: var(--ink);
+}
+
+.rest {
+  color: var(--ink-faint);
+}
+
+.random {
+  color: var(--ink-faint);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 2px;
+}
+
+.random:hover {
+  color: var(--ink);
+  text-decoration: none;
+  border-bottom-color: var(--plate-plum);
+}
+
+.gap {
+  color: var(--rule);
+}

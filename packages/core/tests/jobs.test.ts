@@ -18,7 +18,7 @@ const job = (over: Partial<JobLike> = {}): JobLike => ({
   ...over,
 })
 
-const KINDS: JobKind[] = ['sowing', 'writing', 'opening']
+const KINDS: JobKind[] = ['sowing', 'writing', 'opening', 'tending']
 const STATES: JobState[] = ['running', 'done', 'failed']
 
 describe('jobKey', () => {
@@ -83,8 +83,13 @@ describe('jobTitle', () => {
 
 describe('jobNote', () => {
   it('tells the reader they may walk away, which is the whole point', () => {
+    // The three a reader presses a button for say "carry on reading",
+    // because they are standing in front of it waiting. Tending cannot
+    // say that: it starts *because* they have finished reading and
+    // marked the lesson worked, so it says the same promise the other
+    // way round -- there is nothing here to wait for.
     for (const kind of KINDS) {
-      expect(jobNote(job({ kind }))).toMatch(/carry on/i)
+      expect(jobNote(job({ kind }))).toMatch(/carry on|nothing to wait for/i)
     }
   })
 
@@ -101,6 +106,36 @@ describe('jobNote', () => {
   it('still says something when a failure carries no reason', () => {
     expect(jobNote(job({ state: 'failed' }))).toBeTruthy()
     expect(jobNote(job({ state: 'failed', reason: null }))).toBeTruthy()
+  })
+})
+
+describe('tending, the job that runs behind a finished reader', () => {
+  const tending = (over: Partial<JobLike> = {}) =>
+    job({ kind: 'tending', name: 'What exposure is', ...over })
+
+  it('says the lesson is being read back, not written', () => {
+    expect(jobTitle(tending())).toBe('Reading What exposure is back')
+  })
+
+  it('says where it ended up, in the garden\'s own word', () => {
+    expect(jobTitle(tending({ state: 'done' }))).toBe('What exposure is is in the garden')
+  })
+
+  it('says plainly when it did not work', () => {
+    expect(jobTitle(tending({ state: 'failed' }))).toMatch(/could not be read back/)
+  })
+
+  it('tells the reader there is nothing to wait for, because there is not', () => {
+    // Nobody pressed a button for this: the lesson was marked worked
+    // and the reader is already on their way somewhere else.
+    expect(jobNote(tending())).toMatch(/nothing to wait for/i)
+  })
+
+  it('offers nowhere to go, and so puts itself away', () => {
+    // The cards are due now, but answering them two seconds after
+    // reading the sentences they are cut from teaches nothing.
+    expect(jobWay(tending({ state: 'done' }))).toBeNull()
+    expect(jobSettles(tending({ state: 'done' }), false)).toBe(true)
   })
 })
 
@@ -156,6 +191,7 @@ describe('jobPhrases', () => {
     expect(jobPhrases('sowing')[0]).toMatch(/ground/i)
     expect(jobPhrases('writing')[0]).toMatch(/pencil/i)
     expect(jobPhrases('opening')[0]).toMatch(/bed/i)
+    expect(jobPhrases('tending')[0]).toMatch(/lesson/i)
   })
 
   it('gives every kind something to say', () => {

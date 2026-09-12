@@ -898,6 +898,45 @@ draw it back onto. Everywhere marks are printed, an empty quote prints
 `A note on this lesson` in the label register rather than an empty blockquote
 with a mustard rule down the side of it.
 
+### Tended passages, and the card
+
+A sentence a cloze was cut from is drawn back onto its own lesson, by the same
+engine that draws a mark and for the same reason: both store their words rather
+than an offset into a body that is regenerable.
+
+| Part | Treatment |
+| --- | --- |
+| Rule | `inset 0 -2px 0 rgba(107,53,80,0.55)` — a plum rule *under* the words, drawn inside the box so it cannot reflow the line when the clozes land a beat after the prose. |
+| Hover | The rule at full `--plate-plum`, plus a `0.08` plum ground. |
+| Focus | `2px solid var(--plate-plum)`, offset `2px` — the plate's own, because this plate is what the whole garden wears. |
+| The card | Plum 5px left edge on `--paper-deep`; the concept in the label register above, the answer in plum when it is shown. |
+| The blank | `min-width: 5em`, transparent text, `2px` plum underline. |
+
+**Rule — the two layers carry differently, so a sentence can be both.** A mark is
+a mustard wash *behind* the text from the baseline down; a tended passage is a
+plum rule *under* it. A sentence that is marked and tended reads as washed and
+underscored, not as a muddy third colour, and neither layer is styled against
+the other — an override would make the appearance depend on which painter ran
+last, which is exactly what the two are arranged not to depend on.
+
+**Rule — the tended layer never takes a selection over.** Marking is select the
+words and let go. A press that ends a selection does not open a card; only a
+press with nothing selected does. Nothing about the plum changes the words'
+position, size or weight, so a passage under it selects exactly as the prose
+either side of it does.
+
+**Rule — the blank is a fixed rule, never the answer greyed out and never a gap
+its own width.** The length of a blank is a hint, and a hint nobody asked for.
+The answer is not in the document at all until *Show it* is pressed.
+
+**Rule — an answer states its consequence, not an adjective.** The three answers
+carry the wait each would give — *Gone · 10 min*, *Got it · 8 d*, *Easy · 3 wk* —
+computed on the page from the same pure scheduler the server will run. The three
+are the same size and weight: none of them is the right answer. A miss carries a
+terracotta left edge as a fourth carrier behind the word, never instead of it.
+Below 40rem the three stack rather than squeeze, because a mis-tap here
+schedules a card wrongly for a year.
+
 ### Making a mark
 
 The furniture that puts a mark on the page: what offers to keep a passage, and

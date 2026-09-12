@@ -5,6 +5,7 @@ import { viabilityFigure } from '@didactic/core/scoring'
 import { getSubjectArea } from '@/lib/subject'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
 import { SheetNav } from '@/components/SheetNav'
+import { GardenLine } from '@/components/GardenLine'
 import { RouteSpecimen } from '@/components/RouteSpecimen'
 import { routeProgress, aggregateRoutes } from '@didactic/core/progress'
 import { ROOT_STAGES } from '@/components/RootsSpecimen'
@@ -96,6 +97,11 @@ export default async function SubjectPage({
       <div className={styles.headRule} />
 
       <div className={styles.body}>
+        {/* Tending this bed and nothing else. A subject is the widest
+            scope anyone actually thinks in, and turning over a cloze
+            from the one you are standing in is a different errand from
+            turning over one from the whole catalogue. */}
+        <GardenLine subjectId={subject.id} here={subject.title} />
         <div className={styles.spread}>
           <div className={styles.main}>
             <SubjectBed

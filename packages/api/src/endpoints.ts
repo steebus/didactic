@@ -31,6 +31,10 @@ const BED = [tags.subjects, tags.topics, tags.pending]
 const CURATION = [tags.subjects, tags.topics, tags.highlights]
 const MATERIAL = [tags.resources, tags.topics]
 const MARKS = [tags.highlights, tags.topics, tags.subjects]
+/* Tending moves nothing on the map: answering a cloze records what
+   stuck, and the map records what was read. The tally in every running
+   head is the one thing that goes stale. */
+const GARDEN = [tags.clozes]
 
 export const ENDPOINTS = {
   /* auth — web only; the phone signs in against Supabase directly */
@@ -59,6 +63,8 @@ export const ENDPOINTS = {
   'lessons.get': { name: 'lessons.get', method: 'GET', path: '/api/lessons/[id]', invalidates: [] },
   'highlights.list': { name: 'highlights.list', method: 'GET', path: '/api/highlights', invalidates: [] },
   'mentions.search': { name: 'mentions.search', method: 'GET', path: '/api/mentions', invalidates: [] },
+  'clozes.list': { name: 'clozes.list', method: 'GET', path: '/api/clozes', invalidates: [] },
+  'clozes.count': { name: 'clozes.count', method: 'GET', path: '/api/clozes/count', invalidates: [] },
 
   /* writing */
   'subjects.sow': { name: 'subjects.sow', method: 'POST', path: '/api/subjects', invalidates: SOWING_WIDE },
@@ -96,6 +102,12 @@ export const ENDPOINTS = {
   'highlights.create': { name: 'highlights.create', method: 'POST', path: '/api/highlights', invalidates: MARKS },
   'highlights.patch': { name: 'highlights.patch', method: 'PATCH', path: '/api/highlights', invalidates: MARKS },
   'highlights.remove': { name: 'highlights.remove', method: 'DELETE', path: '/api/highlights', invalidates: MARKS },
+
+  'clozes.create': { name: 'clozes.create', method: 'POST', path: '/api/clozes', invalidates: GARDEN },
+  'clozes.patch': { name: 'clozes.patch', method: 'PATCH', path: '/api/clozes/[id]', invalidates: GARDEN },
+  'clozes.remove': { name: 'clozes.remove', method: 'DELETE', path: '/api/clozes/[id]', invalidates: GARDEN },
+  'clozes.review': { name: 'clozes.review', method: 'POST', path: '/api/clozes/[id]/review', invalidates: GARDEN },
+  'clozes.sow': { name: 'clozes.sow', method: 'POST', path: '/api/lessons/[id]/clozes', invalidates: GARDEN },
 } as const satisfies Record<string, Endpoint>
 
 export type EndpointName = keyof typeof ENDPOINTS

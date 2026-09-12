@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { SignOut } from './SignOut'
 import { InboxTally } from './InboxTally'
+import { TendTally } from './TendTally'
 import styles from './SheetNav.module.css'
 
 /**
@@ -14,13 +15,16 @@ export function SheetNav({
   /** Where "back" goes, and what it is called. */
   back?: { href: string; label: string }
   /** Which sheet is showing, so its link is marked rather than offered. */
-  current?: 'stock' | 'bed' | 'library' | 'marked' | 'inbox' | 'sow'
+  current?: 'stock' | 'bed' | 'library' | 'marked' | 'tend' | 'inbox' | 'sow'
 }) {
   const sheets = [
     { key: 'stock', href: '/', label: 'Stock list' },
     { key: 'bed', href: '/graph', label: 'The bed' },
     { key: 'library', href: '/library', label: 'Library' },
     { key: 'marked', href: '/marked', label: 'Marked' },
+    // Between Marked and Inbox on purpose: what you kept, then what you
+    // are keeping hold of, then what is waiting to be filed.
+    { key: 'tend', href: '/tend', label: 'Tend' },
     { key: 'inbox', href: '/inbox', label: 'Inbox' },
     { key: 'sow', href: '/subjects/new', label: 'Sow' },
   ] as const
@@ -52,11 +56,13 @@ export function SheetNav({
                   figure is what is waiting, not an invitation to go
                   somewhere. */}
               {sheet.key === 'inbox' && <InboxTally />}
+              {sheet.key === 'tend' && <TendTally />}
             </span>
           ) : (
             <Link key={sheet.key} href={sheet.href} className={styles.sheet}>
               {sheet.label}
               {sheet.key === 'inbox' && <InboxTally />}
+              {sheet.key === 'tend' && <TendTally />}
             </Link>
           )
         )}

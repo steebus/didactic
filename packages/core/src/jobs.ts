@@ -13,10 +13,16 @@
  * words are here, where the phone can print the same ones, and the
  * machinery that runs them is the platform's own.
  *
- * Three kinds, and the three the reader actually walks away from. A job
+ * Four kinds, and the four the reader actually walks away from. A job
  * is not a progress bar and never becomes one -- none of these can
  * honestly say how far along it is -- so what is reported is what is
  * true: what is underway, and then what came of it.
+ *
+ * `tending` is the one that runs behind a reader who has just finished:
+ * marking a lesson worked reads it back for the two to four concepts it
+ * taught and the passages that carry them. By the time it starts they
+ * have closed the lesson and gone somewhere else, which is exactly the
+ * case the bench exists for.
  *
  * `opening` is the longest of them and the only one nobody pressed a
  * button for: a bed that has just been sown lays a route through its
@@ -26,11 +32,11 @@
  * the lesson -- the steps inside it are not separate news.
  */
 
-import { LABOURS, OPENINGS, WRITINGS } from './copy'
+import { LABOURS, OPENINGS, TENDINGS, WRITINGS } from './copy'
 
 export type JobState = 'running' | 'done' | 'failed'
 
-export type JobKind = 'sowing' | 'writing' | 'opening'
+export type JobKind = 'sowing' | 'writing' | 'opening' | 'tending'
 
 export interface JobLike {
   kind: JobKind
@@ -70,19 +76,25 @@ export function jobTitle(job: JobLike): string {
         ? `Sowing ${job.name}`
         : job.kind === 'opening'
           ? `Preparing your first lesson in ${job.name}`
-          : `Writing ${job.name}`
+          : job.kind === 'tending'
+            ? `Reading ${job.name} back`
+            : `Writing ${job.name}`
     case 'done':
       return job.kind === 'sowing'
         ? `${job.name} is sown`
         : job.kind === 'opening'
           ? `Your first lesson in ${job.name} is ready`
-          : `${job.name} is written`
+          : job.kind === 'tending'
+            ? `${job.name} is in the garden`
+            : `${job.name} is written`
     case 'failed':
       return job.kind === 'sowing'
         ? `${job.name} could not be sown`
         : job.kind === 'opening'
           ? `The first lesson in ${job.name} could not be prepared`
-          : `${job.name} could not be written`
+          : job.kind === 'tending'
+            ? `${job.name} could not be read back`
+            : `${job.name} could not be written`
   }
 }
 
@@ -106,6 +118,11 @@ export function jobNote(job: JobLike): string | null {
       return 'A couple of minutes — a route through the first topic, then its first lesson. Carry on reading; you will be told once.'
     case 'writing':
       return 'Up to a minute. Carry on reading — you will be told when it is ready.'
+    case 'tending':
+      // Nobody is waiting on this: the lesson has just been marked
+      // worked and the reader is on their way somewhere else. So the
+      // note says what it is for rather than how long it takes.
+      return 'Finding the two or three things worth keeping. Nothing to wait for.'
   }
 }
 
@@ -136,6 +153,8 @@ export function jobPhrases(kind: JobKind): string[] {
       return OPENINGS
     case 'writing':
       return WRITINGS
+    case 'tending':
+      return TENDINGS
   }
 }
 
@@ -156,7 +175,15 @@ export function jobPhrases(kind: JobKind): string[] {
  */
 export function jobWay(job: JobLike): string | null {
   if (job.state !== 'done') return null
-  return job.kind === 'sowing' ? 'See the reading' : 'Read it'
+  if (job.kind === 'sowing') return 'See the reading'
+  // Tending is the one job that finishes with nowhere worth sending
+  // anyone: the cards are due now, but a reader who has just worked a
+  // lesson should be answering them tomorrow, not two seconds after
+  // reading the sentences they are taken from. So its notice reports
+  // and puts itself away, and the Tend link in the running head is
+  // where they are met.
+  if (job.kind === 'tending') return null
+  return 'Read it'
 }
 
 

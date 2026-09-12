@@ -49,6 +49,13 @@ Read-later tools store what you meant to read. Note tools store what you
 wrote. Spaced-repetition tools drill what you chose to memorise. None of them
 show the shape of your attention across subjects over time.
 
+The app schedules too, and the distinction survives: nothing here is a deck
+anyone builds. A worked lesson is read back for the two to four concepts it
+taught, and the cards are the lesson's own sentences with the load-bearing
+words taken out — so what comes back is what was actually read, in the words it
+was read in, shown in its place in the lesson it came from. Exposure is still
+the record. Tending is how the map finds out whether an exposure held.
+
 Didactic tracks **exposure**, not completion — and separates it from
 **ability**, which the app estimates and owns. Saving a resource is intent;
 only consuming it counts. That distinction is the mechanism: it makes the map

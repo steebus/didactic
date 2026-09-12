@@ -1,0 +1,188 @@
+/* The Tend sheet wears the same chrome as Marked and the inbox, in the
+   plum plate this feature wears everywhere else. */
+
+.sheet {
+  max-width: var(--sheet-max);
+  margin: 0 auto;
+  padding: 0 0 var(--space-6);
+  background-color: var(--paper);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(90, 70, 45, 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(90, 70, 45, 0.03) 0 1px, transparent 1px 4px);
+  min-height: 100dvh;
+}
+
+.head {
+  background: var(--plate-plum);
+  color: var(--paper);
+  padding: var(--space-5);
+  /* The band is a saturated plate, so the terracotta focus ring
+     disappears into it. Controls in here state their own. */
+  --focus-ink: var(--paper);
+}
+
+.headRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.eyebrow {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(239, 231, 214, 0.85);
+  margin: 0 0 var(--space-2);
+}
+
+.title {
+  font-size: var(--step-3);
+  font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 72;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.headRule {
+  height: 5px;
+  background: var(--plate-mustard);
+  margin-bottom: var(--space-5);
+}
+
+.body {
+  padding: 0 var(--space-5);
+  max-width: 46rem;
+}
+
+@media (max-width: 48rem) {
+  .body {
+    padding: 0 var(--space-4);
+  }
+}
+
+/* --- What is standing ------------------------------------------- */
+
+/* The line above the card: how many are left, and what is being
+   tended. It is a statement rather than a progress bar -- a bar over a
+   sitting whose length the reader chooses is a bar that lies. */
+.standing {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
+.left {
+  font-size: var(--step-1);
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 30, 'opsz' 24;
+}
+
+.scope {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.scopeLink {
+  color: var(--ink-faint);
+  margin-left: auto;
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* --- Nothing due ------------------------------------------------- */
+
+.rest {
+  border: 1px solid var(--paper-edge);
+  border-left: 5px solid var(--plate-plum);
+  background: var(--paper-deep);
+  padding: var(--space-5) var(--space-4);
+}
+
+.restTitle {
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 48;
+  line-height: 1.05;
+  margin: 0 0 var(--space-3);
+}
+
+.restNote {
+  font-size: var(--step-0);
+  line-height: 1.6;
+  color: var(--ink-soft);
+  margin: 0 0 var(--space-4);
+  max-width: 34rem;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.action {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--plate-plum);
+  border: none;
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.action:hover {
+  text-decoration: none;
+  color: var(--paper);
+  background: var(--ink);
+}
+
+.quietAction {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: var(--space-2) 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.quietAction:hover {
+  color: var(--ink);
+  border-bottom-color: var(--plate-plum);
+  text-decoration: none;
+}
+
+.problem {
+  font-size: var(--step-0);
+  color: var(--plate-terracotta);
+}
+
+/* The tail under the card: the other way to tend, always available and
+   never the first thing offered. */
+.tail {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--paper-edge);
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  align-items: baseline;
+}

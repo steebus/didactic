@@ -9,6 +9,7 @@ import { DraftCurriculum } from './DraftCurriculum'
 import { LessonList } from './LessonList'
 import { AddResource } from '@/components/AddResource'
 import { SheetNav } from '@/components/SheetNav'
+import { GardenLine } from '@/components/GardenLine'
 import { RouteSpecimen } from '@/components/RouteSpecimen'
 import { routeProgress } from '@didactic/core/progress'
 import styles from './page.module.css'
@@ -105,6 +106,9 @@ export default async function TopicPage({
       <div className={styles.headRule} />
 
       <div className={styles.body}>
+        {/* The narrowest scope: everything this topic's lessons left
+            behind, and nothing from anywhere else. */}
+        <GardenLine topicId={topic.id} here={topic.title} />
         <div className={styles.spread}>
           <div className={styles.main}>
             {/* Lessons, not curricula. A topic has one route through it

@@ -9,8 +9,10 @@ import { Contents } from '@/components/Contents'
 import { Answering } from '@/components/blocks/answering'
 import { useBench } from '@/components/Bench'
 import { useWriteLesson } from '@/components/useWriteLesson'
+import { useTendLesson } from '@/components/useTendLesson'
 import { didactic } from '@didactic/api'
 import type { ExposureDepth, Highlight as Mark } from '@didactic/core/types'
+import type { ClozeCard } from '@didactic/core/clozes'
 import type { LessonLink } from '@didactic/core/lessonLinks'
 import type { SourceLink } from '@didactic/core/sourceLinks'
 import type { LessonNeighbours } from '@didactic/core/lessonState'
@@ -85,6 +87,19 @@ export default function LessonPage({
   const [data, setData] = useState<LessonData | null>(null)
   const [body, setBody] = useState<string | null>(null)
   const [highlights, setHighlights] = useState<Mark[]>([])
+  /**
+   * The passages this lesson is being tended on.
+   *
+   * Read alongside the lesson rather than folded into `/api/lessons/
+   * [id]`: the reading is served to a phone as well, a client that has
+   * never heard of the garden should get exactly the lesson it always
+   * got, and a body that is still being written has nothing to draw on
+   * anyway. Its own request, its own failure, and a failure simply
+   * means no plum on the prose.
+   */
+  const [clozes, setClozes] = useState<ClozeCard[]>([])
+  /** Bumped when a cloze is planted or pulled up, to read them again. */
+  const [garden, setGarden] = useState(0)
   const bench = useBench()
   const job = bench.jobFor('writing', id)
   const writing = job?.state === 'running'
@@ -104,6 +119,8 @@ export default function LessonPage({
   // does -- in the read effect's dependencies the whole bench would
   // re-read the lesson every time a notice in the corner ticked over.
   const writeLesson = useWriteLesson()
+  // Reading the lesson back for what to tend, once it is marked worked.
+  const tendLesson = useTendLesson()
   // Asking for the lesson again, and the press that confirms it. Two
   // presses because it cannot be undone: the body it replaces is not
   // kept anywhere.
@@ -193,6 +210,21 @@ export default function LessonPage({
       window.removeEventListener('resize', look)
     }
   }, [body, data?.neighbours?.next, bench, writeLesson])
+
+  // What this lesson is tended on, for the plum under its prose. Its
+  // own read, so a garden that cannot be reached costs the reader
+  // nothing but the highlighting.
+  useEffect(() => {
+    let cancelled = false
+
+    void api.clozes.inLesson(id).then(({ ok, body: payload }) => {
+      if (!cancelled && ok) setClozes(payload.clozes)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [id, garden, revision])
 
   useEffect(() => {
     let cancelled = false
@@ -331,6 +363,15 @@ export default function LessonPage({
       setEntry(null)
     }
 
+    // A lesson marked read or worked is read back for the two to four
+    // concepts it taught, and a cloze or three under each. Skimming is
+    // not: it is by definition not an exposure worth asking about, and
+    // planting cards off a lesson nobody read would fill the garden
+    // with sentences the reader has never met.
+    if (action === 'complete' && (depth === 'read' || depth === 'applied')) {
+      void tendLesson({ id, title: data?.lesson.title ?? 'This lesson' })
+    }
+
     setRevision(r => r + 1)
     setBusy(false)
   }
@@ -453,10 +494,15 @@ export default function LessonPage({
               {/* Selecting inside here offers to keep the passage. The
                   marks belong to the topic rather than to the lesson, so
                   they outlive a regenerated body. */}
+              {/* Selecting inside here also offers to make a cloze of
+                  the passage, and every passage already tended is
+                  drawn in plum under the words. */}
               <Highlighter
                 lessonId={id}
                 existing={highlights}
+                clozes={clozes}
                 onChanged={() => setRevision(r => r + 1)}
+                onTended={() => setGarden(g => g + 1)}
               >
                 {/* Lets the question blocks inside the prose count for
                     something. A refresher renders the same components

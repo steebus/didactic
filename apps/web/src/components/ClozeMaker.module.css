@@ -1,0 +1,120 @@
+/* Making a cloze inside the composer that already has the passage. */
+
+.maker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.about {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--plate-plum);
+  margin: 0;
+}
+
+/* The passage as a row of pressable words. It has to read as a
+   sentence and behave as a set of controls at once, so the words keep
+   the prose's own size and line height and take their state from the
+   ground under them rather than from a box round each one. */
+.passage {
+  font-size: var(--step-0);
+  line-height: 1.7;
+  margin: 0;
+  /* The words carry their own spacing, so the row collapses the
+     whitespace between the buttons. */
+  display: inline;
+}
+
+.word {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0.1em 0.15em;
+  margin: 0 0.06em 0 0;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.word:hover {
+  border-bottom-color: var(--rule);
+}
+
+.word[data-taken='true'] {
+  background: rgba(107, 53, 80, 0.16);
+  border-bottom-color: var(--plate-plum);
+}
+
+/* What the card will ask, before it is planted. */
+.reading {
+  font-size: var(--step--1);
+  line-height: 1.6;
+  color: var(--ink-soft);
+  background: var(--paper);
+  border-left: 3px solid var(--plate-plum);
+  padding: var(--space-2) var(--space-3);
+  margin: 0;
+}
+
+.hole {
+  display: inline-block;
+  min-width: 4em;
+  border-bottom: 2px solid var(--plate-plum);
+  vertical-align: baseline;
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.plant {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--plate-plum);
+  border: none;
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+}
+
+.plant:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.cancel {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: none;
+  border: none;
+  padding: var(--space-3) var(--space-2);
+  cursor: pointer;
+}
+
+.cancel:hover {
+  color: var(--ink);
+}
+
+.note {
+  font-size: var(--step--2);
+  color: var(--ink-faint);
+  margin: 0;
+}
+
+.problem {
+  font-size: var(--step--1);
+  color: var(--plate-terracotta);
+  margin: 0;
+}

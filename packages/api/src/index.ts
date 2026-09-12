@@ -15,6 +15,7 @@
 import { createApi, type Api, type ApiOptions } from './client'
 import { auth } from './auth'
 import { books } from './books'
+import { clozes } from './clozes'
 import { curricula } from './curricula'
 import { graph } from './graph'
 import { highlights } from './highlights'
@@ -48,6 +49,7 @@ export type { AddResource, Filed } from './resources'
 export type { CurriculumDetail, CurriculumPatch, Drafted, NewLesson, Opened } from './curricula'
 export type { Completion, LessonDetail, LessonPatch, Written, WrittenWhole } from './lessons'
 export type { Kept, NewHighlight } from './highlights'
+export type { ClozeEdit, ClozeScope, NewCloze, SownClozes, Tended } from './clozes'
 export type { PriorResource, Refresher } from './refresher'
 
 /** Every endpoint, grouped as `ARCHITECTURE.md` §4 lays them out. */
@@ -57,6 +59,7 @@ export function didactic(options: ApiOptions = {}) {
     api,
     auth: auth(api),
     books: books(api),
+    clozes: clozes(api),
     curricula: curricula(api),
     graph: graph(api),
     highlights: highlights(api),

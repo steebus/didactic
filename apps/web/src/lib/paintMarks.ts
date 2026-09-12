@@ -1,19 +1,17 @@
 /**
  * Draw the kept passages back onto the prose.
  *
- * A highlight stores its words, not an offset, because a lesson body is
- * written on demand and regenerable -- an offset into prose that has
- * been rewritten points at nothing. So finding it again is a text
- * search over the rendered nodes rather than a lookup.
- *
- * It walks the DOM after render instead of injecting markup into the
- * HTML string: the sanitiser is the one thing between a model's output
- * and the page, and nothing should be threaded past it. A mark that
- * cannot be found is simply not drawn -- the highlight still exists on
- * the topic sheet, which is where it does its real work.
+ * The finding and wrapping is `paintPassages`, which the tended
+ * passages share: a mark and a cloze are the same problem -- a passage
+ * stored as words rather than as an offset -- and differ only in what
+ * is wrapped round the words and what pressing it does. What is left
+ * here is the mark's own half of that: a `<mark>` element, an id under
+ * `data-mark`, a label that says whether a note came with it, and a
+ * panel placed against the words when it is pressed.
  */
 
 import { panelSpot } from '@didactic/core/markAnchor'
+import { paintPassages } from './paintPassages'
 
 export interface PaintableMark {
   id: string
@@ -21,9 +19,6 @@ export interface PaintableMark {
   prefix: string | null
   hasNote: boolean
 }
-
-/** Collapse the whitespace differences between stored text and rendered text. */
-const normalise = (s: string) => s.replace(/\s+/g, ' ')
 
 /**
  * Wrap every findable mark in the container.
@@ -38,197 +33,38 @@ export function paintMarks(
   marks: PaintableMark[],
   onOpen: (id: string, at: { top: number; left: number; above: boolean }) => void
 ): string[] {
-  const drawn = new Set<string>()
+  const noted = new Set(marks.filter(m => m.hasNote).map(m => m.id))
 
-  // Existing marks come off first, so a repaint after a save does not
-  // wrap a mark inside the last one.
-  for (const old of Array.from(root.querySelectorAll('[data-mark]'))) {
-    const parent = old.parentNode
-    if (!parent) continue
-    while (old.firstChild) parent.insertBefore(old.firstChild, old)
-    parent.removeChild(old)
-    parent.normalize()
-  }
-
-  for (const mark of marks) {
-    const quote = normalise(mark.quote).trim()
-    if (!quote) continue
-
-    // Re-read the text nodes for every mark: wrapping one changes the
-    // tree the next one has to search.
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
-    const nodes: Text[] = []
-    let node: Node | null
-    while ((node = walker.nextNode())) {
-      // Never paint inside a mark already drawn, or inside a block's
-      // own controls.
-      if ((node.parentElement as HTMLElement | null)?.closest('[data-mark],button,textarea')) {
-        continue
-      }
-      nodes.push(node as Text)
-    }
-    if (nodes.length === 0) continue
-
-    // One string for the whole container, with an index back to the
-    // node each character came from, so a quote spanning a bold word or
-    // a link still matches.
-    let flat = ''
-    const map: Array<{ node: Text; offset: number }> = []
-    for (const n of nodes) {
-      const text = normalise(n.data)
-      for (let i = 0; i < text.length; i++) {
-        // Whitespace collapses across nodes as well as within them. The
-        // gap between a paragraph and the list under it is a text node
-        // of its own, so running the nodes together left two spaces
-        // where the reader had selected one -- and the passage was then
-        // looked for with one space and never found.
-        if (text[i] === ' ' && flat.endsWith(' ')) continue
-        map.push({ node: n, offset: i })
-        flat += text[i]
-      }
-    }
-
-    // The prefix disambiguates a quote that appears more than once.
-    let start = -1
-    if (mark.prefix) {
-      const withPrefix = normalise(mark.prefix).trim()
-      const anchored = flat.indexOf(withPrefix + quote)
-      if (anchored !== -1) start = anchored + withPrefix.length
-      // A prefix is a hint, not a requirement: it was captured against
-      // a body that may since have been rewritten.
-      if (start === -1) start = flat.indexOf(quote)
-    } else {
-      start = flat.indexOf(quote)
-    }
-    if (start === -1) continue
-
-    // The nodes the passage runs through, and how much of each it
-    // covers.
-    //
-    // A passage is wrapped a text node at a time rather than in one
-    // piece. A single range around the whole thing is what the DOM
-    // would prefer, but `surroundContents` refuses any range that
-    // straddles an element boundary -- and a reader marking two bullets
-    // or a sentence that carries on into the next paragraph makes
-    // exactly that range. Those marks were dropped silently: kept on
-    // the topic sheet, invisible on the lesson they were taken in.
-    //
-    // Wrapping each node's share separately never straddles anything,
-    // and the pieces carry the same id, so the passage reads as one
-    // mark and opens one panel however many elements it crosses.
-    const slices: Array<{ node: Text; from: number; to: number }> = []
-    for (let i = start; i < start + quote.length; i++) {
-      const at = map[i]
-      if (!at) break
-      const last = slices[slices.length - 1]
-      if (last && last.node === at.node) last.to = at.offset
-      else slices.push({ node: at.node, from: at.offset, to: at.offset })
-    }
-    if (slices.length === 0) continue
-
-    /** One piece of the passage, drawn and wired to open the mark. */
-    const piece = (first: boolean) => {
-      const wrap = document.createElement('mark')
-      wrap.dataset.mark = mark.id
-      if (mark.hasNote) wrap.dataset.noted = 'true'
+  return paintPassages(root, marks, {
+    tag: 'mark',
+    attribute: 'mark',
+    // Never inside a mark already drawn, or inside a block's own
+    // controls. A tended passage is deliberately absent: a sentence can
+    // be marked and tended at once, and the two layers must not depend
+    // on which of them ran last.
+    skip: '[data-mark],button,textarea',
+    dress: (piece, first) => {
+      if (noted.has(piece.dataset.mark ?? '')) piece.dataset.noted = 'true'
 
       // One tab stop for the passage rather than one per piece: the
       // rest are still clickable, and none of them is hidden from a
       // screen reader, which would take the words with it.
       if (first) {
-        wrap.tabIndex = 0
-        wrap.setAttribute('role', 'button')
-        wrap.setAttribute(
+        piece.tabIndex = 0
+        piece.setAttribute('role', 'button')
+        piece.setAttribute(
           'aria-label',
-          mark.hasNote ? 'Marked passage with a note' : 'Marked passage'
+          noted.has(piece.dataset.mark ?? '') ? 'Marked passage with a note' : 'Marked passage'
         )
       }
-
-      const open = (e: Event) => {
-        e.stopPropagation()
-        onOpen(
-          mark.id,
-          panelSpot(wrap.getBoundingClientRect(), root.getBoundingClientRect(), {
-            width: window.innerWidth,
-            height: window.innerHeight,
-          })
-        )
-      }
-      wrap.addEventListener('click', open)
-      wrap.addEventListener('keydown', e => {
-        const key = (e as KeyboardEvent).key
-        if (key === 'Enter' || key === ' ') {
-          e.preventDefault()
-          open(e)
-        }
-      })
-      return wrap
-    }
-
-    // From the end back: wrapping part of a text node splits it, and
-    // everything after the split moves. Working backwards leaves the
-    // offsets this loop has not reached yet where it found them.
-    for (let i = slices.length - 1; i >= 0; i--) {
-      const slice = slices[i]
-      // The flat string collapsed whitespace, so offsets are mapped
-      // back through the same collapse rather than used raw.
-      const from = realOffset(slice.node, slice.from)
-      const to = realOffset(slice.node, slice.to) + 1
-
-      // The gaps between elements are text nodes too -- the newline
-      // between two list items is one. There is nothing to draw on
-      // them, and a mark around a line break draws a wash in the
-      // margin between the items.
-      if (!slice.node.data.slice(from, to).trim()) continue
-
-      const range = document.createRange()
-      try {
-        range.setStart(slice.node, from)
-        range.setEnd(slice.node, to)
-      } catch {
-        continue
-      }
-
-      try {
-        // Within one text node, so this cannot straddle anything.
-        range.surroundContents(piece(i === 0))
-        drawn.add(mark.id)
-      } catch {
-        continue
-      }
-    }
-  }
-
-  // Read back off the page rather than kept as they were painted: a
-  // mark is drawn where its words are, which has nothing to do with the
-  // order the sheet handed them over in.
-  const order: string[] = []
-  for (const piece of Array.from(root.querySelectorAll<HTMLElement>('[data-mark]'))) {
-    const id = piece.dataset.mark
-    if (id && drawn.has(id) && !order.includes(id)) order.push(id)
-  }
-  return order
-}
-
-/**
- * Map an offset in the whitespace-collapsed text back to the real node.
- *
- * The flat string replaced every run of whitespace with one space, so a
- * position in it can sit further along in the original.
- */
-function realOffset(node: Text, collapsedOffset: number): number {
-  const raw = node.data
-  let seen = 0
-  let i = 0
-  while (i < raw.length) {
-    if (seen === collapsedOffset) return i
-    if (/\s/.test(raw[i])) {
-      while (i < raw.length && /\s/.test(raw[i])) i++
-      seen++
-    } else {
-      i++
-      seen++
-    }
-  }
-  return Math.min(collapsedOffset, raw.length)
+    },
+    onOpen: (id, piece) =>
+      onOpen(
+        id,
+        panelSpot(piece.getBoundingClientRect(), root.getBoundingClientRect(), {
+          width: window.innerWidth,
+          height: window.innerHeight,
+        })
+      ),
+  })
 }

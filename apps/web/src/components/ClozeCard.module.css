@@ -1,0 +1,280 @@
+/* A cloze, face down and then face up.
+
+   Plum throughout: it is the plate this feature wears everywhere -- the
+   wash on a tended passage in the reading, the band on the Tend sheet,
+   the answer when it is shown -- so a card met in the lesson and a card
+   met on the sheet read as the same object. */
+
+.card {
+  background: var(--paper-deep);
+  border: 1px solid var(--paper-edge);
+  /* The one edge that is not a hairline: the plum rule is what says
+     which of the app's several list-shaped things this is. */
+  border-left: 5px solid var(--plate-plum);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.eyebrow {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--plate-plum);
+  margin: 0;
+}
+
+/* A cloze the reader made themselves, said quietly on the same line. */
+.own {
+  color: var(--ink-faint);
+  text-transform: none;
+  letter-spacing: 0.04em;
+}
+
+.gist {
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* The question itself. Set at reading size rather than display size:
+   it is a sentence from a lesson, and it should read the way it read
+   there. */
+.passage {
+  font-size: var(--step-1);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* The blank. A rule of a fixed width, not the word greyed out and not
+   a gap the width of the answer -- the length of a blank is a hint, and
+   a hint nobody asked for. */
+.blank {
+  display: inline-block;
+  min-width: 5em;
+  color: transparent;
+  border-bottom: 2px solid var(--plate-plum);
+  /* The em dashes inside carry the width for a reader whose fonts did
+     not load; they are never seen when they did. */
+  overflow: hidden;
+  vertical-align: baseline;
+  user-select: none;
+}
+
+.answer {
+  color: var(--plate-plum);
+  font-weight: 700;
+  box-shadow: inset 0 -0.35em 0 rgba(107, 53, 80, 0.16);
+}
+
+.hint {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.hintLabel {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-right: var(--space-2);
+}
+
+/* --- Answering --------------------------------------------------- */
+
+.answers {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+
+.show {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--plate-plum);
+  border: none;
+  padding: var(--space-3) var(--space-4);
+  cursor: pointer;
+}
+
+.show:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* The three answers, each carrying what it would cost.
+
+   The wait under the label is the point of the row: a reader choosing
+   between "three days" and "two months" is choosing between
+   consequences, where one choosing between "good" and "easy" is
+   choosing between adjectives. The three are the same size and the
+   same weight -- none of them is the right answer. */
+.answerButton {
+  flex: 1 1 7rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15em;
+  align-items: flex-start;
+  font-family: var(--font-text);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  padding: var(--space-3);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color var(--dur-feedback) var(--ease-settle),
+    background var(--dur-feedback) var(--ease-settle);
+}
+
+.answerButton:hover:not(:disabled) {
+  border-color: var(--plate-plum);
+  background: var(--paper-deep);
+}
+
+.answerButton:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* A miss is the one of the three that is a different kind of answer, so
+   it carries a different edge. Colour is the fourth carrier here, not
+   the first: the word says it. */
+.answerButton[data-rung='1'] {
+  border-left: 3px solid var(--plate-terracotta);
+}
+
+.answerLabel {
+  font-size: var(--step--1);
+  font-weight: 600;
+}
+
+.answerWait {
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.done {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.doneNote {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- The quiet row ----------------------------------------------- */
+
+.quiet {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  align-items: baseline;
+  border-top: 1px solid var(--paper-edge);
+  padding-top: var(--space-2);
+}
+
+.quietAction {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: var(--space-2) 0;
+  cursor: pointer;
+}
+
+.quietAction:hover {
+  color: var(--ink);
+  border-bottom-color: var(--plate-plum);
+}
+
+.quietNote {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.quietLink {
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-left: auto;
+}
+
+.problem {
+  font-size: var(--step--1);
+  color: var(--plate-terracotta);
+  margin: 0;
+}
+
+/* --- Rewriting --------------------------------------------------- */
+
+.label {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.field {
+  font: inherit;
+  font-size: var(--step-0);
+  line-height: 1.5;
+  width: 100%;
+  padding: var(--space-3);
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  resize: vertical;
+}
+
+.field:focus {
+  outline: 2px solid var(--plate-plum);
+  outline-offset: -2px;
+}
+
+.editRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.blankNow {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.blankNow strong {
+  color: var(--plate-plum);
+}
+
+@media (max-width: 40rem) {
+  /* On a phone the three answers stack rather than squeeze: a 4rem
+     button with two lines in it is a mis-tap waiting to happen, and the
+     wrong answer here is a card scheduled wrongly for a year. */
+  .answerButton {
+    flex: 1 1 100%;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+}

@@ -121,6 +121,27 @@ export const WRITINGS = [
 ]
 
 /**
+ * What the corner says while a worked lesson is being read for what to
+ * tend.
+ *
+ * One model call over the whole body, with nothing reporting out of it,
+ * so this is a rumour like LABOURS rather than a measurement. The
+ * register is the desk's, not the bed's: the reader has just finished
+ * reading something and what is happening is that it is being read
+ * back.
+ */
+export const TENDINGS = [
+  'Reading the lesson back…',
+  'Finding what it was for…',
+  'Naming the concepts…',
+  'Weighing which sentences carry them…',
+  'Choosing the words to take out…',
+  'Checking them against the text…',
+  'Setting the first dates…',
+  'Almost planted…',
+]
+
+/**
  * What a sheet says while a freshly sown bed is being started.
  *
  * A different job again: a route is laid through the first topic and
