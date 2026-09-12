@@ -53,20 +53,20 @@ describe('panelSpot', () => {
 })
 
 describe('pinSpot', () => {
-  it('floats the button under the selection, in window coordinates', () => {
+  it('floats the buttons under the selection, in window coordinates', () => {
     const spot = pinSpot(box(300, 40), phone)
     expect(spot.top).toBe(320 + 8)
     expect(spot.left).toBe(40)
   })
 
-  it('puts it above a selection at the foot of the window', () => {
+  it('puts them above a selection at the foot of the window', () => {
     const spot = pinSpot(box(750, 40), phone)
     expect(spot.top).toBe(750 - 8 - 40)
   })
 
   it('keeps it on screen when the selection starts near the right edge', () => {
     const spot = pinSpot(box(300, 360), phone)
-    expect(spot.left).toBe(390 - 132 - 8)
+    expect(spot.left).toBe(390 - 244 - 8)
     expect(spot.left).toBeGreaterThan(0)
   })
 

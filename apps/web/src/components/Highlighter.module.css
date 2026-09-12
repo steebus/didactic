@@ -239,20 +239,36 @@
   color: var(--ink-faint);
 }
 
-/* --- The offer to keep, on a touch screen ------------------------ */
+/* --- What a selection is offered -------------------------------- */
 
-/* A finger selects by long-press and then widens the selection with the
-   pins the browser draws itself. Opening the composer on that first
-   selection took the selection over while it was still one word long,
-   so a phone could only ever mark a word. Nothing opens on its own now:
-   the selection stays the reader's to drag, and this floats beside it
-   until they say the passage is right.
+/* Two verbs, side by side and the same weight: keep this passage, or
+   ask it back later. Neither is the default, which is why nothing opens
+   on its own any more -- a release used to open the note composer there
+   and then, which was defensible while marking was the only thing a
+   selection could do, and is not once it is one of two.
+
+   It is also what a finger needed anyway. A finger selects by
+   long-press and then widens the selection with the handles the browser
+   draws itself; taking the selection over at the first settled reading
+   meant a phone could only ever mark one word. The selection stays the
+   reader's to drag, and this floats beside it until they say what the
+   passage is for.
+
+   Butted together with a hairline between rather than floated as two
+   separate pills: it is one question with two answers, and two shadows
+   side by side read as two unrelated things that happened to appear at
+   once.
 
    Fixed rather than absolute: it is over the page, not in it, so the
    prose can scroll under it. */
-.pin {
+.pins {
   position: fixed;
   z-index: 6;
+  display: flex;
+  box-shadow: 0 4px 14px rgba(36, 29, 22, 0.3);
+}
+
+.pin {
   font-family: var(--font-text);
   font-size: var(--step--2);
   font-weight: 600;
@@ -264,8 +280,19 @@
   padding: var(--space-2) var(--space-4);
   /* A thumb's worth of button, whatever the label measures. */
   min-height: 2.5rem;
-  box-shadow: 0 4px 14px rgba(36, 29, 22, 0.3);
   cursor: pointer;
+  white-space: nowrap;
+}
+
+/* The hairline between them, drawn in the paper the band reverses to
+   rather than in a darker green: the two are peers, and a rule that
+   reads as an edge would make the second look bolted on. */
+.pin + .pin {
+  border-left: 1px solid rgba(239, 231, 214, 0.3);
+}
+
+.pin:hover {
+  background: var(--ink);
 }
 
 /* --- The panel, docked ------------------------------------------- */

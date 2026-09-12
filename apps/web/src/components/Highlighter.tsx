@@ -246,14 +246,21 @@ export function Highlighter({
     }
   }, [])
 
-  /** Put the composer up against the passage. The mouse's way in: a
-   *  release is a decision, and the selection is not going to move. */
+  /**
+   * Take the passage the reader chose, and open the panel on the verb
+   * they picked.
+   *
+   * Both verbs land here because both start the same way -- the
+   * selection is taken in hand and a panel is stood against it -- and
+   * differ only in what the panel then shows. Keeping that in one place
+   * is what stops a passage being captured two subtly different ways.
+   */
   const compose = useCallback(
-    (chosen: Offer | null) => {
+    (chosen: Offer | null, verb: 'mark' | 'cloze' = 'mark') => {
       if (!chosen) return
       setOffer(null)
       setOpenCloze(null)
-      setMaking(false)
+      setMaking(verb === 'cloze')
       setAt(chosen.panel)
       setPending({ quote: chosen.quote, prefix: chosen.prefix })
       setNote('')
@@ -280,13 +287,16 @@ export function Highlighter({
     window.getSelection()?.removeAllRanges()
   }
 
-  const take = useCallback(() => {
-    if (pending || open || openCloze) return
-    compose(readSelection())
-  }, [pending, open, openCloze, compose, readSelection])
-
-  /** Float the offer near the selection and otherwise stay out of the
-   *  way. The finger's way in: the selection is still being made. */
+  /**
+   * Float what this selection could become, beside it.
+   *
+   * There are two verbs now -- keep the passage, or ask it back later
+   * -- so a selection cannot be presumed to mean either. It used to be
+   * presumed on a mouse: a release opened the note composer there and
+   * then, which was defensible while marking was the only thing a
+   * selection could do and is not once it is one of two. It also meant
+   * selecting a sentence merely to copy it threw a composer at you.
+   */
   const offerToKeep = useCallback(() => {
     if (pending || open || openCloze) return
     setOffer(readSelection())
@@ -296,21 +306,20 @@ export function Highlighter({
     // When the reader has finished choosing, by whichever of the ways
     // there are to know applies to the thing they are choosing with.
     //
-    // A mouse says it is done by coming up, and the composer opens
-    // there and then. A finger cannot: the selection is made by
-    // long-press and then adjusted with the handles the browser draws
-    // itself, and dragging those handles sends the page no events at
-    // all. Opening the composer on the first settled selection -- which
-    // is what this did -- took the selection over while it was still
-    // one word long, and the reader had no way to widen it. So a finger
-    // gets an offer floated beside the selection instead, and the
-    // selection stays theirs until they take it.
+    // Both ways end at the same offer, floated beside the selection;
+    // what differs is when the page may believe the selection is
+    // finished. A mouse says so by coming up. A finger cannot: the
+    // selection is made by long-press and then adjusted with the
+    // handles the browser draws itself, and dragging those handles
+    // sends the page no events at all -- so a finger's selection is
+    // taken as finished only once it has stopped changing for a moment,
+    // and until then it stays theirs to widen.
     let settling: ReturnType<typeof setTimeout> | undefined
     let pressing = false
 
     const settle = () => {
       clearTimeout(settling)
-      settling = setTimeout(() => (finger.current ? offerToKeep() : take()), SETTLED_MS)
+      settling = setTimeout(offerToKeep, SETTLED_MS)
     }
     const down = (e: PointerEvent) => {
       finger.current = e.pointerType !== 'mouse'
@@ -320,7 +329,7 @@ export function Highlighter({
     const up = () => {
       pressing = false
       if (finger.current) settle()
-      else take()
+      else offerToKeep()
     }
     const changed = () => {
       const selection = window.getSelection()
@@ -345,7 +354,7 @@ export function Highlighter({
       document.removeEventListener('pointercancel', up)
       document.removeEventListener('selectionchange', changed)
     }
-  }, [offerToKeep, take])
+  }, [offerToKeep])
 
   // The offer floats over the page rather than sitting in it, so the
   // prose scrolling under it would leave it behind. Re-measured against
@@ -934,23 +943,38 @@ export function Highlighter({
         !open &&
         !openCloze &&
         float(
-          <button
-            type="button"
-            className={styles.pin}
+          // What this selection could become. Two verbs, side by side
+          // and the same weight, because a passage worth keeping and a
+          // passage worth being asked back are different judgements and
+          // neither is the default. Butted together as one object
+          // rather than floated as two pills: it is one question with
+          // two answers.
+          <div
+            className={styles.pins}
             style={{ top: offer.pin.top, left: offer.pin.left }}
+            role="group"
+            aria-label="What to do with this passage"
             // The press must not reach the page: a tap outside a
             // selection is what ends it, and the words are the whole
-            // point of the button. What is kept is what the offer was
+            // point of the buttons. What is taken is what the offer was
             // holding, so a browser that ends the selection anyway
             // costs nothing.
             onPointerDown={e => {
               e.preventDefault()
               e.stopPropagation()
             }}
-            onClick={() => compose(offer)}
           >
-            Add mark
-          </button>
+            <button type="button" className={styles.pin} onClick={() => compose(offer)}>
+              Add mark
+            </button>
+            <button
+              type="button"
+              className={styles.pin}
+              onClick={() => compose(offer, 'cloze')}
+            >
+              Make a cloze
+            </button>
+          </div>
         )}
 
       {pending &&
@@ -1011,15 +1035,6 @@ export function Highlighter({
               >
                 Keep it
               </button>
-              {pending.quote && (
-                <button
-                  type="button"
-                  className={styles.cancel}
-                  onClick={() => setMaking(true)}
-                >
-                  Make a cloze
-                </button>
-              )}
               <button
                 type="button"
                 className={styles.cancel}

@@ -44,8 +44,10 @@ const PANEL_MARGIN = 32
 /** Roughly what a composer stands, used only to choose a side. */
 const PANEL_HEIGHT = 220
 
-/** `.pin` in Highlighter.module.css, near enough to keep it on screen. */
-const PIN_WIDTH = 132
+/** `.pins` in Highlighter.module.css, near enough to keep it on screen.
+ *  Two buttons butted together -- *Add mark* and *Make a cloze* -- so it
+ *  is a good deal wider than the single one it replaced. */
+const PIN_WIDTH = 244
 const PIN_HEIGHT = 40
 
 const clamp = (n: number, low: number, high: number) =>
@@ -75,9 +77,9 @@ export function panelSpot(target: Box, root: Box, view: Viewport): Spot {
 }
 
 /**
- * Place the "Add mark" button against a selection, in window
- * coordinates -- it floats over the page rather than sitting in it, so
- * that it survives the prose scrolling under it.
+ * Place what a selection is offered against it, in window coordinates
+ * -- it floats over the page rather than sitting in it, so that it
+ * survives the prose scrolling under it.
  *
  * Below the selection by preference: the phone draws its own callout
  * above one, and two buttons in the same place is a tap on the wrong

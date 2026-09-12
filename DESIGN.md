@@ -919,6 +919,14 @@ underscored, not as a muddy third colour, and neither layer is styled against
 the other — an override would make the appearance depend on which painter ran
 last, which is exactly what the two are arranged not to depend on.
 
+**Rule — a selection is offered its verbs, and presumes neither.** *Add mark*
+and *Make a cloze* float beside the words as one object — butted together with a
+hairline of reversed paper between them, not two pills with two shadows, because
+it is one question with two answers. They are the same size, weight and ground:
+keeping a passage and asking it back later are different judgements and neither
+is the default. Nothing opens until one is pressed, on a mouse as well as a
+finger.
+
 **Rule — the tended layer never takes a selection over.** Marking is select the
 words and let go. A press that ends a selection does not open a card; only a
 press with nothing selected does. Nothing about the plum changes the words'
