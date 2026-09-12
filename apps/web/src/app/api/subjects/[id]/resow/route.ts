@@ -7,6 +7,7 @@ import {
   proposeMap,
   plantMap,
   readAssessment,
+  readTheAnswers,
   isReadable,
   loadSourceDocuments,
   PROBLEM_NOTES,
@@ -132,7 +133,13 @@ async function resow(subjectId: string) {
   }
 
   const warnings: string[] = []
-  const assessment = held ? null : readAssessment(map, brief)
+  // As on the first sowing: what the map left out is asked for on its
+  // own. This is the path that matters most for it -- a bed whose first
+  // attempt stored no reading is exactly what the sheet offers to lay
+  // out again, and it would be laid out to the letter a second time.
+  const assessment = held
+    ? null
+    : (readAssessment(map, brief) ?? (await readTheAnswers(brief, deadline)))
   if (assessment) {
     const { error } = await db
       .from('subject_sowings')

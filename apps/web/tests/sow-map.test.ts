@@ -118,3 +118,69 @@ describe('an answer with no tool call in it', () => {
     expect(mockCreate).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('reading the answers, when the map did not', () => {
+  /** A brief with answers on it, which is what makes a reading possible. */
+  const readable = {
+    subject: 'Personal Essays',
+    roots: 1,
+    confident: '',
+    gaps: '',
+    depth: '',
+    qualifiers: [
+      { prompt: 'What is a personal essay?', level: 1, probes: 'the form', answer: 'It is for readers.' },
+      { prompt: 'Name an essayist.', level: 2, probes: 'a practitioner', answer: '' },
+    ],
+    evidence: [],
+    sources: [],
+  }
+
+  /** What the reading call hands back when it is asked on its own. */
+  const aReading = {
+    stop_reason: 'tool_use',
+    usage: { output_tokens: 460 },
+    content: [{
+      type: 'tool_use',
+      name: 'record_reading',
+      input: { level: 2, note: 'You hold the basics.', shown: ['the form'], missing: ['practitioners'] },
+    }],
+  }
+
+  it('asks in a call of its own, and counts what was answered', async () => {
+    mockCreate.mockResolvedValue(aReading)
+    const { readTheAnswers } = await import('@/lib/sowing')
+
+    const reading = await readTheAnswers(readable, Date.now() + 54_000)
+
+    // A bed laid out to the letter crowds the optional field off the
+    // map, so it is asked for separately rather than hoped for.
+    expect(mockCreate.mock.calls[0][0].tool_choice.name).toBe('record_reading')
+    expect(reading).toMatchObject({ level: 2, answered: 1, asked: 2 })
+    // Only the answered one is put in front of the model, and the
+    // skipped one is still counted.
+    expect(mockCreate.mock.calls[0][0].messages[0].content).toContain('It is for readers.')
+    expect(mockCreate.mock.calls[0][0].messages[0].content).toMatch(/left 1 of the 2/)
+  })
+
+  it('is not asked for at all when the sheet came back blank', async () => {
+    const { readTheAnswers } = await import('@/lib/sowing')
+
+    expect(await readTheAnswers({ ...readable, qualifiers: [] }, Date.now() + 54_000)).toBeNull()
+    expect(mockCreate).not.toHaveBeenCalled()
+  })
+
+  it('gives the bed up rather than the minute, when the clock is nearly out', async () => {
+    const { readTheAnswers } = await import('@/lib/sowing')
+
+    // The planting still has to happen. A reading is the lesser thing.
+    expect(await readTheAnswers(readable, Date.now() + 3_000)).toBeNull()
+    expect(mockCreate).not.toHaveBeenCalled()
+  })
+
+  it('leaves the bed standing when the reading call fails', async () => {
+    mockCreate.mockRejectedValue(new Error('overloaded'))
+    const { readTheAnswers } = await import('@/lib/sowing')
+
+    expect(await readTheAnswers(readable, Date.now() + 54_000)).toBeNull()
+  })
+})

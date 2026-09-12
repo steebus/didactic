@@ -7,6 +7,7 @@ import {
   proposeMap,
   plantMap,
   readAssessment,
+  readTheAnswers,
   isReadable,
   loadSourceDocuments,
   PROBLEM_NOTES,
@@ -189,7 +190,13 @@ async function sow(req: Request) {
     )
   }
 
-  const assessment = readAssessment(map, brief)
+  // The map is asked for the reading too, and on an ordinary sowing it
+  // gives one. A bed laid out from a document to the letter is the case
+  // where it does not: the instruction that fixes the topics crowds the
+  // optional field out. So what the map did not say is asked for on its
+  // own, which is the only way it arrives every time.
+  const assessment =
+    readAssessment(map, brief) ?? (await readTheAnswers(brief, deadline))
 
   const db = supabaseAdmin()
   const { data: existing } = await db.from('subjects').select('id')

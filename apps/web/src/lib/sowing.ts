@@ -669,6 +669,142 @@ export function readAssessment(map: MapReading, brief: Brief): Assessment | null
   }
 }
 
+/** What a reading of its own costs: one small call, six seconds
+ *  measured rather than guessed, with room for a slow one. */
+const READING_NEEDS_MS = 12_000
+
+const READING_TOOL = {
+  name: 'record_reading',
+  description: 'Record your reading of where their answers show them to stand.',
+  input_schema: {
+    type: 'object' as const,
+    properties: {
+      level: {
+        type: 'number',
+        description:
+          '1-5 on the same scale as their own figure: what their answers demonstrate, not what they say.',
+      },
+      note: {
+        type: 'string',
+        description:
+          'Two or three sentences addressed to them, saying what the answers showed and what they did not. Plain and specific; no praise, no hedging.',
+      },
+      shown: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Short phrases naming what they demonstrably hold.',
+      },
+      missing: {
+        type: 'array',
+        items: { type: 'string' },
+        description: 'Short phrases naming what they did not show — wrong, vague, or skipped.',
+      },
+    },
+    required: ['level', 'note', 'shown', 'missing'],
+  },
+}
+
+/**
+ * Read the answers, in a call of their own.
+ *
+ * The reading used to be an optional field on the map's tool, which
+ * worked until a bed was laid out from a document. "Record exactly one
+ * topic for each of the entries above, in the same order, and no
+ * others" is a strong instruction, and beside it an optional field is
+ * one the model skips: a sheet with eight answered questions on it
+ * stored no reading at all, and the reading sheet told the reader they
+ * had answered nothing. Wording it harder moved it from never to one
+ * time in five, which is not a fix. Making it `required` was worse --
+ * the model started handing the whole tool input back as a JSON string
+ * under `topics`, and the sowing failed outright.
+ *
+ * The two jobs are simply not one job. Asked on its own the reading
+ * arrives every time, in about six seconds, and cannot disturb the map
+ * -- which is the part a subject cannot be sown without.
+ *
+ * Null when there is nothing to read, when the clock will not take
+ * another call, or when the call fails: a bed with no reading is a
+ * lesser thing than a bed with one, and no reason to lose the bed.
+ */
+export async function readTheAnswers(
+  brief: Brief,
+  deadline: number
+): Promise<Assessment | null> {
+  const answered = brief.qualifiers.filter(q => q.answer.trim())
+  if (!isReadable(brief)) return null
+  if (deadline - Date.now() < READING_NEEDS_MS) {
+    console.error(`sow: no time left to read the answers for "${brief.subject}"`)
+    return null
+  }
+
+  const said = [
+    brief.roots !== null
+      ? `They put their own roots in this subject at ${brief.roots} out of 5 — ${ROOT_STAGES[brief.roots]}.`
+      : '',
+    brief.confident ? `What they say they already hold:\n${brief.confident}` : '',
+    brief.gaps ? `What they say they have bounced off or avoided:\n${brief.gaps}` : '',
+    answered.length
+      ? `Their answers to the qualifying questions, easiest first. These are the strongest evidence here — they are about the subject rather than about how they feel — so weigh them above the self-report:\n${answered
+          .map(
+            q =>
+              `- [rung ${q.level}/5] ${q.prompt}${
+                q.probes ? `\n  A good answer shows: ${q.probes}` : ''
+              }\n  They wrote: ${q.answer.trim()}`
+          )
+          .join('\n')}`
+      : '',
+    brief.qualifiers.length > answered.length
+      ? `They left ${brief.qualifiers.length - answered.length} of the ${brief.qualifiers.length} qualifying questions unanswered. Unanswered is not wrong, but do not read it as held either.`
+      : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+
+  try {
+    const res = await new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }).messages.create({
+      model: 'claude-sonnet-5',
+      max_tokens: 1_500,
+      tools: [READING_TOOL],
+      tool_choice: { type: 'tool', name: 'record_reading' },
+      messages: [
+        {
+          role: 'user',
+          content: `Someone is starting the subject "${brief.subject}". Read what they gave you and say where they actually stand.
+
+${said}
+
+Mark the answers as a knowledgeable person would — a correct but thin answer at rung 1 is not the same as a fluent one at rung 4, and a confident wrong answer counts against. Say plainly where the answers were vague or absent. This is printed back to them beside their own figure, so it must be specific enough to argue with.`,
+        },
+      ],
+    })
+
+    const tool = res.content.find(c => c.type === 'tool_use')
+    const raw = tool && tool.type === 'tool_use'
+      ? (tool.input as { level?: number; note?: string; shown?: unknown; missing?: unknown })
+      : null
+    if (!raw || !Number.isFinite(raw.level)) {
+      console.error(
+        `sow: the answers for "${brief.subject}" could not be read — stop_reason ${res.stop_reason ?? 'none'}, ${tool ? 'no level' : 'no tool call'}`
+      )
+      return null
+    }
+
+    return {
+      level: Math.min(5, Math.max(0, Math.round(raw.level!))),
+      note: typeof raw.note === 'string' ? raw.note.trim() : '',
+      shown: phrases(raw.shown),
+      missing: phrases(raw.missing),
+      answered: answered.length,
+      asked: brief.qualifiers.length,
+    }
+  } catch (e) {
+    console.error(
+      `sow: reading the answers for "${brief.subject}" failed — ${e instanceof Error ? e.message : String(e)}`
+    )
+    return null
+  }
+}
+
 /** Whether the sheet gave the model anything to read at all. */
 export function isReadable(brief: Brief): boolean {
   return (
