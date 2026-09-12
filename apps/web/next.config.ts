@@ -1,6 +1,31 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  /**
+   * Packages Next must not bundle: read them from `node_modules` at
+   * runtime instead.
+   *
+   * pdfjs has no `DOMMatrix`, `Path2D` or `ImageData` to work with --
+   * Node ships none of them -- so at load it reaches for
+   * `@napi-rs/canvas` to polyfill them. That reach is a runtime
+   * `require` of a native module, and a bundler cannot follow it: once
+   * pdfjs is inlined into a server chunk the require resolves against
+   * the chunk rather than against `node_modules`, fails, and the module
+   * throws `ReferenceError: DOMMatrix is not defined` while it is still
+   * being evaluated.
+   *
+   * Which is why no `try`/`catch` helps and why nothing showed up in
+   * development: the failure is at import, not at call, and locally the
+   * dev server resolves the native module perfectly well. It only
+   * appears in a built, traced, deployed function.
+   *
+   * Next externalises a long list of awkward packages automatically and
+   * none of these three is on it -- `canvas` is, `@napi-rs/canvas` is
+   * not -- so they are named here. This has been wrong since the first
+   * deploy that read a PDF: the queue worker's own ingestion hit the
+   * same wall, quietly, where nobody was watching.
+   */
+  serverExternalPackages: ['pdf-parse', 'pdfjs-dist', '@napi-rs/canvas'],
   // The dev overlay badge sits over the page and lands in screenshots.
   devIndicators: false,
   // Next writes its own AGENTS.md/CLAUDE.md on build; this project keeps
