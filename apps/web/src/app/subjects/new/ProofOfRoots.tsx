@@ -23,6 +23,10 @@ export interface ProofEntry {
    *  uploaded. Zero chapters is ordinary — an article is not a book —
    *  and it decides which rungs can honestly be offered. */
   chapters?: number
+  /** Set only when the document could not be opened at all. A different
+   *  fact from having no structure in it, and it reads differently:
+   *  one is about the document, the other is about us. */
+  unread?: string
 }
 
 type Mode = 'link' | 'book' | 'credential' | 'file'
@@ -213,6 +217,7 @@ export function ProofOfRoots({
           title: body.title,
           kind: 'pdf',
           chapters: body.outline?.chapters ?? 0,
+          unread: body.outline?.problem,
           // A document with a shape to follow starts on the rung that
           // is right far more often than the other two. One without
           // starts steering only what the subject covers, because the
@@ -281,7 +286,14 @@ export function ProofOfRoots({
                       and quietly ignored — and the reason is printed,
                       because "an article has no chapters" is obvious
                       once said and baffling when it is not. */}
-                  {entry.chapters === 0 ? (
+                  {entry.unread ? (
+                    <p className={styles.followNone}>
+                      This document could not be opened, so nothing is known about
+                      its shape. It is filed either way, and the reading will be
+                      tried again in the background — but the bed cannot follow
+                      what has not been read.
+                    </p>
+                  ) : entry.chapters === 0 ? (
                     <p className={styles.followNone}>
                       No structure could be found in it — no bookmarks, no contents
                       page, and no headings set apart from the text — so there is no

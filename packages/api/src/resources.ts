@@ -37,7 +37,14 @@ export interface Filed {
    * chooses how closely to follow it. Null where it could not be read;
    * absent on every route but `uploaded`.
    */
-  outline?: { chapters: number; source: string; pageCount: number } | null
+  outline?: {
+    chapters: number
+    source: string
+    pageCount: number
+    /** Set only when the document could not be opened at all, which is
+     *  a different fact from its having no structure in it. */
+    problem?: string
+  } | null
 }
 
 export const resources = (api: Api) => ({

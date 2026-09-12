@@ -5,7 +5,7 @@ import {
   closeOutline,
   type OutlineEntry,
 } from '@didactic/core/passages'
-import { outlineFromLines } from '@didactic/core/headings'
+import { outlineFromLines, bodySize } from '@didactic/core/headings'
 import { readOutline, readPages, readLines, FRONT_PAGES } from './extract/pdf'
 import { readContentsPages } from './llm/outline'
 import { embed } from './embedding'
@@ -116,6 +116,7 @@ export async function ensureOutline(
   }
 
   const read = await readOutline(source)
+  warnings.push(`outline: ${read.source}, ${read.pageCount} pages, ${read.chapters.length} chapters`)
   let chapters = read.chapters
   // Widened from what `readOutline` can answer ('bookmarks' or 'none'),
   // because the model-read fallback below is the third case and only
@@ -166,6 +167,26 @@ export async function ensureOutline(
     try {
       const lines = await readLines(source)
       const found = outlineFromLines(lines, read.pageCount)
+
+      // What the typography actually looked like.
+      //
+      // This step reads the same file the same way everywhere, and yet
+      // it found seven chapters on a development machine and none on
+      // the deploy -- and every outcome, a file that could not be
+      // opened included, arrives at the sheet as the same sentence. So
+      // it says what it saw: how many lines came back, what it took the
+      // body size to be, and which sizes were set above it. An empty
+      // outline is a legitimate answer for plenty of documents, and
+      // this is what tells that apart from a step that never ran.
+      const sizes = [...new Set(lines.map(l => Math.round(l.size * 10) / 10))].sort(
+        (a, b) => b - a
+      )
+      warnings.push(
+        `headings: ${lines.length} lines, body ${bodySize(lines)}pt, sizes ${
+          sizes.slice(0, 8).join('/') || 'none'
+        }, found ${found.length}`
+      )
+
       if (found.length > 0) {
         chapters = found
         outlineSource = 'headings'

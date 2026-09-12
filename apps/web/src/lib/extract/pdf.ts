@@ -121,6 +121,40 @@ export async function extractFromPdf(source: DocumentSource | Buffer) {
   }
 }
 
+/**
+ * pdfjs, however this build hands it over.
+ *
+ * `serverExternalPackages` keeps pdfjs out of the bundle, which is what
+ * lets it find its own files at runtime -- but an external import does
+ * not always come back as a plain namespace. Depending on how the
+ * runtime interops the module, what arrives can be the namespace or a
+ * wrapper with the real exports on `.default`, and reading
+ * `getDocument` off the wrong one gives `undefined` rather than an
+ * error. Calling it then throws "is not a function" from somewhere
+ * deep, which a `catch` upstream turns into "no structure could be
+ * found in it" -- a true sentence about a document that was never
+ * opened.
+ *
+ * So both shapes are accepted, and a third one is refused loudly.
+ */
+async function loadPdfjs() {
+  const mod = (await import('pdfjs-dist/legacy/build/pdf.mjs')) as unknown as Record<
+    string,
+    unknown
+  >
+  const namespace = (
+    typeof mod.getDocument === 'function' ? mod : (mod.default as Record<string, unknown>)
+  ) as { getDocument?: unknown } | undefined
+
+  if (!namespace || typeof namespace.getDocument !== 'function') {
+    throw new Error(
+      'extract: pdfjs loaded but exposed no getDocument — the module interop shape is not one this build expects'
+    )
+  }
+
+  return namespace as unknown as typeof import('pdfjs-dist/legacy/build/pdf.mjs')
+}
+
 /** What the document says about itself. */
 export interface DocumentOutline {
   chapters: OutlineEntry[]
@@ -147,7 +181,7 @@ export async function readOutline(source: DocumentSource): Promise<DocumentOutli
   // Imported here rather than at the top of the file: this is the only
   // function that needs it, it is a large module, and the ingestion
   // path that never asks for an outline should not pay to load it.
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
+  const pdfjs = await loadPdfjs()
 
   const doc = await pdfjs.getDocument({
     ...load(source),
@@ -227,7 +261,7 @@ export async function readLines(
   source: DocumentSource,
   range?: { from: number; to: number }
 ): Promise<TextLine[]> {
-  const pdfjs = await import('pdfjs-dist/legacy/build/pdf.mjs')
+  const pdfjs = await loadPdfjs()
   const doc = await pdfjs.getDocument({
     ...load(source),
     useWorkerFetch: false,

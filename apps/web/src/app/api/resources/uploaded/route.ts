@@ -137,7 +137,22 @@ export async function POST(req: Request) {
   // A failure here is not a failure of the upload. The document is
   // filed either way; it simply cannot be followed, which is the same
   // position as a document that has no contents at all.
-  let outline: { chapters: number; source: string; pageCount: number } | null = null
+  //
+  // Two outcomes, and they are not the same fact. Read, and carrying no
+  // structure, is a true thing to say about an article. Not read at all
+  // is a fault, and saying "no structure could be found in it" about a
+  // document nobody managed to open is the same conflation this feature
+  // has already been caught making once, one level up. So the failure
+  // is carried out rather than swallowed, and it is logged, because the
+  // sheet is not where a stack trace belongs.
+  let outline: {
+    chapters: number
+    source: string
+    pageCount: number
+    /** Set only when the document could not be read at all. */
+    problem?: string
+  } | null = null
+
   try {
     const shape = await ensureOutline(db, data.id, await signedSource(db, path), {
       title: data.title,
@@ -149,9 +164,16 @@ export async function POST(req: Request) {
       source: shape.source,
       pageCount: shape.pageCount,
     }
-  } catch {
-    // Left null: the sheet reads that as "nothing to follow", which is
-    // exactly what it is.
+    // Things that went wrong without stopping the read: a contents page
+    // that could not be transcribed, headings that could not be walked.
+    // They explain an empty outline and are invisible otherwise.
+    for (const warning of shape.warnings) {
+      console.warn(`document ${data.id}: ${warning}`)
+    }
+  } catch (e) {
+    const reason = e instanceof Error ? e.message : String(e)
+    console.error(`document ${data.id}: could not be read — ${reason}`)
+    outline = { chapters: 0, source: 'unread', pageCount: 0, problem: reason }
   }
 
   const { error: queueError } = await db.rpc('enqueue_ingestion', { p_resource_id: data.id })
