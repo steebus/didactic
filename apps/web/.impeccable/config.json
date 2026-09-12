@@ -12,6 +12,15 @@
         ],
         "createdAt": "2026-09-09T04:15:46.412Z",
         "reason": "Existing house pattern, not an AI tell: the sheet already marks an aside with a 2px plate-ink left rule in 7 places (Prose blockquote, inbox note, RootsGauge, GraphCanvas, enter sheet, subject sheet). The check block is the same kind of aside and was matched to that convention; the flagged 3px was reduced to 2px to fit it."
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/app/source/[id]/page.module.css"
+        ],
+        "createdAt": "2026-09-12T04:31:45.073Z",
+        "reason": "Claude: the only side border in this file is the quotation rule on a real <blockquote> (src/app/source/[id]/page.tsx:65), not a card accent. It marks somebody else's words on the citation sheet -- the same house pattern as the entry above, and centuries-old typographic convention; the comment above it calls it 'what says these are not our words'. Pre-existing from 194a7c3 and untouched this session: it fired because a sibling .tsx was edited."
       }
     ]
   }
