@@ -111,15 +111,29 @@
   cursor: default;
 }
 
-/* The three answers, each carrying what it would cost.
+/* The four answers, each carrying what it would cost.
 
    The wait under the label is the point of the row: a reader choosing
    between "three days" and "two months" is choosing between
    consequences, where one choosing between "good" and "easy" is
-   choosing between adjectives. The three are the same size and the
-   same weight -- none of them is the right answer. */
+   choosing between adjectives. The four are the same size and the same
+   weight -- none of them is the right answer.
+
+   A grid rather than a wrapping flex row, because four buttons in a
+   flex row wrap to three and one the moment the card is narrow, and a
+   lone fourth button under three reads as the odd one out -- which is
+   exactly the wrong thing to say about a rung that is neither best nor
+   worst. `auto-fit` with a floor takes four columns on the Tend sheet
+   and two by two inside the panel the reading opens, and never leaves
+   an orphan. */
+.answerRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: var(--space-2);
+  align-items: stretch;
+}
+
 .answerButton {
-  flex: 1 1 7rem;
   display: flex;
   flex-direction: column;
   gap: 0.15em;
@@ -268,13 +282,25 @@
 }
 
 @media (max-width: 40rem) {
-  /* On a phone the three answers stack rather than squeeze: a 4rem
-     button with two lines in it is a mis-tap waiting to happen, and the
-     wrong answer here is a card scheduled wrongly for a year. */
+  /* On a phone the four go two by two rather than squeezing onto one
+     row: a 4rem button with two lines in it is a mis-tap waiting to
+     happen, and the wrong answer here is a card scheduled wrongly for a
+     year. Two by two keeps every target around half the card wide and
+     three lines tall, which is larger than the buttons anywhere else in
+     the catalogue -- and it fits in the thumb's reach, where four
+     stacked rows would push the last one off the bottom of a card the
+     reader has to scroll past the passage to reach.
+
+     The label and the wait sit on one line here, so a cell stays one
+     row of type rather than two. */
+  .answerRow {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .answerButton {
-    flex: 1 1 100%;
     flex-direction: row;
     justify-content: space-between;
     align-items: baseline;
+    gap: var(--space-2);
   }
 }

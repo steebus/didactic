@@ -170,7 +170,7 @@ export function ClozeCard({
           )}
         </div>
       ) : shown ? (
-        <div className={styles.answers}>
+        <div className={styles.answerRow}>
           {TENDING.map((rung, i) => (
             <button
               key={rung.rating}

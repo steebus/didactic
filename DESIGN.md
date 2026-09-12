@@ -929,13 +929,25 @@ either side of it does.
 its own width.** The length of a blank is a hint, and a hint nobody asked for.
 The answer is not in the document at all until *Show it* is pressed.
 
-**Rule — an answer states its consequence, not an adjective.** The three answers
-carry the wait each would give — *Gone · 10 min*, *Got it · 8 d*, *Easy · 3 wk* —
-computed on the page from the same pure scheduler the server will run. The three
-are the same size and weight: none of them is the right answer. A miss carries a
-terracotta left edge as a fourth carrier behind the word, never instead of it.
-Below 40rem the three stack rather than squeeze, because a mis-tap here
-schedules a card wrongly for a year.
+**Rule — an answer states its consequence, not an adjective.** The four answers
+carry the wait each would give — on a card being met for the first time,
+*Gone · 10 min*, *A struggle · 1 d*, *Got it · 3 d*, *Easy · 15 d*, and all four
+growing as the card is held — computed on the page from the same pure scheduler
+the server will run. The four are the same size and weight: none of them is the
+right answer, and the labels say what happened rather than grading the reader.
+A miss carries a terracotta left edge as a second carrier behind the word, never
+instead of it — and only the miss, because it is the one answer that is not a
+recall.
+
+**Rule — the answers are a grid, and never leave an orphan.** Four buttons in a
+wrapping flex row break to three and one the moment the card is narrow, and a
+lone fourth button under three reads as the odd one out — the wrong thing to say
+about a rung that is neither best nor worst. `repeat(auto-fit, minmax(8.5rem,
+1fr))` takes four columns on the Tend sheet and two by two in the panel the
+reading opens. Below 40rem it is two by two, with the label and the wait on one
+line: a mis-tap here schedules a card wrongly for a year, and four stacked rows
+would push the last answer below the fold of a card the reader already scrolled
+past the passage to reach.
 
 ### Making a mark
 

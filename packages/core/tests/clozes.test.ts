@@ -13,7 +13,7 @@ import {
   tendPhrase,
   type Cloze,
 } from '../src/clozes'
-import { AGAIN, EASY, GOOD, freshMemory } from '../src/fsrs'
+import { AGAIN, EASY, GOOD, HARD, freshMemory, review, waitPhrase } from '../src/fsrs'
 
 const PASSAGE = 'Saving a resource is intent; only consuming it counts.'
 
@@ -151,8 +151,11 @@ describe('the scheduler state on a row', () => {
 })
 
 describe('TENDING', () => {
-  it('offers three answers, on the scheduler\'s own rungs', () => {
-    expect(TENDING.map(t => t.rating)).toEqual([AGAIN, GOOD, EASY])
+  it('offers every rung the scheduler was fitted on, in order', () => {
+    // All four. The weights were measured against reviews graded this
+    // way, so a sheet offering fewer answers on a ruler the fit does
+    // not know.
+    expect(TENDING.map(t => t.rating)).toEqual([AGAIN, HARD, GOOD, EASY])
   })
 
   it('says what each one means, so the reader is not guessing', () => {
@@ -160,6 +163,11 @@ describe('TENDING', () => {
       expect(rung.label.length).toBeGreaterThan(0)
       expect(rung.note.endsWith('.')).toBe(true)
     }
+  })
+
+  it('gives the four different words, which is what makes them choosable', () => {
+    expect(new Set(TENDING.map(t => t.label)).size).toBe(4)
+    expect(new Set(TENDING.map(t => t.note)).size).toBe(4)
   })
 })
 
@@ -183,5 +191,55 @@ describe('conceptStanding', () => {
       now
     )
     expect(standing).toEqual({ due: 2, held: 1, fresh: 1 })
+  })
+})
+
+describe('the four answers against the scheduler they are fitted to', () => {
+  // The labels are only honest if the arithmetic behind them agrees:
+  // a struggle must lengthen the interval, and lengthen it less than
+  // getting it did. This is the test that would catch a rung wired to
+  // the wrong number.
+  const held = () => ({
+    ...memoryOf(cloze()),
+    stability: 14,
+    difficulty: 5,
+    state: 'review' as const,
+    lastReviewedAt: '2026-09-12T09:00:00.000Z',
+  })
+
+  it('lengthens the wait for every answer but the miss', () => {
+    const at = new Date('2026-09-26T09:00:00.000Z')
+    const waits = TENDING.map(rung => review(held(), rung.rating, at).intervalDays)
+    const [gone, struggle, got, easy] = waits
+
+    expect(gone).toBeLessThan(1)
+    expect(struggle).toBeGreaterThanOrEqual(1)
+    expect(struggle).toBeLessThan(got)
+    expect(got).toBeLessThan(easy)
+  })
+
+  it('offers a first-time card the waits the design record prints', () => {
+    // DESIGN.md and PARITY.md quote this row. They are quoting the
+    // weights and `waitPhrase` together, and neither document can
+    // notice when one of them moves -- so the row is pinned here.
+    const fresh = freshMemory(new Date('2026-09-12T09:00:00.000Z'))
+    const row = TENDING.map(
+      rung => `${rung.label} \u00b7 ${waitPhrase(review(fresh, rung.rating).intervalDays)}`
+    )
+    expect(row).toEqual([
+      'Gone \u00b7 10 min',
+      'A struggle \u00b7 1 d',
+      'Got it \u00b7 3 d',
+      'Easy \u00b7 15 d',
+    ])
+  })
+
+  it('reads a struggle as a recall, not as a lapse', () => {
+    const at = new Date('2026-09-26T09:00:00.000Z')
+    const struggle = review(held(), HARD, at).memory
+    expect(struggle.state).toBe('review')
+    expect(struggle.lapses).toBe(0)
+    // And it still makes the card harder, which "only just" means.
+    expect(struggle.difficulty!).toBeGreaterThan(held().difficulty!)
   })
 })

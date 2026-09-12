@@ -20,7 +20,7 @@
  */
 
 import type { CardState, Memory, Rating } from './fsrs'
-import { AGAIN, EASY, GOOD } from './fsrs'
+import { AGAIN, EASY, GOOD, HARD } from './fsrs'
 
 /**
  * A concept a lesson taught, and the tracker opened against it.
@@ -126,20 +126,32 @@ export const isDue = (cloze: Pick<Cloze, 'due'>, now: Date = new Date()) =>
   new Date(cloze.due).getTime() <= now.getTime()
 
 /**
- * The three answers the Tend sheet offers.
+ * The four answers the Tend sheet offers.
  *
- * FSRS is fitted on four rungs and understands all four; a reader
- * standing over a garden fork does not want to weigh *hard* against
- * *good* on a one-line cloze. So the sheet offers the three that mean
- * something different to a person -- it was gone, it was there, it was
- * obvious -- and hands the scheduler 1, 3 and 4. The second rung is
- * still a rung the arithmetic knows; nothing here narrows it.
+ * All four rungs, because the scheduler is fitted on all four: the
+ * weights were measured against reviews graded this way, and offering
+ * three of them would be answering on a ruler the arithmetic was not
+ * fitted to. *Hard* is not a softer *again* -- it is a recall, and it
+ * lengthens the interval like the other two -- but it lengthens it
+ * least, which is the whole of what it is for. A card the reader
+ * dragged back from somewhere should not be treated as one they simply
+ * had.
+ *
+ * The labels say what happened rather than grading the reader, which
+ * is what keeps the four distinguishable at the moment of answering:
+ * it was gone, it only just came, it came with a little work, it was
+ * already there.
  */
 export const TENDING = [
   {
     rating: AGAIN,
     label: 'Gone',
     note: 'Could not bring it back.',
+  },
+  {
+    rating: HARD,
+    label: 'A struggle',
+    note: 'Came back, but only just.',
   },
   {
     rating: GOOD,

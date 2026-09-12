@@ -23,10 +23,11 @@
 /**
  * How a reader answered.
  *
- * Four rungs, because the algorithm is fitted on four. The Tend sheet
- * offers three of them -- see `TENDING` in `./clozes` -- but `2`
- * remains a rung the arithmetic understands, so a client that offers
- * the fourth is scheduling on the same ruler rather than on a variant.
+ * Four rungs, because the algorithm is fitted on four: the weights were
+ * measured against reviews graded this way, so a client offering fewer
+ * is answering on a ruler the fit does not know. The words a reader
+ * actually sees are `TENDING` in `./clozes`; what travels between the
+ * sheets and the database is the number, so the two cannot drift.
  */
 export type Rating = 1 | 2 | 3 | 4
 

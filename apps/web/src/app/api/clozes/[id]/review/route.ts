@@ -21,9 +21,11 @@ function dropCache() {
  * Answer a cloze.
  *
  * The rating is a number on FSRS's own four-rung scale, not a word of
- * this app's. The Tend sheet offers three of the four; a client that
- * offers the fourth is scheduling on the same ruler rather than on a
- * variant of it, which is the whole reason the rungs travel as numbers.
+ * this app's: the weights were fitted against reviews graded this way,
+ * so the scale is the model's and not a thing either front end may
+ * reword. What the reader presses is `TENDING` in `@didactic/core`;
+ * what travels is the number, which is why the words can be changed on
+ * one platform without the two schedules drifting apart.
  */
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
