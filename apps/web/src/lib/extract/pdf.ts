@@ -54,6 +54,55 @@ const load = (source: DocumentSource) =>
     ? { url: source.url }
     : { data: new Uint8Array(source.buffer) }
 
+/**
+ * Where pdfjs's worker actually is, as a file URL.
+ *
+ * Resolved once. `require.resolve` with a literal specifier is visible
+ * to a bundler's file tracing and answers with the real path wherever
+ * the package sits -- which in this monorepo is the hoisted root rather
+ * than beside the app. Null where it cannot be found at all, in which
+ * case pdfjs is left to look beside itself as it always did.
+ */
+let workerSrc: string | null | undefined
+
+async function findWorker(): Promise<string | null> {
+  if (workerSrc !== undefined) return workerSrc
+  try {
+    const { createRequire } = await import('node:module')
+    const { pathToFileURL } = await import('node:url')
+    const resolve = createRequire(import.meta.url).resolve
+    // A file URL rather than a bare path: `import()` of a Windows path
+    // is not a specifier anyone should rely on, and this is the one
+    // place the difference would be silent.
+    workerSrc = pathToFileURL(resolve('pdfjs-dist/legacy/build/pdf.worker.mjs')).href
+  } catch {
+    workerSrc = null
+  }
+  return workerSrc
+}
+
+/**
+ * A parser that knows where its worker is.
+ *
+ * `pdf-parse` calls `getDocument` itself and never sets a worker -- the
+ * one line that would is commented out in its source -- so on its own it
+ * walks into the same failure as the direct pdfjs path. `setWorker` is
+ * static and `GlobalWorkerOptions` is a module singleton, so this is
+ * done once and both paths are covered.
+ */
+async function parser(source: DocumentSource): Promise<PDFParse> {
+  const found = await findWorker()
+  if (found) {
+    try {
+      PDFParse.setWorker(found)
+    } catch {
+      // Older shapes of the package, or one that will not be told.
+      // pdfjs looks beside itself, exactly as before.
+    }
+  }
+  return new PDFParse(load(source))
+}
+
 export interface DocumentText {
   pages: PageText[]
   /** Pages in the whole document, not in this range. */
@@ -72,9 +121,9 @@ export async function readPages(
   source: DocumentSource,
   range?: { from: number; to: number }
 ): Promise<DocumentText> {
-  const parser = new PDFParse(load(source))
+  const doc = await parser(source)
   try {
-    const result = await parser.getText(
+    const result = await doc.getText(
       range ? { first: range.from, last: range.to } : undefined
     )
     return {
@@ -82,7 +131,7 @@ export async function readPages(
       total: result.total,
     }
   } finally {
-    await parser.destroy()
+    await doc.destroy()
   }
 }
 
@@ -94,7 +143,7 @@ export async function readPages(
  * sowing a bed out of one and did not stop working.
  */
 export async function extractFromPdf(source: DocumentSource | Buffer) {
-  const parser = new PDFParse(load(Buffer.isBuffer(source) ? { buffer: source } : source))
+  const doc = await parser(Buffer.isBuffer(source) ? { buffer: source } : source)
   try {
     // One after the other, not together.
     //
@@ -109,15 +158,15 @@ export async function extractFromPdf(source: DocumentSource | Buffer) {
     // There is nothing to win here anyway. Both calls queue against the
     // same single worker, so running them together never made them
     // concurrent; it only made them broken.
-    const text = await parser.getText()
-    const info = await parser.getInfo()
+    const text = await doc.getText()
+    const info = await doc.getInfo()
     if (!text.text?.trim()) throw new Error('extract: no readable content')
     return {
       title: info.info?.Title || 'Untitled PDF',
       text: text.text.trim(),
     }
   } finally {
-    await parser.destroy()
+    await doc.destroy()
   }
 }
 
@@ -150,6 +199,47 @@ async function loadPdfjs() {
     throw new Error(
       'extract: pdfjs loaded but exposed no getDocument — the module interop shape is not one this build expects'
     )
+  }
+
+  // Say where the worker is, rather than letting pdfjs guess.
+  //
+  // pdfjs does its parsing in a worker, and in Node it runs that worker
+  // in-process by importing `pdf.worker.mjs` from beside itself. That
+  // import is resolved at runtime from a path it builds itself, so a
+  // bundler's file tracing never sees the specifier and the file is not
+  // put in the function -- which fails as
+  //
+  //     Setting up fake worker failed: Cannot find module
+  //     '/var/task/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs'
+  //
+  // and, because it happens inside `getDocument`, arrives upstream as a
+  // document that could not be opened.
+  //
+  // `require.resolve` with a literal specifier is the opposite: a
+  // bundler can see it, and it answers with the real path wherever the
+  // package actually sits -- which in this monorepo is the hoisted root
+  // rather than beside the app. `next.config.ts` also names the file in
+  // `outputFileTracingIncludes`, because being able to resolve a path
+  // is no use if the file was never shipped.
+  //
+  // A file URL rather than a bare path: `import()` of a Windows path is
+  // not a specifier anyone should rely on, and this is the one place
+  // the difference would be silent.
+  const withWorker = namespace as unknown as {
+    GlobalWorkerOptions?: { workerSrc?: string }
+  }
+  if (withWorker.GlobalWorkerOptions) {
+    // Not "if it is unset". pdfjs ships with this already set, to the
+    // relative `./pdf.worker.mjs` it means to resolve against its own
+    // location -- which is the very resolution that fails. A guard on
+    // emptiness therefore never fires and changes nothing, which is
+    // what the first version of this did.
+    const current = withWorker.GlobalWorkerOptions.workerSrc ?? ''
+    const settled = current.startsWith('file:') || current.startsWith('/')
+    if (!settled) {
+      const found = await findWorker()
+      if (found) withWorker.GlobalWorkerOptions.workerSrc = found
+    }
   }
 
   return namespace as unknown as typeof import('pdfjs-dist/legacy/build/pdf.mjs')

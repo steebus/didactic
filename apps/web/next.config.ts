@@ -34,6 +34,44 @@ const nextConfig: NextConfig = {
    * why `@napi-rs/canvas` is not needed here or anywhere.
    */
   serverExternalPackages: ['pdf-parse', 'pdfjs-dist'],
+
+  /**
+   * Files the trace cannot find on its own.
+   *
+   * pdfjs does its parsing in a worker, and in Node it runs that worker
+   * in-process by importing `pdf.worker.mjs` from beside itself. The
+   * path is built at runtime, so nothing in the build ever sees the
+   * specifier and the file is left out of the function -- which fails as
+   * "Setting up fake worker failed: Cannot find module
+   * /var/task/node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs", from
+   * inside `getDocument`, and reaches the sheet as a document that could
+   * not be opened.
+   *
+   * This is the third time the same shape of problem has bitten here,
+   * and it is worth naming: a runtime `require` or `import` of a path a
+   * library computes for itself is invisible to file tracing. Being
+   * installed is not being deployed. `pdfjs-dist` itself arrives because
+   * our own code names it in an import; nothing names its worker.
+   *
+   * Only the two routes that open a document. The worker is two
+   * megabytes and there is no reason for it to sit in a function that
+   * draws a graph.
+   *
+   * Both spellings of the path, because they cost nothing and only one
+   * of them is right: `pdfjs-dist` is hoisted to the monorepo root
+   * rather than installed beside the app, and the value is resolved
+   * against this directory.
+   */
+  outputFileTracingIncludes: {
+    '/api/resources/uploaded': [
+      './node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs',
+      '../../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs',
+    ],
+    '/api/internal/ingest': [
+      './node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs',
+      '../../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs',
+    ],
+  },
   // The dev overlay badge sits over the page and lands in screenshots.
   devIndicators: false,
   // Next writes its own AGENTS.md/CLAUDE.md on build; this project keeps
