@@ -79,6 +79,9 @@ export function Highlighter({
   children: React.ReactNode
 }) {
   const holder = useRef<HTMLDivElement>(null)
+  /** The floating buttons, measured so a notice can stand clear of
+   *  them -- stamp included. */
+  const deskStack = useRef<HTMLDivElement>(null)
 
   const [pending, setPending] = useState<{ quote: string; prefix: string } | null>(null)
   const [offer, setOffer] = useState<Offer | null>(null)
@@ -581,17 +584,55 @@ export function Highlighter({
    * The height is the stack's own: one button, or two once there is
    * something marked to list. The offset the desk itself sits at is
    * included, so a reader of this only has to add their own gap.
+   *
+   * Measured rather than written down. The two heights used to be
+   * spelled out here as `6rem` and `2.75rem`, which was the sum of the
+   * buttons and their gap and was right about the buttons -- but the
+   * tally stamp on the corner of the marks button hangs 0.4rem above
+   * the one it is stamped on, and nothing counted it. So a notice
+   * landed on the stamp: clear of the buttons, by a figure that did not
+   * know the whole stack. Asking the element how tall it is cannot fall
+   * out of step with what is in it.
    */
   useEffect(() => {
-    const buttons = marks.length > 0 ? '6rem' : '2.75rem'
-    document.body.style.setProperty(
-      '--desk-stack',
-      `calc(var(--space-5) + ${buttons})`
-    )
+    const stack = deskStack.current
+    if (!stack) {
+      // No desk on this sheet, or none right now -- a reading being
+      // written, the marks column open. Nothing is docked, so nothing
+      // has to be stood clear of.
+      document.body.style.removeProperty('--desk-stack')
+      return
+    }
+
+    const measure = () => {
+      // `getBoundingClientRect` takes in the stamp's overhang, which is
+      // the whole reason for measuring; `offsetHeight` would not.
+      document.body.style.setProperty(
+        '--desk-stack',
+        `calc(var(--space-5) + ${stack.getBoundingClientRect().height}px)`
+      )
+    }
+
+    measure()
+
+    // Watched rather than measured once: the tally stamp appears the
+    // moment the first passage is kept, and the stack grows under a
+    // notice that has already decided where to stand.
+    if (typeof ResizeObserver === 'undefined') {
+      // The one measurement above still stands. Nothing here is worth
+      // failing a render over.
+      return () => {
+        document.body.style.removeProperty('--desk-stack')
+      }
+    }
+
+    const observer = new ResizeObserver(measure)
+    observer.observe(stack)
     return () => {
+      observer.disconnect()
       document.body.style.removeProperty('--desk-stack')
     }
-  }, [marks.length])
+  }, [marks.length, pending, open, offer])
 
   // A finger asking for the marks: a swipe leftward across the reading,
   // and a swipe back to send them away again. Kept off anything that
@@ -747,7 +788,7 @@ export function Highlighter({
           to keep in step with the layout. */}
       {!pending && !open && !offer && (
         <div className={styles.desk}>
-          <div className={styles.deskStack}>
+          <div className={styles.deskStack} ref={deskStack}>
             {marks.length > 0 && (
               <button
                 type="button"

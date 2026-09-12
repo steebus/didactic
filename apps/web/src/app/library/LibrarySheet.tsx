@@ -125,7 +125,15 @@ export function LibrarySheet({ resources }: { resources: LibraryRow[] }) {
             <li key={r.id} className={styles.row}>
               <div className={styles.rowBody}>
                 <h2 className={styles.rowTitle}>
-                  {r.url ? (
+                  {/* A document opens here, in the catalogue; a link
+                      leaves for the page it points at. Both are the
+                      title doing the work, because on a shelf the title
+                      is how you pick a thing up. */}
+                  {r.storage_path ? (
+                    <Link href={`/resources/${r.id}/read`} className={styles.rowLink}>
+                      {r.title}
+                    </Link>
+                  ) : r.url ? (
                     <a
                       href={r.url}
                       target="_blank"

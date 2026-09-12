@@ -569,3 +569,38 @@
   color: var(--ink-faint);
   font-weight: 600;
 }
+
+/* The document picker. The same control the sowing sheet uses, because
+   handing a PDF over is the same act on both sheets and reading as two
+   different ones would be the difference doing the talking. */
+.captureFile {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.captureFile::file-selector-button {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--plate-green);
+  border: none;
+  border-radius: 0;
+  padding: var(--space-2) var(--space-3);
+  margin-right: var(--space-3);
+  cursor: pointer;
+}
+
+.captureFile::file-selector-button:hover {
+  background: var(--plate-terracotta);
+}
+
+.captureFile:disabled::file-selector-button {
+  background: var(--rule);
+  cursor: not-allowed;
+}

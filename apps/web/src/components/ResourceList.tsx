@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { didactic } from '@didactic/api'
 import type { ExposureDepth, Resource, ResourceStatus } from '@didactic/core/types'
@@ -96,6 +97,15 @@ export function ResourceList({ resources }: { resources: Resource[] }) {
                   <a className={styles.rowLink} href={r.url} target="_blank" rel="noreferrer">
                     {new URL(r.url).hostname.replace('www.', '')}
                   </a>
+                )}
+                {/* A document is opened in the catalogue rather than in
+                    a tab of its own: it is a thing on the shelf, and
+                    where an article's link leaves for somebody else's
+                    page, this one stays here. */}
+                {r.storage_path && (
+                  <Link className={styles.rowLink} href={`/resources/${r.id}/read`}>
+                    Open it
+                  </Link>
                 )}
                 <span>
                   added {new Date(r.added_at).toLocaleDateString('en-GB', {

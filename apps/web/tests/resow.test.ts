@@ -13,11 +13,15 @@ import type { Brief } from '@/lib/sowing'
 
 const proposeMap = vi.fn()
 const plantMap = vi.fn()
+/** The reading is its own model call now, so it is mocked like the
+ *  map: left real it reaches Anthropic from a unit test. */
+const readTheAnswers = vi.fn()
 
 vi.mock('@/lib/sowing', async importOriginal => ({
   ...(await importOriginal<typeof import('@/lib/sowing')>()),
   proposeMap,
   plantMap,
+  readTheAnswers,
 }))
 
 vi.mock('@/lib/auth', () => ({ ownerId: async () => 'user-1' }))
@@ -88,6 +92,10 @@ beforeEach(() => {
   state.sowing = { ...A_SOWING }
   state.updates = []
   process.env.ANTHROPIC_API_KEY = 'test-key'
+  // Nothing to read in the stored answers of most of these, and where
+  // there is, the map's own reading is what the test is about.
+  readTheAnswers.mockReset()
+  readTheAnswers.mockResolvedValue(null)
 })
 
 const post = async (id = 'sub-1') => {

@@ -155,7 +155,7 @@ export const BLOCKS: BlockSpec[] = [
   {
     name: 'flow',
     when:
-      'the reader has to decide something and the decision has branches -- which tool to reach for, what to do when a check fails. A sequence with no decision in it is `steps`, not this',
+      'the reader has to decide something and the decision has branches -- which tool to reach for, what to do when a check fails. A sequence with no decision in it is `steps`, not this. Three rules, because breaking them draws a worse picture than prose would: a step phrased as a question MUST carry the `branches` it is asking between, and a step with no branches must not be phrased as a question; a branch label is the answer to that question ("Yes", "No", "Under 100ms") and never a step of its own; and what happens after the branches rejoin goes in the steps AFTER the branching step, not repeated inside each branch',
     example: `{
   "title": "Which measurement to reach for",
   "steps": [
@@ -245,4 +245,67 @@ export function blockPromptSection(): string {
   return `You may use these blocks where one genuinely helps. Each is a fenced code block whose body is JSON, exactly in the shape shown. Use them sparingly -- a lesson is still prose, and a block that restates the paragraph above it is worse than no block. Never put markup or HTML in a payload.
 
 ${BLOCKS.map(b => `### \`\`\`${b.name}\nUse when ${b.when}.\n\n\`\`\`${b.name}\n${b.example}\n\`\`\``).join('\n\n')}`
+}
+
+/* ------------------------------------------------------------- flow */
+
+export interface FlowStepData {
+  text?: string
+  detail?: string
+  branches?: Array<{ label?: string; steps?: FlowStepData[] }>
+  goes?: string
+}
+
+/** A step that asks something but parts nowhere. */
+const asks = (step: FlowStepData) =>
+  (step.text ?? '').trim().endsWith('?') &&
+  !(step.branches ?? []).some(b => (b.steps ?? []).some(s => s?.text))
+
+/**
+ * Straighten a flow before it is drawn.
+ *
+ * The model is told that a step phrased as a question must carry the
+ * branches it asks between, and mostly it obliges. When it does not,
+ * what arrives is a question box with nothing under it and the answer
+ * sitting in the next step along -- which draws as two stacked boxes
+ * where the reader is looking for a fork, and reads worse than the
+ * sentence it replaced.
+ *
+ * Rather than refuse the block, the question is folded into the step it
+ * was really asking about: the words become that step's `detail` if it
+ * has none, and the empty box goes. Nothing is lost and nothing is
+ * invented -- a flow that was drawn wrong is drawn as what it says.
+ *
+ * A trailing question with nothing after it keeps its box: there is
+ * nothing to fold it into, and dropping it would lose the only thing
+ * that step said.
+ */
+export function straightenFlow(steps: FlowStepData[]): FlowStepData[] {
+  const out: FlowStepData[] = []
+
+  for (const step of steps) {
+    // Branches are straightened too: the same mistake happens a lane
+    // down as happens at the top.
+    const step_ = step.branches
+      ? {
+          ...step,
+          branches: step.branches.map(b => ({
+            ...b,
+            steps: b.steps ? straightenFlow(b.steps) : b.steps,
+          })),
+        }
+      : step
+
+    const previous = out[out.length - 1]
+    if (previous && asks(previous)) {
+      out[out.length - 1] = {
+        ...step_,
+        detail: step_.detail ?? previous.text,
+      }
+      continue
+    }
+    out.push(step_)
+  }
+
+  return out
 }

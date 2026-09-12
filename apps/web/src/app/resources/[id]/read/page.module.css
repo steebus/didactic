@@ -1,0 +1,88 @@
+/* A document, opened where it was filed.
+
+   The one sheet in the catalogue that gives its whole height to
+   something it did not draw. A PDF is read at the size of the window,
+   so the frame keeps only what it must -- the way back and the title --
+   and hands the rest over. */
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  /* Not `min-height`: the viewer below claims what is left, and a sheet
+     that can grow past the window would put the file's own scrollbar
+     out of reach at the foot of a long page. */
+  height: 100dvh;
+  background: var(--paper);
+}
+
+.head {
+  flex: none;
+  color: var(--paper);
+  background: var(--plate-green);
+  padding: var(--space-4) var(--space-5) var(--space-3);
+}
+
+/* The title and the way out share a line: the title is the sheet, and
+   the escape is a footnote to it rather than a second heading. */
+.headRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-top: var(--space-3);
+}
+
+.title {
+  font-size: var(--step-2);
+  font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 72;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  margin: 0;
+  /* A filename can be very long and this is a running head, not the
+     document. */
+  overflow-wrap: anywhere;
+}
+
+.plain {
+  flex: none;
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(239, 231, 214, 0.85);
+  text-decoration: none;
+  border-bottom: 1px solid var(--plate-mustard);
+  padding-bottom: 2px;
+}
+
+.plain:hover {
+  color: var(--paper);
+}
+
+.headRule {
+  flex: none;
+  height: 5px;
+  background: var(--plate-mustard);
+}
+
+/* Everything the head did not take. */
+.viewer {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  border: none;
+  background: var(--press-bed);
+}
+
+.body {
+  padding: var(--space-5);
+}
+
+.problem {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  color: var(--plate-terracotta);
+  margin: 0;
+  max-width: 60ch;
+}

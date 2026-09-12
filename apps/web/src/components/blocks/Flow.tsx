@@ -1,5 +1,6 @@
 'use client'
 
+import { straightenFlow } from '@didactic/core/blocks'
 import styles from './blocks.module.css'
 
 export interface FlowStep {
@@ -33,7 +34,10 @@ export interface FlowData {
  * drawing a line across the page to get there.
  */
 export function Flow({ data }: { data: FlowData }) {
-  const steps = (data.steps ?? []).filter(s => s?.text)
+  // Straightened before it is drawn: a question the model left with
+  // nothing under it is folded into the step it was asking about,
+  // rather than drawn as an empty box above the answer.
+  const steps = straightenFlow((data.steps ?? []).filter(s => s?.text))
   if (steps.length === 0) return null
 
   return (
@@ -80,7 +84,29 @@ function Lane({ steps, depth = 0 }: { steps: FlowStep[]; depth?: number }) {
             {/* The rule down to whatever comes next. Not under the last
                 box in a lane: a flow that ends in a dangling line has
                 not ended. */}
-            {!last && <span className={styles.flowJoin} aria-hidden="true" />}
+            {/* The way down to whatever comes next. After a parting it
+                is drawn differently: the lanes have to be gathered back
+                to the middle before anything can descend from them, or
+                the rule falls out of the gap between two lanes and
+                points at nothing. */}
+            {!last && (
+              <span
+                className={
+                  branches.length > 0
+                    ? `${styles.flowJoin} ${styles.flowJoinBack}`
+                    : styles.flowJoin
+                }
+                // How many lanes there were, so the gathering rule can
+                // reach the middle of the outermost ones rather than
+                // the edges of the figure.
+                style={
+                  branches.length > 0
+                    ? ({ '--flow-lanes': branches.length } as React.CSSProperties)
+                    : undefined
+                }
+                aria-hidden="true"
+              />
+            )}
           </div>
         )
       })}

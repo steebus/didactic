@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseBlocks, blockPromptSection, BLOCKS } from '../src/blocks'
+import { parseBlocks, blockPromptSection, straightenFlow, BLOCKS } from '../src/blocks'
 import { parseBlanks, acceptsAnswer, allCorrect } from '../src/answers'
 import { readModel, runModel, type ModelSpec } from '../src/model'
 
@@ -137,5 +137,68 @@ describe('blockPromptSection', () => {
   it('names every registered block, so adding one teaches the agent', () => {
     const prompt = blockPromptSection()
     for (const b of BLOCKS) expect(prompt).toContain('```' + b.name)
+  })
+})
+
+describe('straightening a flow the model drew wrong', () => {
+  it('folds a question with no branches into the step it was asking about', () => {
+    // What the lesson reader actually printed: a question box with
+    // nothing under it, and the answer stacked beneath as its own step.
+    const straightened = straightenFlow([
+      { text: 'What are you trying to check?' },
+      { text: 'Rough feel for a slow connection' },
+      { text: 'DevTools network throttling preset', detail: 'Network only.' },
+    ])
+
+    expect(straightened).toEqual([
+      { text: 'Rough feel for a slow connection', detail: 'What are you trying to check?' },
+      { text: 'DevTools network throttling preset', detail: 'Network only.' },
+    ])
+  })
+
+  it('leaves a question that does part alone', () => {
+    const flow = [
+      {
+        text: 'Do you know which page?',
+        branches: [
+          { label: 'Yes', steps: [{ text: 'Run Lighthouse on it' }] },
+          { label: 'No', steps: [{ text: 'Read the field data first' }] },
+        ],
+      },
+    ]
+
+    expect(straightenFlow(flow)).toEqual(flow)
+  })
+
+  it('does not overwrite a detail the step already had', () => {
+    const [first] = straightenFlow([
+      { text: 'Which tool?' },
+      { text: 'Lighthouse', detail: 'Network and CPU together.' },
+    ])
+
+    expect(first).toEqual({ text: 'Lighthouse', detail: 'Network and CPU together.' })
+  })
+
+  it('straightens inside a branch as well as at the top', () => {
+    const [step] = straightenFlow([
+      {
+        text: 'Which way?',
+        branches: [
+          {
+            label: 'Left',
+            steps: [{ text: 'Is it slow?' }, { text: 'Measure it' }],
+          },
+        ],
+      },
+    ])
+
+    expect(step.branches![0].steps).toEqual([{ text: 'Measure it', detail: 'Is it slow?' }])
+  })
+
+  it('keeps a trailing question, which has nothing to fold into', () => {
+    // Dropping it would lose the only thing that step said.
+    const flow = [{ text: 'Measure it' }, { text: 'Still uncertain?' }]
+
+    expect(straightenFlow(flow)).toEqual(flow)
   })
 })

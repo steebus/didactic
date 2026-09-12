@@ -90,11 +90,17 @@ export default async function SourcePage({
 
         {source.fileUrl && (
           <p className={styles.whole}>
-            <a href={source.fileUrl} target="_blank" rel="noreferrer">
+            {/* Opened in the catalogue rather than handed out as a
+                signed link in a tab of its own: the reader came here
+                from a sentence in a lesson, and the way back should
+                still be the one they arrived by. The viewer signs its
+                own URL when it opens, so nothing here expires. */}
+            <Link
+              href={`/resources/${source.id}/read${source.page ? `#page=${source.page}` : ''}`}
+            >
               Open the document itself
-            </a>
-            {source.page ? `, at page ${source.page}.` : '.'} The link is good for
-            fifteen minutes.
+            </Link>
+            {source.page ? `, at page ${source.page}.` : '.'}
           </p>
         )}
       </div>

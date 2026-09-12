@@ -366,18 +366,24 @@
 .flow {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: center;
 }
 
 .flowPart {
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* So a lane inside a branch can be measured against its own column
+     rather than against the whole figure. */
+  width: 100%;
 }
 
 .flowBox {
-  width: 100%;
-  max-width: 26rem;
+  /* Shrink to the words rather than ruling to the margin. A flow is
+     read as boxes joined by lines, and a box the width of the figure
+     reads as a paragraph with a rule on it. */
+  width: fit-content;
+  max-width: min(26rem, 100%);
   padding: var(--space-2) var(--space-3);
   background: var(--paper);
   border: 1px solid var(--rule);
@@ -386,12 +392,20 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  text-align: left;
 }
 
-/* A step that parts is asking something, and is stamped in the colour
-   the catalogue uses for a decision to be made. */
+/* A step that parts is asking something. Stamped in the catalogue's
+   colour for a decision, and cornered off so the shape says "a question
+   is being asked here" before a word of it is read -- which is the one
+   thing a flow has that prose does not. */
 .flowAsk {
   border-left-color: var(--plate-mustard);
+  border-top-right-radius: 0;
+  background:
+    linear-gradient(225deg, var(--paper-deep) 0 0.7rem, transparent 0.7rem),
+    var(--paper);
+  padding-right: var(--space-4);
 }
 
 .flowText {
@@ -406,31 +420,118 @@
   color: var(--ink-soft);
 }
 
-/* The rule from one step to the next. */
+/* The rule from one step to the next, with a head on it. A flow with
+   no arrows is a stack of boxes: the direction is the information. */
 .flowJoin {
+  position: relative;
   width: 1px;
   height: var(--space-4);
   background: var(--rule-strong);
+  flex: none;
 }
 
+.flowJoin::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  transform: translate(-50%, 1px);
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--rule-strong);
+}
+
+/* Where the flow parts.
+
+   Three rules rather than one: a stem down out of the question, a
+   spanning rule across the tops of the lanes, and a stem down into each
+   lane. Drawn with borders on the lane boxes themselves, so the corners
+   meet wherever the columns happen to fall -- no measuring, and it
+   survives a lane wrapping to the next line. */
 .flowBranches {
   display: flex;
   align-items: flex-start;
+  justify-content: center;
   gap: var(--space-4);
   width: 100%;
-  margin-top: var(--space-3);
-  padding-top: var(--space-3);
-  /* The rule the branches hang from, so the parting is visible before
-     the labels are read. */
-  border-top: 1px solid var(--rule);
+  margin-top: var(--space-4);
+  position: relative;
+}
+
+/* The stem out of the question, down to the spanning rule. */
+.flowBranches::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  /* Stops on the span rather than crossing it: the 1px is the rule's
+     own thickness, so the stem meets it and goes no further. */
+  top: calc(var(--space-4) * -1);
+  width: 1px;
+  height: calc(var(--space-4) + 1px);
+  background: var(--rule-strong);
 }
 
 .flowBranch {
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* The lane's own share of the spanning rule, and the stem down into
+     it. `padding-top` is what the stem is drawn in.
+     `background-image` rather than `border-top`, so the rule can stop
+     at the middle of the outermost lanes instead of running off past
+     them: a line that overhangs the first and last branch is drawn
+     going somewhere it does not go. */
+  background-image: linear-gradient(var(--rule-strong), var(--rule-strong));
+  background-size: 100% 1px;
+  background-position: 0 0;
+  background-repeat: no-repeat;
+  padding-top: var(--space-4);
+  position: relative;
+}
+
+/* The outermost lanes carry only half a rule each -- from their own
+   stem inward -- so the span begins and ends over a branch. */
+.flowBranch:first-child {
+  background-size: 50% 1px;
+  background-position: 100% 0;
+}
+
+.flowBranch:last-child {
+  background-size: 50% 1px;
+  background-position: 0 0;
+}
+
+/* One lane is not a fork: it needs no span at all. */
+.flowBranch:only-child {
+  background-image: none;
+}
+
+/* The stem from the spanning rule down into this lane, with its head. */
+.flowBranch::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 1px;
+  height: calc(var(--space-4) - 5px);
+  background: var(--rule-strong);
+}
+
+.flowBranch::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: calc(var(--space-4) - 5px);
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--rule-strong);
 }
 
 .flowLabel {
@@ -441,7 +542,42 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-faint);
+  background: var(--paper);
+  padding: 0 var(--space-2);
 }
+
+/* The join back, under a parting.
+
+   The lanes ended wherever their own last box ended, at their own
+   depths; the flow carries on from the middle. So the stem out of the
+   branches is given a rule across the top of it, gathering the lanes
+   before anything descends -- the mirror of the rule they hung from.
+   Without it the arrow appears to fall out of the gap between two
+   columns, pointing at nothing. */
+.flowJoinBack {
+  /* Not the full width of the figure: the rule gathers the lanes, so
+     it reaches to the middle of the outermost ones and stops, the same
+     way the rule they hang from does. The inset is half a lane, which
+     is what `flex: 1 1 0` makes every lane worth. */
+  width: calc(100% - 100% / var(--flow-lanes, 2));
+  height: calc(var(--space-4) * 2);
+  background: none;
+  border-top: 1px solid var(--rule-strong);
+  margin-top: var(--space-4);
+  position: relative;
+}
+
+/* The stem itself, down the middle of that rule. */
+.flowJoinBack::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 1px;
+  height: 100%;
+  background: var(--rule-strong);
+}
+
 
 /* A branch that leaves the drawing says where it goes rather than
    dragging a line across the page to get there. */
@@ -454,10 +590,52 @@
 
 @media (max-width: 40rem) {
   /* No side by side on a phone: the lanes stack, each still labelled,
-     which is the same flow read one branch at a time. */
+     which is the same flow read one branch at a time. Everything that
+     drew the fork -- the span, the stems, the arrowheads onto each
+     lane -- is drawing a shape that is no longer on the page, so it
+     goes; each lane keeps a rule above its own label, which is what
+     says a new branch starts here. */
   .flowBranches {
     flex-direction: column;
     gap: var(--space-3);
+    margin-top: var(--space-3);
+  }
+
+  .flowBranches::before {
+    display: none;
+  }
+
+  .flowBranch {
+    /* `background-image` is what draws the span, so it is what has to
+       be taken away -- a `border-top` here would sit under it rather
+       than replace it. */
+    background-image: none;
+    border-top: 1px solid var(--rule);
+    padding-top: var(--space-3);
+  }
+
+  .flowBranch::before,
+  .flowBranch::after {
+    display: none;
+  }
+
+  /* Nothing to gather: the last lane simply runs on into what follows
+     it, down one plain rule with a head on it like any other step. */
+  .flowJoinBack {
+    width: 1px;
+    height: var(--space-4);
+    border-top: none;
+    margin-top: 0;
+    background: var(--rule-strong);
+  }
+
+  .flowJoinBack::before {
+    display: none;
+  }
+
+  .flowBox {
+    width: 100%;
+    max-width: none;
   }
 }
 
