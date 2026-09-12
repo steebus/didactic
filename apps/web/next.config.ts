@@ -24,8 +24,16 @@ const nextConfig: NextConfig = {
    * not -- so they are named here. This has been wrong since the first
    * deploy that read a PDF: the queue worker's own ingestion hit the
    * same wall, quietly, where nobody was watching.
+   *
+   * This is half the story, and on its own it was not enough. Unbundled,
+   * pdfjs sits in `node_modules` and still cannot find its canvas --
+   * nothing statically imports that package, so file tracing has nothing
+   * to follow and the native binary never reaches the function.
+   * Declaring it as a dependency does not change that. The global it
+   * wanted is supplied instead, in `lib/extract/pdfGlobals.ts`, which is
+   * why `@napi-rs/canvas` is not needed here or anywhere.
    */
-  serverExternalPackages: ['pdf-parse', 'pdfjs-dist', '@napi-rs/canvas'],
+  serverExternalPackages: ['pdf-parse', 'pdfjs-dist'],
   // The dev overlay badge sits over the page and lands in screenshots.
   devIndicators: false,
   // Next writes its own AGENTS.md/CLAUDE.md on build; this project keeps

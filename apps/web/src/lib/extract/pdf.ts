@@ -1,3 +1,7 @@
+// First, and deliberately so: pdfjs constructs a `DOMMatrix` at module
+// scope and Node has none, so this has to be in place before anything
+// below pulls pdfjs in. ESM evaluates imports in order.
+import './pdfGlobals'
 import { PDFParse } from 'pdf-parse'
 import { closeOutline, type OutlineEntry, type PageText } from '@didactic/core/passages'
 

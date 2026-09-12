@@ -18,6 +18,34 @@ import { cutPassages } from '@didactic/core/passages'
 const handbook = readFileSync(join(__dirname, 'fixtures/handbook.pdf'))
 const unbookmarked = readFileSync(join(__dirname, 'fixtures/unbookmarked.pdf'))
 
+describe('the globals pdfjs needs', () => {
+  it('stands a DOMMatrix up before pdfjs asks for one', () => {
+    // pdfjs builds one at module scope and Node has none, so without
+    // this the library throws `ReferenceError: DOMMatrix is not defined`
+    // while it is still being evaluated -- before any `try` around a
+    // call site can see it. On Vercel the native canvas that would
+    // normally supply it never arrives: nothing statically imports it,
+    // so file tracing has nothing to follow.
+    expect(typeof (globalThis as { DOMMatrix?: unknown }).DOMMatrix).toBe('function')
+  })
+
+  it('is the stub, so every test below runs the way the deploy does', () => {
+    // The stub is installed before pdfjs looks, so it wins even here
+    // where the real package is installed. That is deliberate: it means
+    // the reading tests in this file exercise exactly the arrangement
+    // the function runs in, rather than a luckier one.
+    const held = (globalThis as { DOMMatrix?: { name?: string } }).DOMMatrix
+    expect(held?.name).toBe('StubDOMMatrix')
+  })
+
+  it('refuses to pretend it can render', () => {
+    // A matrix that quietly does nothing produces a blank page and no
+    // explanation. If `getScreenshot` is ever wanted, this says so.
+    const Matrix = (globalThis as { DOMMatrix?: new () => { scale: () => unknown } }).DOMMatrix!
+    expect(() => new Matrix().scale()).toThrow(/cannot render/i)
+  })
+})
+
 describe('readOutline', () => {
   it('reads a document own bookmarks, resolved to real pages', async () => {
     const outline = await readOutline({ buffer: handbook })
