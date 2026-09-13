@@ -120,8 +120,12 @@ export async function sowClozes(
   // it first would mean a failed call left the lesson with nothing
   // where it had something.
   if (regenerate && (standing?.length ?? 0) > 0) {
-    // The clozes go with the concepts by cascade; a cloze the reader
-    // made by hand has no concept and is untouched.
+    // The clozes go with the concepts by cascade (035, where it became
+    // true: 034 filed `concept_id` as `set null`, so this left every
+    // old card standing and wrote the new set alongside it -- the one
+    // path that exists to replace a lesson's cards doubled them).
+    // A cloze the reader made by hand belongs to no concept and is
+    // untouched, which is the other half of what this means.
     await db.from('cloze_concepts').delete().eq('lesson_id', lessonId).eq('user_id', userId)
   }
 
