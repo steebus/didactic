@@ -2,7 +2,18 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { Highlighter } from '@/components/Highlighter'
+
+// Planting writes a row. The write happens behind the reader, so what
+// is being tested here is what the page does before it lands -- the
+// call itself is stubbed and never answers.
+vi.mock('@didactic/api', () => ({
+  didactic: () => ({
+    clozes: { create: vi.fn(() => new Promise(() => {})) },
+    highlights: { create: vi.fn(() => new Promise(() => {})) },
+  }),
+}))
+
+const { Highlighter } = await import('@/components/Highlighter')
 
 /**
  * The two ways to a selection, and the two verbs it is then offered.
@@ -298,5 +309,56 @@ describe('Highlighter, where the composer stands', () => {
     // dock to the foot of the article rather than the screen.
     expect(container.contains(panel)).toBe(false)
     expect(panel.parentElement).toBe(document.body)
+  })
+})
+
+describe('Highlighter, planting a cloze by hand', () => {
+  function toTheMaker() {
+    render()
+    press('pointerdown', 'mouse')
+    selectPassage()
+    press('pointerup', 'mouse')
+    act(() => {
+      clozePin()!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+  }
+
+  /** Press a word in the maker, to take it out. */
+  function pressWord(word: string) {
+    const button = Array.from(composer()!.querySelectorAll('button')).find(
+      b => b.textContent === word
+    )!
+    act(() => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+  }
+
+  it('will not plant until some words have been taken out', () => {
+    toTheMaker()
+    const plant = Array.from(composer()!.querySelectorAll('button')).find(
+      b => b.textContent === 'Plant it'
+    ) as HTMLButtonElement
+    expect(plant.disabled).toBe(true)
+  })
+
+  it('closes on the press and draws the passage at once', () => {
+    toTheMaker()
+    // One word, not the run: blanking most of a short passage leaves
+    // too little of the sentence to answer from, and the maker refuses
+    // it before the server would have to.
+    pressWord('soil')
+    act(() => {
+      Array.from(composer()!.querySelectorAll('button'))
+        .find(b => b.textContent === 'Plant it')!
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+
+    // The server has not answered and is not being waited for: the
+    // panel is gone and the plum is on the words.
+    expect(composer()).toBeNull()
+    expect(container.querySelectorAll('[data-cloze]').length).toBe(1)
+    expect(container.querySelector('[data-cloze]')?.textContent).toBe(
+      PROSE.slice(6, 30).trim()
+    )
   })
 })

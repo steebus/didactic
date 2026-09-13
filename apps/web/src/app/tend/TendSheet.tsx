@@ -41,6 +41,8 @@ export function TendSheet({
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(0)
   const [drawing, setDrawing] = useState(false)
+  /** An answer or an edit that did not reach the server. */
+  const [lost, setLost] = useState<string | null>(null)
 
   const scope = {
     ...(subjectId ? { subjectId } : {}),
@@ -152,17 +154,39 @@ export function TendSheet({
         )}
       </div>
 
-      <ClozeCard
-        // A new card is a new question: keyed so nothing of the last
-        // one -- least of all whether its answer was showing -- is
-        // carried into it.
-        key={card.id}
-        cloze={card}
-        onAnswered={() => setDone(n => n + 1)}
-        onNext={pass}
-        onRemoved={pass}
-        onEdited={next => setQueue(q => (q ? [next, ...q.slice(1)] : q))}
-      />
+      {/* The deck. The card sits on it, and the two edges behind say
+          there is more than this one -- which is what makes the next
+          card rising read as dealt rather than as a page reloading. */}
+      <div className={styles.deck} data-more={queue.length > 1 ? 'true' : undefined}>
+        <ClozeCard
+          // A new card is a new question: keyed so nothing of the last
+          // one -- least of all whether its answer was showing -- is
+          // carried into it, and so the deal runs on every card rather
+          // than once on the first.
+          key={card.id}
+          cloze={card}
+          // On the press, not on the answer landing. The reader has
+          // made their judgement and wants the next question; the
+          // writing goes on behind them.
+          onAnswered={() => {
+            setDone(n => n + 1)
+            setLost(null)
+            pass()
+          }}
+          onSettled={(_id, _cloze, failed) => setLost(failed)}
+          onRemoved={pass}
+          onEdited={next => setQueue(q => (q ? [next, ...q.slice(1)] : q))}
+        />
+      </div>
+
+      {/* An answer that did not reach the server. Said here rather than
+          on the card, because the card went the moment it was pressed
+          -- which is the point of pressing it. */}
+      {lost && (
+        <p className={styles.problem} role="status">
+          {lost}
+        </p>
+      )}
 
       <div className={styles.tail}>
         <button type="button" className={styles.quietAction} onClick={pass}>

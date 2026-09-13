@@ -831,6 +831,27 @@ export function Highlighter({
     })()
   }
 
+  /**
+   * What the server made of a cloze written behind the reader.
+   *
+   * One handler for all three optimistic writes -- planting, editing,
+   * answering -- because all three end the same way: the row the page
+   * is holding is replaced by whatever is now true, and anything owed
+   * to the reader is said in the one place a failure is said. A null
+   * row is a plant that never landed -- the draft comes off the prose,
+   * and since it was only ever this session's it needs no headstone. A
+   * row with a sentence beside it is an answer or an edit that did not
+   * reach the server: put it back as it was, and explain.
+   */
+  const settleCloze = useCallback(
+    (id: string, cloze: Card | null, failed: string | null) => {
+      setPlanted(p => (cloze ? p.map(c => (c.id === id ? cloze : c)) : p.filter(c => c.id !== id)))
+      if (failed) setLost(failed)
+      else onTended?.()
+    },
+    [onTended]
+  )
+
   /** The control that opens the notes out to a page of their own. */
   const opener = (
     <button
@@ -946,9 +967,9 @@ export function Highlighter({
           // What this selection could become. Two verbs, side by side
           // and the same weight, because a passage worth keeping and a
           // passage worth being asked back are different judgements and
-          // neither is the default. Butted together as one object
-          // rather than floated as two pills: it is one question with
-          // two answers.
+          // neither is the default. Each wears the ink of the thing it
+          // makes -- mustard for the mark, plum for the cloze -- so the
+          // pair is told apart before it is read.
           <div
             className={styles.pins}
             style={{ top: offer.pin.top, left: offer.pin.left }}
@@ -964,12 +985,16 @@ export function Highlighter({
               e.stopPropagation()
             }}
           >
-            <button type="button" className={styles.pin} onClick={() => compose(offer)}>
+            <button
+              type="button"
+              className={`${styles.pin} ${styles.pinMark}`}
+              onClick={() => compose(offer)}
+            >
               Add mark
             </button>
             <button
               type="button"
-              className={styles.pin}
+              className={`${styles.pin} ${styles.pinCloze}`}
               onClick={() => compose(offer, 'cloze')}
             >
               Make a cloze
@@ -997,13 +1022,17 @@ export function Highlighter({
                 lessonId={lessonId}
                 quote={pending.quote}
                 prefix={pending.prefix.trim() || null}
-                onPlanted={cloze => {
-                  setPlanted(p => [...p, cloze])
+                // Drawn and closed on the press; the row is written
+                // behind the reader, the way a mark is.
+                onPlanted={draft => {
+                  setPlanted(p => [...p, draft])
                   setMaking(false)
                   setPending(null)
+                  setLost(null)
                   window.getSelection()?.removeAllRanges()
                   onTended?.()
                 }}
+                onSettled={settleCloze}
                 onCancel={() => setMaking(false)}
               />
             ) : (
@@ -1075,10 +1104,14 @@ export function Highlighter({
               key={openCloze.cloze.id}
               cloze={openCloze.cloze}
               where="lesson"
-              onAnswered={next => {
-                setPlanted(p => [...p.filter(c => c.id !== next.id), next])
-                onTended?.()
+              // There is no next card in a lesson, so answering closes
+              // the panel and gives the reader their page back. On the
+              // press, like everywhere else.
+              onAnswered={() => {
+                setOpenCloze(null)
+                setLost(null)
               }}
+              onSettled={settleCloze}
               onEdited={next => {
                 setPlanted(p => [...p.filter(c => c.id !== next.id), next])
                 setOpenCloze(o => (o ? { ...o, cloze: next } : o))

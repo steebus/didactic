@@ -254,10 +254,19 @@
    reader's to drag, and this floats beside it until they say what the
    passage is for.
 
-   Butted together with a hairline between rather than floated as two
-   separate pills: it is one question with two answers, and two shadows
-   side by side read as two unrelated things that happened to appear at
-   once.
+   Each wears the ink of the thing it makes: mustard for the mark,
+   because a mark is a mustard wash everywhere it appears, and plum for
+   the cloze, because the whole garden is plum. So the pair is told
+   apart by colour before it is read, and the colour is a fact about
+   the outcome rather than decoration. A small gap between them, not a
+   shared edge: two different things, close enough to be one offer.
+
+   They sit tight to the words. This floats over a sentence the reader
+   is in the middle of choosing, so every millimetre of padding is a
+   millimetre of the page it covers and a wider target for a thumb to
+   hit by accident -- the horizontal padding is the smallest that still
+   lets the labels breathe. The height is not cut with it: that is what
+   the thumb is aiming at, and a 2.5rem row is already at the floor.
 
    Fixed rather than absolute: it is over the page, not in it, so the
    prose can scroll under it. */
@@ -265,7 +274,7 @@
   position: fixed;
   z-index: 6;
   display: flex;
-  box-shadow: 0 4px 14px rgba(36, 29, 22, 0.3);
+  gap: var(--space-1);
 }
 
 .pin {
@@ -274,25 +283,33 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--paper);
-  background: var(--plate-green);
   border: none;
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--space-3);
   /* A thumb's worth of button, whatever the label measures. */
   min-height: 2.5rem;
+  box-shadow: 0 4px 14px rgba(36, 29, 22, 0.3);
   cursor: pointer;
   white-space: nowrap;
+  transition: background var(--dur-feedback) var(--ease-settle);
 }
 
-/* The hairline between them, drawn in the paper the band reverses to
-   rather than in a darker green: the two are peers, and a rule that
-   reads as an edge would make the second look bolted on. */
-.pin + .pin {
-  border-left: 1px solid rgba(239, 231, 214, 0.3);
+/* Ink on mustard, which is the strongest pairing the palette has and
+   the one the inbox tally already uses -- mustard as a text colour is
+   the pairing that fails, which is why it is the ground here. */
+.pinMark {
+  color: var(--ink);
+  background: var(--plate-mustard);
 }
 
-.pin:hover {
+.pinCloze {
+  color: var(--paper);
+  background: var(--plate-plum);
+}
+
+.pinMark:hover,
+.pinCloze:hover {
   background: var(--ink);
+  color: var(--paper);
 }
 
 /* --- The panel, docked ------------------------------------------- */

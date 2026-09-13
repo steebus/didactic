@@ -66,7 +66,7 @@ describe('pinSpot', () => {
 
   it('keeps it on screen when the selection starts near the right edge', () => {
     const spot = pinSpot(box(300, 360), phone)
-    expect(spot.left).toBe(390 - 244 - 8)
+    expect(spot.left).toBe(390 - 216 - 8)
     expect(spot.left).toBeGreaterThan(0)
   })
 

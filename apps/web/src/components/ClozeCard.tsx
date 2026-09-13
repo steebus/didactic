@@ -11,6 +11,7 @@ import {
   clozeProblem,
   memoryOf,
 } from '@didactic/core/clozes'
+import { isUnsaved } from '@didactic/core/marks'
 import { review, waitPhrase, type Rating } from '@didactic/core/fsrs'
 import { saidTended } from './TendTally'
 import styles from './ClozeCard.module.css'
@@ -41,18 +42,32 @@ const api = didactic()
 export function ClozeCard({
   cloze,
   onAnswered,
+  onSettled,
   onRemoved,
   onEdited,
-  onNext,
   where = 'sheet',
 }: {
   cloze: Card
-  /** Answered, with the row as it now stands. */
-  onAnswered?: (cloze: Card, wait: string) => void
+  /**
+   * Answered — called on the press, before the server has been asked.
+   *
+   * The caller moves on at once: the next card, or the panel closing.
+   * Nothing about answering is work the reader should be made to watch,
+   * and a card that lingers while a request goes out invites a second
+   * press on a question already answered.
+   */
+  onAnswered?: (cloze: Card, rating: Rating) => void
+  /**
+   * What the server made of it, once it has said.
+   *
+   * `cloze` is what the row should now be — the real one where the
+   * write landed, the row as it stood before where it did not — and
+   * `error` is the sentence to show when something is owed to the
+   * reader. Both together mean *put it back and say so*.
+   */
+  onSettled?: (id: string, cloze: Card | null, error: string | null) => void
   onRemoved?: (id: string) => void
   onEdited?: (cloze: Card) => void
-  /** Offered after an answer, where there is another card to go to. */
-  onNext?: () => void
   /** `lesson` drops the "where this came from" line: you are there. */
   where?: 'sheet' | 'lesson'
 }) {
@@ -61,8 +76,6 @@ export function ClozeCard({
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [confirming, setConfirming] = useState(false)
-  /** What the last answer was worth, held until the card is left. */
-  const [said, setSaid] = useState<string | null>(null)
 
   const face = clozeFace(cloze)
 
@@ -80,18 +93,39 @@ export function ClozeCard({
     return TENDING.map(rung => waitPhrase(review(memory, rung.rating).intervalDays))
   }, [cloze])
 
-  async function answer(rating: Rating) {
-    setBusy(true)
-    setError(null)
-    const { ok, body, error: failed } = await api.clozes.review(cloze.id, rating)
-    setBusy(false)
-    if (!ok) {
-      setError(failed ?? 'That answer was not written down.')
-      return
-    }
-    setSaid(body.wait)
-    saidTended()
-    onAnswered?.({ ...cloze, ...body.cloze }, body.wait)
+  /**
+   * Answer, and be gone.
+   *
+   * The caller is told on the press and moves on there and then; the
+   * writing happens behind the reader, the way keeping a mark does.
+   * Answering a cloze is not work anyone is waiting on -- they have
+   * made their judgement and want the next question -- and the wait the
+   * answer buys was already printed on the button they pressed, so
+   * there is nothing left to confirm afterwards.
+   *
+   * A failure is not silent, but nor does it drag the card back: the
+   * schedule was never moved, so the cloze is still due and comes round
+   * again on the next read. What is owed is a sentence saying so.
+   */
+  function answer(rating: Rating) {
+    onAnswered?.(cloze, rating)
+
+    void (async () => {
+      const { ok, body, error: failed } = await api.clozes.review(cloze.id, rating)
+      if (!ok) {
+        onSettled?.(
+          cloze.id,
+          cloze,
+          `${failed ?? 'That answer was not written down'}. It is still due, and will come round again.`
+        )
+        return
+      }
+      // Only once it has landed: the tally reads the server's own
+      // count, and asking for it early would print the figure the
+      // answer was meant to change.
+      saidTended()
+      onSettled?.(cloze.id, { ...cloze, ...body.cloze }, null)
+    })()
   }
 
   async function remove() {
@@ -114,12 +148,13 @@ export function ClozeCard({
           setEditing(false)
           if (next) onEdited?.(next)
         }}
+        onSettled={onSettled}
       />
     )
   }
 
   return (
-    <article className={styles.card} aria-label="A cloze">
+    <article className={styles.card} data-where={where} aria-label="A cloze">
       {cloze.concept && (
         <p className={styles.eyebrow}>
           {cloze.concept.name}
@@ -160,16 +195,7 @@ export function ClozeCard({
 
       {error && <p className={styles.problem}>{error}</p>}
 
-      {said ? (
-        <div className={styles.done}>
-          <p className={styles.doneNote}>Back in {said}.</p>
-          {onNext && (
-            <button type="button" className={styles.answerButton} onClick={onNext}>
-              Next
-            </button>
-          )}
-        </div>
-      ) : shown ? (
+      {shown ? (
         <div className={styles.answerRow}>
           {TENDING.map((rung, i) => (
             <button
@@ -177,8 +203,7 @@ export function ClozeCard({
               type="button"
               className={styles.answerButton}
               data-rung={rung.rating}
-              onClick={() => void answer(rung.rating)}
-              disabled={busy}
+              onClick={() => answer(rung.rating)}
               title={rung.note}
             >
               <span className={styles.answerLabel}>{rung.label}</span>
@@ -223,10 +248,15 @@ export function ClozeCard({
           </>
         ) : (
           <>
+            {/* A cloze still being written down has nothing on the
+                other end to edit or pull up yet. It is answerable --
+                the question is right there -- and it can be changed in
+                a moment. */}
             <button
               type="button"
               className={styles.quietAction}
               onClick={() => setEditing(true)}
+              disabled={isUnsaved(cloze.id)}
             >
               Edit
             </button>
@@ -234,6 +264,7 @@ export function ClozeCard({
               type="button"
               className={styles.quietAction}
               onClick={() => setConfirming(true)}
+              disabled={isUnsaved(cloze.id)}
             >
               Pull up
             </button>
@@ -267,12 +298,19 @@ export function ClozeCard({
  * not declaring they have forgotten it, and its history is the only
  * evidence of what they hold.
  */
-function ClozeEditor({ cloze, onDone }: { cloze: Card; onDone: (next: Card | null) => void }) {
+function ClozeEditor({
+  cloze,
+  onDone,
+  onSettled,
+}: {
+  cloze: Card
+  onDone: (next: Card | null) => void
+  onSettled?: (id: string, cloze: Card | null, error: string | null) => void
+}) {
   const [text, setText] = useState(cloze.text)
   const [blank, setBlank] = useState(cloze.blank)
   const [at, setAt] = useState(cloze.blank_start)
   const [hint, setHint] = useState(cloze.hint ?? '')
-  const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const field = useRef<HTMLTextAreaElement>(null)
 
@@ -293,24 +331,44 @@ function ClozeEditor({ cloze, onDone }: { cloze: Card; onDone: (next: Card | nul
 
   const problem = clozeProblem(text, blank, at)
 
-  async function save() {
+  /**
+   * Save, and close on the press.
+   *
+   * The edit is applied here from what the reader typed rather than
+   * waited for: every field the card draws from is one of the four on
+   * this form, so the row can be built locally and is right unless the
+   * write fails. A form that sits there saying "Saving…" over an edit
+   * the reader has finished making is the app asking them to supervise
+   * its network.
+   *
+   * The prefix is the one field only the server can set -- it is
+   * re-found against the lesson body -- so the real row replaces this
+   * one when it arrives. A failure puts back the row as it stood.
+   */
+  function save() {
     if (problem) {
       setError(problem)
       return
     }
-    setBusy(true)
-    const { ok, body, error: failed } = await api.clozes.patch(cloze.id, {
-      text: text.trim(),
+
+    const written = { text: text.trim(), blank, blankStart: at, hint: hint.trim() || null }
+    onDone({
+      ...cloze,
+      text: written.text,
       blank,
-      blankStart: at,
-      hint: hint.trim() || null,
+      blank_start: at,
+      blank_end: at + blank.length,
+      hint: written.hint,
     })
-    setBusy(false)
-    if (!ok) {
-      setError(failed ?? 'That edit was not saved.')
-      return
-    }
-    onDone(body.cloze)
+
+    void (async () => {
+      const { ok, body, error: failed } = await api.clozes.patch(cloze.id, written)
+      if (!ok) {
+        onSettled?.(cloze.id, cloze, `${failed ?? 'That edit was not saved'}. It is as it was.`)
+        return
+      }
+      onSettled?.(cloze.id, body.cloze, null)
+    })()
   }
 
   return (
@@ -361,10 +419,10 @@ function ClozeEditor({ cloze, onDone }: { cloze: Card; onDone: (next: Card | nul
         <button
           type="button"
           className={styles.show}
-          onClick={() => void save()}
-          disabled={busy || Boolean(problem)}
+          onClick={save}
+          disabled={Boolean(problem)}
         >
-          {busy ? 'Saving…' : 'Save'}
+          Save
         </button>
         <button type="button" className={styles.quietAction} onClick={() => onDone(null)}>
           Cancel

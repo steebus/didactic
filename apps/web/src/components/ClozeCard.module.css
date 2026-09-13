@@ -5,7 +5,39 @@
    the answer when it is shown -- so a card met in the lesson and a card
    met on the sheet read as the same object. */
 
+/* Dealt, not loaded.
+
+   A card answered is gone on the press and the next one rises into its
+   place, so the sheet has to say *another card* rather than *the page
+   changed*. It lifts from just below with a hair of scale, which is
+   what a card coming off a deck does, and it is the only motion on the
+   sheet -- everything else here is type.
+
+   Only on the Tend sheet. In the reading the card is a panel opened
+   against a passage, and a panel that deals itself would be furniture
+   showing off. */
+.card[data-where='sheet'] {
+  animation: deal var(--dur-settle) var(--ease-settle) both;
+}
+
+@keyframes deal {
+  from {
+    opacity: 0;
+    /* Through --motion-travel like every other movement in the
+       catalogue, so a reader who has asked for less motion gets the
+       fade and none of the travel rather than a special case. */
+    transform: translateY(calc(var(--motion-travel) * 0.5rem)) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .card {
+  /* Above the deck's own edges, which are drawn behind it. */
+  position: relative;
+  z-index: 1;
   background: var(--paper-deep);
   border: 1px solid var(--paper-edge);
   /* The one edge that is not a hairline: the plum rule is what says

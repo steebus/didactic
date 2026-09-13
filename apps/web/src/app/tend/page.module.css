@@ -97,6 +97,48 @@
   text-transform: uppercase;
 }
 
+/* --- The deck ---------------------------------------------------- */
+
+/* Two edges behind the card, offset down and right, for as long as
+   there is more than one left.
+
+   They do nothing except make the next card rising read as *dealt*
+   rather than as the page reloading -- and they answer, without a
+   number, the question a reader actually has mid-sitting: is there
+   much more of this. The count above the card says how many; this says
+   whether. On the last card they are gone, which is its own small
+   piece of news. */
+.deck {
+  position: relative;
+}
+
+.deck[data-more]::before,
+.deck[data-more]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: var(--paper-deep);
+  border: 1px solid var(--paper-edge);
+  border-left: 5px solid var(--plate-plum);
+  /* Through --motion-travel, so reduced motion flattens the deck to a
+     single card rather than leaving edges that promise a movement the
+     reader has asked not to see. */
+  transform: translate(
+    calc(var(--motion-travel) * 2px),
+    calc(var(--motion-travel) * 2px)
+  );
+  opacity: 0.55;
+}
+
+.deck[data-more]::after {
+  transform: translate(
+    calc(var(--motion-travel) * 4px),
+    calc(var(--motion-travel) * 4px)
+  );
+  opacity: 0.3;
+}
+
 /* --- Nothing due ------------------------------------------------- */
 
 .rest {

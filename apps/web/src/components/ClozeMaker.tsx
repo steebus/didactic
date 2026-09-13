@@ -3,7 +3,9 @@
 import { useMemo, useState } from 'react'
 import { didactic } from '@didactic/api'
 import type { ClozeCard } from '@didactic/core/clozes'
-import { clozeProblem } from '@didactic/core/clozes'
+import { clozeProblem, memoryColumns } from '@didactic/core/clozes'
+import { UNSAVED } from '@didactic/core/marks'
+import { freshMemory } from '@didactic/core/fsrs'
 import { saidTended } from './TendTally'
 import styles from './ClozeMaker.module.css'
 
@@ -33,13 +35,28 @@ export function ClozeMaker({
   lessonId,
   quote,
   prefix,
+  topicId = null,
   onPlanted,
+  onSettled,
   onCancel,
 }: {
   lessonId: string
   quote: string
   prefix: string | null
+  /** What the lesson teaches, for the draft the page draws at once. */
+  topicId?: string | null
+  /**
+   * Planted — called on the press, before the server has been asked,
+   * with a draft carrying an unsaved id. The caller closes the maker
+   * and draws the plum there and then.
+   */
   onPlanted: (cloze: ClozeCard) => void
+  /**
+   * What the server made of it. The real row under the id the rest of
+   * the app knows it by, or null and a sentence where the write failed
+   * and the plum has to come back off.
+   */
+  onSettled?: (draftId: string, cloze: ClozeCard | null, error: string | null) => void
   onCancel: () => void
 }) {
   /** The words of the passage, with where each one starts in it. */
@@ -53,7 +70,6 @@ export function ClozeMaker({
 
   /** The two ends of the run, as indices into `words`. */
   const [ends, setEnds] = useState<[number, number] | null>(null)
-  const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const span = ends
@@ -80,7 +96,22 @@ export function ClozeMaker({
 
   const problem = blank ? clozeProblem(quote, blank, blankStart) : null
 
-  async function plant() {
+  /**
+   * Plant it, and close on the press.
+   *
+   * Drawn and out of the way first, the way keeping a mark is: the
+   * reader chose a sentence and some words in it, and the rest -- a
+   * row, a schedule, a first due date -- is not work they should be
+   * made to stand and watch. A draft under an unsaved id is enough for
+   * the plum to appear on the words immediately, because drawing a
+   * tended passage needs only the passage and its prefix.
+   *
+   * What the draft cannot know is its real id and the prefix the server
+   * re-finds against the lesson body, so the row that comes back
+   * replaces it. A failure takes the plum back off rather than leaving
+   * a cloze that exists only on this screen.
+   */
+  function plant() {
     if (!blank) {
       setError('Press the words to take out.')
       return
@@ -90,21 +121,44 @@ export function ClozeMaker({
       return
     }
 
-    setBusy(true)
-    const { ok, body, error: failed } = await api.clozes.create({
-      lessonId,
+    const now = new Date().toISOString()
+    const draft: ClozeCard = {
+      id: `${UNSAVED}${crypto.randomUUID()}`,
+      concept_id: null,
+      lesson_id: lessonId,
+      topic_id: topicId,
       text: quote,
+      prefix,
       blank,
-      blankStart,
+      blank_start: blankStart,
+      blank_end: blankStart + blank.length,
       hint: null,
-    })
-    setBusy(false)
-    if (!ok) {
-      setError(failed ?? 'That cloze was not planted.')
-      return
+      created_by: 'user',
+      ...memoryColumns(freshMemory(new Date(now))),
+      created_at: now,
+      updated_at: now,
+      concept: null,
+      lesson: null,
+      topic: null,
     }
-    saidTended()
-    onPlanted(body.cloze)
+
+    onPlanted(draft)
+
+    void (async () => {
+      const { ok, body, error: failed } = await api.clozes.create({
+        lessonId,
+        text: quote,
+        blank,
+        blankStart,
+        hint: null,
+      })
+      if (!ok) {
+        onSettled?.(draft.id, null, `${failed ?? 'That cloze was not planted'}. Select the passage again to try once more.`)
+        return
+      }
+      saidTended()
+      onSettled?.(draft.id, body.cloze, null)
+    })()
   }
 
   return (
@@ -142,10 +196,10 @@ export function ClozeMaker({
         <button
           type="button"
           className={styles.plant}
-          onClick={() => void plant()}
-          disabled={busy || !blank || Boolean(problem)}
+          onClick={plant}
+          disabled={!blank || Boolean(problem)}
         >
-          {busy ? 'Planting…' : 'Plant it'}
+          Plant it
         </button>
         <button type="button" className={styles.cancel} onClick={onCancel}>
           Cancel

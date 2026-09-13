@@ -920,12 +920,24 @@ the other — an override would make the appearance depend on which painter ran
 last, which is exactly what the two are arranged not to depend on.
 
 **Rule — a selection is offered its verbs, and presumes neither.** *Add mark*
-and *Make a cloze* float beside the words as one object — butted together with a
-hairline of reversed paper between them, not two pills with two shadows, because
-it is one question with two answers. They are the same size, weight and ground:
-keeping a passage and asking it back later are different judgements and neither
-is the default. Nothing opens until one is pressed, on a mouse as well as a
-finger.
+and *Make a cloze* float beside the words, the same size and weight, separated by
+`--space-1`: keeping a passage and asking it back later are different judgements
+and neither is the default. Nothing opens until one is pressed, on a mouse as
+well as a finger.
+
+**Rule — each verb wears the ink of the thing it makes.** Ink on mustard for the
+mark, because a mark is a mustard wash everywhere it appears; paper on plum for
+the cloze, because the whole garden is plum. The colour is a fact about the
+outcome, not decoration, and it tells the pair apart before either is read.
+Mustard is the ground and never the text — as a text colour it is the pairing
+that fails, which is why the inbox tally stamps it the same way round.
+
+**Rule — furniture over a live selection is padded to the labels and no
+further.** The pins float over a sentence the reader is still choosing, so every
+millimetre of padding covers the page and widens what a thumb can hit by
+accident. Horizontal padding is `--space-3`, the least the labels allow. The
+2.5rem height is *not* cut with it: that is what the thumb is aiming at, and it
+is already at the floor.
 
 **Rule — the tended layer never takes a selection over.** Marking is select the
 words and let go. A press that ends a selection does not open a card; only a
@@ -936,6 +948,24 @@ either side of it does.
 **Rule — the blank is a fixed rule, never the answer greyed out and never a gap
 its own width.** The length of a blank is a hint, and a hint nobody asked for.
 The answer is not in the document at all until *Show it* is pressed.
+
+**Rule — an answer is final on the press, and confirms nothing.** The card goes
+the moment a rung is pressed and the next rises into its place; the write happens
+behind the reader. There is nothing to confirm afterwards — the wait the answer
+buys was on the button before it was pressed, which is the only moment it could
+change what the reader does, and a card that lingers while a request goes out
+invites a second press on a question already answered. A write that fails says so
+in a sentence under the deck and does not drag the card back: the schedule was
+never moved, so the cloze is still due.
+
+**Rule — the sitting is dealt, not loaded.** Two edges sit behind the card while
+more than one is left, and each card rises from just below with a hair of scale.
+This is the only motion on the sheet; everything else here is type. It says
+*another card* rather than *the page changed*, and it answers without a number
+the question a reader has mid-sitting — is there much more of this. All of it
+runs through `--motion-travel`, so reduced motion keeps the fade and flattens the
+deck to a single card rather than leaving edges that promise a movement nobody
+asked to see.
 
 **Rule — an answer states its consequence, not an adjective.** The four answers
 carry the wait each would give — on a card being met for the first time,

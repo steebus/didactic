@@ -45,9 +45,10 @@ const PANEL_MARGIN = 32
 const PANEL_HEIGHT = 220
 
 /** `.pins` in Highlighter.module.css, near enough to keep it on screen.
- *  Two buttons butted together -- *Add mark* and *Make a cloze* -- so it
- *  is a good deal wider than the single one it replaced. */
-const PIN_WIDTH = 244
+ *  Two buttons and the gap between them -- *Add mark* and *Make a
+ *  cloze* -- padded as tightly as the labels allow, because this floats
+ *  over a sentence the reader is still choosing. */
+const PIN_WIDTH = 216
 const PIN_HEIGHT = 40
 
 const clamp = (n: number, low: number, high: number) =>
