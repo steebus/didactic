@@ -69,6 +69,20 @@ export const NOTE_TAGS = [
   ...MATHML_TAGS,
 ]
 
+/**
+ * What one line inside a block may be.
+ *
+ * Shorter than a note, and deliberately so. A block field is a label, a
+ * question, a step -- one line in a piece of furniture whose shape is
+ * this app's, not the model's. Emphasis, a term set as code and
+ * notation are what a line like that legitimately needs; a list or a
+ * heading inside a table cell is a model breaking the furniture.
+ *
+ * No `a` either: a link in a block would be the one link on the sheet
+ * with no prose around it saying where it goes.
+ */
+export const INLINE_TAGS = ['br', 'strong', 'em', 'del', 'code', ...MATHML_TAGS]
+
 /** What a link to a lesson that is not there says on hover. */
 export const STUB_NOTE = 'No lesson for this yet'
 
@@ -147,6 +161,31 @@ function reader(lessons?: Map<string, LessonLink>, sources?: Map<string, SourceL
  * which is the right answer for a note: a note is a remark about a
  * passage and has no map around it.
  */
+/**
+ * One line of a block payload, formatted.
+ *
+ * Inline only: `parseInline` never produces a paragraph, so what comes
+ * back can sit inside the `<th>` or `<button>` the block already draws
+ * without breaking it apart.
+ *
+ * It goes through the same sanitiser as everything else. Blocks used to
+ * be the one thing that never reached this pipeline -- the payload was
+ * read as values and the markup around it was ours -- and that was the
+ * right trade while a block field was a bare label. It stopped being
+ * right the moment a lesson on logarithms asked a question with an
+ * equation in it and the block printed the dollar signs. So the
+ * payload is sanitised rather than trusted, on an allowlist far
+ * shorter than the prose gets.
+ */
+export function renderInline(markdown: string): string {
+  const DOMPurify = purifier()
+  const raw = reader().parseInline(markdown, { async: false, gfm: true })
+  return DOMPurify.sanitize(raw, {
+    ALLOWED_TAGS: INLINE_TAGS,
+    ALLOWED_ATTR: MATHML_ATTR,
+  })
+}
+
 export function renderMarkdown(
   markdown: string,
   allowed: string[] = PROSE_TAGS,

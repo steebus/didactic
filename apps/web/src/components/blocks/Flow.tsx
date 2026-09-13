@@ -1,6 +1,7 @@
 'use client'
 
 import { straightenFlow } from '@didactic/core/blocks'
+import { Rich } from '../Rich'
 import styles from './blocks.module.css'
 
 export interface FlowStep {
@@ -61,8 +62,8 @@ function Lane({ steps, depth = 0 }: { steps: FlowStep[]; depth?: number }) {
         return (
           <div key={i} className={styles.flowPart}>
             <div className={branches.length > 0 ? `${styles.flowBox} ${styles.flowAsk}` : styles.flowBox}>
-              <span className={styles.flowText}>{step.text}</span>
-              {step.detail && <span className={styles.flowDetail}>{step.detail}</span>}
+              <Rich className={styles.flowText} text={step.text} />
+              {step.detail && <Rich className={styles.flowDetail} text={step.detail} />}
             </div>
 
             {step.goes && <p className={styles.flowGoes}>Go to “{step.goes}”</p>}
@@ -71,7 +72,7 @@ function Lane({ steps, depth = 0 }: { steps: FlowStep[]; depth?: number }) {
               <div className={styles.flowBranches}>
                 {branches.map((branch, b) => (
                   <div key={b} className={styles.flowBranch}>
-                    {branch.label && <p className={styles.flowLabel}>{branch.label}</p>}
+                    {branch.label && <Rich as="p" className={styles.flowLabel} text={branch.label} />}
                     {/* Deeper branches are drawn the same way; the
                         prompt asks for one parting, and a second is
                         drawn rather than refused. */}

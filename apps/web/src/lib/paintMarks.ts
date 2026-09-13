@@ -43,13 +43,12 @@ export function paintMarks(
     // be marked and tended at once, and the two layers must not depend
     // on which of them ran last.
     //
-    // `math` is absent for the opposite reason. A formula is not prose:
-    // its glyphs are elements, and the TeX it was typeset from sits in
-    // an `<annotation>` that is rendered nowhere and would otherwise be
-    // walked into the searchable text -- so a passage next to an
-    // equation would be looked for in a string with the equation's
-    // source spliced through it, and never found.
-    skip: '[data-mark],math,button,textarea',
+    // `annotation` is the one thing inside a formula that is skipped:
+    // it carries the TeX the formula was set from and is rendered
+    // nowhere, so walking it would splice the source through the text
+    // a passage is searched for. The set formula itself is walked, or a
+    // passage running across an equation could never be drawn.
+    skip: '[data-mark],annotation,button,textarea',
     dress: (piece, first) => {
       if (noted.has(piece.dataset.mark ?? '')) piece.dataset.noted = 'true'
 

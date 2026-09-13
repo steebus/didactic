@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { renderMarkdown, NOTE_TAGS } from '@/lib/markdown'
+import { renderInline, renderMarkdown, NOTE_TAGS } from '@/lib/markdown'
 import { typeset } from '@/lib/maths'
 
 /**
@@ -163,5 +163,35 @@ describe('a note', () => {
     expect(formulas(html)).toBe(1)
     // And is still a note: no headings, as before.
     expect(renderMarkdown('# Not a lesson', NOTE_TAGS)).not.toContain('<h1')
+  })
+})
+
+describe('formatting inside a block', () => {
+  it('sets the notation in a question rather than printing the dollar signs', () => {
+    const html = renderInline('Which quantity is missing in $2^x = 100$?')
+    expect(html).toContain('<math')
+    expect(html).not.toContain('$')
+  })
+
+  it('takes the emphasis a line is written with', () => {
+    expect(renderInline('the **base**, not the `exponent`')).toContain('<strong>base</strong>')
+    expect(renderInline('the **base**, not the `exponent`')).toContain('<code>exponent</code>')
+  })
+
+  it('is one line: no paragraph to break the furniture apart', () => {
+    expect(renderInline('a question')).not.toContain('<p>')
+  })
+
+  it('refuses what would break the furniture', () => {
+    // A heading or a list inside a table cell is a model breaking the
+    // shape this app drew, not a model formatting a line.
+    expect(renderInline('# Heading')).not.toContain('<h1')
+    expect(renderInline('- one\n- two')).not.toContain('<li')
+    expect(renderInline('[a link](https://example.com)')).not.toContain('<a')
+  })
+
+  it('is sanitised like everything else', () => {
+    expect(renderInline('<img src=x onerror=alert(1)>')).not.toContain('<img')
+    expect(renderInline('<script>alert(1)</script>')).not.toContain('<script')
   })
 })

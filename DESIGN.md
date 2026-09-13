@@ -911,6 +911,13 @@ it has for a maths face.
 | Too wide | `overflow-x: auto` on the equation alone, with `--space-1` under it for the bar. |
 | The source | The `<annotation>` carrying the TeX is `display: none`, stated rather than assumed. |
 
+**Rule — a line inside a block is formatted like the prose around it.** A block's
+shape is this app's, but its text is written by the same hand that wrote the
+sentence above it, and carries the same emphasis and the same notation. Block
+fields are rendered inline through a shorter allowlist than the prose gets —
+emphasis, code and mathematics — with no headings, no lists and no links, because
+those are a model breaking the furniture rather than formatting a line.
+
 **Rule — a formula is set, or it is printed as typed; it is never dropped.** A
 model writes TeX it has not compiled, so some of it will not compile. A hole
 where an equation should be teaches less than the equation as the writer typed

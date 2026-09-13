@@ -211,6 +211,32 @@ export function maskCloze(
   return blank ? `${before}${mark}${after}` : before
 }
 
+/**
+ * Where the mathematics sits in a passage.
+ *
+ * Character ranges over the passage's own text, `$$…$$` before `$…$` so
+ * a display formula is one span rather than two empty ones. The same
+ * shape of rule the renderer uses, kept here because what it is needed
+ * for is a judgement about a cloze -- and a cloze is judged on both
+ * platforms, by the same rule, before anything is written down.
+ */
+export function mathSpans(text: string): Array<{ start: number; end: number }> {
+  const spans: Array<{ start: number; end: number }> = []
+  const taken = (at: number) => spans.some(s => at >= s.start && at < s.end)
+
+  for (const pattern of [
+    /\$\$[^$]+?\$\$/g,
+    /\$(?![\s$])(?:\\.|[^$\\\n])*?(?<![\s\\])\$(?!\d)/g,
+  ]) {
+    for (const match of text.matchAll(pattern)) {
+      if (match.index === undefined || taken(match.index)) continue
+      spans.push({ start: match.index, end: match.index + match[0].length })
+    }
+  }
+
+  return spans.sort((a, b) => a.start - b.start)
+}
+
 /** What can be wrong with a cloze, said as a sentence or null. */
 export function clozeProblem(text: string, blank: string, at?: number): string | null {
   const passage = text.trim()
@@ -224,6 +250,20 @@ export function clozeProblem(text: string, blank: string, at?: number): string |
     ? at
     : text.indexOf(blank)
   if (start === -1) return 'Those words are not in the passage.'
+
+  // A blank may take a whole equation or leave it alone, and nothing in
+  // between. The card draws the passage in three pieces -- what comes
+  // before the blank, the blank, what comes after -- and each piece is
+  // typeset in its own right, so a blank cutting through `$2^x = 100$`
+  // leaves two halves of a formula that can only be printed as the raw
+  // TeX they now are.
+  const end = start + blank.length
+  for (const span of mathSpans(text)) {
+    const clear = end <= span.start || start >= span.end
+    const whole = start <= span.start && end >= span.end
+    if (!clear && !whole) return 'A blank has to take a whole formula, or none of one.'
+  }
+
   return null
 }
 

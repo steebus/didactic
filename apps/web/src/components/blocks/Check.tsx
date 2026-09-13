@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Rich } from '../Rich'
 import styles from './blocks.module.css'
 import { useQuestion, type AnswerOutcome } from './answering'
 import { Scored } from './Scored'
@@ -48,7 +49,7 @@ export function Check({ data }: { data: CheckData }) {
 
   return (
     <div className={styles.check}>
-      <p className={styles.checkQuestion}>{data.question}</p>
+      <Rich as="p" className={styles.checkQuestion} text={data.question} />
 
       <ul className={styles.checkOptions}>
         {options.map((option, i) => {
@@ -74,10 +75,10 @@ export function Check({ data }: { data: CheckData }) {
                 <span className={styles.checkMark} aria-hidden="true">
                   {state === 'right' ? '✓' : state === 'wrong' ? '✗' : '○'}
                 </span>
-                <span>{option.text}</span>
+                <Rich text={option.text} />
               </button>
               {answered && (chosen || option.correct) && option.why && (
-                <p className={styles.checkWhy}>{option.why}</p>
+                <Rich as="p" className={styles.checkWhy} text={option.why} />
               )}
             </li>
           )

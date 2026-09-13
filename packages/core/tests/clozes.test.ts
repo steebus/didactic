@@ -7,6 +7,7 @@ import {
   conceptStanding,
   isDue,
   locateBlank,
+  mathSpans,
   maskCloze,
   memoryColumns,
   memoryOf,
@@ -241,5 +242,41 @@ describe('the four answers against the scheduler they are fitted to', () => {
     expect(struggle.lapses).toBe(0)
     // And it still makes the card harder, which "only just" means.
     expect(struggle.difficulty!).toBeGreaterThan(held().difficulty!)
+  })
+})
+
+describe('a blank against the mathematics in a passage', () => {
+  const EQUATION = 'The equation $2^x = 100$ has no ordinary answer.'
+
+  it('finds the formulas in a passage', () => {
+    expect(mathSpans(EQUATION)).toEqual([{ start: 13, end: 24 }])
+    expect(mathSpans('none here')).toEqual([])
+  })
+
+  it('reads a display formula as one span, not two empty ones', () => {
+    expect(mathSpans('see $$a = b$$ there')).toEqual([{ start: 4, end: 13 }])
+  })
+
+  it('leaves prices out of it, as the renderer does', () => {
+    expect(mathSpans('It cost $5 and then $10 more.')).toEqual([])
+  })
+
+  it('allows a blank clear of the formula', () => {
+    expect(clozeProblem(EQUATION, 'ordinary')).toBeNull()
+  })
+
+  it('allows a blank that takes the whole formula, delimiters and all', () => {
+    expect(clozeProblem(EQUATION, '$2^x = 100$')).toBeNull()
+  })
+
+  it('refuses a blank that cuts a formula in half', () => {
+    // The card draws the passage in three pieces and typesets each, so
+    // half an equation either side of a hole is two broken formulas.
+    expect(clozeProblem(EQUATION, '100$')).toMatch(/whole formula/)
+    expect(clozeProblem(EQUATION, 'The equation $2^x')).toMatch(/whole formula/)
+  })
+
+  it('refuses a blank buried inside a formula', () => {
+    expect(clozeProblem(EQUATION, '100')).toMatch(/whole formula/)
   })
 })

@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { clozeProblem } from '@didactic/core/clozes'
 
 /**
  * Reading a worked lesson for what is worth keeping.
@@ -121,6 +122,7 @@ For each concept, choose ${CLOZES_PER_CONCEPT_MIN} to ${CLOZES_PER_CONCEPT_MAX} 
 3. Blank the words that carry the concept — the term, the figure, the condition, the direction of an effect. Never blank a word that the rest of the sentence gives away, and never blank so much that the sentence stops being a sentence.
 4. Ask the same concept different ways. Two cards over the same clause are one card.
 5. Skip a concept rather than inventing a card for it. Fewer, answerable cards beat four and two that cannot be answered.
+6. Mathematics between $ or $$ is typeset when the card is shown. A blank may take a whole formula, delimiters included, or stay clear of one — never part of one. "The equation $2^x = 100$ has no ordinary answer" may blank "$2^x = 100$" or "ordinary", never "100".
 
 Do not use headings, code fences, list markers or markdown links as the sentence.`
 
@@ -193,9 +195,14 @@ export function verify(concepts: ProposedConcept[], body: string): ProposedConce
       // And the blank is genuinely inside the passage it came with.
       if (!text.includes(blank)) continue
       // Enough sentence left to answer from, and not so much that the
-      // card is a paragraph.
+      // card is a paragraph -- and a blank that takes a whole formula
+      // or none of one, because the card typesets the passage either
+      // side of the blank and half an equation cannot be set. The same
+      // judgement the reader's own clozes are held to, from the same
+      // function, rather than a second opinion written here.
       if (text.length < 24 || text.length > 400) continue
       if (blank.length > text.length / 2) continue
+      if (clozeProblem(text, blank)) continue
 
       // The same passage asked twice is one card, however it is blanked
       // -- the second is the first with the answer in a different

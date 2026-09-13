@@ -13,6 +13,7 @@ import {
 } from '@didactic/core/clozes'
 import { isUnsaved } from '@didactic/core/marks'
 import { review, waitPhrase, type Rating } from '@didactic/core/fsrs'
+import { Rich } from './Rich'
 import { saidTended } from './TendTally'
 import styles from './ClozeCard.module.css'
 
@@ -165,13 +166,24 @@ export function ClozeCard({
         <p className={styles.eyebrow}>Your own</p>
       )}
 
-      {cloze.concept?.gist && <p className={styles.gist}>{cloze.concept.gist}</p>}
+      {cloze.concept?.gist && (
+        <Rich as="p" className={styles.gist} text={cloze.concept.gist} />
+      )}
 
+      {/* The passage in three pieces, each formatted in its own right.
+          A cloze is cut from a lesson, so it carries the lesson's
+          emphasis and the lesson's notation -- printed raw, a card
+          about an equation asks about a row of dollar signs.
+
+          Rendering the pieces apart rather than the passage whole is
+          what the blank makes necessary, and it is also why a blank may
+          not be put inside a formula: half an equation either side of a
+          hole is two broken formulas. `clozeProblem` refuses that. */}
       <p className={styles.passage} data-shown={shown || undefined}>
-        {face.before}
+        <Rich text={face.before} />
         {face.blank ? (
           shown ? (
-            <strong className={styles.answer}>{face.blank}</strong>
+            <Rich className={styles.answer} text={face.blank} />
           ) : (
             <span
               className={styles.blank}
@@ -184,12 +196,12 @@ export function ClozeCard({
             </span>
           )
         ) : null}
-        {face.after}
+        <Rich text={face.after} />
       </p>
 
       {cloze.hint && !shown && (
         <p className={styles.hint}>
-          <span className={styles.hintLabel}>Nudge</span> {cloze.hint}
+          <span className={styles.hintLabel}>Nudge</span> <Rich text={cloze.hint} />
         </p>
       )}
 

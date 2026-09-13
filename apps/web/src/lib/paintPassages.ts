@@ -46,8 +46,31 @@ export interface PaintOptions {
   onOpen?: (id: string, piece: HTMLElement) => void
 }
 
+import { flattenMaths } from './maths'
+
 /** Collapse the whitespace differences between stored text and rendered text. */
 const normalise = (s: string) => s.replace(/\s+/g, ' ')
+
+/**
+ * The two things a stored passage might read as on the page.
+ *
+ * A mark the reader made by selecting words holds exactly what the page
+ * held, so the first is enough. A cloze the agent cut from the lesson
+ * holds the lesson's *source*, where an equation is still `$2^x = 100$`
+ * -- and the page holds it set, as `2x=100`. The second reading is the
+ * same passage with its notation typeset, so a sentence carrying an
+ * equation can be found either way round.
+ *
+ * Ordered, not merged: the stored words are tried first, so a passage
+ * with a literal dollar sign in it is never quietly looked for as
+ * something else.
+ */
+function readings(text: string): string[] {
+  const stored = normalise(text).trim()
+  if (!stored.includes('$')) return [stored]
+  const set = normalise(flattenMaths(text)).trim()
+  return set && set !== stored ? [stored, set] : [stored]
+}
 
 /**
  * Wrap every findable passage in the container.
@@ -77,8 +100,9 @@ export function paintPassages(
   }
 
   for (const passage of passages) {
-    const quote = normalise(passage.quote).trim()
-    if (!quote) continue
+    const quotes = readings(passage.quote)
+    if (!quotes[0]) continue
+    const prefixes = passage.prefix ? readings(passage.prefix) : []
 
     // Re-read the text nodes for every passage: wrapping one changes
     // the tree the next one has to search.
@@ -110,17 +134,31 @@ export function paintPassages(
       }
     }
 
-    // The prefix disambiguates a quote that appears more than once.
+    // Where the passage sits, and how long it turned out to be: a
+    // passage found by its set notation is a different length from the
+    // one that was stored, and every offset below counts in the text
+    // the page is actually holding.
     let start = -1
-    if (passage.prefix) {
-      const withPrefix = normalise(passage.prefix).trim()
-      const anchored = flat.indexOf(withPrefix + quote)
-      if (anchored !== -1) start = anchored + withPrefix.length
+    let length = 0
+    for (const reading of quotes) {
+      // The prefix disambiguates a quote that appears more than once,
+      // and is read the same way round as the quote it anchors.
+      if (passage.prefix) {
+        for (const before of prefixes) {
+          const anchored = flat.indexOf(before + reading)
+          if (anchored !== -1) {
+            start = anchored + before.length
+            break
+          }
+        }
+      }
       // A prefix is a hint, not a requirement: it was captured against
       // a body that may since have been rewritten.
-      if (start === -1) start = flat.indexOf(quote)
-    } else {
-      start = flat.indexOf(quote)
+      if (start === -1) start = flat.indexOf(reading)
+      if (start !== -1) {
+        length = reading.length
+        break
+      }
     }
     if (start === -1) continue
 
@@ -139,7 +177,7 @@ export function paintPassages(
     // and the pieces carry the same id, so the passage reads as one
     // thing and opens one panel however many elements it crosses.
     const slices: Array<{ node: Text; from: number; to: number }> = []
-    for (let i = start; i < start + quote.length; i++) {
+    for (let i = start; i < start + length; i++) {
       const at = map[i]
       if (!at) break
       const last = slices[slices.length - 1]

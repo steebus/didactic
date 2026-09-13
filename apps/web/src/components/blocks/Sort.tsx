@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { allCorrect } from '@didactic/core/answers'
 import { useQuestion, type AnswerOutcome } from './answering'
 import { Scored } from './Scored'
+import { Rich } from '../Rich'
 import styles from './blocks.module.css'
 
 interface Item {
@@ -71,7 +72,7 @@ export function Sort({ data }: { data: SortData }) {
 
   return (
     <div className={styles.check}>
-      <p className={styles.checkQuestion}>{data.question}</p>
+      <Rich as="p" className={styles.checkQuestion} text={data.question} />
 
       <ul className={styles.sortItems}>
         {items.map((item, i) => (
@@ -85,7 +86,7 @@ export function Sort({ data }: { data: SortData }) {
                   {marks[i] ? '✓' : '✗'}
                 </span>
               )}
-              {item.text}
+              <Rich text={item.text} />
             </span>
 
             {/* A radio group in all but name: one choice per item, and
@@ -117,7 +118,7 @@ export function Sort({ data }: { data: SortData }) {
             </span>
 
             {checked && !marks[i] && item.why && (
-              <p className={styles.checkWhy}>{item.why}</p>
+              <Rich as="p" className={styles.checkWhy} text={item.why} />
             )}
           </li>
         ))}
@@ -154,7 +155,7 @@ export function Sort({ data }: { data: SortData }) {
         </>
       )}
 
-      {data.caption && <p className={styles.caption}>{data.caption}</p>}
+      {data.caption && <Rich as="p" className={styles.caption} text={data.caption} />}
     </div>
   )
 }

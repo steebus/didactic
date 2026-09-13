@@ -1,5 +1,6 @@
 'use client'
 
+import { Rich } from '../Rich'
 import styles from './blocks.module.css'
 
 export interface CompareData {
@@ -40,7 +41,7 @@ export function Compare({ data }: { data: CompareData }) {
           <tbody>
             {rows.map((row, i) => (
               <tr key={i}>
-                <th scope="row">{row.label}</th>
+                <th scope="row"><Rich text={row.label} /></th>
                 {columns.map((_, ci) => (
                   <td key={ci}>{row.values?.[ci] ?? ''}</td>
                 ))}

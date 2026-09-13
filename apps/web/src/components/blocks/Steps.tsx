@@ -1,5 +1,6 @@
 'use client'
 
+import { Rich } from '../Rich'
 import styles from './blocks.module.css'
 
 export interface StepsData {
@@ -26,8 +27,8 @@ export function Steps({ data }: { data: StepsData }) {
               {i + 1}
             </span>
             <span className={styles.stepBody}>
-              <span className={styles.stepLabel}>{step.label}</span>
-              {step.detail && <span className={styles.stepDetail}>{step.detail}</span>}
+              <Rich className={styles.stepLabel} text={step.label} />
+              {step.detail && <Rich className={styles.stepDetail} text={step.detail} />}
             </span>
           </li>
         ))}

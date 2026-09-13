@@ -5,6 +5,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { Highlighter } from '@/components/Highlighter'
 import type { Highlight as Mark } from '@didactic/core/types'
 import type { ClozeCard } from '@didactic/core/clozes'
+import { Prose } from '@/components/Prose'
 
 /**
  * The two layers on one page.
@@ -165,6 +166,32 @@ describe('painting tended passages onto the prose', () => {
     })
     expect(container.querySelectorAll('[data-cloze]').length).toBe(0)
     expect(container.querySelector('p')?.textContent).toBe(PROSE)
+  })
+
+  it('draws a passage whose sentence carries an equation', () => {
+    // The agent cuts its clozes from the lesson *source*, where the
+    // equation is still `$2^x = 100$`; the page holds it set, where it
+    // reads as its glyphs. Searched as stored it was never found, and
+    // the plum was never drawn -- which is the bug this covers.
+    const SOURCE = 'The equation $2^x = 100$ has no ordinary answer.'
+    act(() => {
+      root.render(
+        <Highlighter
+          lessonId="l"
+          existing={[]}
+          clozes={[cloze({ text: SOURCE, blank: 'ordinary' })]}
+        >
+          <Prose markdown={SOURCE} />
+        </Highlighter>
+      )
+    })
+
+    const drawn = container.querySelector('[data-cloze]')
+    expect(drawn).not.toBeNull()
+    // Drawn over the sentence as the page holds it -- the equation set,
+    // not the dollar signs it was written with.
+    expect(container.textContent).not.toContain('$')
+    expect(container.querySelector('math')).not.toBeNull()
   })
 
   it('does not open a card on the press that ends a selection', () => {

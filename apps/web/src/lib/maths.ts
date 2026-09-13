@@ -193,6 +193,48 @@ const inline: TokenizerAndRendererExtension = {
 }
 
 /**
+ * What a passage reads as once its notation has been set.
+ *
+ * A mark and a cloze are found again by searching the rendered text for
+ * the words that were stored (`paintPassages`), and the two sides of
+ * that search disagree the moment a formula is involved. An agent's
+ * cloze quotes the lesson *source*, where the equation is `$2^x = 100$`;
+ * the page holds the equation *set*, where it reads `2x=100`. The
+ * passage was therefore never found and the plum was never drawn --
+ * which is the whole of "the highlight does not appear across maths".
+ *
+ * So the stored quote is rewritten into what the page will actually
+ * say, by typesetting each formula in it and reading the text back off
+ * the result. Exact rather than approximated, because it is literally
+ * the same markup the page is holding, parsed by the same browser.
+ *
+ * Browser only -- it needs a DOM to read text out of, and the painters
+ * it serves are browser-only for the same reason.
+ */
+export function flattenMaths(quote: string): string {
+  if (!quote.includes('$')) return quote
+
+  const set = (tex: string, display: boolean) => {
+    const box = document.createElement('div')
+    // Our own markup, from `typeset` immediately above -- not a payload.
+    box.innerHTML = typeset(tex, display)
+    // The TeX rides along in an annotation that is rendered nowhere, so
+    // reading it back would put the source into the text the page is
+    // searched for -- the very thing this exists to take out.
+    for (const source of Array.from(box.querySelectorAll('annotation'))) source.remove()
+    return box.textContent ?? ''
+  }
+
+  return quote
+    .replace(/\$\$([^$]+?)\$\$/g, (whole, tex: string) =>
+      tex.trim() ? set(tex.trim(), true) : whole
+    )
+    .replace(/\$(?![\s$])((?:\\.|[^$\\\n])*?)(?<![\s\\])\$(?!\d)/g, (whole, tex: string) =>
+      tex.trim() ? set(tex.trim(), false) : whole
+    )
+}
+
+/**
  * The extension `marked` is built with.
  *
  * Order matters: `$$` is tried before `$`, or the inline rule claims

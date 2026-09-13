@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { acceptsAnswer, allCorrect, parseBlanks } from '@didactic/core/answers'
 import { useQuestion, type AnswerOutcome } from './answering'
 import { Scored } from './Scored'
+import { Rich } from '../Rich'
 import styles from './blocks.module.css'
 
 interface Gap {
@@ -68,12 +69,12 @@ export function Blank({ data }: { data: BlankData }) {
 
   return (
     <div className={styles.check}>
-      <p className={styles.checkQuestion}>{data.question}</p>
+      <Rich as="p" className={styles.checkQuestion} text={data.question} />
 
       <p className={styles.blankSentence}>
         {pieces.map((piece, i) =>
           piece.kind === 'text' ? (
-            <span key={i}>{piece.text}</span>
+            <Rich key={i} text={piece.text} />
           ) : (
             <input
               key={i}
@@ -126,7 +127,7 @@ export function Blank({ data }: { data: BlankData }) {
                   </span>
                   <span>
                     <span className={styles.blankWord}>{gap.accept?.[0] ?? '—'}</span>
-                    {gap.why && <span className={styles.checkWhy}>{gap.why}</span>}
+                    {gap.why && <Rich className={styles.checkWhy} text={gap.why} />}
                   </span>
                 </li>
               )
@@ -143,7 +144,7 @@ export function Blank({ data }: { data: BlankData }) {
         </>
       )}
 
-      {data.caption && <p className={styles.caption}>{data.caption}</p>}
+      {data.caption && <Rich as="p" className={styles.caption} text={data.caption} />}
     </div>
   )
 }

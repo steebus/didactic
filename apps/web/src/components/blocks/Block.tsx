@@ -16,9 +16,18 @@ import { Picture, type PictureData } from './Picture'
  * Every component here takes data that came from a language model, so
  * each one treats its own payload as a suggestion: a missing field is
  * a field to leave out, and a shape too broken to draw returns null
- * rather than throwing the lesson away. Nothing in this directory
- * renders HTML from the payload -- the values are read, and the markup
- * around them is ours.
+ * rather than throwing the lesson away.
+ *
+ * The markup around the values is still ours -- the shape of a block is
+ * this app's and never the model's. What has changed is that the lines
+ * *inside* it are formatted: a block used to be the one thing whose
+ * payload never reached the markdown pipeline at all, which was the
+ * right trade while a field was a bare label, and stopped being right
+ * the moment a lesson on logarithms asked a question with an equation
+ * in it and the block printed the dollar signs. Those lines now go
+ * through `Rich`, which sanitises them on an allowlist far shorter than
+ * the prose gets: emphasis, code and mathematics, and nothing that
+ * could break the furniture open.
  */
 export function Block({ name, data }: { name: string; data: unknown }) {
   if (typeof data !== 'object' || data === null) return null
