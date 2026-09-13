@@ -9,23 +9,31 @@
  * beside the rest, which meant the one place the work actually happens
  * was the one place it could not be seen at a glance.
  *
- * Four states, worked-least first, derived rather than stored so they
+ * Five states, worked-least first, derived rather than stored so they
  * can never disagree with the lessons themselves:
  *
  *   unwritten  nothing has been written yet; opening it writes it
  *   ready      written and waiting, with no sign of anyone in it
+ *   opened     the reader has been in it
  *   started    marked passages in it, so it has been worked in
  *   worked     finished, and the figure moved
  *
- * `started` rests on marks because marks are the only evidence this app
- * actually holds that a reader was inside a lesson rather than past it.
- * It under-reports -- someone can read closely and mark nothing -- so it
- * is never the carrier on its own: `next` is what answers "where am I
+ * `opened` is the rung that used to be missing. `started` rests on
+ * marks, because marks were the only evidence this app held that a
+ * reader had been inside a lesson rather than past it -- and that
+ * under-reports badly, since someone can read a lesson closely and mark
+ * nothing, leaving their route looking untouched. Recording the open
+ * itself fixes that at the source rather than by loosening what
+ * "started" means: having been in a lesson and having worked in one are
+ * different things, and a reader deciding where to go back to wants to
+ * know which.
+ *
+ * Neither is the carrier on its own. `next` is what answers "where am I
  * up to", and it answers it from position and completion, which are
- * exact.
+ * exact -- opening a lesson and wandering off does not move it.
  */
 
-export type LessonState = 'unwritten' | 'ready' | 'started' | 'worked'
+export type LessonState = 'unwritten' | 'ready' | 'opened' | 'started' | 'worked'
 
 export interface LessonStanding {
   state: LessonState
@@ -46,12 +54,23 @@ export interface LessonLike {
   has_body: boolean
   /** Marked passages taken in this lesson. */
   marks: number
+  /**
+   * When the reader first opened it, where they ever have.
+   *
+   * Optional, so a caller that has not been rebuilt -- a phone on an
+   * older build, a list assembled before `036` -- reads every lesson
+   * exactly as it did before rather than failing to compile.
+   */
+  opened_at?: string | null
 }
 
 export function lessonState(lesson: LessonLike): LessonState {
   if (lesson.completed_at) return 'worked'
   if (!lesson.has_body) return 'unwritten'
-  return lesson.marks > 0 ? 'started' : 'ready'
+  // Marking beats opening: both are true of a lesson that was worked
+  // in, and the stronger evidence is the one worth printing.
+  if (lesson.marks > 0) return 'started'
+  return lesson.opened_at ? 'opened' : 'ready'
 }
 
 /**
@@ -71,6 +90,7 @@ export function lessonStandings(lessons: LessonLike[]): LessonStanding[] {
 export const LESSON_LABEL: Record<LessonState, string> = {
   unwritten: 'Not written',
   ready: 'Ready',
+  opened: 'Opened',
   started: 'Started',
   worked: 'Worked',
 }
@@ -79,13 +99,20 @@ export const LESSON_LABEL: Record<LessonState, string> = {
 export const LESSON_NOTE: Record<LessonState, string> = {
   unwritten: 'Nothing written yet — opening it writes it',
   ready: 'Written and waiting',
+  opened: 'You have been in this one',
   started: 'You have marked passages in this one',
   worked: 'Finished, and the figure moved',
 }
 
 /** Least worked first, the same direction as ROUTE_ORDER and
  *  STOCK_ORDER, so a list can float what needs attention. */
-export const LESSON_ORDER: LessonState[] = ['unwritten', 'ready', 'started', 'worked']
+export const LESSON_ORDER: LessonState[] = [
+  'unwritten',
+  'ready',
+  'opened',
+  'started',
+  'worked',
+]
 
 /**
  * A lesson's neighbours in its route.

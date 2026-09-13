@@ -119,6 +119,33 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
   }
 
+  // The reader has been here.
+  //
+  // Its own action rather than a field, for the reason completion is:
+  // the app decides when a lesson counts as opened, not the client, and
+  // what it decides is *the first time and only the first*. Enforced in
+  // the write -- `opened_at is null` -- so two sheets racing, or a
+  // reader who reads a lesson every day for a week, cannot move it.
+  //
+  // Cheap by construction. It is fired on every open, so the ordinary
+  // case is a no-op against an index, and the cache is dropped only
+  // when a row actually changed: a standing that has already moved to
+  // *opened* does not move again, and re-reading every topic sheet on
+  // each open would cost more than the thing being recorded.
+  if (body.action === 'open') {
+    const { data: opened, error } = await db
+      .from('lessons')
+      .update({ opened_at: new Date().toISOString() })
+      .eq('id', id)
+      .is('opened_at', null)
+      .select('id')
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    const first = (opened ?? []).length > 0
+    if (first) dropCache()
+    return NextResponse.json({ ok: true, first })
+  }
+
   if (body.action === 'uncomplete') {
     try {
       await uncompleteLesson(db, id)

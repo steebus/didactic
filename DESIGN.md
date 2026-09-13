@@ -663,23 +663,36 @@ lessons that were finished and nothing at all against the rest, so the one
 surface where the work actually happens was the one that had to be read line by
 line to find out where you were.
 
-Four states, worked-least first, derived from the lesson rather than stored
+Five states, worked-least first, derived from the lesson rather than stored
 (`lessonState`, `packages/core/src/lessonState.ts`): **Not written** (no body
-yet; opening it writes it), **Ready** (written and waiting), **Started**
-(passages marked in it), **Worked**.
+yet; opening it writes it), **Ready** (written and waiting), **Opened** (the
+reader has been in it), **Started** (passages marked in it), **Worked**.
 
 **Rule — the ladder is the route chip's ladder.** Dashed faint outline →
-ink-soft outline → filled mustard → filled green, the same progression in the
-same inks as `No route → … → Worked` on a bed row. These are the same question
-asked one level down; a reader who has learned the bed must not have to learn
-this. The word carries it, the tick (`○ ◐ ●`) and the colour repeat it.
+ink-soft outline → mustard outline → filled mustard → filled green, the same
+progression in the same inks as `No route → … → Worked` on a bed row. These are
+the same question asked one level down; a reader who has learned the bed must
+not have to learn this. The word carries it, the tick (`○ ◐ ●`) and the colour
+repeat it.
+
+**Rule — the mustard arrives as a rule before it arrives as a ground.** *Opened*
+is the step between *Ready* and *Started*, so it takes the plate as an outline
+and leaves the two filled stamps as the two that mean work happened. Its ink is
+`--ink` rather than `--ink-soft`: having been somewhere is a fact about the
+reader, not a property of the lesson.
+
+**Rule — being in a lesson and working in one are different things, and the
+sheet says which.** *Opened* is recorded on the first open and never moved
+(`036`, `opened_at`); *Started* still rests on marks. Collapsing the two would
+have made the word cheaper rather than the record truer — a reader deciding
+where to go back to wants to know whether they did anything there.
 
 **Rule — *Up next* is a pointer, not a fifth state.** The first unworked lesson
 in the route carries it, in the sheet's own ink rather than a plate colour, and
 the row takes the hover's mustard edge and holds it. It is what answers "where
-am I", and it answers from position and completion, which are exact — `Started`
-rests on marks and under-reports by construction, since a reader can read
-closely and mark nothing. A draft route has no next: nothing counts until it is
+am I", and it answers from position and completion, which are exact — opening a
+lesson and wandering off is not progress through a route, and neither is marking
+a passage in one. A draft route has no next: nothing counts until it is
 approved.
 
 **Rule — a lesson that is not written offers to be written, under its own row.**

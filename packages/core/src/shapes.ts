@@ -133,6 +133,10 @@ export interface LessonRow {
    *  `body` itself, so the sheet can print the state without carrying
    *  sixteen lessons' prose to answer one bit. */
   has_body: boolean
+  /** When the reader first opened it, or null if they never have.
+   *  Additive: a client that has never heard of it reads every lesson
+   *  as it did before, which is *ready* rather than *opened*. */
+  opened_at?: string | null
 }
 
 export interface CurriculumCard extends Curriculum {

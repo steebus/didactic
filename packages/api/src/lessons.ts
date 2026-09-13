@@ -13,7 +13,7 @@ import type {
 } from '@didactic/core/types'
 
 export interface LessonPatch {
-  action?: 'complete' | 'uncomplete'
+  action?: 'complete' | 'uncomplete' | 'open'
   depth?: ExposureDepth
   title?: string
   summary?: string | null
@@ -191,6 +191,18 @@ export const lessons = (api: Api) => {
     /** `action: 'complete'` at a depth is an exposure. */
     patch: (id: string, body: LessonPatch) =>
       api.patch<Completion>(`/api/lessons/${id}`, body),
+
+    /**
+     * Say the reader has been here.
+     *
+     * Fired on every open and written only on the first, so a caller
+     * has nothing to remember: the server holds "the first time" and
+     * answers `first` to say whether this was it. Nobody waits on it --
+     * it moves a word on another sheet, not anything the reader is
+     * looking at.
+     */
+    opened: (id: string) =>
+      api.patch<{ ok: true; first: boolean }>(`/api/lessons/${id}`, { action: 'open' }),
     remove: (id: string) => api.del<{ ok: true }>(`/api/lessons/${id}`),
 
     /** Write the body, or write it again. One round. */

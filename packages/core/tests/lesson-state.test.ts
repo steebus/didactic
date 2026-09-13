@@ -93,7 +93,7 @@ describe('the vocabulary', () => {
   })
 
   it('orders least-worked first, like the other two channels', () => {
-    expect(LESSON_ORDER).toEqual(['unwritten', 'ready', 'started', 'worked'])
+    expect(LESSON_ORDER).toEqual(['unwritten', 'ready', 'opened', 'started', 'worked'])
   })
 
   it('names every state exactly once', () => {
@@ -161,5 +161,63 @@ describe('lessonNeighbours', () => {
       title: 'Measuring it',
       written: true,
     })
+  })
+})
+
+describe('opened: the rung that used to be missing', () => {
+  it('reads a lesson the reader has been in as opened', () => {
+    expect(lessonState(lesson({ opened_at: '2026-09-13T09:00:00Z' }))).toBe('opened')
+  })
+
+  it('still reads one nobody has been in as ready', () => {
+    expect(lessonState(lesson())).toBe('ready')
+    expect(lessonState(lesson({ opened_at: null }))).toBe('ready')
+  })
+
+  it('lets marking beat opening, because it is the stronger evidence', () => {
+    expect(lessonState(lesson({ opened_at: '2026-09-13T09:00:00Z', marks: 2 }))).toBe('started')
+  })
+
+  it('lets finishing beat both', () => {
+    expect(
+      lessonState(
+        lesson({ opened_at: '2026-09-13T09:00:00Z', marks: 2, completed_at: '2026-09-13T10:00:00Z' })
+      )
+    ).toBe('worked')
+  })
+
+  it('says nothing about a lesson with no body, however often it was opened', () => {
+    // Opening an unwritten lesson is what writes it, so the open lands
+    // before there is anything to have read. Until there is prose, the
+    // honest word is still that there is none.
+    expect(lessonState(lesson({ has_body: false, opened_at: '2026-09-13T09:00:00Z' }))).toBe(
+      'unwritten'
+    )
+  })
+
+  it('reads a caller that has never heard of it exactly as before', () => {
+    // A phone on an older build, or a list assembled before 036: no
+    // `opened_at` at all rather than a null one.
+    const older = { completed_at: null, has_body: true, marks: 0 }
+    expect(lessonState(older)).toBe('ready')
+    expect(lessonState({ ...older, marks: 1 })).toBe('started')
+  })
+
+  it('does not move where the reader is up to', () => {
+    // Opening a lesson and wandering off is not progress through a
+    // route. `next` stays exact, on position and completion.
+    const standings = lessonStandings([
+      lesson({ completed_at: '2026-09-01T00:00:00Z' }),
+      lesson({ opened_at: '2026-09-13T09:00:00Z' }),
+      lesson(),
+    ])
+    expect(standings.map(s => s.state)).toEqual(['worked', 'opened', 'ready'])
+    expect(standings.map(s => s.next)).toEqual([false, true, false])
+  })
+
+  it('has a word and a note of its own, like every other rung', () => {
+    expect(LESSON_LABEL.opened).toBe('Opened')
+    expect(LESSON_NOTE.opened).toBeTruthy()
+    expect(LESSON_NOTE.opened).not.toBe(LESSON_NOTE.started)
   })
 })

@@ -100,6 +100,14 @@ export default function LessonPage({
   const [clozes, setClozes] = useState<ClozeCard[]>([])
   /** Bumped when a cloze is planted or pulled up, to read them again. */
   const [garden, setGarden] = useState(0)
+  /**
+   * Whether this visit has already said the reader is here.
+   *
+   * A ref, not state: saying it twice is harmless -- the server writes
+   * only the first -- but it is still a request per re-render of a
+   * sheet that re-renders on every mark, every cloze and every write.
+   */
+  const said = useRef(false)
   const bench = useBench()
   const job = bench.jobFor('writing', id)
   const writing = job?.state === 'running'
@@ -210,6 +218,26 @@ export default function LessonPage({
       window.removeEventListener('resize', look)
     }
   }, [body, data?.neighbours?.next, bench, writeLesson])
+
+  /**
+   * Say the reader has been here, once, as soon as they are.
+   *
+   * On arrival rather than on reaching the foot of the page: the ask is
+   * for a lesson to count as opened when it has *ever* been opened, and
+   * a reader who turns to a lesson, reads two paragraphs and leaves has
+   * opened it. What that does not claim is that they worked in it --
+   * that is *started*, and it still rests on marks.
+   *
+   * Nothing waits on it and nothing is shown if it fails. It moves a
+   * word on the topic sheet, which the reader is not looking at; a
+   * failure means the word is still *Ready*, and the next open says it
+   * again.
+   */
+  useEffect(() => {
+    if (said.current) return
+    said.current = true
+    void api.lessons.opened(id)
+  }, [id])
 
   // What this lesson is tended on, for the plum under its prose. Its
   // own read, so a garden that cannot be reached costs the reader

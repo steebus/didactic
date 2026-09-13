@@ -870,3 +870,16 @@
   color: var(--ink-faint);
   margin: var(--space-2) 0 0;
 }
+
+/* Opened: the reader has been in it, and done nothing there yet.
+
+   The rung between *ready* and *started*, and drawn as the step between
+   them — the mustard arrives as a rule before it arrives as a ground,
+   so the ladder reads outline, outline, outline, fill, fill and the two
+   filled stamps stay the two that mean work happened. Ink rather than
+   ink-soft, because having been somewhere is a fact about the reader
+   and not a property of the lesson. */
+.lessonStamp[data-lesson='opened'] {
+  border: 1px solid var(--plate-mustard);
+  color: var(--ink);
+}

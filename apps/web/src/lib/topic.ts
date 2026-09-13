@@ -76,25 +76,52 @@ export async function readTopicArea(
     ...new Set((edges ?? []).map(e => (e.from_topic === topicId ? e.to_topic : e.from_topic))),
   ]
 
+  /** A lesson row as this reader asks for it. `opened_at` is optional
+   *  because the read below may have had to ask without it. */
+  interface LessonSelect {
+    id: string
+    curriculum_id: string
+    title: string
+    summary: string | null
+    position: number
+    stage: string
+    estimated_minutes: number | null
+    completed_at: string | null
+    has_body: boolean
+    opened_at?: string | null
+  }
+
+  // `opened_at` arrives with `036`, and a migration merged to `main` is
+  // applied on the push while the web build is not in the same
+  // transaction as it -- so for the minute or two either way this read
+  // has to work against the schema on both sides of it. Asked for, and
+  // asked again without it if the column is not there yet: losing it
+  // costs one rung of the standing, which falls back to *ready*, where
+  // letting the read fail would cost the whole route and print the
+  // topic as a topic with no lessons in it. The same bargain `033`
+  // struck for the bed's order.
+  const LESSON_COLUMNS =
+    'id, curriculum_id, title, summary, position, stage, estimated_minutes, completed_at, has_body'
+
+  const readLessons = async () => {
+    if (!curriculumIds.length) return { data: [] as LessonSelect[] }
+    const asked = await db
+      .from('lessons')
+      .select(`${LESSON_COLUMNS}, opened_at`)
+      .in('curriculum_id', curriculumIds)
+      .order('position')
+    if (!asked.error) return { data: asked.data as LessonSelect[] }
+
+    const without = await db
+      .from('lessons')
+      .select(LESSON_COLUMNS)
+      .in('curriculum_id', curriculumIds)
+      .order('position')
+    return { data: (without.data ?? []) as LessonSelect[] }
+  }
+
   const [{ data: lessons }, { data: neighbourTopics }] = await Promise.all([
-    curriculumIds.length
-      ? db.from('lessons')
-          .select('id, curriculum_id, title, summary, position, stage, estimated_minutes, completed_at, has_body')
-          .in('curriculum_id', curriculumIds)
-          .order('position')
-      : Promise.resolve({
-          data: [] as Array<{
-            id: string
-            curriculum_id: string
-            title: string
-            summary: string | null
-            position: number
-            stage: string
-            estimated_minutes: number | null
-            completed_at: string | null
-            has_body: boolean
-          }>,
-        }),
+    readLessons(),
     neighbourIds.length
       ? db.from('topics').select('id, title').in('id', neighbourIds)
       : Promise.resolve({ data: [] as Array<{ id: string; title: string }> }),
@@ -130,6 +157,12 @@ export async function readTopicArea(
           // Generated in the database from the body itself, so the row
           // never carries the prose to say whether there is any.
           has_body: l.has_body ?? false,
+          // Read through `?? null`, because the column arrives with
+          // `036` and the web build and the migration are not one
+          // transaction: for the minutes between them the select
+          // answers without it, and every lesson reads as never opened
+          // rather than as undefined.
+          opened_at: l.opened_at ?? null,
         })),
       }
     }),
