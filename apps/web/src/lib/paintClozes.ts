@@ -47,8 +47,11 @@ export function paintClozes(
       tag: 'span',
       attribute: 'cloze',
       // Its own wrappers and the blocks' controls, and deliberately not
-      // `[data-mark]`: a marked sentence can be tended too.
-      skip: '[data-cloze],button,textarea',
+      // `[data-mark]`: a marked sentence can be tended too. `math` is
+      // skipped for the reason `paintMarks` gives: a formula's source
+      // sits in an annotation that is rendered nowhere, and walking it
+      // would put the TeX into the text every passage is searched for.
+      skip: '[data-cloze],math,button,textarea',
       dress: (piece, first) => {
         if (first) {
           piece.tabIndex = 0

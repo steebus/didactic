@@ -14,6 +14,7 @@
 import { Marked, type Tokens } from 'marked'
 import createDOMPurify from 'dompurify'
 import { LESSON_SCHEME, resolveLesson, type LessonLink } from '@didactic/core/lessonLinks'
+import { MATHML_ATTR, MATHML_TAGS, maths } from './maths'
 import {
   SOURCE_SCHEME,
   resolveSource,
@@ -38,12 +39,21 @@ export function purifier() {
   return createDOMPurify(new JSDOM('').window as unknown as Window & typeof globalThis)
 }
 
-/** Everything a lesson body is allowed to be. */
+/**
+ * Everything a lesson body is allowed to be.
+ *
+ * The mathematics is appended rather than listed here because it is a
+ * different kind of entry: the rest of this list is markup a model
+ * might reasonably write, and `./maths` is markup only KaTeX writes,
+ * from TeX the model wrote. See the note there for why that is the
+ * safer of the two ways to typeset a formula.
+ */
 export const PROSE_TAGS = [
   'p', 'br', 'strong', 'em', 'del', 'code', 'pre', 'blockquote',
   'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
   'ul', 'ol', 'li', 'hr', 'a',
   'table', 'thead', 'tbody', 'tr', 'th', 'td',
+  ...MATHML_TAGS,
 ]
 
 /**
@@ -51,7 +61,13 @@ export const PROSE_TAGS = [
  * headings and no tables -- a note is a remark about a passage, and a
  * remark that needs an <h2> is a lesson.
  */
-export const NOTE_TAGS = ['p', 'br', 'strong', 'em', 'del', 'code', 'ul', 'ol', 'li', 'a']
+export const NOTE_TAGS = [
+  'p', 'br', 'strong', 'em', 'del', 'code', 'ul', 'ol', 'li', 'a',
+  // A reader writing about a lesson on logarithms will write a
+  // logarithm. Notation is not a heading or a table -- it is the
+  // shortest way to say the thing the note is about.
+  ...MATHML_TAGS,
+]
 
 /** What a link to a lesson that is not there says on hover. */
 export const STUB_NOTE = 'No lesson for this yet'
@@ -80,7 +96,7 @@ function attr(value: string): string {
  * carries it to anyone who cannot see the colour.
  */
 function reader(lessons?: Map<string, LessonLink>, sources?: Map<string, SourceLink>) {
-  return new Marked({
+  return new Marked(maths, {
     renderer: {
       link(token: Tokens.Link) {
         const href = token.href ?? ''
@@ -149,7 +165,10 @@ export function renderMarkdown(
 
   const clean = DOMPurify.sanitize(raw, {
     ALLOWED_TAGS: allowed,
-    ALLOWED_ATTR: ['href', 'title'],
+    // The mathematics carries its own, and every one of them is
+    // presentational: how wide a rule is, whether an operator
+    // stretches. None can hold a URL, a script or an ink.
+    ALLOWED_ATTR: ['href', 'title', ...MATHML_ATTR],
     // Links in generated prose open elsewhere; nothing here should be
     // able to script or reach back into the page.
     ADD_ATTR: ['target', 'rel'],

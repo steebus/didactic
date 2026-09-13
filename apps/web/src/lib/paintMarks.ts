@@ -42,7 +42,14 @@ export function paintMarks(
     // controls. A tended passage is deliberately absent: a sentence can
     // be marked and tended at once, and the two layers must not depend
     // on which of them ran last.
-    skip: '[data-mark],button,textarea',
+    //
+    // `math` is absent for the opposite reason. A formula is not prose:
+    // its glyphs are elements, and the TeX it was typeset from sits in
+    // an `<annotation>` that is rendered nowhere and would otherwise be
+    // walked into the searchable text -- so a passage next to an
+    // equation would be looked for in a string with the equation's
+    // source spliced through it, and never found.
+    skip: '[data-mark],math,button,textarea',
     dress: (piece, first) => {
       if (noted.has(piece.dataset.mark ?? '')) piece.dataset.noted = 'true'
 

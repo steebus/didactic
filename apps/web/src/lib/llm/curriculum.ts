@@ -327,6 +327,8 @@ Never announce a block or label it in the prose -- no "steps:", no "here is a ch
 
 Use markdown headings and prose. Explain the idea, show one worked example, and finish with something concrete to try. No preamble, no "in this lesson we will".
 
+Mathematics is typeset: write TeX between $ for notation inside a sentence and between $$ for an equation on a line of its own. Give a display equation its own line, with a blank line either side -- several $$...$$ run together on one line read as one wall rather than as three steps. Use it where notation is genuinely clearer than words, and not for a number that is only a number: $b^n$ and $\log_b(x) = y$ earn it, "20-40%" does not.
+
 ${blockPromptSection()}`
 
   const client = getClient()

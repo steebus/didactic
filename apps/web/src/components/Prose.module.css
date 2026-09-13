@@ -218,3 +218,37 @@
     transform: translateY(calc(var(--motion-travel) * 0.375rem));
   }
 }
+
+/* --- Mathematics -------------------------------------------------- */
+
+/* Set by the browser from MathML, in whatever it has for a maths face.
+   Nothing here tries to make it look like KaTeX: what it has to do is
+   sit on the same baseline as the sentence around it and not shout. */
+.prose :global(math) {
+  /* The browser's maths default runs a shade large beside this body
+     size, and notation inside a sentence should read as part of it. */
+  font-size: 1.05em;
+}
+
+/* An equation on a line of its own: given the air a paragraph gets,
+   and allowed to scroll rather than to widen the sheet. A long
+   derivation on a phone is the one thing here that cannot be made to
+   wrap, and a page that scrolls sideways is a broken page (§8). */
+.prose :global(math[display='block']) {
+  display: block;
+  margin: var(--space-4) 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  /* The scroll needs somewhere to put its bar without clipping a
+     descender or nudging the line below. */
+  padding-bottom: var(--space-1);
+}
+
+/* The TeX a formula was typeset from rides along in an <annotation> so
+   that it can be copied and read aloud. It is never drawn -- browsers
+   do not render the non-visual child of <semantics> -- but stating it
+   costs nothing and means a browser that disagrees does not print the
+   source underneath every equation. */
+.prose :global(annotation) {
+  display: none;
+}

@@ -898,6 +898,33 @@ draw it back onto. Everywhere marks are printed, an empty quote prints
 `A note on this lesson` in the label register rather than an empty blockquote
 with a mustard rule down the side of it.
 
+### Mathematics
+
+A lesson on logarithms is mostly notation, so TeX between `$` and `$$` is
+typeset rather than printed. It is set as **MathML**, by the browser, in whatever
+it has for a maths face.
+
+| Part | Treatment |
+| --- | --- |
+| In a sentence | `font-size: 1.05em` — the browser's maths default runs a shade large beside this body size, and notation inside a sentence should read as part of it. |
+| On its own line | `math[display='block']`, with `--space-4` above and below: the air a paragraph gets. |
+| Too wide | `overflow-x: auto` on the equation alone, with `--space-1` under it for the bar. |
+| The source | The `<annotation>` carrying the TeX is `display: none`, stated rather than assumed. |
+
+**Rule — a formula is set, or it is printed as typed; it is never dropped.** A
+model writes TeX it has not compiled, so some of it will not compile. A hole
+where an equation should be teaches less than the equation as the writer typed
+it, so a formula KaTeX refuses is printed verbatim, delimiters and all.
+
+**Rule — a formula wears the catalogue's ink, not its own.** The allowlist admits
+no attribute that can hold a colour, a background or a style, and KaTeX is given
+no trust — `\href`, `\url` and `\includegraphics` are refused at the source. A
+formula is notation; it is not a way into the page.
+
+**Rule — an equation scrolls; the sheet does not.** A long derivation on a phone
+is the one thing here that cannot be made to wrap, and a page that scrolls
+sideways is a broken page (§8). The scroll belongs to the equation.
+
 ### Tended passages, and the card
 
 A sentence a cloze was cut from is drawn back onto its own lesson, by the same
