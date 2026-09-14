@@ -14,6 +14,25 @@ const COMMANDS = [
 ] as const
 
 /**
+ * The blocks a line can be turned into.
+ *
+ * `formatBlock` rather than a command of its own: it is the same
+ * deprecated-and-universal `execCommand` the four above use, and it
+ * takes the tag as its argument, so three headings and a quote are one
+ * mechanism rather than four.
+ *
+ * Two heading levels and not six. A diary entry is a page about a week
+ * -- it wants sections and the odd sub-section, and a sixth level in a
+ * box this size is a control nobody presses. The serialiser reads all
+ * six, so an entry that arrives with deeper headings keeps them.
+ */
+const BLOCKS = [
+  { tag: 'h2', label: 'Heading', hint: 'Heading', glyph: 'H1' },
+  { tag: 'h3', label: 'Sub-heading', hint: 'Sub-heading', glyph: 'H2' },
+  { tag: 'blockquote', label: 'Quote', hint: 'Quote', glyph: '❝' },
+] as const
+
+/**
  * Writing a note, with the formatting a note actually wants.
  *
  * A box you can bold things in, storing markdown -- see
@@ -55,6 +74,33 @@ export function NoteEditor({
    *  it would drop the cursor to the top on every keystroke. */
   const mine = useRef<string | null>(null)
   const [active, setActive] = useState<Record<string, boolean>>({})
+  /** The block the cursor is standing in: `h2`, `blockquote`, `pre`. */
+  const [here, setHere] = useState('')
+
+  /**
+   * Which block the cursor is in, read off the DOM.
+   *
+   * `queryCommandValue('formatBlock')` is the obvious way and the
+   * browsers disagree about it -- some answer with the tag, some with
+   * nothing inside a list, and none of them mention `<pre>` reliably.
+   * Walking up to the box is the same few lines and says the same thing
+   * everywhere.
+   */
+  function blockHere(): string {
+    const el = box.current
+    const selection = document.getSelection()
+    if (!el || !selection?.anchorNode) return ''
+
+    let node: Node | null = selection.anchorNode
+    while (node && node !== el) {
+      if (node.nodeType === 1) {
+        const tag = (node as Element).tagName.toLowerCase()
+        if (tag === 'pre' || tag === 'blockquote' || /^h[1-6]$/.test(tag)) return tag
+      }
+      node = node.parentNode
+    }
+    return ''
+  }
 
   const report = useCallback(() => {
     const el = box.current
@@ -103,6 +149,7 @@ export function NoteEditor({
         }
       }
       setActive(state)
+      setHere(blockHere())
     }
     document.addEventListener('selectionchange', sync)
     return () => document.removeEventListener('selectionchange', sync)
@@ -115,6 +162,62 @@ export function NoteEditor({
     } catch {
       return
     }
+    report()
+  }
+
+  /**
+   * Turn the line the cursor is in into a block, or back into prose.
+   *
+   * Pressing the control a line is already in takes it off, which is
+   * what the pressed state promises: a toolbar that only ever adds
+   * leaves no way back to a paragraph except undo.
+   */
+  function setBlock(tag: string) {
+    box.current?.focus()
+    try {
+      document.execCommand('formatBlock', false, blockHere() === tag ? 'p' : tag)
+    } catch {
+      return
+    }
+    report()
+  }
+
+  /**
+   * A fenced specimen around what is selected, or an empty one to type
+   * into.
+   *
+   * Built by hand because `execCommand` has no fence: `formatBlock`
+   * with `pre` gives a `<pre>` with no `<code>` inside it, which is not
+   * what a markdown renderer reads and not what the serialiser writes.
+   * So the pair is made here, and the cursor is put inside it.
+   */
+  function codeBlock() {
+    const el = box.current
+    if (!el) return
+    el.focus()
+
+    const selection = document.getSelection()
+    if (!selection?.rangeCount) return
+    const range = selection.getRangeAt(0)
+    if (!el.contains(range.commonAncestorContainer)) return
+
+    const pre = document.createElement('pre')
+    const code = document.createElement('code')
+    // The selected text, taken as text: what is being fenced is code,
+    // so whatever markup it was wearing is not part of it.
+    code.textContent = range.toString() || '\n'
+    pre.append(code)
+
+    range.deleteContents()
+    range.insertNode(pre)
+
+    // Inside the specimen, at the end of what was just put there.
+    const inside = document.createRange()
+    inside.selectNodeContents(code)
+    inside.collapse(false)
+    selection.removeAllRanges()
+    selection.addRange(inside)
+
     report()
   }
 
@@ -143,6 +246,36 @@ export function NoteEditor({
             {glyph}
           </button>
         ))}
+
+        {/* What a line is, set apart from what a word is. */}
+        <span className={styles.divide} aria-hidden="true" />
+
+        {BLOCKS.map(({ tag, label: name, hint, glyph }) => (
+          <button
+            key={tag}
+            type="button"
+            className={`${styles.control} ${here === tag ? styles.on : ''}`}
+            aria-label={name}
+            aria-pressed={here === tag}
+            title={hint}
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => setBlock(tag)}
+          >
+            {glyph}
+          </button>
+        ))}
+
+        <button
+          type="button"
+          className={`${styles.control} ${here === 'pre' ? styles.on : ''}`}
+          aria-label="Code block"
+          aria-pressed={here === 'pre'}
+          title="Code block"
+          onMouseDown={e => e.preventDefault()}
+          onClick={codeBlock}
+        >
+          <CodeGlyph />
+        </button>
       </div>
 
       <div
@@ -205,6 +338,22 @@ export function NoteEditor({
         </ul>
       )}
     </div>
+  )
+}
+
+/** Two angle brackets, which is what code looks like from a distance. */
+function CodeGlyph() {
+  return (
+    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">
+      <path
+        d="M5.5 3.5 1.5 8l4 4.5M10.5 3.5 14.5 8l-4 4.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   )
 }
 

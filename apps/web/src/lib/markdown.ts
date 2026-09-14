@@ -57,12 +57,28 @@ export const PROSE_TAGS = [
 ]
 
 /**
- * What a note is allowed to be: emphasis, lists, links, code. No
- * headings and no tables -- a note is a remark about a passage, and a
- * remark that needs an <h2> is a lesson.
+ * What a note is allowed to be: emphasis, lists, links, code, headings,
+ * fenced specimens and quotes.
+ *
+ * This list used to stop short of headings, on the reasoning that a
+ * note is a remark about a passage and a remark needing an <h2> is a
+ * lesson. That was right about the only note there was. It is wrong
+ * about a diary entry, which is a page about a week -- what is sticking,
+ * what is not, what got shipped at work -- and which wants sections, a
+ * block of the code that finally made it land, and the odd quote.
+ *
+ * Both go through one allowlist rather than two. A second list would
+ * mean a second render path and a rule about which applies where, for a
+ * distinction the reader does not draw while writing: the difference
+ * between a note and an entry is where it was written, not what it is
+ * allowed to say.
+ *
+ * Still no tables. Nothing writes one by hand in a box like this, and
+ * the serialiser has no way back from one.
  */
 export const NOTE_TAGS = [
   'p', 'br', 'strong', 'em', 'del', 'code', 'ul', 'ol', 'li', 'a',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre', 'blockquote', 'hr',
   // A reader writing about a lesson on logarithms will write a
   // logarithm. Notation is not a heading or a table -- it is the
   // shortest way to say the thing the note is about.
@@ -200,6 +216,20 @@ export function renderMarkdown(
       node.setAttribute('target', '_blank')
       node.setAttribute('rel', 'noreferrer')
     }
+    // What language a specimen is in, and nothing else.
+    //
+    // `class` has to be admitted for a fenced block to say what it
+    // holds -- the editor reads `language-x` back when it serialises,
+    // and without it every specimen round-trips into an unlabelled
+    // one. Admitting the attribute wholesale would hand model output a
+    // hook into this catalogue's stylesheet, so what survives is one
+    // class, on one element, matched against one pattern; anything
+    // else on any other element is dropped.
+    if (node.hasAttribute?.('class')) {
+      const tongue = node.getAttribute('class')?.match(/^language-[\w+-]+$/)
+      if (node.tagName === 'CODE' && tongue) node.setAttribute('class', tongue[0])
+      else node.removeAttribute('class')
+    }
   })
 
   const clean = DOMPurify.sanitize(raw, {
@@ -207,7 +237,9 @@ export function renderMarkdown(
     // The mathematics carries its own, and every one of them is
     // presentational: how wide a rule is, whether an operator
     // stretches. None can hold a URL, a script or an ink.
-    ALLOWED_ATTR: ['href', 'title', ...MATHML_ATTR],
+    // `class` is admitted only so a specimen can say what language it
+    // is in; the hook above throws away every other use of it.
+    ALLOWED_ATTR: ['href', 'title', 'class', ...MATHML_ATTR],
     // Links in generated prose open elsewhere; nothing here should be
     // able to script or reach back into the page.
     ADD_ATTR: ['target', 'rel'],

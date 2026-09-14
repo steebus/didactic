@@ -46,6 +46,11 @@ export function editorHtmlToMarkdown(root: Node): string {
 const BLOCKS = new Set(['p', 'div', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
 const LISTS = new Set(['ul', 'ol'])
 
+/** How many `#` a heading is worth, by tag. */
+const HEADINGS: Record<string, string> = {
+  h1: '#', h2: '##', h3: '###', h4: '####', h5: '#####', h6: '######',
+}
+
 const tagOf = (node: Node) =>
   node.nodeType === 1 ? (node as Element).tagName.toLowerCase() : ''
 
@@ -76,14 +81,46 @@ function block(node: Node, lines: string[], depth: number): void {
       continue
     }
 
+    // A specimen is taken as it stands. Everything else here walks the
+    // markup looking for meaning; inside a fence the markup *is* the
+    // meaning -- an asterisk is an asterisk and a newline is where the
+    // line ends -- so `inline()` must not touch it.
+    if (tag === 'pre') {
+      flush()
+      fence(child as Element, lines)
+      continue
+    }
+
     if (BLOCKS.has(tag)) {
       flush()
       // A block carrying blocks of its own is walked rather than
       // flattened -- see the note above about lists inside paragraphs.
-      if (Array.from(child.childNodes).some(n => BLOCKS.has(tagOf(n)) || LISTS.has(tagOf(n)))) {
+      if (
+        Array.from(child.childNodes).some(
+          n => BLOCKS.has(tagOf(n)) || LISTS.has(tagOf(n)) || tagOf(n) === 'pre'
+        )
+      ) {
+        // A quote holds paragraphs rather than text -- which is what
+        // the renderer builds, and what the box holds the moment a
+        // second line is typed into one. The mark belongs to every
+        // line inside it, so it is carried down rather than lost here.
+        if (tag === 'blockquote') {
+          const inner: string[] = []
+          block(child, inner, depth)
+          for (const line of inner) lines.push(line.trim() ? `> ${line}` : '>')
+          // The trailing `>` a blank line inside the quote leaves is
+          // not part of it.
+          while (lines.length && lines[lines.length - 1] === '>') lines.pop()
+          lines.push('')
+          continue
+        }
         block(child, lines, depth)
       } else {
-        paragraph(inline(child), lines)
+        // A heading and a quote are a paragraph with a mark in front of
+        // every line of them. The mark is passed down rather than added
+        // here because a block can hold a break, and half a heading is
+        // not a heading.
+        paragraph(inline(child), lines, HEADINGS[tag] ?? (tag === 'blockquote' ? '>' : ''))
       }
       continue
     }
@@ -122,16 +159,49 @@ function list(element: Element, lines: string[], depth: number): void {
   if (depth === 0) lines.push('')
 }
 
-/** Add a rendered run of text as a paragraph, blank line and all. */
-function paragraph(text: string, lines: string[]): void {
+/**
+ * Add a rendered run of text as a paragraph, blank line and all.
+ *
+ * `mark` is what goes in front of each line -- `##` for a heading, `>`
+ * for a quote, nothing for prose. A marked line is not guarded: the
+ * mark is the markup, and escaping it would print the hash rather than
+ * set the heading.
+ */
+function paragraph(text: string, lines: string[], mark = ''): void {
   // A break inside a block parts paragraphs. Markdown's own hard break
   // is two trailing spaces, which no editor preserves and no reader can
   // see; a note is better served by the simpler reading.
   for (const part of text.split('\n')) {
     const line = part.trim()
     if (!line) continue
-    lines.push(guard(line), '')
+    lines.push(mark ? `${mark} ${line}` : guard(line), '')
   }
+}
+
+/**
+ * A fenced specimen, taken as it stands.
+ *
+ * `textContent` rather than a walk of the children: a contenteditable
+ * box puts `<div>`s and `<br>`s inside a `<pre>` as the cursor moves
+ * through it, and none of that is part of the code. The text is what
+ * was typed.
+ *
+ * The fence is grown past any run of backticks in the code, so a
+ * specimen that is itself about markdown does not end the block it is
+ * sitting in.
+ */
+function fence(element: Element, lines: string[]): void {
+  const code = (element.textContent ?? '').replace(/ /g, ' ').replace(/\s+$/, '')
+  if (!code.trim()) return
+
+  const longest = Math.max(0, ...Array.from(code.matchAll(/`+/g), m => m[0].length))
+  const rail = '`'.repeat(Math.max(3, longest + 1))
+
+  // The language, when the box was given one. `language-x` is what
+  // every markdown renderer writes and what ours reads back.
+  const tongue = element.querySelector('code')?.className.match(/language-([\w+-]+)/)?.[1] ?? ''
+
+  lines.push(`${rail}${tongue}`, ...code.split('\n'), rail, '')
 }
 
 function inline(node: Node): string {

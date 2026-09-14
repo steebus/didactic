@@ -161,8 +161,11 @@ describe('a note', () => {
   it('may write a logarithm, because it is about one', () => {
     const html = renderMarkdown('so $\\log_b(x)$ inverts it', NOTE_TAGS)
     expect(formulas(html)).toBe(1)
-    // And is still a note: no headings, as before.
-    expect(renderMarkdown('# Not a lesson', NOTE_TAGS)).not.toContain('<h1')
+    // A note carries headings as of the diary -- an entry is a page
+    // about a week and wants sections. A table it still does not: see
+    // NOTE_TAGS for which of the two is a deliberate omission.
+    expect(renderMarkdown('# A section', NOTE_TAGS)).toContain('<h1')
+    expect(renderMarkdown('| a |\n| - |\n| 1 |', NOTE_TAGS)).not.toContain('<table')
   })
 })
 

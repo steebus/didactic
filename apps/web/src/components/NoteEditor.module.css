@@ -121,6 +121,73 @@
   text-decoration-color: var(--plate-mustard);
 }
 
+/* A section, in the display face the sheets set headings in. Smaller
+   steps than a sheet's: these are sections of one entry, standing in a
+   box, not titles over a page. */
+.box h1,
+.box h2,
+.box h3,
+.box h4,
+.box h5,
+.box h6 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 1.2;
+  margin: var(--space-3) 0 var(--space-2);
+}
+
+.box > :first-child {
+  margin-top: 0;
+}
+
+.box h1,
+.box h2 {
+  font-size: var(--step-1);
+}
+
+.box h3,
+.box h4,
+.box h5,
+.box h6 {
+  font-size: var(--step-0);
+}
+
+/* The same specimen plate the prose sets a code block on, so what is
+   typed here looks like what is kept. */
+.box pre {
+  margin: 0 0 var(--space-2);
+  background: var(--paper-deep);
+  border-top: 3px solid var(--plate-green);
+  padding: var(--space-3);
+  overflow-x: auto;
+  font-size: var(--step--1);
+  line-height: 1.55;
+  /* A specimen keeps its own line breaks -- it is the one place in the
+     box where whitespace is content. */
+  white-space: pre-wrap;
+}
+
+.box pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+.box blockquote {
+  margin: 0 0 var(--space-2);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--plate-mustard);
+  color: var(--ink-soft);
+}
+
+/* Between what a word is and what a line is. */
+.divide {
+  width: 1px;
+  align-self: stretch;
+  margin: var(--space-1) var(--space-1);
+  background: var(--paper-edge);
+}
+
 /* --- Naming a topic or a lesson ------------------------------------
 
    A slip of paper laid over the writing at the point the `@` was

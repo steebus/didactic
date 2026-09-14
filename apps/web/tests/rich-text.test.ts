@@ -100,9 +100,77 @@ describe('markdownToEditorHtml', () => {
   })
 
   it('allows a note nothing a note has no business carrying', () => {
+    // Headings and specimens are a note's business as of the diary --
+    // a script and a table are still not.
     const html = markdownToEditorHtml('# Heading\n\n<script>alert(1)</script>')
-    expect(html).not.toContain('<h1')
+    expect(html).toContain('<h1')
     expect(html).not.toContain('script')
+    expect(markdownToEditorHtml('| a | b |\n| - | - |\n| 1 | 2 |')).not.toContain('<table')
+  })
+})
+
+describe('the one class that survives', () => {
+  it('keeps the language of a specimen', () => {
+    expect(markdownToEditorHtml('```ts\nlet a = 1\n```')).toContain('class="language-ts"')
+  })
+
+  it('drops a class on anything else, and any class that is not a language', () => {
+    // `class` is admitted for one purpose. Everything else that reaches
+    // for it -- a model steered by an ingested page, a paste out of
+    // another site -- gets nothing.
+    const html = markdownToEditorHtml(
+      '<p class="plate-green">Ours.</p>\n\n<code class="anything">x</code>'
+    )
+    expect(html).not.toContain('plate-green')
+    expect(html).not.toContain('anything')
+  })
+})
+
+describe('headings, quotes and specimens', () => {
+  it('sets a heading at the level the box drew it', () => {
+    expect(box('<h2>A section</h2>')).toBe('## A section')
+    expect(box('<h1>Top</h1><h3>Under</h3>')).toBe('# Top\n\n### Under')
+  })
+
+  it('keeps emphasis inside a heading', () => {
+    expect(box('<h2>A <b>firm</b> section</h2>')).toBe('## A **firm** section')
+  })
+
+  it('marks a quote', () => {
+    expect(box('<blockquote>Worth keeping.</blockquote>')).toBe('> Worth keeping.')
+  })
+
+  it('takes a specimen exactly as it stands', () => {
+    // The asterisks are code, not emphasis, and must not be escaped
+    // into `\*` on the way out.
+    expect(box('<pre><code>a = b * c</code></pre>')).toBe('```\na = b * c\n```')
+  })
+
+  it('keeps the line breaks inside a specimen', () => {
+    expect(box('<pre><code>one\ntwo</code></pre>')).toBe('```\none\ntwo\n```')
+  })
+
+  it('carries the language when the box was given one', () => {
+    expect(box('<pre><code class="language-ts">let a = 1</code></pre>')).toBe(
+      '```ts\nlet a = 1\n```'
+    )
+  })
+
+  it('grows the fence past backticks in the code', () => {
+    // A specimen about markdown would otherwise end the block it is in.
+    expect(box('<pre><code>```\nnested\n```</code></pre>')).toBe(
+      '````\n```\nnested\n```\n````'
+    )
+  })
+
+  it('reads a specimen the browser nested inside a div', () => {
+    // Which is where a contenteditable box puts it if the cursor was in
+    // a block when the fence was made.
+    expect(box('<div><pre><code>code()</code></pre></div>')).toBe('```\ncode()\n```')
+  })
+
+  it('leaves an empty specimen out rather than printing a bare fence', () => {
+    expect(box('<pre><code>   </code></pre>')).toBe('')
   })
 })
 
@@ -118,6 +186,13 @@ describe('a note that goes round the loop', () => {
     'Call `a*b` on it.',
     '- One\n  - Under it\n- Two',
     'A line.\n\n- One\n- Two',
+    '## A section',
+    '# One\n\n## Two\n\n### Three',
+    '## A section\n\nAnd what is under it.',
+    '> Worth keeping.',
+    '```\nconst a = 1\n```',
+    '```ts\nconst a: number = 1\n```',
+    'Before.\n\n```\ncode()\n```\n\nAfter.',
   ]
 
   for (const markdown of cases) {
