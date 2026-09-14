@@ -68,10 +68,29 @@ ${text.slice(0, MAX_CHARS)}`,
 
   const tool = res.content.find(c => c.type === 'tool_use')
   if (!tool || tool.type !== 'tool_use') {
-    throw new Error('extractConcepts: no structured output')
+    throw new Error(
+      `extractConcepts: no structured output (stop_reason ${res.stop_reason}, content ${res.content.map(c => c.type).join('+') || 'empty'})`
+    )
   }
 
-  return readConcepts(tool.input)
+  const read = readConcepts(tool.input)
+
+  // What came back, when what came back was nothing. Named at the point
+  // it is known rather than inferred two frames up: whether the model
+  // ran out of room, answered with a shape nobody expects, or genuinely
+  // found nothing are three different problems with three different
+  // fixes, and by the time `ingest` sees an empty array they look the
+  // same.
+  if (read.concepts.length === 0) {
+    const shape = Array.isArray((tool.input as Record<string, unknown>)?.concepts)
+      ? 'array'
+      : typeof (tool.input as Record<string, unknown>)?.concepts
+    console.error(
+      `extractConcepts: nothing usable. stop_reason=${res.stop_reason} concepts=${shape} keys=${Object.keys((tool.input ?? {}) as object).join(',')} out=${res.usage?.output_tokens}`
+    )
+  }
+
+  return read
 }
 
 /**
