@@ -105,7 +105,7 @@ export async function ingestResource(
   }
 
   // 2. Extract concepts.
-  const { summary, concepts } = await extractConcepts(title, text)
+  const { summary, concepts, why } = await extractConcepts(title, text)
 
   // A reading that found nothing is a failure, and has to say so.
   //
@@ -121,7 +121,7 @@ export async function ingestResource(
   // often followed by one that does not.
   if (concepts.length === 0) {
     throw new Error(
-      `ingest: read ${text.length} characters of "${title}" and found no concepts in it`
+      `ingest: read ${text.length} characters of "${title}" and found no concepts in it (${why})`
     )
   }
 

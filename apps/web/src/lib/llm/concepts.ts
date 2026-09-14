@@ -74,6 +74,14 @@ ${text.slice(0, MAX_CHARS)}`,
   }
 
   const read = readConcepts(tool.input)
+  // Kept on the result so the caller can say why, in the one place a
+  // reason reliably reaches the reader: the thrown error. A
+  // console.error here does not survive the serverless log stream.
+  const held = (tool.input ?? {}) as Record<string, unknown>
+  const why =
+    `stop=${res.stop_reason} keys=${Object.keys(held).join('|') || 'none'} ` +
+    `concepts=${Array.isArray(held.concepts) ? `array(${held.concepts.length})` : typeof held.concepts} ` +
+    `out=${res.usage?.output_tokens ?? '?'}`
 
   // What came back, when what came back was nothing. Named at the point
   // it is known rather than inferred two frames up: whether the model
@@ -90,7 +98,7 @@ ${text.slice(0, MAX_CHARS)}`,
     )
   }
 
-  return read
+  return { ...read, why }
 }
 
 /**
