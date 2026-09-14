@@ -40,7 +40,20 @@ const TOOL = {
 export async function extractConcepts(title: string, text: string) {
   const res = await getClient().messages.create({
     model: 'claude-sonnet-5',
-    max_tokens: 2000,
+    // Room for the long way round.
+    //
+    // Measured on a 7,000-word article: about one response in four
+    // comes back with `concepts` serialised as a JSON *string* rather
+    // than as an array, and the string spends several times the tokens
+    // the structured form does. At 2,000 those runs hit the ceiling and
+    // truncated mid-array -- the model stopped for `max_tokens`, the
+    // half-written JSON would not parse, and the article was filed
+    // against nothing while reporting success.
+    //
+    // The reading itself is a dozen short concepts and a summary; this
+    // is headroom for the malformed case, not an invitation to write
+    // more.
+    max_tokens: 8000,
     tools: [TOOL],
     tool_choice: { type: 'tool', name: 'record_concepts' },
     messages: [{
@@ -106,13 +119,37 @@ export function readConcepts(input: unknown): {
 /** An array, whether it arrived as one or as JSON text holding one. */
 function asArray(value: unknown): unknown[] {
   if (Array.isArray(value)) return value
-  if (typeof value === 'string') {
+  if (typeof value !== 'string') return []
+
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    // Truncated part way through. Ten good concepts followed by half an
+    // eleventh is ten concepts, and throwing them away files the
+    // resource against nothing -- which is what the reader sees as "it
+    // read my article and found nothing in it".
+    return salvage(value)
+  }
+}
+
+/**
+ * Whole objects from the front of a broken JSON array.
+ *
+ * Only ever reached when the model serialised its answer as a string
+ * and ran out of room finishing it. Each `{...}` is taken on its own,
+ * and the one that was cut off is left behind: a concept is a name and
+ * a number, so a complete object is complete evidence whatever came
+ * after it.
+ */
+function salvage(text: string): unknown[] {
+  const found: unknown[] = []
+  for (const [chunk] of text.matchAll(/\{[^{}]*\}/g)) {
     try {
-      const parsed = JSON.parse(value)
-      return Array.isArray(parsed) ? parsed : []
+      found.push(JSON.parse(chunk))
     } catch {
-      return []
+      // Not an object after all. The next one may still be.
     }
   }
-  return []
+  return found
 }

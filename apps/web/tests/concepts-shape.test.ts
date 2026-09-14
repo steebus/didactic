@@ -57,6 +57,20 @@ describe('readConcepts', () => {
     expect(read.concepts).toEqual([{ name: 'Good', relevance: 0.8 }])
   })
 
+  it('keeps the whole concepts out of a truncated array', () => {
+    // The measured failure: about one response in four serialised its
+    // answer as a string, and the string spent enough tokens to hit the
+    // ceiling and stop mid-array. Ten good concepts followed by half an
+    // eleventh is ten concepts -- discarding them filed the article
+    // against nothing while reporting success.
+    const cut =
+      '[{"name":"React rendering","relevance":0.9},' +
+      '{"name":"Profiling","relevance":0.6},' +
+      '{"name":"Memois'
+    const read = readConcepts({ concepts: cut })
+    expect(read.concepts.map(c => c.name)).toEqual(['React rendering', 'Profiling'])
+  })
+
   it('never throws, whatever arrives', () => {
     // This is the boundary where model output becomes app data. One
     // malformed field costs that field, never the resource.
