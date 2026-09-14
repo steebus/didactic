@@ -7,6 +7,7 @@ import Sigma from 'sigma'
 import forceAtlas2 from 'graphology-layout-forceatlas2'
 import FA2Supervisor from 'graphology-layout-forceatlas2/worker'
 import { didactic } from '@didactic/api'
+import { vagueFigure } from '@didactic/core/scoring'
 import { SheetNav } from './SheetNav'
 import styles from './GraphCanvas.module.css'
 
@@ -878,7 +879,7 @@ function TopicPanel({
   }, [topic.id])
 
   const viability = Math.max(0, Math.round(((topic.ability - 1) / 4) * 100))
-  const vague = topic.ability_confidence < 0.4
+  const vague = vagueFigure(topic.ability_confidence)
 
   return (
     <aside className={styles.panel}>

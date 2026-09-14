@@ -1,7 +1,7 @@
 import { EDITION_DATE as DATE } from '@didactic/core/copy'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { viabilityFigure } from '@didactic/core/scoring'
+import { viabilityFigure, vagueFigure } from '@didactic/core/scoring'
 import { getSubjectArea } from '@/lib/subject'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
 import { SheetNav } from '@/components/SheetNav'
@@ -34,7 +34,7 @@ export default async function SubjectPage({
 
   const { subject, tree, topics, counts, sowing, resources } = area
   const state = stockState(area.freshness, area.lastExposureAt)
-  const vague = area.confidence < 0.4
+  const vague = vagueFigure(area.confidence)
   // The bed's routes folded into one figure, so the band's plant grows
   // with how much of the subject has actually been worked.
   const routes = aggregateRoutes(topics.map(t => routeProgress(t.curricula)))

@@ -1,6 +1,6 @@
 import { EDITION_DATE as EDITION_DATE } from '@didactic/core/copy'
 import Link from 'next/link'
-import { viabilityFigure } from '@didactic/core/scoring'
+import { viabilityFigure, vagueFigure } from '@didactic/core/scoring'
 import { getHomeData } from '@/lib/home'
 import { Emblem, slugify } from '@/components/Emblem'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
@@ -77,7 +77,7 @@ export default async function Home() {
                 // A figure the app is unsure of prints soft and hedged:
                 // ability is app-owned and cannot be corrected by hand,
                 // so it must not look more certain than it is.
-                const vague = subject.confidence < 0.4
+                const vague = vagueFigure(subject.confidence)
                 return (
                   <li key={subject.id}>
                     <Link

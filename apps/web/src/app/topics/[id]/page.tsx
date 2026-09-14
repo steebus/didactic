@@ -2,7 +2,7 @@ import { EDGE_KIND_LABEL } from '@didactic/core/graph'
 import Link from 'next/link'
 import { NoteText } from '@/components/NoteText'
 import { notFound } from 'next/navigation'
-import { viabilityFigure } from '@didactic/core/scoring'
+import { viabilityFigure, vagueFigure } from '@didactic/core/scoring'
 import { getTopicArea } from '@/lib/topic'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
 import { DraftCurriculum } from './DraftCurriculum'
@@ -34,7 +34,7 @@ export default async function TopicPage({
   if (!area) notFound()
 
   const { topic, subjects, curricula, resources, neighbours, exposures, highlights } = area
-  const vague = topic.ability_confidence < 0.4
+  const vague = vagueFigure(topic.ability_confidence)
   const state = stockState(topic.freshness, topic.last_exposure_at)
   const colour = subjects[0]?.colour ?? 'var(--plate-green)'
   const unread = resources.filter(r => r.resource.status === 'queued')

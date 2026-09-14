@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { didactic } from '@didactic/api'
-import { viabilityFigure } from '@didactic/core/scoring'
+import { viabilityFigure, vagueFigure } from '@didactic/core/scoring'
 import { StockBar, stockState, STOCK_LABEL, STOCK_ORDER } from '@/components/StockBar'
 import { useLabour, DRAWINGS } from '@/components/useLabour'
 import { useOpenBed } from '@/components/useOpenBed'
@@ -394,7 +394,7 @@ function TreeRow({
 }) {
   const { topic } = node
   const state = stockState(topic.freshness, topic.last_exposure_at)
-  const vague = topic.ability_confidence < 0.4
+  const vague = vagueFigure(topic.ability_confidence)
   const unread = topic.resources.filter(r => r.status === 'queued').length
   const hasDetail = topic.resources.length > 0 || topic.curricula.length > 0
   // The third channel, printed as a chip: whether there is a route

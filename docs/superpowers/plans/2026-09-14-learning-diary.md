@@ -47,7 +47,7 @@ put the two back in one timeline, which is the entire point of the feature.
 not null default 'mark'` with a check for `('mark','diary')`. Existing rows
 are marks, which they are. Safe to run twice.
 
-### 2. Struggle is a depth, weight 0 — not a negative delta
+### 2. Struggle is a weightless depth plus a confidence clamp
 
 The user asked that a diary entry be able to lower a topic's standing, not
 only raise it. The obvious implementation is a negative `ability_delta`.
@@ -59,23 +59,43 @@ That does not work, and the reason is worth writing down:
 an input to the score. Writing a negative number into it would change no
 figure on any sheet.
 
-So struggle has to be something the scorer sees. It is a fifth depth:
+So struggle has to be something the scorer sees. It is a sixth depth:
 
 ```
 DEPTH_WEIGHTS: { struggled: 0, marked: 0.01, answered: 0.05, skim: 0.2, read: 0.5, applied: 1.0 }
 ```
 
-Weight 0 does exactly the right three things, and does them by arithmetic
-that already exists:
+Weight 0 alone was **not** enough, and finding out why changed the design.
+Recorded here because the first version of this plan asserted the opposite:
 
-- **Ability does not rise.** It contributes nothing to `totalWeight`.
-- **Confidence moves.** `struggled` is a distinct depth, so it counts in
-  `distinctDepths`, and the exposure counts in `exposures.length`. A topic
-  with a struggle in its log reads as *less settled*, which is true.
-- **It is legible.** The topic sheet lists the exposures behind its figure.
-  A `struggled` row prints there with your own sentence as its reason —
-  "still don't get policies" — which is the app's third principle (every
-  number explains itself) doing its job for free.
+> Weight 0 does the right three things... the topic goes vague, not down.
+
+That was wrong, and the test written to prove it proved the reverse. A
+`struggled` exposure at weight 0 is still *one more exposure of one more
+depth*, so it lifts both terms of the confidence formula: recording a
+struggle made the app **more** sure, not less. Exactly backwards.
+
+So the depth does half the job and a clamp does the other half:
+
+- **Ability does not rise.** Weight 0 contributes nothing to `totalWeight`.
+  A topic cannot be lifted off the floor by struggling with it.
+- **Reading is never erased.** Ability is untouched by the clamp, so a
+  month of genuine reading survives a bad week. This is the assertion that
+  rules out the subtract-from-weight design.
+- **Confidence is held under the vague line** while a struggle is the most
+  recent real thing the topic has to say — `STRUGGLING_CONFIDENCE` (0.35)
+  against `CONFIDENT_ENOUGH` (0.4), both now named in `core/config` rather
+  than the 0.4 being hard-coded across five surfaces.
+- **It clears itself.** "Most recent" is read in date order, so reading the
+  thing again, applying it, or skimming it retires the struggle with no
+  "mark as resolved" anywhere. Writing another entry that says it still is
+  not landing clamps it again. A *marked passage does not clear it* —
+  keeping a sentence is evidence you were there, not that you have got it —
+  and neither does one answered question; a skim is the lightest thing that
+  counts.
+- **It is legible.** The topic sheet lists the exposures behind its figure,
+  so a `struggled` row prints there with your own sentence as its reason.
+  Principle three, for free.
 
 The topic goes **vague, not down**. `confidence < 0.4` already renders a
 distinct uncertain state on five surfaces (`/`, `/subjects/[id]`,
@@ -83,13 +103,12 @@ distinct uncertain state on five surfaces (`/`, `/subjects/[id]`,
 
 Rejected: a penalty term subtracting from `totalWeight`. It lets one bad
 week erase a month of genuine reading, which is dishonest in the opposite
-direction, and it rewrites the core scoring function and its test suite for
-a signal the confidence channel already carries.
+direction from flattering.
 
-**This is the load-bearing simplification.** If the user later wants
-struggle to visibly *drop* a number rather than widen it, that is a change
-to `computeAbility` and its tests, and nothing else — the write path, the
-enum, and the UI all stay.
+**Where this is load-bearing.** If the user later wants struggle to visibly
+*drop* a number rather than hold it open, that is a change to
+`computeAbility` and its tests and nothing else — the depth, the write path
+and the UI all stay as they are.
 
 ### 3. `applied` finally has an input
 

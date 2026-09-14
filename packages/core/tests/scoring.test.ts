@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { computeAbility, computeFreshness, subjectAggregate } from '../src/scoring'
+import {
+  computeAbility,
+  computeFreshness,
+  subjectAggregate,
+  vagueFigure,
+} from '../src/scoring'
+import { config } from '../src/config'
 import type { Exposure } from '../src/types'
 
 function exposure(over: Partial<Exposure> = {}): Exposure {
@@ -170,5 +176,97 @@ describe('marked passages', () => {
     // hard-coded three would have let one kind of exposure claim more
     // variety than it has.
     expect(computeAbility(marked(50)).confidence).toBeLessThan(1)
+  })
+})
+
+describe('struggling with something', () => {
+  it('adds no ability at all', () => {
+    // You do not get better at a thing by finding it hard. Whatever
+    // else a struggle does, it must never move the figure up.
+    const read = [exposure({ depth: 'read' })]
+    const readAndStruggled = [...read, exposure({ depth: 'struggled' })]
+
+    expect(computeAbility(readAndStruggled).ability).toBe(computeAbility(read).ability)
+  })
+
+  it('does not erase reading that genuinely happened', () => {
+    // The alternative design -- struggle subtracting from the weight --
+    // would let a bad week wipe a month of real exposure. It is
+    // dishonest in the opposite direction from flattering, and this is
+    // the assertion that rules it out.
+    const struggled = [
+      ...Array(5).fill(exposure({ depth: 'read' })),
+      ...Array(3).fill(exposure({ depth: 'struggled' })),
+    ]
+    expect(computeAbility(struggled).ability).toBeGreaterThan(
+      computeAbility([exposure({ depth: 'read' })]).ability
+    )
+  })
+
+  it('cannot by itself lift a topic off the floor', () => {
+    expect(computeAbility(Array(20).fill(exposure({ depth: 'struggled' }))).ability).toBe(1.0)
+  })
+
+  it('holds the figure open, however much reading is behind it', () => {
+    // The point of the whole mechanism. Weight zero alone would make
+    // the app *more* sure -- one more exposure of one more kind lifts
+    // both terms -- which is exactly backwards when what the reader
+    // just said is "this is not landing".
+    const read = Array(12).fill(exposure({ depth: 'read', created_at: '2026-01-01T00:00:00Z' }))
+    const settled = computeAbility(read).confidence
+    expect(settled).toBeGreaterThan(config.CONFIDENT_ENOUGH)
+
+    const struggling = computeAbility([
+      ...read,
+      exposure({ depth: 'struggled', created_at: '2026-02-01T00:00:00Z' }),
+    ])
+    expect(struggling.confidence).toBeLessThan(config.CONFIDENT_ENOUGH)
+  })
+
+  it('clears itself when the topic is met again', () => {
+    // Nobody has to mark a struggle resolved. Read the thing again and
+    // the struggle is history rather than the current state.
+    const after = computeAbility([
+      ...Array(12).fill(exposure({ depth: 'read', created_at: '2026-01-01T00:00:00Z' })),
+      exposure({ depth: 'struggled', created_at: '2026-02-01T00:00:00Z' }),
+      exposure({ depth: 'read', created_at: '2026-03-01T00:00:00Z' }),
+    ])
+    expect(after.confidence).toBeGreaterThan(config.CONFIDENT_ENOUGH)
+  })
+
+  it('is not answered by marking a passage', () => {
+    // Keeping a sentence is evidence you were there, not evidence you
+    // have got it -- so it must not clear a struggle.
+    const after = computeAbility([
+      ...Array(12).fill(exposure({ depth: 'read', created_at: '2026-01-01T00:00:00Z' })),
+      exposure({ depth: 'struggled', created_at: '2026-02-01T00:00:00Z' }),
+      exposure({ depth: 'marked', created_at: '2026-03-01T00:00:00Z' }),
+    ])
+    expect(after.confidence).toBeLessThan(config.CONFIDENT_ENOUGH)
+  })
+
+  it('clamps rather than zeroes: the app has not stopped knowing anything', () => {
+    const struggling = computeAbility([
+      ...Array(12).fill(exposure({ depth: 'read', created_at: '2026-01-01T00:00:00Z' })),
+      exposure({ depth: 'struggled', created_at: '2026-02-01T00:00:00Z' }),
+    ])
+    expect(struggling.confidence).toBe(config.STRUGGLING_CONFIDENCE)
+    // And the reading itself is untouched.
+    expect(struggling.ability).toBeGreaterThan(2)
+  })
+})
+
+describe('vagueFigure', () => {
+  it('calls a figure a guess below the line and a number at it', () => {
+    expect(vagueFigure(config.CONFIDENT_ENOUGH - 0.01)).toBe(true)
+    expect(vagueFigure(config.CONFIDENT_ENOUGH)).toBe(false)
+    expect(vagueFigure(0)).toBe(true)
+    expect(vagueFigure(1)).toBe(false)
+  })
+
+  it('agrees with where a struggle holds a topic', () => {
+    // The clamp and the sheets must not drift apart: whatever
+    // STRUGGLING_CONFIDENCE is, it has to read as vague.
+    expect(vagueFigure(config.STRUGGLING_CONFIDENCE)).toBe(true)
   })
 })

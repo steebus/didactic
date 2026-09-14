@@ -12,12 +12,25 @@ describe('config', () => {
 
   it('weights depth so applied counts five times a skim', () => {
     expect(config.DEPTH_WEIGHTS).toEqual({
+      // Zero, and in the table rather than out of it: a struggle is
+      // evidence and is recorded, but you do not get better at a thing
+      // by finding it hard. What it moves is the confidence -- see
+      // scoring.ts, which holds a struggling topic under the vague
+      // line rather than taking anything off the figure.
+      struggled: 0,
       marked: 0.01,
       answered: 0.05,
       skim: 0.2,
       read: 0.5,
       applied: 1.0,
     })
+  })
+
+  it('keeps the vague line above where a struggle holds a topic', () => {
+    // The clamp has to land under the line the sheets read, or
+    // recording a struggle would change nothing anyone can see.
+    expect(config.STRUGGLING_CONFIDENCE).toBeLessThan(config.CONFIDENT_ENOUGH)
+    expect(config.STRUGGLING_CONFIDENCE).toBeGreaterThan(0)
   })
 
   it('keeps a marked passage well below a skim', () => {

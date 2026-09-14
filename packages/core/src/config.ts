@@ -89,10 +89,46 @@ export const config = {
   // Only the first answer to a question is ever recorded (027), and a
   // wrong one scores nothing, so this cannot be farmed by re-answering
   // and cannot be lost by guessing.
-  DEPTH_WEIGHTS: { marked: 0.01, answered: 0.05, skim: 0.2, read: 0.5, applied: 1.0 },
+  // Struggle is worth nothing, and is recorded anyway.
+  //
+  // A diary entry that says a topic is not landing is evidence, and the
+  // app would be lying to leave it out. But you do not get better at a
+  // thing by finding it hard, so it adds no ability: weight zero, which
+  // contributes nothing to the curve.
+  //
+  // What it does instead is move the *confidence*. It is an exposure,
+  // so it counts in the tally; it is a distinct depth, so it counts in
+  // the diversity term. A topic with a struggle in its log reads as
+  // less settled than one without -- which is true, and which is the
+  // honest correction: the app knows less than it thought, rather than
+  // the reader suddenly knowing less than they did. Reading that
+  // genuinely happened is never erased.
+  //
+  // Below 0.4 the sheets print a topic as vague, and five surfaces
+  // already draw that state. So this needed no new UI -- only the
+  // truthful input the confidence channel was always waiting for.
+  DEPTH_WEIGHTS: {
+    struggled: 0,
+    marked: 0.01,
+    answered: 0.05,
+    skim: 0.2,
+    read: 0.5,
+    applied: 1.0,
+  },
 
   // You cannot read your way to expert.
   CONSUMPTION_CEILING: 3.5,
+
+  // Under this, a figure is printed as a guess rather than a number.
+  // Five surfaces draw that state and each carried its own 0.4; the
+  // clamp below has to sit under the same line, so the line is named
+  // here rather than in six places.
+  CONFIDENT_ENOUGH: 0.4,
+
+  // Where a struggle holds the figure until something answers it.
+  // Below CONFIDENT_ENOUGH and not at zero: the app has not stopped
+  // knowing anything about the topic, it has stopped being sure.
+  STRUGGLING_CONFIDENCE: 0.35,
 
   FRESHNESS_HALF_LIFE_DAYS: 90,
 } as const
