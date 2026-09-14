@@ -6,8 +6,8 @@ import type { ExposureDepth, LessonStage } from '@didactic/core/types'
 import { ownerId } from '@/lib/auth'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
-import { lessonNeighbours } from '@didactic/core/lessonState'
 import { answeredIn } from '@/lib/answers'
+import { readLesson } from '@/lib/lesson'
 
 /**
  * Drop what this route just changed.
@@ -22,96 +22,16 @@ function dropCache() {
 }
 
 
-/**
- * An embedded row, as PostgREST types it.
- *
- * A `select` that follows a foreign key is typed as the row, an array
- * of the row, or null, depending on how much the generator could work
- * out. These two helpers flatten that back to what the shape actually
- * is at runtime -- one row for a to-one key, a list for a to-many --
- * rather than spreading the ambiguity across the handler.
- */
-type Embedded<T> = T | T[] | null | undefined
-
-function unwrap<T>(rows: Embedded<T>[]): T[] {
-  return rows.flatMap(r => (Array.isArray(r) ? r : r ? [r] : []))
-}
-
-function one<T>(row: Embedded<T>): T | null {
-  return (Array.isArray(row) ? row[0] : row) ?? null
-}
-
-type Topic = { id: string; title: string }
-type PrereqLesson = { id: string; title: string; completed_at: string | null }
-type CurriculumRow = { topics?: Embedded<Topic> }
-
 const STAGES: LessonStage[] = ['introductory', 'core', 'advanced']
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const db = supabaseAdmin()
 
-  // Auth runs alongside the lesson read rather than in front of it. It
-  // is only needed for `answered`, and holding the whole sheet behind
-  // it bought nothing.
-  const [userId, { data: lesson }] = await Promise.all([
-    ownerId(),
-    db.from('lessons').select('*').eq('id', id).single(),
-  ])
-  if (!lesson) return NextResponse.json({ error: 'not found' }, { status: 404 })
+  const payload = await readLesson(db, id, await ownerId())
+  if (!payload) return NextResponse.json({ error: 'not found' }, { status: 404 })
 
-  const [
-    { data: curriculum },
-    { data: prereqs },
-    { data: resources },
-    { data: highlights },
-    { data: route },
-    answered,
-  ] = await Promise.all([
-    // The topic rides along on the curriculum rather than costing its
-    // own round trip: it is one hop off it and the sheet wants both.
-    db.from('curricula').select('id, title, goal, topic_id, status, topics(id, title)')
-      .eq('id', lesson.curriculum_id).single(),
-    // Likewise the prereq lessons themselves. The foreign key is named
-    // because `lesson_prereqs` points at `lessons` twice and PostgREST
-    // will not guess which side to follow.
-    db.from('lesson_prereqs')
-      .select('lessons!lesson_prereqs_requires_lesson_id_fkey(id, title, completed_at)')
-      .eq('lesson_id', id),
-    db.from('lesson_resources').select('relevance, resources(id, title, kind, url, status)')
-      .eq('lesson_id', id),
-    db.from('highlights').select('*').eq('lesson_id', id).order('created_at'),
-    // The route this lesson sits in, in the order it is meant to be
-    // worked, so the foot of the reading can offer the way on. Titles
-    // and ids only: the neighbours are two links, not two lessons.
-    db.from('lessons').select('id, title, position, has_body')
-      .eq('curriculum_id', lesson.curriculum_id).order('position'),
-    // Which of this lesson's questions have been answered before.
-    // Without it a question answered yesterday reads as fresh today and
-    // the reader is promised a boost that has already been paid.
-    userId ? answeredIn(db, userId, id) : Promise.resolve({}),
-  ])
-
-  const required = unwrap<PrereqLesson>(
-    (prereqs ?? []).map(p => (p as { lessons: Embedded<PrereqLesson> }).lessons)
-  )
-  const topic = one((curriculum as CurriculumRow | null)?.topics)
-
-  return NextResponse.json({
-    lesson,
-    curriculum,
-    topic,
-    resources: resources ?? [],
-    highlights: highlights ?? [],
-    requires: required,
-    // The way on, at the foot of the reading. Derived from the route
-    // rather than stored, so reshaping the route reorders these with
-    // it.
-    neighbours: lessonNeighbours(route ?? [], id),
-    answered,
-    // Availability is derived, so the page never has to trust a stored flag.
-    available: required.every(r => r.completed_at !== null),
-  })
+  return NextResponse.json(payload)
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {

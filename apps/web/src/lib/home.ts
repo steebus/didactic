@@ -28,12 +28,22 @@ async function getCurriculaInProgress(
   if (!curricula?.length) return []
 
   const ids = curricula.map(c => c.id)
-  const [{ data: lessons }, { data: prereqs }] = await Promise.all([
-    db.from('lessons')
-      .select('id, curriculum_id, title, position, completed_at')
-      .in('curriculum_id', ids),
-    db.from('lesson_prereqs').select('lesson_id, requires_lesson_id'),
-  ])
+  const { data: lessons } = await db
+    .from('lessons')
+    .select('id, curriculum_id, title, position, completed_at')
+    .in('curriculum_id', ids)
+
+  // The prereqs of these lessons, rather than every prereq there is.
+  // This read used to have no `where` at all -- it fetched the whole
+  // table to use the handful of rows belonging to the four curricula
+  // above, which is a sequential scan that grows with the catalogue
+  // while the part being used does not.
+  const lessonIds = (lessons ?? []).map(l => l.id)
+  const { data: prereqs } = lessonIds.length
+    ? await db.from('lesson_prereqs')
+        .select('lesson_id, requires_lesson_id')
+        .in('lesson_id', lessonIds)
+    : { data: [] }
 
   const out: CurriculumInProgress[] = []
 
@@ -88,18 +98,25 @@ export async function getHomeData(): Promise<HomeData> {
 }
 
 export async function readHomeData(db: SupabaseClient): Promise<HomeData> {
+  // The routes in progress are read with the rest rather than after
+  // them. Nothing in here needs anything the others return, and left
+  // at the foot of the returned object it ran on its own after every
+  // one of these had already landed -- three more round trips in
+  // series at the end of a read that was otherwise all in parallel.
   const [
     { data: topics },
     { data: subjects },
     { data: resources },
     { data: links },
     { data: memberships },
+    inProgress,
   ] = await Promise.all([
     db.from('topics').select('*'),
     db.from('subjects').select('*'),
     db.from('resources').select('*').order('added_at', { ascending: false }),
     db.from('resource_topics').select('resource_id, topic_id'),
     db.from('topic_subjects').select('topic_id, subject_id'),
+    getCurriculaInProgress(db),
   ])
 
   const all = (topics ?? []).map(t => ({
@@ -183,7 +200,7 @@ export async function readHomeData(db: SupabaseClient): Promise<HomeData> {
     queued: queuedResources,
     pendingCount,
     suggested: cold[0] ?? null,
-    inProgress: await getCurriculaInProgress(db),
+    inProgress,
     totals: {
       topics: active.length,
       subjects: subjectCells.length,
