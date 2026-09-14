@@ -56,19 +56,64 @@ export async function supabaseSession() {
  * anon client, which holds no session of its own — the token is the
  * whole claim, so nothing is read from cookies when one is present.
  *
- * `getUser` is used rather than `getSession` deliberately, on either
- * path: it verifies the token with Supabase instead of trusting what
- * the request claims. `cache` keeps that to one call per request
- * however many times a render asks.
+ * The token is still *verified* rather than trusted, which is what
+ * `getUser` was here for -- but `getClaims` does it by checking the
+ * signature against the project's public key instead of asking the
+ * auth server whether the token is good. This project signs with
+ * ES256 and publishes a JWKS, so that check is arithmetic on the
+ * function rather than a round trip to another host; the key is
+ * fetched once and held.
+ *
+ * That round trip was the single most expensive thing this app did.
+ * It ran ahead of every authenticated request, on every page and
+ * every route handler, and it cost more than all the queries behind
+ * it put together: `/api/topics`, which reads the database and does
+ * not call this, answered in 107ms, while `/api/inbox/count`, which
+ * does nothing but two counts on an index and calls this, took
+ * 1390ms.
+ *
+ * `cache` still keeps it to one call per request however many times a
+ * render asks. A token this cannot verify falls back to asking the
+ * auth server, so a session signed with the old symmetric secret --
+ * or anything else unexpected -- is answered correctly rather than
+ * thrown out.
  */
 export const getOwner = cache(async (): Promise<User | null> => {
   const bearer = (await headers()).get('authorization')?.match(/^Bearer (.+)$/)
-  if (bearer) {
-    const { data } = await supabaseBrowser().auth.getUser(bearer[1])
-    return data.user ?? null
+  const client = bearer ? supabaseBrowser() : await supabaseSession()
+  const token = bearer?.[1]
+
+  try {
+    const { data, error } = await client.auth.getClaims(token)
+    if (!error && data?.claims) {
+      const claims = data.claims as {
+        sub: string
+        email?: string
+        role?: string
+        [key: string]: unknown
+      }
+      // `getClaims` answers with the token's claims, where the rest of
+      // this file passes a `User` about. The claims carry what anything
+      // here actually reads -- the id, and the address the sign-in
+      // sheet prints back.
+      return {
+        id: claims.sub,
+        email: claims.email,
+        role: claims.role,
+        aud: String(claims.aud ?? ''),
+        app_metadata: (claims.app_metadata as User['app_metadata']) ?? {},
+        user_metadata: (claims.user_metadata as User['user_metadata']) ?? {},
+        created_at: '',
+      } as User
+    }
+  } catch {
+    // Fall through to the round trip below.
   }
-  const supabase = await supabaseSession()
-  const { data } = await supabase.auth.getUser()
+
+  // A token the public key cannot answer for. Ask the auth server.
+  const { data } = token
+    ? await client.auth.getUser(token)
+    : await client.auth.getUser()
   return data.user ?? null
 })
 
