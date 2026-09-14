@@ -7,6 +7,7 @@ import { supabaseAdmin } from './supabase'
 // it too; the query that builds it needs a client and the cache, so it
 // stays here. Re-exported so `@/lib/library` still answers for both.
 import type { LibraryRow } from '@didactic/core/shapes'
+import { filingOf, type JobState } from '@didactic/core/filingState'
 
 
 /**
@@ -72,13 +73,18 @@ export async function getLibrary(): Promise<LibraryRow[]> {
 }
 
 export async function readLibrary(db: SupabaseClient): Promise<LibraryRow[]> {
-  const [{ data: resources }, { data: links }, { data: exposures }] = await Promise.all([
-    db.from('resources').select('*').order('added_at', { ascending: false }),
-    db.from('resource_topics').select('resource_id, topics(id, title)'),
-    // Only the source ids matter: this is a "has anything been read out
-    // of it" question, not a count.
-    db.from('exposures').select('source_id').eq('source', 'resource'),
-  ])
+  const [{ data: resources }, { data: links }, { data: exposures }, { data: jobs }] =
+    await Promise.all([
+      db.from('resources').select('*').order('added_at', { ascending: false }),
+      db.from('resource_topics').select('resource_id, topics(id, title)'),
+      // Only the source ids matter: this is a "has anything been read out
+      // of it" question, not a count.
+      db.from('exposures').select('source_id').eq('source', 'resource'),
+      // Where each one has got to. Read with the shelf rather than on
+      // demand: the sheet prints a line about every row, and a query per
+      // row would be a round trip per row.
+      db.from('ingestion_jobs').select('resource_id, state, attempts, error'),
+    ])
 
   const filed = new Map<string, Array<{ id: string; title: string }>>()
   for (const link of links ?? []) {
@@ -91,14 +97,27 @@ export async function readLibrary(db: SupabaseClient): Promise<LibraryRow[]> {
 
   const read = new Set((exposures ?? []).map(e => e.source_id))
 
+  const job = new Map(
+    (jobs ?? []).map(j => [
+      j.resource_id as string,
+      j as { state: JobState; attempts: number; error: string | null },
+    ])
+  )
+
   const all = resources ?? []
 
-  return all.map(r => ({
+  return all.map(r => {
+    const topics = (filed.get(r.id) ?? []).sort((a, b) => a.title.localeCompare(b.title))
+    const own = job.get(r.id)
+    return {
     ...r,
-    topics: (filed.get(r.id) ?? []).sort((a, b) => a.title.localeCompare(b.title)),
+    topics,
+    filing: filingOf({ job: own?.state ?? null, topics: topics.length }),
+    filingError: own?.error ?? null,
     readInto: read.has(r.id),
     sameAs: all
       .filter(other => other.id !== r.id && titleOverlap(r.title, other.title) >= SAME_THING)
       .map(other => ({ id: other.id, title: other.title })),
-  }))
+    }
+  })
 }

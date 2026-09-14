@@ -156,6 +156,29 @@
   color: var(--ink-faint);
 }
 
+/* Taking the automatic tag off. A cross rather than a word: the stamp
+   is a small thing and a "Remove" beside it would be longer than the
+   name it removes. */
+.unfile {
+  font-family: var(--font-text);
+  font-size: var(--step-0);
+  line-height: 1;
+  color: var(--ink-faint);
+  background: none;
+  border: none;
+  border-radius: 0;
+  /* Padded to a real target without pushing the stamp taller. */
+  padding: 0 0 0 var(--space-2);
+  margin: -0.5rem -0.25rem -0.5rem 0;
+  min-height: 2rem;
+  cursor: pointer;
+  transition: color var(--dur-feedback) var(--ease-settle);
+}
+
+.unfile:hover {
+  color: var(--plate-terracotta);
+}
+
 .filedName {
   font-family: var(--font-display);
   font-size: var(--step-0);

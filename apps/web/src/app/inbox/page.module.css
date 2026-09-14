@@ -727,3 +727,85 @@
   color: var(--ink-faint);
   cursor: default;
 }
+
+/* --- Where a resource has got to -----------------------------------
+
+   Everything between arriving and being filed used to be invisible: a
+   row printed its date and nothing else, so "filed against six topics",
+   "still in the queue" and "failed three times" all looked the same.
+   This is the line that tells them apart, under the row's own meta. */
+.filing {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  margin: var(--space-2) 0 0;
+  font-size: var(--step--2);
+}
+
+/* The word that is scanned. Stated in the label register and carried by
+   a rule in the ink of what it means -- never by colour alone, which is
+   the constraint the whole map is drawn under. */
+.filingWord {
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-left: var(--space-2);
+  border-left: 2px solid var(--rule);
+}
+
+.filing[data-filing='filed'] .filingWord {
+  color: var(--plate-green);
+  border-left-color: var(--plate-green);
+}
+
+.filing[data-filing='reading'] .filingWord {
+  color: var(--plate-mustard);
+  border-left-color: var(--plate-mustard);
+}
+
+.filing[data-filing='failed'] .filingWord {
+  color: var(--plate-terracotta);
+  border-left-color: var(--plate-terracotta);
+}
+
+/* What it was filed against, which is the answer to the question the
+   whole line exists for. */
+.filingTopics {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+}
+
+.filingTopic {
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 2px;
+}
+
+.filingTopic:hover {
+  color: var(--ink);
+  text-decoration-color: var(--plate-mustard);
+}
+
+/* The sentence that answers "so is something wrong?" -- the question
+   waiting, reading and filed-under-nothing all raise. */
+.filingNote {
+  flex: 1 1 20rem;
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+/* Removing, set apart from the benign actions by a rule rather than a
+   colour, exactly as leaving is in the running head. */
+.buttonRemove {
+  border-left: 1px solid var(--rule);
+  padding-left: var(--space-3);
+  margin-left: var(--space-1);
+}
+
+.buttonRemove:hover:not(:disabled) {
+  color: var(--plate-terracotta);
+}

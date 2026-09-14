@@ -40,7 +40,15 @@ export function WriteEntry({
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const topicId = filedUnder?.id ?? null
+  /** Whether the reader has taken the automatic tag off.
+   *
+   *  The sheet it was opened from is a good guess and not always the
+   *  right one: standing on one topic and writing about something else
+   *  is exactly what the `@` names are for, and an entry filed under a
+   *  topic it is not about is a wrong exposure written against a figure
+   *  nobody can edit by hand. So the stamp comes off in one press. */
+  const [unfiled, setUnfiled] = useState(false)
+  const topicId = unfiled ? null : filedUnder?.id ?? null
 
   /**
    * Where the composer starts: the foot of the masthead band.
@@ -90,6 +98,7 @@ export function WriteEntry({
     const id = body.entry.id
     setOpen(false)
     setNote('')
+    setUnfiled(false)
     setBusy(false)
     router.refresh()
 
@@ -142,10 +151,19 @@ export function WriteEntry({
                 correct. Stated as a fact rather than offered as a
                 control -- it is a starting point, and naming something
                 else with `@` is how it is changed. */}
-            {filedUnder && (
+            {filedUnder && !unfiled && (
               <p className={styles.filed}>
                 <span className={styles.filedLabel}>Filed under</span>
                 <span className={styles.filedName}>{filedUnder.title}</span>
+                <button
+                  type="button"
+                  className={styles.unfile}
+                  onClick={() => setUnfiled(true)}
+                  aria-label={`Do not file this under ${filedUnder.title}`}
+                  title="Do not file it under this"
+                >
+                  ×
+                </button>
               </p>
             )}
 

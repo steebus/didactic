@@ -69,11 +69,11 @@ export function InboxSheet({ resources }: { resources: LibraryRow[] }) {
     setBusy(null)
   }
 
-  async function remove(row: LibraryRow) {
-    setBusy(row.id)
+  async function remove(id: string) {
+    setBusy(id)
     setError(null)
 
-    const { ok, error: failed } = await api.resources.remove(row.id)
+    const { ok, error: failed } = await api.resources.remove(id)
     if (ok) startTransition(() => router.refresh())
     else setError(failed ?? 'Could not remove that.')
     setBusy(null)
@@ -116,7 +116,7 @@ export function InboxSheet({ resources }: { resources: LibraryRow[] }) {
           <h2 className={styles.sectionTitle}>Unread</h2>
           <span className={styles.sectionNote}>{unread.length} to read</span>
         </div>
-        <ResourceList resources={unread} />
+        <ResourceList resources={unread} onRemove={remove} />
       </section>
 
       {read.length > 0 && (
@@ -125,7 +125,7 @@ export function InboxSheet({ resources }: { resources: LibraryRow[] }) {
             <h2 className={styles.sectionTitle}>Read</h2>
             <span className={styles.sectionNote}>{read.length} done with</span>
           </div>
-          <ResourceList resources={read} />
+          <ResourceList resources={read} onRemove={remove} />
         </section>
       )}
 
@@ -142,69 +142,51 @@ export function InboxSheet({ resources }: { resources: LibraryRow[] }) {
         </p>
       )}
 
-      {/* Two rows for one thing, and throwing a thing away. Both were
-          the library sheet's alone; kept at the foot rather than on
-          every row, because tidying up is a different errand from
-          reading and should not crowd it. */}
-      {(duplicates > 0 || shown.length > 0) && (
-        <details className={styles.tidy}>
-          <summary className={styles.tidySummary}>Tidy up</summary>
+      {/* Two rows for one thing.
 
-          {duplicates > 0 && (
-            <ul className={styles.tidyList}>
-              {resources
-                .filter(r => r.sameAs.length > 0)
-                .map(r => (
-                  <li key={r.id} className={styles.tidyRow}>
-                    <span className={styles.tidyTitle}>{r.title}</span>
-                    <span className={styles.tidyNote}>
-                      looks like{' '}
-                      {r.sameAs.map((d, i) => (
-                        <span key={d.id}>
-                          {i > 0 && ', '}
-                          {d.title}
-                          {' — '}
-                          <button
-                            type="button"
-                            className={styles.tidyAction}
-                            onClick={() => merge(r.id, d.id)}
-                            disabled={busy === r.id}
-                          >
-                            {busy === r.id ? 'Merging…' : 'fold it into this one'}
-                          </button>
-                        </span>
-                      ))}
-                    </span>
-                  </li>
-                ))}
-            </ul>
-          )}
+          Throwing a thing away used to live here too, as a second list
+          of every row on the sheet with a Remove beside each. That
+          meant scrolling past everything to get rid of the thing you
+          were already looking at, and reading the same title twice to
+          be sure you had the right one. Removing is on the row now,
+          beside the other things you can do to it; what is left here is
+          the one errand that genuinely is not about a single row. */}
+      {duplicates > 0 && (
+        <details className={styles.tidy}>
+          <summary className={styles.tidySummary}>
+            Two rows for one thing · {duplicates}
+          </summary>
 
           <ul className={styles.tidyList}>
-            {shown.map(r => (
-              <li key={r.id} className={styles.tidyRow}>
-                <span className={styles.tidyTitle}>{r.title}</span>
-                {/* A resource with exposures behind it cannot be deleted
-                    without rewriting the log the figures are built on,
-                    so the sheet says so rather than offering an action
-                    that would fail at the server. */}
-                {r.readInto ? (
-                  <span className={styles.tidyNote}>read into the record — kept</span>
-                ) : (
-                  <button
-                    type="button"
-                    className={styles.tidyAction}
-                    onClick={() => remove(r)}
-                    disabled={busy === r.id}
-                  >
-                    {busy === r.id ? 'Removing…' : 'Remove'}
-                  </button>
-                )}
-              </li>
-            ))}
+            {resources
+              .filter(r => r.sameAs.length > 0)
+              .map(r => (
+                <li key={r.id} className={styles.tidyRow}>
+                  <span className={styles.tidyTitle}>{r.title}</span>
+                  <span className={styles.tidyNote}>
+                    looks like{' '}
+                    {r.sameAs.map((d, i) => (
+                      <span key={d.id}>
+                        {i > 0 && ', '}
+                        {d.title}
+                        {' — '}
+                        <button
+                          type="button"
+                          className={styles.tidyAction}
+                          onClick={() => merge(r.id, d.id)}
+                          disabled={busy === r.id}
+                        >
+                          {busy === r.id ? 'Merging…' : 'fold it into this one'}
+                        </button>
+                      </span>
+                    ))}
+                  </span>
+                </li>
+              ))}
           </ul>
         </details>
       )}
+
     </>
   )
 }

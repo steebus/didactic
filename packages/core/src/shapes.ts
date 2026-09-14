@@ -1,3 +1,4 @@
+import type { Filing } from './filingState'
 /**
  * What the API answers with.
  *
@@ -104,6 +105,13 @@ export interface LibraryRow extends Resource {
    *  the shelf rather than merged quietly: merging moves exposures and
    *  cannot be undone. */
   sameAs: Array<{ id: string; title: string }>
+  /** Where it has got to in being read and filed. See
+   *  `core/filingState`: the pipeline behind a queued resource is a
+   *  minute of invisible work, and a row that prints only its date
+   *  cannot tell "filed against six topics" from "failed three times". */
+  filing: Filing
+  /** Why it could not be read, when that is what happened. */
+  filingError: string | null
 }
 
 /* ------------------------------------------------------------- pending */

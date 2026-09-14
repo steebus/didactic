@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { didactic } from '@didactic/api'
 import type { ExposureDepth, Resource, ResourceStatus } from '@didactic/core/types'
+import type { LibraryRow } from '@didactic/core/shapes'
+import { filingPhrase } from '@didactic/core/filingState'
 import styles from '@/app/inbox/page.module.css'
 
 const api = didactic()
@@ -15,7 +17,20 @@ const DEPTHS = [
   { value: 'applied', label: 'Applied it' },
 ] as const
 
-export function ResourceList({ resources }: { resources: Resource[] }) {
+export function ResourceList({
+  resources,
+  onRemove,
+}: {
+  /** The shelf rows, which carry where each one got to in being filed.
+   *  A plain `Resource` is still accepted: the filing line simply has
+   *  nothing to say about a row that does not carry one. */
+  resources: Array<Resource | LibraryRow>
+  /** Throwing a row away. Offered beside the other things you can do to
+   *  a row rather than folded away at the foot of the sheet -- it used
+   *  to live under *Tidy up*, which meant scrolling past everything to
+   *  get rid of the thing you were looking at. */
+  onRemove?: (id: string) => void | Promise<void>
+}) {
   const [asking, setAsking] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [leaving, setLeaving] = useState<string | null>(null)
@@ -113,18 +128,76 @@ export function ResourceList({ resources }: { resources: Resource[] }) {
                   })}
                 </span>
               </div>
+
+              {/* Where it has got to in being read and filed.
+
+                  Everything between arriving and being filed used to be
+                  invisible: a row said "added 14 Sept" whether it had
+                  been filed against six topics, was still in the queue,
+                  or had failed three times and given up. The three look
+                  identical if the only thing printed is a date. */}
+              {'filing' in r && r.filing !== 'none' && (
+                <p className={styles.filing} data-filing={r.filing}>
+                  <span className={styles.filingWord}>
+                    {filingPhrase(r.filing, r.topics.length).word}
+                  </span>
+                  {r.topics.length > 0 && (
+                    <span className={styles.filingTopics}>
+                      {r.topics.map(topic => (
+                        <Link
+                          key={topic.id}
+                          href={`/topics/${topic.id}`}
+                          className={styles.filingTopic}
+                        >
+                          {topic.title}
+                        </Link>
+                      ))}
+                    </span>
+                  )}
+                  {/* The note answers "so is something wrong?", which is
+                      the question three of these states raise and none
+                      of them used to answer. The reason a failure gives
+                      is the worker's own words. */}
+                  {r.filing === 'failed' && r.filingError ? (
+                    <span className={styles.filingNote}>{r.filingError}</span>
+                  ) : (
+                    filingPhrase(r.filing, r.topics.length).note && (
+                      <span className={styles.filingNote}>
+                        {filingPhrase(r.filing, r.topics.length).note}
+                      </span>
+                    )
+                  )}
+                </p>
+              )}
             </div>
 
-            {status === 'consumed' ? (
-              <span className={`${styles.status} ${styles.statusConsumed}`}>
-                Read{r.consumed_at
-                  ? ` · ${new Date(r.consumed_at).toLocaleDateString('en-GB', {
-                      day: 'numeric', month: 'short',
-                    })}`
-                  : ''}
+            {status === 'consumed' || status === 'abandoned' ? (
+              <span className={styles.actions}>
+                {status === 'consumed' ? (
+                  <span className={`${styles.status} ${styles.statusConsumed}`}>
+                    Read{r.consumed_at
+                      ? ` · ${new Date(r.consumed_at).toLocaleDateString('en-GB', {
+                          day: 'numeric', month: 'short',
+                        })}`
+                      : ''}
+                  </span>
+                ) : (
+                  <span className={styles.status}>Set aside</span>
+                )}
+                {/* A row that has been dealt with can still be thrown
+                    away, and from here rather than from the foot of the
+                    sheet -- unless something has been read out of it,
+                    in which case the record it is part of keeps it. */}
+                {onRemove && !('readInto' in r && r.readInto) && (
+                  <button
+                    className={`${styles.button} ${styles.buttonQuiet} ${styles.buttonRemove}`}
+                    disabled={busy === r.id}
+                    onClick={() => onRemove(r.id)}
+                  >
+                    Remove
+                  </button>
+                )}
               </span>
-            ) : status === 'abandoned' ? (
-              <span className={styles.status}>Set aside</span>
             ) : asking === r.id ? (
               <span className={styles.prompt}>
                 <span className={styles.promptLabel}>How did it land?</span>
@@ -164,6 +237,26 @@ export function ResourceList({ resources }: { resources: Resource[] }) {
                 >
                   Set aside
                 </button>
+                {/* Throwing it away, set apart from the benign actions
+                    by a rule rather than a colour -- the same way
+                    leaving is set apart from the sheets in the running
+                    head, and removing from editing on the Marked sheet.
+
+                    Not offered at all once something has been read out
+                    of it: the exposure log is what every figure on the
+                    map is built from, and deleting a row it references
+                    would fail at the server. Saying so by leaving the
+                    control off is better than printing one that
+                    cannot work. */}
+                {onRemove && !('readInto' in r && r.readInto) && (
+                  <button
+                    className={`${styles.button} ${styles.buttonQuiet} ${styles.buttonRemove}`}
+                    disabled={busy === r.id}
+                    onClick={() => onRemove(r.id)}
+                  >
+                    Remove
+                  </button>
+                )}
               </span>
             )}
           </li>
