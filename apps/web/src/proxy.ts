@@ -69,10 +69,7 @@ export async function proxy(request: NextRequest) {
   // or handler had begun: about 800ms in front of everything, and paid
   // twice on an API call, once here and once in the handler. The
   // signature is checked against the project's public key instead.
-  const t0 = Date.now()
   const { data } = await supabase.auth.getClaims()
-  // ponytail: temporary, paired with /api/authprobe.
-  response.headers.set('x-gate-ms', String(Date.now() - t0))
 
   if (data?.claims || isOpenPath(pathname)) return response
 
