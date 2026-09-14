@@ -30,13 +30,15 @@ export default async function LessonPage({
   const { id } = await params
   const db = supabaseAdmin()
 
-  const [owner, data] = await Promise.all([requireOwner(), readLesson(db, id, null)])
-  if (!data) notFound()
+  // The answers need the account, so they are chained onto the gate
+  // rather than onto the lesson -- that keeps them beside the lesson
+  // read instead of behind it. Awaiting the gate first and then asking
+  // for them put a whole round trip in front of the prose, which is
+  // the thing this page exists to stop doing.
+  const answers = requireOwner().then(owner => answeredIn(db, owner.id, id))
 
-  // The answers are the one part that needed to know the account, and
-  // the account is only known once the gate above has answered. Its
-  // own read rather than a second pass over the lesson.
-  const answered = await answeredIn(db, owner.id, id)
+  const [data, answered] = await Promise.all([readLesson(db, id, null), answers])
+  if (!data) notFound()
 
   return <LessonSheet id={id} initial={{ ...data, answered }} />
 }
