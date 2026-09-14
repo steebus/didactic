@@ -91,6 +91,15 @@ export interface TopicAdded {
   warnings?: string[]
 }
 
+/** What filing several topics at once did. `placed` is always null: the
+ *  bulk path does not sort, and says so rather than answering nought. */
+export interface TopicsFiled {
+  filed: number
+  skipped: number
+  placed: null
+  note: string
+}
+
 /** Unfiling a topic, and whether it is now loose stock. */
 export interface TopicUnfiled {
   ok: true
@@ -173,6 +182,18 @@ export const subjects = (api: Api) => ({
    */
   fileTopic: (id: string, topicId: string) =>
     api.post<TopicAdded>(`/api/subjects/${id}/topics`, { topicId }),
+
+  /**
+   * File several existing topics into this bed at once, **unplaced**.
+   *
+   * Placing one topic is a model call over the whole bed; placing thirty
+   * is thirty of them, which is minutes and past the platform's ceiling.
+   * So the bulk path does the certain part and says what it has not
+   * done — `relate(id)` is what works out what follows what, in one pass
+   * over the bed, and the answer's `note` points at it.
+   */
+  fileTopics: (id: string, topicIds: string[]) =>
+    api.post<TopicsFiled>(`/api/subjects/${id}/topics`, { topicIds }),
   removeTopic: (id: string, topicId: string) =>
     api.del<TopicUnfiled>(`/api/subjects/${id}/topics`, { topicId }),
   relate: (id: string) => api.post<Drawn>(`/api/subjects/${id}/relate`),

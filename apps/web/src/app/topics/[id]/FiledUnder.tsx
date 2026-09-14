@@ -41,8 +41,16 @@ interface Filed {
  * Filing places, too. A topic arriving in a bed with no edges into it
  * prints as one more root at the foot of the outline and floats beside
  * everything it belongs to on the graph, so the route sorts it into the
- * bed exactly as it sorts a newly sown one. That is a model call, which
- * is why this says it is thinking rather than pretending to be instant.
+ * bed exactly as it sorts a newly sown one.
+ *
+ * That placement is a model call over the whole bed, so the answer is
+ * seconds away — and the decision was made when the button was pressed.
+ * The filing is therefore shown at once and reconciled behind, the way
+ * the adjudication queue drops a decided row: the subject appears in the
+ * list immediately, marked as still settling, and the reader can leave.
+ * A failure puts the list back as it was and says what went wrong,
+ * because a sheet that quietly loses a decision is worse than a slow
+ * one.
  */
 export function FiledUnder({
   topicId,
@@ -61,6 +69,15 @@ export function FiledUnder({
   const [all, setAll] = useState<Subject[] | null>(null)
   const [chosen, setChosen] = useState('')
   const [busy, setBusy] = useState<string | null>(null)
+  /**
+   * The filing as this reader has left it, ahead of the server.
+   *
+   * `settling` is what has been filed but not yet placed; `gone` is what
+   * has been taken out. Both are cleared by the refresh that follows,
+   * and both are put back on a failure.
+   */
+  const [settling, setSettling] = useState<Filed[]>([])
+  const [gone, setGone] = useState<string[]>([])
   const [note, setNote] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [, startTransition] = useTransition()
@@ -76,21 +93,45 @@ export function FiledUnder({
     else setError(failed ?? 'Could not read the subjects.')
   }
 
-  const elsewhere = (all ?? []).filter(s => !subjects.some(filed => filed.id === s.id))
+  // What the block prints: the server's answer, plus what this reader
+  // has just done to it and the server has not caught up with.
+  const here = [...subjects.filter(s => !gone.includes(s.id)), ...settling]
+    .filter((s, i, all) => all.findIndex(o => o.id === s.id) === i)
+
+  const elsewhere = (all ?? []).filter(s => !here.some(filed => filed.id === s.id))
 
   async function fileIt(move: boolean) {
     const subject = elsewhere.find(s => s.id === chosen)
     if (!subject) return
 
-    setBusy(move ? 'move' : 'file')
+    // Shown before it is saved. The placement behind this is a model
+    // call over the whole bed, and waiting on it would hold the reader
+    // at a sheet whose decision they have already made.
+    const leaving = move ? here.map(s => s.id) : []
+    setSettling(rows => [...rows, { id: subject.id, title: subject.title }])
+    setGone(ids => [...ids, ...leaving])
+    setChosen('')
     setError(null)
-    setNote(null)
+    setNote(
+      move && here.length > 0
+        ? `Moving to ${subject.title}, out of ${here.map(s => s.title).join(' and ')}…`
+        : `Filing under ${subject.title}…`
+    )
+
+    const undo = () => {
+      setSettling(rows => rows.filter(r => r.id !== subject.id))
+      setGone(ids => ids.filter(id => !leaving.includes(id)))
+      setNote(null)
+    }
+
+    setBusy(move ? 'move' : 'file')
 
     // Filed first, and only then taken out of the old beds. The other
     // order has a window in which the topic is filed nowhere, and a
     // request that fails inside it leaves it there.
     const { ok, body, error: failed } = await api.subjects.fileTopic(subject.id, topicId)
     if (!ok) {
+      undo()
       setError(failed ?? 'Could not file it there.')
       setBusy(null)
       return
@@ -98,10 +139,17 @@ export function FiledUnder({
 
     const left: string[] = []
     if (move) {
-      for (const old of subjects) {
+      for (const old of subjects.filter(s => leaving.includes(s.id))) {
         const { ok: out } = await api.subjects.removeTopic(old.id, topicId)
-        if (out) left.push(old.title)
-        else setError(`Filed under ${subject.title}, but it could not be taken out of ${old.title}.`)
+        if (out) {
+          left.push(old.title)
+        } else {
+          // It is filed in the new bed and still in the old one. Put
+          // that one back on the sheet rather than showing a move that
+          // only half happened.
+          setGone(ids => ids.filter(id => id !== old.id))
+          setError(`Filed under ${subject.title}, but it could not be taken out of ${old.title}.`)
+        }
       }
     }
 
@@ -119,7 +167,6 @@ export function FiledUnder({
         ...(body.warnings ?? []),
       ].filter(Boolean).join(' ')
     )
-    setChosen('')
     startTransition(() => router.refresh())
     setBusy(null)
   }
@@ -128,6 +175,7 @@ export function FiledUnder({
     setBusy(subject.id)
     setError(null)
     setNote(null)
+    setGone(ids => [...ids, subject.id])
 
     const { ok, body, error: failed } = await api.subjects.removeTopic(subject.id, topicId)
     if (ok) {
@@ -138,6 +186,7 @@ export function FiledUnder({
       )
       startTransition(() => router.refresh())
     } else {
+      setGone(ids => ids.filter(id => id !== subject.id))
       setError(failed ?? 'Could not take it out.')
     }
     setBusy(null)
@@ -166,19 +215,25 @@ export function FiledUnder({
     <section className={styles.block}>
       <h2 className={styles.blockTitle}>Filed under</h2>
 
-      {subjects.length === 0 ? (
+      {here.length === 0 ? (
         <p className={styles.empty}>
           Loose stock — this topic sits on no bed. It keeps everything filed
           against it; file it below to put it back on one.
         </p>
       ) : (
         <ul className={styles.filing}>
-          {subjects.map(subject => (
+          {here.map(subject => (
             <li key={subject.id} className={styles.filingRow}>
               <span className={styles.filingName}>
                 <Link href={`/subjects/${subject.id}`}>{subject.title}</Link>
                 {subject.id === primarySubjectId && (
                   <span className={styles.filingHome}>home</span>
+                )}
+                {/* Filed, but the bed has not been asked what it sits
+                    under yet. Said rather than spun: the filing is real
+                    and only the placement is outstanding. */}
+                {settling.some(r => r.id === subject.id) && (
+                  <span className={styles.filingSettling}>settling</span>
                 )}
               </span>
               <span className={styles.filingActions}>
@@ -254,7 +309,7 @@ export function FiledUnder({
             >
               {busy === 'file' ? 'Filing…' : 'File it here too'}
             </button>
-            {subjects.length > 0 && (
+            {here.length > 0 && (
               <button
                 type="button"
                 className={styles.filingAction}
@@ -266,7 +321,7 @@ export function FiledUnder({
             )}
           </div>
           <p className={styles.blockNote}>
-            {subjects.length > 1
+            {here.length > 1
               ? 'Moving takes it out of all the beds it currently sits in. Filing it leaves those as they are.'
               : 'Moving takes it out of the bed it is in now. Filing it leaves that one as it is.'}{' '}
             Either way it keeps its lessons, marks and history, and is placed
@@ -277,6 +332,16 @@ export function FiledUnder({
 
       {note && <p className={styles.filingNote}>{note}</p>}
       {error && <p className={styles.filingProblem}>{error}</p>}
+
+      {/* Loose stock is a sheet, not an action: everything filed under
+          no subject at all, where several can be dealt with at once
+          rather than one topic sheet at a time. */}
+      <p className={styles.blockNote}>
+        <Link href="/loose" className={styles.looseLink}>
+          Loose stock
+        </Link>{' '}
+        — everything filed under no subject, in one place.
+      </p>
     </section>
   )
 }

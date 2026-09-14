@@ -158,6 +158,31 @@ export interface PendingTopic {
   } | null
 }
 
+/* --------------------------------------------------------- loose stock */
+
+/**
+ * A topic filed under no subject at all.
+ *
+ * Real, in the ground, carrying whatever has been read into it, and
+ * belonging nowhere — which is the one thing the map cannot show, since
+ * every other sheet is organised by subject. The evidence is the same
+ * reading the adjudication queue uses, for the opposite purpose: there
+ * it says whether two topics are one thing, here it says what throwing
+ * this one away would destroy.
+ */
+export interface LooseTopic {
+  id: string
+  title: string
+  summary: string | null
+  ability: number
+  created_at: string | null
+  /** Whether a curriculum runs through it. A topic carrying a route
+   *  cannot be promoted or demoted (`044`), so the sheet has to know
+   *  before it offers to. */
+  hasRoute: boolean
+  evidence: TopicEvidence
+}
+
 /* ---------------------------------------------------------- highlights */
 
 export interface HighlightRow extends Highlight {

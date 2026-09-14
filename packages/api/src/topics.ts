@@ -1,6 +1,6 @@
 import type { Api } from './client'
 import type { Curriculum, Exposure, Resource, Subject, Topic } from '@didactic/core/types'
-import type { PendingTopic, TopicArea } from '@didactic/core/shapes'
+import type { LooseTopic, PendingTopic, TopicArea } from '@didactic/core/shapes'
 import type { Planting } from './graph'
 
 export interface TopicPatch {
@@ -35,6 +35,37 @@ export interface TopicDetail {
   curricula: Array<Curriculum & { lessonCount: number; completedCount: number }>
 }
 
+/**
+ * What promoting a topic answers with.
+ *
+ * `filed` is read back from the new bed rather than predicted: which
+ * topics come up with it is the database's own walk of the outline, and
+ * the sheet should report what happened rather than what was asked for.
+ */
+export interface Promoted {
+  subjectId: string
+  title: string
+  /** How many topics ended up in the new bed — the promoted one, and
+   *  whatever the outline hung under it. Never fewer than one. */
+  filed: number
+}
+
+/** What demoting answers with: the lesson that now stands where the
+ *  topic did, and the route it joined. */
+export interface Demoted {
+  lessonId: string
+  intoTopicId: string
+  intoTitle: string | null
+}
+
+/** What a bulk delete of loose stock did, and what it declined to do. */
+export interface LooseRemoved {
+  removed: number
+  /** Ids that had been filed under a subject since the sheet was drawn.
+   *  Never deleted by a press meant for loose stock. */
+  skipped: number
+}
+
 export const topics = (api: Api) => ({
   /**
    * The whole bed, minus its subjects.
@@ -50,6 +81,35 @@ export const topics = (api: Api) => ({
   /** Curation only; never ability. */
   patch: (id: string, body: TopicPatch) => api.patch<{ ok: true }>(`/api/topics/${id}`, body),
   remove: (id: string) => api.del<{ ok: true }>(`/api/topics/${id}`),
+
+  /** Every topic filed under no subject, with what each one holds. */
+  loose: () => api.get<{ loose: LooseTopic[] }>('/api/topics/loose'),
+
+  /** Throw away loose topics, several at a time. Scoped server-side to
+   *  topics that are still unfiled, so a stale checkbox cannot delete
+   *  something that has since been filed. */
+  removeLoose: (ids: string[]) =>
+    api.del<LooseRemoved>('/api/topics/loose', { ids }),
+
+  /**
+   * Promote a topic to a subject of its own.
+   *
+   * The topic and everything the outline hangs under it are filed into
+   * the new bed and take it as their home. The topic row survives — it
+   * can be carrying a reading log, and a subject is not something you
+   * can have read. Refused for a topic with a route through it.
+   */
+  promote: (id: string) => api.post<Promoted>(`/api/topics/${id}/promote`),
+
+  /**
+   * Demote a topic into another topic's route, as a lesson in it.
+   *
+   * Everything it holds moves to the target first; the row is then
+   * deleted and its name survives as the lesson's title. Cannot be
+   * undone. Refused for a topic with a route through it.
+   */
+  demote: (id: string, intoTopicId: string) =>
+    api.post<Demoted>(`/api/topics/${id}/demote`, { intoTopicId }),
 
   pending: () => api.get<{ pending: PendingTopic[] }>('/api/topics/pending'),
   decide: (topicId: string, action: PendingAction, mergeInto?: string) =>

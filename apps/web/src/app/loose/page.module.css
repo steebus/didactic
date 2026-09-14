@@ -1,0 +1,431 @@
+/* Loose stock: the one sheet in the catalogue that is not organised by
+   subject, because it is a list of the things that have no subject. It
+   wears the same chrome as the inbox and Marked -- another list of
+   things waiting to be useful -- with a terracotta band, since what is
+   on it is unresolved rather than kept. */
+
+.sheet {
+  max-width: var(--sheet-max);
+  margin: 0 auto;
+  padding: 0 0 var(--space-6);
+  background-color: var(--paper);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(90, 70, 45, 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(90, 70, 45, 0.03) 0 1px, transparent 1px 4px);
+  min-height: 100dvh;
+}
+
+.head {
+  background: var(--plate-terracotta);
+  color: var(--paper);
+  padding: var(--space-5);
+  /* A saturated plate: controls in here state their own focus ink. */
+  --focus-ink: var(--paper);
+}
+
+.headRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: var(--step-3);
+  font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 72;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.standfirst {
+  font-size: var(--step--1);
+  margin: 0;
+  opacity: 0.9;
+}
+
+.headRule {
+  height: 5px;
+  background: var(--plate-mustard);
+  margin-bottom: var(--space-5);
+}
+
+.body {
+  padding: 0 var(--space-5);
+}
+
+@media (max-width: 48rem) {
+  .body {
+    padding: 0 var(--space-4);
+  }
+}
+
+.standing {
+  font-size: var(--step-0);
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0 0 var(--space-4);
+  max-width: 62ch;
+}
+
+.empty {
+  font-size: var(--step-0);
+  color: var(--ink-soft);
+  line-height: 1.5;
+  font-style: italic;
+  max-width: 52ch;
+}
+
+/* --- Picking ----------------------------------------------------- */
+
+.tools {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--rule-strong);
+}
+
+.pickAll {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+}
+
+.pickAll:hover {
+  background: var(--ink-soft);
+  border-color: var(--ink-soft);
+  color: var(--paper);
+}
+
+/* What is picked, and what it holds between them. The second half is
+   the whole argument of this sheet: fourteen names tell you nothing,
+   and "3 resources · 9 marks · read twice" tells you what a delete
+   would cost. */
+.picked {
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* --- What to do with the handful --------------------------------- */
+
+.bulk {
+  background: var(--paper-deep);
+  border-left: 3px solid var(--plate-terracotta);
+  padding: var(--space-3);
+  margin: var(--space-3) 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.bulkRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.bulkLabel {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.bulkSelect {
+  font: inherit;
+  font-size: var(--step--1);
+  padding: var(--space-2);
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  border-radius: 0;
+  color: var(--ink);
+  min-width: 12rem;
+}
+
+.bulkSelect:focus {
+  outline: 2px solid var(--plate-green);
+  outline-offset: -2px;
+}
+
+.bulkAction {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: none;
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  transition: background-color 120ms ease-out, color 120ms ease-out;
+}
+
+.bulkAction:hover:not(:disabled) {
+  background: var(--plate-green);
+  border-color: var(--plate-green);
+  color: var(--paper);
+}
+
+.bulkAction:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Throwing away is set apart by its ink as well as by the second press,
+   because unlike everything else on this sheet it destroys a record. */
+.destructive {
+  border-color: var(--plate-terracotta);
+  color: var(--plate-terracotta);
+}
+
+.destructive:hover:not(:disabled) {
+  background: var(--plate-terracotta);
+  border-color: var(--plate-terracotta);
+}
+
+.bulkNote {
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--ink-soft);
+  margin: 0;
+  max-width: 62ch;
+}
+
+/* What a delete would destroy, counted, before it will go through. */
+.reckoning {
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper);
+  border-left: 3px solid var(--plate-terracotta);
+  padding: var(--space-3);
+  margin: 0;
+  max-width: 62ch;
+  /* Its own line above the two presses, rather than beside them: the
+     reckoning is what the second press is being weighed against, and a
+     cost printed alongside its own button reads as a caption. */
+  width: 100%;
+}
+
+.note {
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--ink-soft);
+  border-left: 2px solid var(--plate-mustard);
+  padding-left: var(--space-3);
+  margin: var(--space-3) 0;
+  max-width: 62ch;
+}
+
+.problem {
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--plate-terracotta);
+  border-left: 2px solid var(--plate-terracotta);
+  padding-left: var(--space-3);
+  margin: var(--space-3) 0;
+  max-width: 62ch;
+}
+
+.quiet {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* --- The stock --------------------------------------------------- */
+
+.stock {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.pick {
+  display: flex;
+  align-items: center;
+  padding-top: 2px;
+}
+
+.box {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--plate-green);
+  cursor: pointer;
+}
+
+/* The checkbox's own name, for a reader who cannot see the row it sits
+   beside. Never printed. */
+.boxLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.rowBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.rowHead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.rowName {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1;
+  color: inherit;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.rowName:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* The dotted run to the figure, as every stock entry in the catalogue
+   carries. */
+.leaders {
+  flex: 1;
+  border-bottom: 1px dotted var(--rule);
+  transform: translateY(-0.25em);
+  min-width: var(--space-4);
+}
+
+.rowFigure {
+  font-family: var(--font-display);
+  font-size: var(--step-0);
+  font-variation-settings: 'SOFT' 10, 'WONK' 0, 'opsz' 30;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+.gloss {
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--ink-soft);
+  margin: var(--space-1) 0 0;
+  max-width: 62ch;
+}
+
+/* Said, rather than left as a gap: an absent line cannot be told from
+   one that failed to load, and it is the most useful thing this row can
+   say about a topic nobody has described. */
+.missing {
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--ink-faint);
+  font-style: italic;
+  margin: var(--space-1) 0 0;
+  max-width: 62ch;
+}
+
+.holds {
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+  margin: var(--space-2) 0 0;
+}
+
+.sources {
+  list-style: none;
+  margin: var(--space-1) 0 0;
+  padding: 0;
+}
+
+.source {
+  font-size: var(--step--2);
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 52ch;
+}
+
+.source::before {
+  content: '— ';
+  color: var(--ink-faint);
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-top: var(--space-2);
+}
+
+.rowAction {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+}
+
+.rowAction:hover:not(:disabled) {
+  background: var(--plate-green);
+  border-color: var(--plate-green);
+  color: var(--paper);
+}
+
+.rowAction:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Why a control is not offered. Said rather than hidden: a missing
+   control reads as a fault, and the reason is the useful part. */
+.refused {
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-style: italic;
+}

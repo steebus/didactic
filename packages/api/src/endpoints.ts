@@ -57,6 +57,7 @@ export const ENDPOINTS = {
   'topics.get': { name: 'topics.get', method: 'GET', path: '/api/topics/[id]', invalidates: [] },
   'topics.area': { name: 'topics.area', method: 'GET', path: '/api/topics/[id]/area', invalidates: [] },
   'topics.pending': { name: 'topics.pending', method: 'GET', path: '/api/topics/pending', invalidates: [] },
+  'topics.loose': { name: 'topics.loose', method: 'GET', path: '/api/topics/loose', invalidates: [] },
   'resources.list': { name: 'resources.list', method: 'GET', path: '/api/resources', invalidates: [] },
   'curricula.get': { name: 'curricula.get', method: 'GET', path: '/api/curricula/[id]', invalidates: [] },
   'lessons.get': { name: 'lessons.get', method: 'GET', path: '/api/lessons/[id]', invalidates: [] },
@@ -71,12 +72,18 @@ export const ENDPOINTS = {
   'subjects.remove': { name: 'subjects.remove', method: 'DELETE', path: '/api/subjects/[id]', invalidates: SUBJECT_DEEP },
   'subjects.addTopic': { name: 'subjects.addTopic', method: 'POST', path: '/api/subjects/[id]/topics', invalidates: BED },
   'subjects.fileTopic': { name: 'subjects.fileTopic', method: 'POST', path: '/api/subjects/[id]/topics', invalidates: BED },
+  'subjects.fileTopics': { name: 'subjects.fileTopics', method: 'POST', path: '/api/subjects/[id]/topics', invalidates: BED },
   'subjects.removeTopic': { name: 'subjects.removeTopic', method: 'DELETE', path: '/api/subjects/[id]/topics', invalidates: BED },
   'subjects.relate': { name: 'subjects.relate', method: 'POST', path: '/api/subjects/[id]/relate', invalidates: [tags.subjects, tags.topics] },
   'subjects.resow': { name: 'subjects.resow', method: 'POST', path: '/api/subjects/[id]/resow', invalidates: BED },
 
   'topics.patch': { name: 'topics.patch', method: 'PATCH', path: '/api/topics/[id]', invalidates: CURATION },
   'topics.remove': { name: 'topics.remove', method: 'DELETE', path: '/api/topics/[id]', invalidates: CURATION },
+  'topics.removeLoose': { name: 'topics.removeLoose', method: 'DELETE', path: '/api/topics/loose', invalidates: BED },
+  /* Promoting writes a subject and rehomes a run of topics. Demoting
+     moves a topic's marks and cards onto another before deleting it. */
+  'topics.promote': { name: 'topics.promote', method: 'POST', path: '/api/topics/[id]/promote', invalidates: BED },
+  'topics.demote': { name: 'topics.demote', method: 'POST', path: '/api/topics/[id]/demote', invalidates: [tags.subjects, tags.topics, tags.pending, tags.highlights, tags.clozes] },
   /* A merge carries the duplicate's marks and cards over to the
      survivor as well (`043`), so the two sheets that print those are
      dropped with the map. */

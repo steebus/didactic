@@ -511,13 +511,58 @@ so, and the only place it can be changed, is in the topic sheet's margin.
 | --- | --- |
 | A filing | The subject's name, parted by `1px solid var(--rule)`, with its actions in the label register at the right. |
 | The home stamp | *home* in the label register, `--paper` on `--ink-soft`, `1px var(--space-2)` — stamped, never coloured. |
+| The settling stamp | *settling* in the same register, outlined in `1px solid var(--rule)` on the sheet's own paper — filed, but the bed has not yet been asked what it sits under. |
 | *Take out* | Set apart from *Make home* by a `1px solid var(--rule)` on its left, as removal is everywhere else in the build. |
 | The picker | A `--paper-deep` select on `1px solid var(--paper-edge)`, then *File it here too* and *Move it here* as outlined controls in the label register. |
+| Its level | *Make it a subject* and *Fold it into a topic*, in the same outlined register, in a block of their own below. |
+| A reckoning | `--paper-deep` behind a `3px` `--plate-terracotta` rule: what a fold would move, before it can be pressed. |
 
 **Rule — the margin's controls are outlined, not the sheet's ink button.** Two
 ink buttons side by side in a column that narrow read as a dialog, which this
 world does not have.
 
+**Rule — a filing is confirmed at once and reconciled behind.** The placement
+that follows it is a model call over the whole bed, and the decision was made
+when the button was pressed. The subject appears in the list immediately under
+a *settling* stamp and the reader can leave; a failure puts the list back as it
+was and says what went wrong. A spinner would say neither which half happened
+nor when to stop watching.
+
+**Rule — a control that will be refused says so before it is pressed, and
+never disappears.** A topic carrying a route cannot change level, and the block
+prints that sentence where the two buttons would be. A missing control reads as
+a fault, and *why can I not do this* is the question a hidden one provokes.
+
+**Rule — what cannot be undone is costed first.** Folding a topic into another
+is two presses, and the second is only offered once the sheet can state what
+the first would move — the same shape the bed's own grubbing-out uses, in the
+same terracotta.
+
+### Loose stock
+
+The one sheet in the catalogue that is not organised by subject, because it is
+the list of things that have none. Its band is `--plate-terracotta`: what is on
+it is unresolved rather than kept.
+
+| Part | Treatment |
+| --- | --- |
+| The band | `--plate-terracotta` under the mustard `5px` rule, the standfirst counting what is loose. |
+| A row | A checkbox, then the name in the display face with a dotted leader out to its viability figure — the stock entry the whole catalogue is set in. |
+| What it holds | The counts in the label register, then up to three sources leadered with an em dash. |
+| The handful | `--paper-deep` behind a `3px` terracotta rule, holding the file-under picker, the note about placement, and the throw-away. |
+| The reckoning | Full width above its own press, never beside it. |
+| A refusal | The reason in `--ink-faint` italic, in place of the control it replaces. |
+
+**Rule — a bulk action states what it has *not* done.** Filing thirty topics
+does not place them, because that is thirty model calls; the sheet says so and
+names *Draw connections*, which asks once for the whole bed, rather than
+letting the reader think the job is finished.
+
+**Rule — a delete is costed in the aggregate, not per row.** The question a
+handful asks is what the fourteen hold *between* them, so the reckoning sums
+them (`core/loose.reckon`) and says plainly whether any of it has been read.
+Resources are summed rather than deduplicated: that overstates a handful drawn
+from one article, which is the honest direction to be wrong in above a delete.
 
 ---
 

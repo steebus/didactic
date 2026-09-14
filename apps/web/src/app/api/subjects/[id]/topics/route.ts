@@ -58,9 +58,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // A topic named by id rather than by name. Additive: a client that
   // sends only a title behaves exactly as it did.
   const topicId = typeof body.topicId === 'string' ? body.topicId.trim() : ''
+  // Several at once, for the loose stock sheet.
+  const topicIds: string[] = Array.isArray(body.topicIds)
+    ? body.topicIds.filter((i: unknown) => typeof i === 'string')
+    : []
 
-  if (!title && !topicId) {
-    return NextResponse.json({ error: 'title or topicId is required' }, { status: 400 })
+  if (!title && !topicId && topicIds.length === 0) {
+    return NextResponse.json({ error: 'title, topicId or topicIds is required' }, { status: 400 })
   }
 
   const db = supabaseAdmin()
@@ -75,6 +79,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // same job either way and the reason this does not just insert a
   // membership row and stop.
   if (topicId) return await file(db, subject, topicId)
+  if (topicIds.length > 0) return await fileMany(db, subject, topicIds)
 
   const vector = await embed(title)
   const candidates = await fetchCandidates(db, vector)
@@ -176,6 +181,55 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     placed,
     note: sorted?.note ?? null,
     warnings,
+  })
+}
+
+/**
+ * File several existing topics into this bed at once, unplaced.
+ *
+ * Deliberately without the sort. Placing one topic is a model call over
+ * the whole bed; placing thirty is thirty of them, which is several
+ * minutes and well past the platform's ceiling — a bulk file that timed
+ * out halfway would leave the reader with no idea which half landed.
+ *
+ * So this does the part that is certain and says what it has not done.
+ * *Draw connections* on the bed already asks what follows what across
+ * every topic in it in one pass, which is both the right tool and a
+ * control the reader already knows; the answer points at it rather than
+ * pretending the filing is finished.
+ */
+async function fileMany(
+  db: SupabaseClient,
+  subject: { id: string; user_id: string; title: string },
+  topicIds: string[]
+) {
+  const { data: owned } = await db
+    .from('topics').select('id').eq('user_id', subject.user_id).in('id', topicIds)
+
+  const ids = (owned ?? []).map(t => t.id as string)
+  if (ids.length === 0) return NextResponse.json({ error: 'no such topics' }, { status: 404 })
+
+  const { error } = await db.from('topic_subjects').upsert(
+    ids.map(topic_id => ({ topic_id, subject_id: subject.id, created_by: 'user' as const })),
+    { onConflict: 'topic_id,subject_id', ignoreDuplicates: true }
+  )
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // A topic that was loose had no home either. The bed it has just
+  // joined is the only candidate, and a topic filed somewhere while
+  // claiming a home nowhere is the inconsistency `012` added the
+  // membership table to prevent.
+  await db.from('topics')
+    .update({ primary_subject_id: subject.id })
+    .in('id', ids)
+    .is('primary_subject_id', null)
+
+  dropCache()
+  return NextResponse.json({
+    filed: ids.length,
+    skipped: topicIds.length - ids.length,
+    placed: null,
+    note: `Filed under ${subject.title}, but not placed in it — use Draw connections on the bed to work out what follows what.`,
   })
 }
 

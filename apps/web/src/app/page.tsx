@@ -181,9 +181,16 @@ export default async function Home() {
 
             {data.unfiled.length > 0 && (
               <section className={styles.loose}>
-                <h3 className={styles.looseTitle}>Loose stock</h3>
+                <h3 className={styles.looseTitle}>
+                  <Link href="/loose" className={styles.looseLink}>
+                    Loose stock
+                  </Link>
+                </h3>
                 <p className={styles.looseNote}>
-                  Sown but not yet filed under a subject.
+                  Sown but not yet filed under a subject. There is a sheet for
+                  dealing with these in handfuls — filing several under a
+                  subject at once, promoting one that turned out to be a whole
+                  field, throwing away what came from a passing mention.
                 </p>
                 <ul className={styles.looseList}>
                   {data.unfiled.map(topic => (

@@ -543,6 +543,21 @@
   white-space: nowrap;
 }
 
+/* Filed, but the bed has not yet been asked what it sits under. An
+   outline rather than the solid home stamp: the filing is real and only
+   the placement is outstanding, and a spinner would say neither. */
+.filingSettling {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border: 1px solid var(--rule);
+  padding: 0 var(--space-2);
+  white-space: nowrap;
+}
+
 .filingActions {
   display: flex;
   align-items: baseline;
@@ -660,6 +675,78 @@
   color: var(--plate-terracotta);
   border-left: 2px solid var(--plate-terracotta);
   padding-left: var(--space-3);
+}
+
+/* --- Changing a topic's level ----------------------------------- */
+
+/* The target picker for a demote: the mentions search, printed as a
+   plain menu rather than the floating one the note editor uses. There
+   is no cursor to anchor to here -- the reader is choosing, not
+   typing into prose. */
+.suggestions {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--paper-edge);
+  background: var(--paper-deep);
+  max-height: 12rem;
+  overflow-y: auto;
+}
+
+.suggestion {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: var(--step--1);
+  color: var(--ink);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--paper-edge);
+  padding: var(--space-2);
+  cursor: pointer;
+}
+
+.suggestions li:last-child .suggestion {
+  border-bottom: none;
+}
+
+.suggestion:hover {
+  background: var(--plate-green);
+  color: var(--paper);
+}
+
+/* What a demote would move, before it is pressed. A fold cannot be
+   undone, so the second press is only offered once the sheet can say
+   what the first would cost -- the same shape as grubbing out a bed,
+   and set in the same terracotta. */
+.reckoning {
+  margin: 0;
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink);
+  background: var(--paper-deep);
+  border-left: 3px solid var(--plate-terracotta);
+  padding: var(--space-3);
+}
+
+/* The way out to loose stock, which is a sheet rather than an action:
+   set as a link in the label register, not as one more button among
+   the filing controls. */
+.looseLink {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--rule);
+}
+
+.looseLink:hover {
+  color: var(--plate-terracotta);
 }
 
 /* --- Motion --------------------------------------------------- */

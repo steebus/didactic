@@ -8,6 +8,7 @@ import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
 import { DraftCurriculum } from './DraftCurriculum'
 import { LessonList } from './LessonList'
 import { FiledUnder } from './FiledUnder'
+import { ChangeLevel } from './ChangeLevel'
 import { AddResource } from '@/components/AddResource'
 import { SheetNav } from '@/components/SheetNav'
 import { Crumbs } from '@/components/Crumbs'
@@ -321,6 +322,25 @@ export default async function TopicPage({
               topicTitle={topic.title}
               subjects={subjects.map(s => ({ id: s.id, title: s.title, colour: s.colour }))}
               primarySubjectId={topic.primary_subject_id}
+            />
+
+            {/* What level it sits at. Both moves are refused while it
+                carries a route, and the block says why rather than
+                hiding the controls -- "why can I not do this" is the
+                question a hidden control provokes. */}
+            <ChangeLevel
+              topicId={topic.id}
+              topicTitle={topic.title}
+              hasRoute={curricula.length > 0}
+              routeId={route?.id ?? null}
+              evidence={{
+                subjects: subjects.map(s => ({ id: s.id, title: s.title })),
+                sources: resources.slice(0, 3).map(r => r.resource.title),
+                resources: resources.length,
+                lessons: curricula.reduce((n, c) => n + c.total, 0),
+                marks: highlights.length,
+                exposures: exposures.length,
+              }}
             />
 
             {neighbours.length > 0 && (
