@@ -36,8 +36,14 @@ export interface LessonDetail {
    * read rather than frozen into the body when it was written, so a
    * `lesson:` name whose target has gone prints as a stub instead of
    * a dead end.
+   *
+   * Served by `lessons.links(id)` rather than with the lesson: both
+   * rosters fan out across every topic that shares a subject, and held
+   * here they were the whole of the sheet's wait. Optional because the
+   * lesson read no longer carries them -- a caller that wants them
+   * asks, and prints stubs until the answer lands.
    */
-  links: LessonLink[]
+  links?: LessonLink[]
   /**
    * Every document this lesson may cite, with its length. Resolved when
    * the lesson is read for the same reason `links` is: a document taken
@@ -49,8 +55,11 @@ export interface LessonDetail {
    * Additive: a client that has never heard of it prints every
    * citation as a stub, which is the honest reading for a client that
    * cannot open one.
+   *
+   * Served by `lessons.links(id)` alongside `links`, for the reason
+   * given there.
    */
-  sources: SourceLink[]
+  sources?: SourceLink[]
   /**
    * The lessons either side of this one in its route, for the way on at
    * the foot of the reading. Derived from the route's own order rather
@@ -187,6 +196,17 @@ export const lessons = (api: Api) => {
 
   return {
     get: (id: string) => api.get<LessonDetail>(`/api/lessons/${id}`),
+
+    /**
+     * What the body's `lesson:` and `source:` names resolve against.
+     *
+     * Its own read because it is the expensive half of the lesson and
+     * none of it is needed to paint the prose. Asked for after the
+     * reading is on screen, the names resolve underneath it; until
+     * then they print as stubs.
+     */
+    links: (id: string) =>
+      api.get<{ links: LessonLink[]; sources: SourceLink[] }>(`/api/lessons/${id}/links`),
 
     /** `action: 'complete'` at a depth is an exposure. */
     patch: (id: string, body: LessonPatch) =>

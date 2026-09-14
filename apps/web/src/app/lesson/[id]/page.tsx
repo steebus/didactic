@@ -25,6 +25,9 @@ import { Setting } from '@/components/Setting'
 
 const api = didactic()
 
+/** What the prose resolves against before its roster has landed. */
+const EMPTY_ROSTER = { links: [] as LessonLink[], sources: [] as SourceLink[] }
+
 interface LessonData {
   lesson: {
     id: string
@@ -44,18 +47,6 @@ interface LessonData {
     resources: { id: string; title: string; kind: string; url: string | null; status: string }
   }>
   requires: Array<{ id: string; title: string; completed_at: string | null }>
-  /**
-   * Everything this lesson is allowed to point at: the rest of its
-   * topic first, then the topics its subjects hold. A `lesson:` name
-   * in the body that none of these answer to is printed as a stub.
-   */
-  links: LessonLink[]
-  /**
-   * The documents this lesson may cite, with their lengths. A `source:`
-   * name none of these answer to prints as a stub, and so does a page
-   * past the end of one.
-   */
-  sources: SourceLink[]
   /** The lessons either side of this one in its route. */
   neighbours: LessonNeighbours
   /** Questions already answered here, by key. */
@@ -98,6 +89,24 @@ export default function LessonPage({
    * means no plum on the prose.
    */
   const [clozes, setClozes] = useState<ClozeCard[]>([])
+  /**
+   * What the body's `lesson:` and `source:` names resolve against.
+   *
+   * Its own read, after the lesson rather than with it: both rosters
+   * fan out across every topic that shares a subject, and waiting on
+   * them held the prose off the screen for seconds. Empty until it
+   * lands, which prints every name as a stub -- the same thing the
+   * reader already saw for a name that reaches nothing, and no shift
+   * in the text when the real links arrive.
+   */
+  const [read, setRead] = useState<{
+    for: string
+    links: LessonLink[]
+    sources: SourceLink[]
+  } | null>(null)
+  // Keyed by lesson so turning to another sheet drops the last one's
+  // roster without a render to clear it.
+  const roster = read?.for === id ? read : EMPTY_ROSTER
   /** Bumped when a cloze is planted or pulled up, to read them again. */
   const [garden, setGarden] = useState(0)
   /**
@@ -253,6 +262,23 @@ export default function LessonPage({
       cancelled = true
     }
   }, [id, garden, revision])
+
+  // The roster the prose resolves its names against. Nothing waits on
+  // it: the reading is already on screen, and a failure leaves the
+  // names as stubs rather than costing the reader the lesson.
+  useEffect(() => {
+    let cancelled = false
+
+    void api.lessons.links(id).then(({ ok, body: payload }) => {
+      if (!cancelled && ok) {
+        setRead({ for: id, links: payload.links, sources: payload.sources })
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [id])
 
   useEffect(() => {
     let cancelled = false
@@ -537,7 +563,7 @@ export default function LessonPage({
                     with no provider around them, where the questions
                     still ask and explain and simply do not score. */}
                 <Answering lessonId={id} answered={data.answered ?? {}}>
-                  <Prose markdown={body} lessons={data.links} sources={data.sources} />
+                  <Prose markdown={body} lessons={roster.links} sources={roster.sources} />
                 </Answering>
               </Highlighter>
 
