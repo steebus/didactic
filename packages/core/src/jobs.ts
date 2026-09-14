@@ -32,11 +32,11 @@
  * the lesson -- the steps inside it are not separate news.
  */
 
-import { LABOURS, OPENINGS, TENDINGS, WRITINGS } from './copy'
+import { FILINGS, LABOURS, OPENINGS, TENDINGS, WRITINGS } from './copy'
 
 export type JobState = 'running' | 'done' | 'failed'
 
-export type JobKind = 'sowing' | 'writing' | 'opening' | 'tending'
+export type JobKind = 'sowing' | 'writing' | 'opening' | 'tending' | 'filing'
 
 export interface JobLike {
   kind: JobKind
@@ -78,7 +78,9 @@ export function jobTitle(job: JobLike): string {
           ? `Preparing your first lesson in ${job.name}`
           : job.kind === 'tending'
             ? `Reading ${job.name} back`
-            : `Writing ${job.name}`
+            : job.kind === 'filing'
+              ? 'Reading your entry back'
+              : `Writing ${job.name}`
     case 'done':
       return job.kind === 'sowing'
         ? `${job.name} is sown`
@@ -86,7 +88,9 @@ export function jobTitle(job: JobLike): string {
           ? `Your first lesson in ${job.name} is ready`
           : job.kind === 'tending'
             ? `${job.name} is in the garden`
-            : `${job.name} is written`
+            : job.kind === 'filing'
+              ? 'Your entry is filed'
+              : `${job.name} is written`
     case 'failed':
       return job.kind === 'sowing'
         ? `${job.name} could not be sown`
@@ -94,7 +98,9 @@ export function jobTitle(job: JobLike): string {
           ? `The first lesson in ${job.name} could not be prepared`
           : job.kind === 'tending'
             ? `${job.name} could not be read back`
-            : `${job.name} could not be written`
+            : job.kind === 'filing'
+              ? 'Your entry was kept, but could not be read back'
+              : `${job.name} could not be written`
   }
 }
 
@@ -123,6 +129,11 @@ export function jobNote(job: JobLike): string | null {
       // worked and the reader is on their way somewhere else. So the
       // note says what it is for rather than how long it takes.
       return 'Finding the two or three things worth keeping. Nothing to wait for.'
+    case 'filing':
+      // The entry is already saved by the time this starts, and saying
+      // so is the whole job of this line: what is running is a reading
+      // of it, and nothing the reader wrote is waiting on the outcome.
+      return 'Your entry is saved. Nothing to wait for — it is being read for what it says about the topics it names.'
   }
 }
 
@@ -155,6 +166,8 @@ export function jobPhrases(kind: JobKind): string[] {
       return WRITINGS
     case 'tending':
       return TENDINGS
+    case 'filing':
+      return FILINGS
   }
 }
 
@@ -183,6 +196,10 @@ export function jobWay(job: JobLike): string | null {
   // and puts itself away, and the Tend link in the running head is
   // where they are met.
   if (job.kind === 'tending') return null
+  // A filed entry goes back to the entry itself, which is where what
+  // the reading wrote is printed and where any of it can be taken
+  // back. That is the one thing worth looking at afterwards.
+  if (job.kind === 'filing') return 'See what it filed'
   return 'Read it'
 }
 

@@ -18,7 +18,7 @@ const job = (over: Partial<JobLike> = {}): JobLike => ({
   ...over,
 })
 
-const KINDS: JobKind[] = ['sowing', 'writing', 'opening', 'tending']
+const KINDS: JobKind[] = ['sowing', 'writing', 'opening', 'tending', 'filing']
 const STATES: JobState[] = ['running', 'done', 'failed']
 
 describe('jobKey', () => {
@@ -205,5 +205,32 @@ describe('jobPhrases', () => {
     for (const kind of KINDS) {
       expect(jobPhrases(kind).at(-1)).toMatch(/almost/i)
     }
+  })
+})
+
+describe('filing, the job that reads a diary entry back', () => {
+  const filing = (over: Partial<JobLike> = {}) =>
+    job({ kind: 'filing', name: 'an entry', ...over })
+
+  it('does not name the entry, because an entry has no name', () => {
+    // Every other job is about a thing the reader named -- a subject, a
+    // lesson. An entry is a page about a week, and "Reading Tuesday
+    // back" would be a notice about a stranger.
+    expect(jobTitle(filing())).toBe('Reading your entry back')
+    expect(jobTitle(filing({ state: 'done' }))).toBe('Your entry is filed')
+  })
+
+  it('says the writing survived, when the reading did not', () => {
+    // The one thing worth knowing on a failure here: nothing you typed
+    // is lost. The entry was saved before this job ever started.
+    expect(jobTitle(filing({ state: 'failed' }))).toMatch(/kept/i)
+  })
+
+  it('says the entry is already saved while it runs', () => {
+    expect(jobNote(filing())).toMatch(/saved/i)
+  })
+
+  it('leads back to the entry, where what it filed can be taken back', () => {
+    expect(jobWay(filing({ state: 'done' }))).toBe('See what it filed')
   })
 })

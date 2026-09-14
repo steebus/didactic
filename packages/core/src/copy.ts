@@ -130,6 +130,22 @@ export const WRITINGS = [
  * reading something and what is happening is that it is being read
  * back.
  */
+/**
+ * What a sheet says while a diary entry is being read back.
+ *
+ * The same gardener's rumour the other waits use, and the same rule: a
+ * step, not a measurement. Nobody is watching this one -- the entry is
+ * already saved and the reader has closed the sheet -- so the phrases
+ * describe what is being weighed rather than how far along it is.
+ */
+export const FILINGS = [
+  'Reading it back…',
+  'Finding what it is about…',
+  'Weighing what it shows…',
+  'Setting it against the map…',
+  'Almost filed…',
+]
+
 export const TENDINGS = [
   'Reading the lesson back…',
   'Finding what it was for…',
