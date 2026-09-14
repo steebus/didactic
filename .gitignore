@@ -8,3 +8,5 @@ apps/web/.impeccable/hook.cache.json
 apps/web/.impeccable/config.local.json
 apps/web/.impeccable/review/
 .playwright-mcp/
+
+.vercel
