@@ -5,7 +5,7 @@ import { getHomeData } from '@/lib/home'
 import { Emblem, slugify } from '@/components/Emblem'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
 import { SheetNav } from '@/components/SheetNav'
-import { GardenLine } from '@/components/GardenLine'
+import { LeaveLine } from '@/components/LeaveLine'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
 
@@ -62,10 +62,19 @@ export default async function Home() {
           <section>
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>Subjects</h2>
-              {/* The way into the garden, printed where the reader is
-                  already looking. It prints nothing at all until
-                  something has been planted. */}
-              <GardenLine />
+              {/* Starting a subject, offered where the decision is
+                  actually made: looking at what you already grow and
+                  finding it does not cover something.
+
+                  This is where the garden line used to be. Two quiet
+                  links to the tending sheet stood beside this title on
+                  the one sheet that already carries Tend in its running
+                  head with the due count stamped on it -- so the sheet
+                  asked three times for the same thing and never once
+                  for the one that is not offered anywhere else. */}
+              <Link href="/subjects/new" className={styles.sow}>
+                Sow a new subject
+              </Link>
             </div>
 
             <ul className={styles.listing}>
@@ -307,6 +316,9 @@ export default async function Home() {
             ? `${data.pendingCount} awaiting your decision`
             : 'Nothing awaiting decision'}
         </span>
+        {/* The way out of the catalogue, at the foot of the one sheet
+            everything starts from. */}
+        <LeaveLine />
       </footer>
       </div>
     </main>

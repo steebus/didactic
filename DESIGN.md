@@ -314,6 +314,13 @@ Two authorised departures, both data-driven:
 The graph substitutes a control strip in the same material: `--plate-green`
 with a `4px solid var(--plate-mustard)` bottom border.
 
+**Rule — the running head carries sheets, and one thing that is not a sheet.**
+Four sheets (the bed, marked, tend, inbox), then *Write an entry* behind a
+`1px rgba(239,231,214,0.35)` rule. Sowing is not among them — it is something
+you do, offered on the subjects sheet where the decision is made — and the
+subjects sheet does not print itself. Leaving is not among them either: it is
+one press on a single-user app, and it sits at the foot of the subjects sheet.
+
 **Rule — reversed-out text on a plate band uses paper at alpha, never a
 different hue.** `rgba(239,231,214, 0.7 / 0.75 / 0.85 / 0.88 / 0.9)` covers every
 case in the build. `0.7` is the quietest label, `0.9` is an active link.
@@ -1285,6 +1292,32 @@ full width of the window would be the one thing here that bleeds.
 **Rule — the mustard rule belongs to the band.** The composer is ruled off in
 `--rule-strong`: a second mustard rule a few pixels under the band's own reads
 as a printing fault.
+
+**Rule — a field's size is what the sheet says about how much is wanted.** The
+entry box is half again the height of a note box (`6.75rem` against `4.5rem`),
+because a note is a remark about a sentence and an entry is a page about a week.
+
+**Rule — a tag the reader did not type is stated where they can see it.** An
+entry opened from a topic sheet starts filed under that topic, and the composer
+stamps *Filed under* with the name, on `--paper-deep` behind a `2px` plum rule.
+A tag nobody can see is a tag nobody can correct. It is a fact, not a control:
+naming something else with `@` is how it is changed.
+
+### Naming something with `@`
+
+| Part | Treatment |
+| --- | --- |
+| The menu | `--paper` on `1px solid var(--rule-strong)`, one `3px` hard shadow. |
+| What is being typed | A header on `--paper-deep` over a `1px solid var(--rule-strong)`: the `@` in `--plate-terracotta` at `700`, the name in `--ink` at `600`. Does not scroll with the list. |
+| Nothing matched | *Nothing by that name yet.* in `--ink-faint`, in place of the list. |
+
+**Rule — the menu prints what it is filtering against.** The name is typed into
+the prose the menu covers, so without this the reader is filtering a list
+against something they cannot see and cannot tell a typo from a topic they do
+not have.
+
+**Rule — the menu stays up while a name is being typed.** It used to close the
+moment nothing matched, which took it away exactly when it was most needed.
 
 ## 9. Browser Surfaces
 

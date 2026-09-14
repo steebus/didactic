@@ -270,7 +270,11 @@ function SowSheet() {
   return (
     <main className={styles.sheet}>
       <header className={styles.head}>
-        <SheetNav current="sow" />
+        {/* Sowing is no longer one of the sheets in the head -- it is
+            something you do, offered on the subjects sheet where the
+            decision is made -- so this sheet carries a way back to
+            where it was started from rather than marking itself. */}
+        <SheetNav back={{ href: '/', label: 'Subjects' }} />
         <div className={styles.headRow}>
           <h1 className={styles.title}>Sow a subject</h1>
         </div>

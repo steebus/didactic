@@ -56,6 +56,7 @@ export function NoteEditor({
   label,
   autoFocus,
   fill,
+  tall,
   className,
 }: {
   value: string
@@ -66,6 +67,10 @@ export function NoteEditor({
   /** Take the height on offer rather than sizing to the writing: the
    *  editor is a page of its own rather than a field in a panel. */
   fill?: boolean
+  /** Half again the usual height. A note is a remark about a sentence;
+   *  an entry is a page about a week, and the size of the field is the
+   *  clearest thing a sheet says about how much is wanted. */
+  tall?: boolean
   className?: string
 }) {
   const box = useRef<HTMLDivElement>(null)
@@ -225,7 +230,7 @@ export function NoteEditor({
 
   return (
     <div
-      className={[styles.editor, fill ? styles.filling : '', className ?? '']
+      className={[styles.editor, fill ? styles.filling : '', tall ? styles.tall : '', className ?? '']
         .filter(Boolean)
         .join(' ')}
     >
@@ -309,12 +314,27 @@ export function NoteEditor({
       {mentions.at && (
         // Printed where the `@` is rather than where the cursor has
         // got to, so it does not walk sideways as the name is typed.
-        <ul
+        <div
           className={styles.mentions}
           style={{ left: mentions.at.left, top: mentions.at.top }}
-          role="listbox"
-          aria-label="Topics and lessons"
         >
+          {/* What is being filtered against.
+
+              The name is typed into the prose, where the menu covers it
+              -- so the reader was filtering a list against something
+              they could not see, and could not tell a typo from a topic
+              they simply do not have. It is printed back here, under
+              the `@` it was typed after. */}
+          <p className={styles.typing}>
+            <span className={styles.typedAt}>@</span>
+            {mentions.at.query ? (
+              <span className={styles.typedName}>{mentions.at.query}</span>
+            ) : (
+              <span className={styles.typedHint}>Type a topic or lesson name</span>
+            )}
+          </p>
+
+          <ul className={styles.mentionList} role="listbox" aria-label="Topics and lessons">
           {mentions.suggestions.map((suggestion, i) => (
             <li key={`${suggestion.kind}:${suggestion.id}`}>
               <button
@@ -335,7 +355,14 @@ export function NoteEditor({
               </button>
             </li>
           ))}
-        </ul>
+          </ul>
+
+          {/* A name that matches nothing says so, rather than leaving a
+              menu that has silently become an empty box. */}
+          {mentions.suggestions.length === 0 && (
+            <p className={styles.nothing}>Nothing by that name yet.</p>
+          )}
+        </div>
       )}
     </div>
   )

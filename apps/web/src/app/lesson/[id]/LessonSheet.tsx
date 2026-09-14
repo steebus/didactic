@@ -487,7 +487,10 @@ export default function LessonSheet({
   return (
     <main className={styles.sheet}>
       <header className={styles.head}>
-        <SheetNav />
+        {/* An entry written while reading is about what the lesson
+            teaches rather than about the lesson: a lesson already has
+            its own note, on the desk rail beside the prose. */}
+        <SheetNav filedUnder={topic ? { id: topic.id, title: topic.title } : undefined} />
         <div className={styles.headRow}>
           <div>
             {/* Where this lesson sits, and the way back up it. The

@@ -140,10 +140,41 @@
   margin-bottom: var(--space-1);
 }
 
-/* The garden line sits in the head here rather than under it, so it
-   drops the bottom margin it carries when it stands on its own. */
+/* Anything sitting in the head rather than under it drops the bottom
+   margin it carries when it stands on its own. */
 .sectionHead > p {
   margin-bottom: 0;
+}
+
+/* Sowing a subject: the one thing this sheet offers that is offered
+   nowhere else, so it is stated rather than murmured.
+
+   Ruled rather than filled. A plate-green fill here would be the
+   loudest thing on a sheet whose subject rows are the point, and this
+   is an offer rather than the sheet's own business -- so it takes the
+   green as an outline and fills on hover, which is a step up from the
+   underlined links around it without becoming the first thing the eye
+   lands on. */
+.sow {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--plate-green);
+  text-decoration: none;
+  border: 1px solid var(--plate-green);
+  padding: var(--space-2) var(--space-3);
+  white-space: nowrap;
+  transition:
+    background-color var(--dur-feedback) var(--ease-settle),
+    color var(--dur-feedback) var(--ease-settle);
+}
+
+.sow:hover {
+  background: var(--plate-green);
+  color: var(--paper);
+  text-decoration: none;
 }
 
 .sectionTitle {

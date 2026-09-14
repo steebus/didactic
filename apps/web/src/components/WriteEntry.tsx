@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { usePathname, useRouter } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { didactic } from '@didactic/api'
 import { NoteEditor } from './NoteEditor'
 import { useBench } from './Bench'
@@ -25,8 +25,13 @@ const api = didactic()
  * page carries on existing underneath it. Nothing is dimmed and nothing
  * is trapped.
  */
-export function WriteEntry() {
-  const here = usePathname() ?? ''
+export function WriteEntry({
+  filedUnder,
+}: {
+  /** The topic the sheet this is printed on is about, if it is about
+   *  one. An entry written from here starts filed under it. */
+  filedUnder?: { id: string; title: string }
+}) {
   const router = useRouter()
   const { start } = useBench()
 
@@ -35,11 +40,7 @@ export function WriteEntry() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // What the reader is standing on, if it is a thing an entry can be
-  // filed under. A lesson is not one of them: the lesson's own desk
-  // rail already writes a note against the lesson, and an entry written
-  // from a lesson is about the topic it teaches rather than the lesson.
-  const topicId = here.startsWith('/topics/') ? here.split('/')[2]?.split('?')[0] ?? null : null
+  const topicId = filedUnder?.id ?? null
 
   /**
    * Where the composer starts: the foot of the masthead band.
@@ -132,12 +133,29 @@ export function WriteEntry() {
               will read this back against it.
             </p>
 
+            {/* What the entry starts filed under, when it was opened
+                from a sheet about something.
+
+                Said out loud rather than left implicit: the entry is
+                about to be filed against a topic the reader did not
+                type, and a tag nobody can see is a tag nobody can
+                correct. Stated as a fact rather than offered as a
+                control -- it is a starting point, and naming something
+                else with `@` is how it is changed. */}
+            {filedUnder && (
+              <p className={styles.filed}>
+                <span className={styles.filedLabel}>Filed under</span>
+                <span className={styles.filedName}>{filedUnder.title}</span>
+              </p>
+            )}
+
             <NoteEditor
               value={note}
               onChange={setNote}
               label="Your entry"
               placeholder="This week…"
               autoFocus
+              tall
               className={styles.editor}
             />
 

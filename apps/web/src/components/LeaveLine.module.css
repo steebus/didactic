@@ -1,0 +1,29 @@
+/* The way out, at the foot of the subjects sheet. Set in the agate the
+   rest of the foot is set in, and underlined in the rule rather than in
+   the mustard every other action wears: this is the one link in the
+   catalogue that is not an invitation. */
+
+.leave {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  padding: 0 0 2px;
+  cursor: pointer;
+  transition: color var(--dur-feedback) var(--ease-settle);
+}
+
+.leave:hover:not(:disabled) {
+  color: var(--ink-soft);
+  border-bottom-color: var(--rule-strong);
+}
+
+.leave:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

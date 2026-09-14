@@ -196,8 +196,19 @@ export function useMentions(
   )
 
   return {
-    /** Where to print the menu, or null when nothing is being named. */
-    at: at && suggestions.length > 0 ? { left: at.left, top: at.top } : null,
+    /**
+     * Where to print the menu and what is being typed into it, or null
+     * when no name is being typed at all.
+     *
+     * It used to go null the moment nothing matched, which took the
+     * menu away exactly when the reader most needed it: the name is
+     * typed into the prose *underneath* the menu, so a filter that
+     * matched nothing left them with no list, no sight of what they had
+     * typed, and no way to tell a typo from a topic they do not have.
+     * The menu now stays up while a name is being typed and says so
+     * itself when it matches nothing.
+     */
+    at: at ? { left: at.left, top: at.top, query: at.query } : null,
     suggestions,
     active,
     setActive,

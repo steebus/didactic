@@ -199,15 +199,71 @@
   z-index: 30;
   margin: var(--space-1) 0 0;
   padding: 0;
-  list-style: none;
   min-width: 16rem;
   max-width: min(24rem, 80vw);
-  max-height: 14rem;
-  overflow-y: auto;
   background: var(--paper);
   border: 1px solid var(--rule-strong);
   /* Printed rather than floated: one hard shadow, no blur halo. */
   box-shadow: 3px 3px 0 rgba(36, 29, 22, 0.12);
+}
+
+/* The list scrolls; the line saying what is being typed does not, so it
+   stays readable however far down the list the reader has arrowed. */
+.mentionList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 14rem;
+  overflow-y: auto;
+}
+
+/* What is being filtered against, printed back.
+
+   The name is typed into the prose underneath, where this menu covers
+   it -- so without this the reader is filtering a list against
+   something they cannot see, and cannot tell a typo from a topic they
+   do not have. */
+.typing {
+  display: flex;
+  align-items: baseline;
+  gap: 0.15em;
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--rule-strong);
+  background: var(--paper-deep);
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  /* A name can be long; the menu should not grow sideways to fit it. */
+  overflow: hidden;
+}
+
+/* The mark itself, in the ink it wears everywhere else it is explained. */
+.typedAt {
+  color: var(--plate-terracotta);
+  font-weight: 700;
+}
+
+.typedName {
+  color: var(--ink);
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.typedHint {
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+/* A name that matches nothing. Said out loud rather than left as an
+   empty box, which reads as a menu that has broken. */
+.nothing {
+  margin: 0;
+  padding: var(--space-3);
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  color: var(--ink-faint);
 }
 
 .mention {
@@ -267,4 +323,10 @@
   color: var(--plate-green);
   text-decoration-color: var(--plate-green);
   text-underline-offset: 0.22em;
+}
+
+/* Half again the height, for a box being asked for a page rather than a
+   remark. See the `tall` prop in NoteEditor.tsx. */
+.tall .box {
+  min-height: 6.75rem;
 }

@@ -135,6 +135,34 @@
   color: var(--plate-terracotta);
 }
 
+/* What the entry starts filed under. A stamp rather than a sentence:
+   it is a fact about the entry being written, and the catalogue stamps
+   facts -- the inbox tally, the standing on a lesson. */
+.filed {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  background: var(--paper-deep);
+  border-left: 2px solid var(--plate-plum);
+}
+
+.filedLabel {
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.filedName {
+  font-family: var(--font-display);
+  font-size: var(--step-0);
+  font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 40;
+  color: var(--ink);
+}
+
 .editor {
   background: var(--paper-deep);
   border: 1px solid var(--rule-strong);
@@ -206,14 +234,15 @@
 }
 
 @media (max-width: 40rem) {
-  /* In the head's stacked column the rule on the left reads as a stray
-     tick against the sheets above it, so the control is set apart by
-     space and a rule above instead. */
+  /* The head stacks on a phone, so the rule on the left would be a
+     stray tick under the sheets rather than a division between two runs
+     on one line. Set apart by a rule above instead, and pushed to the
+     right so it stands under the run it belongs beside. */
   .open {
     border-left: none;
     border-top: 1px solid rgba(239, 231, 214, 0.35);
-    padding: var(--space-3) 0 var(--space-2);
-    align-self: flex-start;
+    padding: var(--space-2) 0 var(--space-1);
+    align-self: flex-end;
     margin-top: var(--space-1);
   }
 

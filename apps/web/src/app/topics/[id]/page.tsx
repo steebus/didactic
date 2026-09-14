@@ -65,7 +65,12 @@ export default async function TopicPage({
             pushed the reading below the fold. */}
         <BandSpecimen progress={routeProgress(curricula)} ink={colour} />
 
-        <SheetNav back={{ href: '/', label: 'Subjects' }} />
+        {/* An entry written from a topic sheet starts filed under that
+            topic, and the composer says so. */}
+        <SheetNav
+          back={{ href: '/', label: 'Subjects' }}
+          filedUnder={{ id: topic.id, title: topic.title }}
+        />
 
         <div className={styles.headRow}>
           <div>

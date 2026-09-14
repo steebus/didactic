@@ -194,11 +194,17 @@
      wraps to two lines here, and a second line starting at the left
      reads as a separate menu rather than as the rest of the first.
      Ragged on the left, flush on the right -- the edge the eye has
-     already been given by the line above it. */
+     already been given by the line above it.
+
+     Four sheets rather than six now -- Sow was never a sheet and the
+     subjects sheet no longer offers itself -- so this generally holds
+     one line where it used to take three. The tighter tracking is what
+     keeps it there on the narrowest phones. */
   .sheets {
     gap: 0 var(--space-3);
     justify-content: flex-end;
     margin-left: 0;
+    letter-spacing: 0.06em;
   }
 
   .leave {
