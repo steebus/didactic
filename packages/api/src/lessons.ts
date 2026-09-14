@@ -27,6 +27,13 @@ export interface LessonDetail {
   lesson: Lesson
   curriculum: Pick<Curriculum, 'id' | 'title' | 'goal' | 'topic_id' | 'status'> | null
   topic: { id: string; title: string } | null
+  /**
+   * The subject the topic is filed under, for the trail above the
+   * title: Subject > Topic. A topic filed nowhere, or under more than
+   * one, gives null and the first respectively -- the trail says where
+   * this sheet sits, and it sits in one place.
+   */
+  subject: { id: string; title: string } | null
   resources: Array<{ relevance: number; resources: Resource }>
   highlights: Highlight[]
   requires: Array<{ id: string; title: string; completed_at: string | null }>

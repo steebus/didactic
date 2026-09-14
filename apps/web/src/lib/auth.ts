@@ -1,4 +1,5 @@
 import { cache } from 'react'
+import { connection } from 'next/server'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { createServerClient } from '@supabase/ssr'
@@ -79,6 +80,14 @@ export async function supabaseSession() {
  * thrown out.
  */
 export const getOwner = cache(async (): Promise<User | null> => {
+  // Verifying a token's signature means checking what it claims about
+  // when it expires, which means reading the clock -- and a clock read
+  // while prerendering is a value that changes between renders, which
+  // Next refuses. `headers()` below already makes this request-time,
+  // but the sheets start the gate and their own read together in a
+  // `Promise.all`, so the clock could be read before the headers had
+  // resolved and said so. This states it before anything else runs.
+  await connection()
   const bearer = (await headers()).get('authorization')?.match(/^Bearer (.+)$/)
   const client = bearer ? supabaseBrowser() : await supabaseSession()
   const token = bearer?.[1]

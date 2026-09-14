@@ -1,5 +1,10 @@
 .holder {
   position: relative;
+  /* Room at the foot for the desk to come to rest in. The buttons are
+     sticky inside this box, so where it ends is where they stop -- and
+     without this they stopped on top of the last few lines of the
+     reading, which is the one place in the lesson they must not be. */
+  padding-bottom: calc(var(--space-5) + 2.75rem);
 }
 
 /* The tally is a control -- it opens the list of what is marked -- but
@@ -152,7 +157,10 @@
    would end up fixed to -- does not reach it. */
 .desk {
   position: sticky;
-  /* Clear of the phone's own bar at the foot of the screen. */
+  /* Clear of the phone's own bar at the foot of the screen, and of any
+     notice standing at the foot. On a wide screen the bench takes the
+     other corner and `--bench-stack` is not applied, so the buttons sit
+     where they always did. */
   bottom: calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
   z-index: 4;
   height: 0;
@@ -528,3 +536,15 @@
 
    Reduced motion: the hover change is colour only, which is already
    the fallback everywhere else in the sheet. Nothing to drop. */
+
+/* On a phone the bench runs the full width at the foot, so there is no
+   corner to stand beside -- the buttons stand on top of it instead.
+   `--bench-stack` is only set while a notice is actually showing, so
+   with nothing to report the desk sits where it otherwise would. */
+@media (max-width: 40rem) {
+  .desk {
+    bottom: calc(
+      var(--space-5) + env(safe-area-inset-bottom, 0px) + var(--bench-stack, 0px)
+    );
+  }
+}

@@ -19,6 +19,16 @@
 .head {
   color: var(--paper);
   padding: var(--space-5);
+  /* The growing specimen is laid in as this band's ground, absolutely
+     placed against it, and cropped by it. */
+  position: relative;
+  overflow: hidden;
+}
+
+/* Everything printed in the band stands above the drawing behind it. */
+.head > *:not([aria-hidden='true']) {
+  position: relative;
+  z-index: 1;
 }
 
 .headRow {
@@ -36,10 +46,6 @@
 /* The right of the band: the progress plant, reversed out of the band's
    own ink. It is the subject's plate on its own sheet — the growing
    specimen, not a second static emblem beside it. */
-.headAside {
-  display: grid;
-  justify-items: end;
-}
 
 .eyebrow {
   font-size: var(--step--2);

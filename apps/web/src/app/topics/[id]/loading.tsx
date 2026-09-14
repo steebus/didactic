@@ -15,7 +15,7 @@ export default function Loading() {
   return (
     <main className={styles.sheet}>
       <header className={styles.head}>
-        <SheetNav back={{ href: '/', label: 'Stock list' }} />
+        <SheetNav back={{ href: '/', label: 'Subjects' }} />
 
         <div className={styles.headRow}>
           <div>

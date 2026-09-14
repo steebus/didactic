@@ -1,0 +1,146 @@
+/* The growing specimen, laid in as the band's ground.
+
+   ── THE KNOBS ────────────────────────────────────────────────────────
+   Everything that decides how the drawing sits is here. Change it on
+   `.ground` to change it everywhere, or set the same property on a
+   sheet's own `.head` to change it on that band alone.
+
+     --specimen-opacity   how far it fades back. The text on these bands
+                          is `--paper` on a saturated plate, so this is
+                          the one number that decides whether the band
+                          still reads. 0.14 holds contrast on every
+                          subject colour in the build; past about 0.22
+                          the lightest plates (mustard) start to lose
+                          the strapline.
+     --specimen-width     how wide the drawing is, as a share of the
+                          band. This is the size knob: the plant keeps
+                          its own portrait proportion and its height
+                          follows from this, so it is never squashed.
+     --specimen-height    the tallest it may get, as a share of the
+                          band. A cap, not a size -- on a short band it
+                          is what stops a wide setting from running off
+                          the top and bottom. Over 100% deliberately
+                          crops; at 100% the whole plant always fits.
+     --specimen-inset     how far its right edge sits from the band's.
+     --specimen-shift     how far it is pushed down. The plant's crown
+                          is near its top; a positive figure drops the
+                          flower behind the title rather than above it.
+     --specimen-soil      how dark the block of soil under the plant is.
+                          0 (the default here) drops it entirely and
+                          keeps only the strata and the soil line -- on
+                          a band with no plate behind it the block reads
+                          as a pasted-in rectangle. 0.14 is roughly what
+                          the plate version draws.
+     --specimen-blur      softens it into the ground. 0 keeps the line
+                          work crisp; a little blur reads more like a
+                          watermark and less like a diagram.
+   ─────────────────────────────────────────────────────────────────── */
+
+.ground {
+  --specimen-opacity: 0.16;
+  --specimen-width: 30%;
+  --specimen-height: 132%;
+  --specimen-inset: var(--space-5);
+  --specimen-shift: -4%;
+  --specimen-blur: 0px;
+
+  position: absolute;
+  /* Pinned to all four edges so the drawing has the whole band to sit
+     in and `justify-content` actually has room to push it right. With
+     only `right` set the box shrank to the drawing and the inset had
+     nothing to work against. */
+  inset: 0 var(--specimen-inset) 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: none;
+  /* Behind the words, above the band's own colour. */
+  z-index: 0;
+  opacity: var(--specimen-opacity);
+  filter: blur(var(--specimen-blur));
+  /* Cropped by the band rather than spilling onto the sheet below. */
+  overflow: hidden;
+}
+
+/* The specimen's own figure and svg size themselves to their container
+   (`width: 100%; height: auto`), which is right for a plate and wrong
+   for a ground: here the height is what is being set and the width must
+   follow it. Both are addressed, because the figure is what the flex
+   row lays out and the svg is what actually draws. */
+/* Width leads and height follows, so the plant keeps its proportion.
+   Driving the height instead squashed it: `max-width` capped the width
+   while the height stayed where it was put, and the drawing came out
+   several times taller than the band with most of the plant cropped
+   away above and below it. */
+.ground > *,
+.ground svg {
+  width: var(--specimen-width);
+  height: auto;
+  max-height: var(--specimen-height);
+  /* The specimen is a figure with a margin of its own; here it is a
+     piece of the ground and takes none. */
+  margin: 0;
+}
+
+.ground > * {
+  transform: translateY(var(--specimen-shift));
+}
+
+/* The plate paints its own ink behind the drawing, which on a plate is
+   the point and here would be an opaque rectangle laid over the band.
+   The band is already the right colour: the drawing wants the band's
+   ground, not one of its own.
+
+   The soil block and its strata are painted *inside* the svg and are
+   translucent, so they survive this and still read as ground -- which
+   is what gives the roots something to be deep in. */
+.ground svg {
+  background: none !important;
+}
+
+/* The soil block reads as a hard-edged rectangle when the plate's own
+   ink is not behind it -- a pasted-in box rather than ground. On a
+   plate it is the thing that gives the roots something to be deep in;
+   here the band is already that, so the block goes and the strata and
+   the soil line stay, which is the reading without the box.
+
+   Set as a knob rather than a decision: `--specimen-soil` back to
+   something like 0.14 brings the block back if you want it. */
+.ground .soil,
+.ground rect {
+  fill: rgba(36, 29, 22, var(--specimen-soil, 0)) !important;
+}
+
+/* The drawing is the ground, so it must not animate itself into view --
+   a watermark that grows while the reader is reading is a distraction
+   from the thing it sits behind. */
+.ground * {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* The figure the drawing used to carry under it, printed as a line in
+   the band. It is the one thing here that changes, so it stays words. */
+.caption {
+  margin: var(--space-3) 0 0;
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(239, 231, 214, 0.85);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* A phone has less width for the drawing to sit clear of the words, so
+   it fades back further and pulls in from the edge. */
+@media (max-width: 40rem) {
+  .ground {
+    --specimen-opacity: 0.13;
+    --specimen-inset: var(--space-3);
+    --specimen-width: 42%;
+    --specimen-height: 118%;
+  }
+}
+
+/* A reader who has asked for less motion still gets the drawing; it is
+   static either way. Nothing to do here -- noted so the omission reads
+   as deliberate. */

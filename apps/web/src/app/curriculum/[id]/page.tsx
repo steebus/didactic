@@ -4,6 +4,7 @@ import { use, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { NudgeIcon } from '@/components/NudgeIcon'
 import { SheetNav } from '@/components/SheetNav'
+import { Crumbs } from '@/components/Crumbs'
 import { RouteSpecimen } from '@/components/RouteSpecimen'
 import { didactic, type CurriculumPatch } from '@didactic/api'
 import { routeProgress } from '@didactic/core/progress'
@@ -164,7 +165,7 @@ export default function CurriculumPage({
         <div className={styles.body}>
           <p className={styles.problem}>{error}</p>
           <Link href="/" className={styles.quietAction}>
-            Back to the stock list
+            Back to the subjects
           </Link>
         </div>
       </main>
@@ -197,20 +198,19 @@ export default function CurriculumPage({
           back={
             topic
               ? { href: `/topics/${topic.id}`, label: 'The topic' }
-              : { href: '/', label: 'Stock list' }
+              : { href: '/', label: 'Subjects' }
           }
         />
         <div className={styles.headRow}>
           <div>
-            <p className={styles.eyebrow}>
-              {topic ? (
-                <Link href={`/topics/${topic.id}`} className={styles.eyebrowLink}>
-                  {topic.title}
-                </Link>
-              ) : (
-                'Curriculum'
-              )}
-            </p>
+            {topic ? (
+              <Crumbs
+                className={styles.eyebrow}
+                trail={[{ href: `/topics/${topic.id}`, label: topic.title }]}
+              />
+            ) : (
+              <p className={styles.eyebrow}>Curriculum</p>
+            )}
             <h1 className={styles.title}>{curriculum.title}</h1>
           </div>
           <div className={styles.headAside}>

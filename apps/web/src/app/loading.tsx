@@ -19,7 +19,7 @@ export default function Loading() {
         <div className={styles.masthead}>
           <h1 className={styles.title}>Didactic</h1>
           <div className={styles.edition}>
-            <span className={styles.editionRule}>Stock list</span>
+            <span className={styles.editionRule}>Subjects</span>
             <Slug w="8rem" band />
           </div>
         </div>
@@ -34,11 +34,10 @@ export default function Loading() {
         <div className={styles.spread}>
           <section>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>Stock in hand</h2>
-              <span className={styles.sectionNote}>Viability · condition</span>
+              <h2 className={styles.sectionTitle}>Subjects</h2>
             </div>
 
-            <Working label="Reading the stock list" />
+            <Working label="Reading the subjects" />
 
             <ul className={styles.listing}>
               {[76, 62, 70, 55, 48].map((w, i) => (

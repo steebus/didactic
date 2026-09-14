@@ -20,6 +20,7 @@ import { pressedLink } from '@/lib/pressedLink'
 import { useScrollMemory } from '@/lib/useScrollMemory'
 import { viabilityFigure } from '@didactic/core/scoring'
 import { SheetNav } from '@/components/SheetNav'
+import { Crumbs } from '@/components/Crumbs'
 import styles from './page.module.css'
 import { Setting } from '@/components/Setting'
 
@@ -42,6 +43,7 @@ export interface LessonData {
   }
   curriculum: { id: string; title: string; status: string } | null
   topic: { id: string; title: string } | null
+  subject: { id: string; title: string } | null
   resources: Array<{
     relevance: number
     resources: { id: string; title: string; kind: string; url: string | null; status: string }
@@ -474,8 +476,12 @@ export default function LessonSheet({
     )
   }
 
-  const { lesson, curriculum, topic, resources, requires, available, neighbours } = data
+  const { lesson, topic, subject, resources, requires, available, neighbours } = data
   const done = lesson.completed_at !== null
+  const crumbs = [
+    ...(subject ? [{ href: `/subjects/${subject.id}`, label: subject.title }] : []),
+    ...(topic ? [{ href: `/topics/${topic.id}`, label: topic.title }] : []),
+  ]
   const blocking = requires.filter(r => r.completed_at === null)
 
   return (
@@ -484,32 +490,15 @@ export default function LessonSheet({
         <SheetNav />
         <div className={styles.headRow}>
           <div>
-            {/* A route drafted from a topic takes the topic's own name,
-                so printing both read "Brokerage Accounts and Custody ·
-                Brokerage Accounts and Custody". The route is only worth
-                naming when it says something the topic did not. */}
-            <p className={styles.eyebrow}>
-              {topic && (
-                <Link href={`/topics/${topic.id}`} className={styles.eyebrowLink}>
-                  {topic.title}
-                </Link>
-              )}
-              {curriculum && curriculum.title !== topic?.title && (
-                <>
-                  {topic && ' · '}
-                  <Link href={`/curriculum/${curriculum.id}`} className={styles.eyebrowLink}>
-                    {curriculum.title}
-                  </Link>
-                </>
-              )}
-            </p>
+            {/* Where this lesson sits, and the way back up it. The
+                route it was drafted from is not a step: the curriculum
+                sheet is going away, and a route drafted from a topic
+                takes the topic's own name in any case, so printing both
+                read "Brokerage Accounts and Custody > Brokerage
+                Accounts and Custody". */}
+            <Crumbs className={styles.eyebrow} trail={crumbs} />
             <h1 className={styles.title}>{lesson.title}</h1>
           </div>
-          {curriculum && (
-            <Link href={`/curriculum/${curriculum.id}`} className={styles.back}>
-              Back to the curriculum
-            </Link>
-          )}
         </div>
 
         <div className={styles.figures}>

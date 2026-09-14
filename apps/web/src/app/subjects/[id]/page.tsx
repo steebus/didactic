@@ -6,7 +6,7 @@ import { getSubjectArea } from '@/lib/subject'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
 import { SheetNav } from '@/components/SheetNav'
 import { GardenLine } from '@/components/GardenLine'
-import { RouteSpecimen } from '@/components/RouteSpecimen'
+import { BandSpecimen, BandSpecimenCaption } from '@/components/BandSpecimen'
 import { routeProgress, aggregateRoutes } from '@didactic/core/progress'
 import { ROOT_STAGES } from '@/components/RootsSpecimen'
 import { SubjectBed } from './SubjectBed'
@@ -47,7 +47,11 @@ export default async function SubjectPage({
           { background: subject.colour, '--focus-ink': 'var(--paper)' } as React.CSSProperties
         }
       >
-        <SheetNav back={{ href: '/', label: 'Stock list' }} />
+        {/* How far the bed has been worked, laid in as the band's own
+            ground rather than standing beside the title. */}
+        <BandSpecimen progress={routes} ink={subject.colour} />
+
+        <SheetNav back={{ href: '/', label: 'Subjects' }} />
 
         <div className={styles.headRow}>
           <div className={styles.headTitle}>
@@ -59,15 +63,10 @@ export default async function SubjectPage({
               {counts.unread > 0 && ` (${counts.unread} unread)`} · {counts.curricula}{' '}
               {counts.curricula === 1 ? 'curriculum' : 'curricula'}
             </p>
-          </div>
-
-          {/* The subject's own plate is the growing specimen now, not a
-              second static emblem stacked above it: on its own sheet the
-              title and the band's ink already name the subject, so the
-              right of the band is given to the one thing that changes —
-              how far the bed has been worked. */}
-          <div className={styles.headAside}>
-            <RouteSpecimen progress={routes} ink={subject.colour} />
+            {/* The figure the specimen used to carry under it. The
+                drawing is the band's ground now, and a faded drawing
+                cannot be read as a figure. */}
+            <BandSpecimenCaption progress={routes} />
           </div>
         </div>
 

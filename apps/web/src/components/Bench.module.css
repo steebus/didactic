@@ -8,15 +8,15 @@
    catalogue prints its standing notices. */
 .bench {
   position: fixed;
-  right: var(--space-4);
-  /* Stands on the foot bar when there is one (Phase 3), and clear of
-     the lesson reader's floating buttons wherever those are showing --
-     on a phone a notice runs the full width and simply covered them.
-     Both are nought on a sheet that has neither. */
-  bottom: calc(
-    var(--foot-bar, 0px) + env(safe-area-inset-bottom, 0px) + var(--desk-stack, 0rem) +
-      var(--space-4)
-  );
+  /* The near corner on a wide screen. The lesson reader's own buttons
+     dock at the right, and the two were sharing one corner: a notice
+     stood clear of them by climbing, which put it over the reading it
+     was reporting on. They get a corner each instead, and neither has
+     to know how tall the other is. */
+  left: var(--space-4);
+  /* Stands on the foot bar when there is one (Phase 3). Nought on a
+     sheet that has neither. */
+  bottom: calc(var(--foot-bar, 0px) + env(safe-area-inset-bottom, 0px) + var(--space-4));
   z-index: 40;
 
   display: flex;
@@ -188,13 +188,14 @@
 
 @media (max-width: 40rem) {
   /* Full width at the foot on a phone, where a floating card with a
-     margin either side wastes the only dimension there is. */
+     margin either side wastes the only dimension there is -- and where
+     there are no corners to give the desk one of, so the two stack
+     instead: the notice at the foot, the buttons standing on it. */
   .bench {
     left: var(--space-2);
     right: var(--space-2);
     bottom: calc(
-      var(--foot-bar, 0px) + env(safe-area-inset-bottom, 0px) + var(--desk-stack, 0rem) +
-        var(--space-2)
+      var(--foot-bar, 0px) + env(safe-area-inset-bottom, 0px) + var(--space-2)
     );
     width: auto;
   }

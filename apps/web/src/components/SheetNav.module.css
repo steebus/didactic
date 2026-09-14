@@ -14,6 +14,12 @@
   font-size: var(--step--2);
   letter-spacing: 0.1em;
   text-transform: uppercase;
+  /* The links carry their own padding so they are reachable on a phone,
+     and that padding sat on top of the band's -- which put the running
+     head a long way down a band whose whole job is to be read first.
+     Pulled back up by what the links add above themselves; they keep
+     the padding, so nothing about the touch target changes. */
+  margin-top: calc(var(--space-2) * -1);
 }
 
 /* The sheets take the right whether or not a back link is present, so
@@ -161,16 +167,37 @@
 
 @media (max-width: 40rem) {
   /* On a phone the head stacks: the way back on top, the sheets beneath
-     it, both reading from the left like the rest of the sheet. */
+     it, both reading from the left like the rest of the sheet.
+
+     The sheets themselves stay one wrapping run rather than a column.
+     Seven of them at a phone's width take two lines either way, and two
+     lines of a run is half the height of seven rows -- the head was
+     taking most of the first screen before the lesson had said
+     anything. The row gap is the tight one and the touch targets keep
+     their padding, so the two lines do not close up on each other. */
   .nav {
     flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-3);
+    /* Stretch rather than flex-start: a column shrink-wraps its items,
+       and a run shrink-wrapped to its own content has no spare width
+       for its last line to be pushed across. The back link states its
+       own alignment below, since it is the one item that still reads
+       from the left. */
+    align-items: stretch;
+    gap: var(--space-2);
   }
 
+  .back {
+    align-self: flex-start;
+  }
+
+  /* The run still keeps the right, as it does on a wide screen: it
+     wraps to two lines here, and a second line starting at the left
+     reads as a separate menu rather than as the rest of the first.
+     Ragged on the left, flush on the right -- the edge the eye has
+     already been given by the line above it. */
   .sheets {
-    gap: var(--space-3);
-    justify-content: flex-start;
+    gap: 0 var(--space-3);
+    justify-content: flex-end;
     margin-left: 0;
   }
 

@@ -9,8 +9,9 @@ import { DraftCurriculum } from './DraftCurriculum'
 import { LessonList } from './LessonList'
 import { AddResource } from '@/components/AddResource'
 import { SheetNav } from '@/components/SheetNav'
+import { Crumbs } from '@/components/Crumbs'
 import { GardenLine } from '@/components/GardenLine'
-import { RouteSpecimen } from '@/components/RouteSpecimen'
+import { BandSpecimen, BandSpecimenCaption } from '@/components/BandSpecimen'
 import { routeProgress } from '@didactic/core/progress'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
@@ -58,32 +59,35 @@ export default async function TopicPage({
             running head: the component was imported here and never
             printed, so a topic was the only place with no way to the
             other sheets but the browser's own back button. */}
-        <SheetNav back={{ href: '/', label: 'Stock list' }} />
+        {/* Grown to how far this topic's route has been worked, laid in
+            as the band's ground rather than standing beside the title:
+            on a phone the plate cost the band a third of its height and
+            pushed the reading below the fold. */}
+        <BandSpecimen progress={routeProgress(curricula)} ink={colour} />
+
+        <SheetNav back={{ href: '/', label: 'Subjects' }} />
 
         <div className={styles.headRow}>
           <div>
-            {/* The subject names were already printed here; they are
-                the way back to the bed the topic was sown in, so they
-                are links rather than a label. */}
-            <p className={styles.eyebrow}>
-              {subjects.length === 0
-                ? 'Unfiled'
-                : subjects.map((s, i) => (
-                    <span key={s.id}>
-                      {i > 0 && ' · '}
-                      <Link href={`/subjects/${s.id}`} className={styles.eyebrowLink}>
-                        {s.title}
-                      </Link>
-                    </span>
-                  ))}
-            </p>
+            {/* The subject is the way back to the bed this topic was
+                sown in, printed as the trail every sheet carries. A
+                topic filed nowhere says so instead. */}
+            {subjects.length === 0 ? (
+              <p className={styles.eyebrow}>Unfiled</p>
+            ) : (
+              <Crumbs
+                className={styles.eyebrow}
+                trail={subjects.map(s => ({
+                  href: `/subjects/${s.id}`,
+                  label: s.title,
+                }))}
+              />
+            )}
             <h1 className={styles.title}>{topic.title}</h1>
-          </div>
-          {/* The running head above already carries the way back, so the
-              aside holds only the progress plant — grown to how far this
-              topic's route has been worked. */}
-          <div className={styles.headAside}>
-            <RouteSpecimen progress={routeProgress(curricula)} ink={colour} />
+            {/* The figure the specimen used to carry under it. The
+                drawing is the band's ground now, and a faded drawing
+                cannot be read as a figure. */}
+            <BandSpecimenCaption progress={routeProgress(curricula)} />
           </div>
         </div>
 

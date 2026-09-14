@@ -416,7 +416,54 @@ function Notices({
   onDismiss: (key: string) => void
   onWithdraw: (key: string) => void
 }) {
-  if (jobs.length === 0 && offers.length === 0) return null
+  const bench = useRef<HTMLDivElement>(null)
+  const showing = jobs.length > 0 || offers.length > 0
+
+  /**
+   * Say how much room the notices are taking at the foot.
+   *
+   * The mirror of what the lesson desk used to do for the bench. On a
+   * phone there are no corners to give the two of them one each -- a
+   * notice runs the full width -- so they stack, and the desk's buttons
+   * stand on top of the notice rather than the notice climbing over the
+   * reading to clear them.
+   *
+   * Written on the body because the desk is not below this in the tree:
+   * the bench is mounted beside the whole router in `layout.tsx`, which
+   * is the entire point of it. Measured rather than written down, since
+   * a notice is as tall as its text and a stack of four is not a stack
+   * of one.
+   */
+  useEffect(() => {
+    const node = bench.current
+    if (!node || !showing) {
+      document.body.style.removeProperty('--bench-stack')
+      return
+    }
+
+    const measure = () => {
+      document.body.style.setProperty('--bench-stack', `${node.getBoundingClientRect().height}px`)
+    }
+
+    measure()
+
+    if (typeof ResizeObserver === 'undefined') {
+      // The one measurement above still stands. Nothing here is worth
+      // failing a render over.
+      return () => {
+        document.body.style.removeProperty('--bench-stack')
+      }
+    }
+
+    const observer = new ResizeObserver(measure)
+    observer.observe(node)
+    return () => {
+      observer.disconnect()
+      document.body.style.removeProperty('--bench-stack')
+    }
+  }, [showing])
+
+  if (!showing) return null
 
   // Newest first. Nothing here puts itself away while it carries a way
   // to what it made, so a reader who sets four lessons writing ends up
@@ -426,7 +473,13 @@ function Notices({
   const newest = [...jobs].reverse()
 
   return (
-    <div className={styles.bench} role="status" aria-live="polite" aria-label="Work in hand">
+    <div
+      className={styles.bench}
+      ref={bench}
+      role="status"
+      aria-live="polite"
+      aria-label="Work in hand"
+    >
       {offers.map(offer => (
         <div key={offer.key} className={styles.notice} data-state="offer">
           <div className={styles.body}>

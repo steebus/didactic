@@ -1,0 +1,46 @@
+/* The trail above a title. Set as the eyebrow it replaces -- small,
+   letterspaced, upper case -- so the band above the title reads the
+   same as it always did, with the steps of the trail in it. */
+.crumbs {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  /* The column gap is the space either side of the separator. */
+  gap: 0 var(--space-2);
+  margin: 0 0 var(--space-2);
+  /* The eyebrow it stands in for carries the size, spacing and ink, so
+     a crumb trail on the green band and one on a subject's plate are
+     each in their own sheet's colour. */
+  font: inherit;
+  color: inherit;
+}
+
+.crumb {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+  /* The rule under a crumb is the quieter half of the ink it inherits,
+     so the trail does not read as a row of buttons. */
+  border-bottom-color: color-mix(in srgb, currentColor 45%, transparent);
+  padding-bottom: 2px;
+  transition: border-bottom-color var(--dur-feedback) var(--ease-settle);
+}
+
+.crumb:hover {
+  text-decoration: none;
+  border-bottom-color: currentColor;
+}
+
+/* Drawn rather than written, so it is not selected with the text and
+   not read out as a word.
+
+   On a wrapper around the link rather than on the link itself: a
+   ::before inside the anchor would be underlined with it, clickable
+   with it, and would count as part of its name to a screen reader. */
+.step + .step::before {
+  content: '›';
+  opacity: 0.55;
+  /* Its own half of the row gap, so the mark sits centred between two
+     crumbs rather than hard against the second. */
+  margin-right: var(--space-2);
+}

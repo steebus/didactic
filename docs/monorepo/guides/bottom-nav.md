@@ -11,7 +11,7 @@ platforms, and the text that goes into `DESIGN.md` when the web half lands
 
 | Position | Glyph | Label | Address | Notes |
 | --- | --- | --- | --- | --- |
-| 1 | the packet | Stock list | `/` | `Stock` below 360px, if the six do not fit. |
+| 1 | the packet | Subjects | `/` | The web's running head calls it this too; the word is already short enough at 360px. |
 | 2 | the plan | The bed | `/graph` | |
 | 3 | the shelf | Library | `/library` | |
 | 4 | the label stake | Marked | `/marked` | |
@@ -38,7 +38,7 @@ rules rather than borrowing an icon font.
 | --- | --- |
 | Reversed, not drawn | A paper silhouette on the green band. No strokes, no outlines, no line art. |
 | Must read at 24px | One silhouette each, no interior detail finer than 2px at that size. Checked at 24 and 48 before wiring. |
-| Grower's objects, not UI metaphors | A seed packet for the stock list; a planting plan (a ruled square with three seeds in a drill) for the bed; a shelf of three stacked sheets for the library; a plant label stake for marked; a seed tray for the inbox; a trowel for settings. No magnifying glass, gear, house or bookmark. |
+| Grower's objects, not UI metaphors | A seed packet for the subjects sheet; a planting plan (a ruled square with three seeds in a drill) for the bed; a shelf of three stacked sheets for the library; a plant label stake for marked; a seed tray for the inbox; a trowel for settings. No magnifying glass, gear, house or bookmark. |
 | The word is the carrier | The label register prints under every glyph, always. A glyph without its word is a category icon. |
 | Shared once | Path data in `@didactic/core`'s `specimens.ts`, drawn by `<svg>` on the web and `react-native-svg` on the phone, on a 24-unit viewBox. |
 
@@ -122,7 +122,7 @@ own rules; nothing is added to the bar.
 
 `SheetNav` keeps its name and its place inside the band, and carries two
 things: the back link (left, when there is one) and Sow (right). The
-`current` prop moves to the bar. On the stock list, which has no back
+`current` prop moves to the bar. On the subjects sheet, which has no back
 link, the head prints only Sow. The filed-under line, the title, and the
 5px head rule are unchanged.
 
@@ -139,7 +139,7 @@ Replace §4 *The running head* with:
 > The sheets are printed once, in a **foot bar** across the bottom of the
 > screen: the same plate band as the masthead, `--plate-green` under a
 > `4px solid var(--plate-mustard)` rule, `var(--foot-bar)` tall including
-> the device's own inset. Six cells — Stock list, The bed, Library, Marked,
+> the device's own inset. Six cells — Subjects, The bed, Library, Marked,
 > Inbox, Settings — each a 24px paper silhouette over its label. The
 > silhouettes are specimens in the emblem's idiom (a packet, a planting
 > plan, a shelf, a label stake, a tray, a trowel), reversed on the band

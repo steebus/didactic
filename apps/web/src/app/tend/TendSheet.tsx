@@ -133,7 +133,7 @@ export function TendSheet({
             </Link>
           )}
           <Link className={styles.quietAction} href="/">
-            Back to the stock list
+            Back to the subjects
           </Link>
         </div>
       </section>

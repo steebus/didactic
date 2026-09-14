@@ -16,10 +16,14 @@ function one<T>(row: Embedded<T>): T | null {
   return (Array.isArray(row) ? row[0] : row) ?? null
 }
 
+type Subject = { id: string; title: string }
 type Topic = { id: string; title: string }
+/** The join row, as PostgREST nests it under the topic. */
+type TopicSubject = { subjects?: Embedded<Subject> }
 type ResourceRow = { id: string; title: string; kind: string; url: string | null; status: string }
 type PrereqLesson = { id: string; title: string; completed_at: string | null }
-type CurriculumRow = { topics?: Embedded<Topic> }
+type TopicRow = Topic & { topic_subjects?: Embedded<TopicSubject> }
+type CurriculumRow = { topics?: Embedded<TopicRow> }
 
 /**
  * Everything the lesson sheet prints, in one read.
@@ -48,7 +52,11 @@ export async function readLesson(db: SupabaseClient, id: string, userId: string 
   ] = await Promise.all([
     // The topic rides along on the curriculum rather than costing its
     // own round trip: it is one hop off it and the sheet wants both.
-    db.from('curricula').select('id, title, goal, topic_id, status, topics(id, title)')
+    // The subject rides along too, one further hop: the sheet prints
+    // Subject > Topic above the title, and the whole trail is still
+    // cheaper here than a second round trip for one name.
+    db.from('curricula')
+      .select('id, title, goal, topic_id, status, topics(id, title, topic_subjects(subjects(id, title)))')
       .eq('id', lesson.curriculum_id).single(),
     // Likewise the prereq lessons themselves. The foreign key is named
     // because `lesson_prereqs` points at `lessons` twice and PostgREST
@@ -78,11 +86,22 @@ export async function readLesson(db: SupabaseClient, id: string, userId: string 
   // it is served beside it rather than inside it, so the shape the
   // sheet reads is the shape it always was.
   const { topics, ...rest } = (curriculum ?? {}) as CurriculumRow & Record<string, unknown>
+  // The topic's own subjects came back nested under it. Served beside
+  // the topic as a plain list, so the sheet reads a trail rather than
+  // a join table. A topic filed under two subjects names the first:
+  // the trail says where this sheet sits, and it sits in one place.
+  const topicRow = one(topics)
+  const { topic_subjects, ...topicRest } = (topicRow ?? {}) as TopicRow &
+    Record<string, unknown>
+  const subject = topicRow
+    ? one(unwrap<Subject>(unwrap<TopicSubject>([topic_subjects]).map(t => t.subjects)))
+    : null
 
   return {
     lesson,
     curriculum: curriculum ? (rest as Omit<typeof curriculum, 'topics'>) : null,
-    topic: one(topics),
+    topic: topicRow ? (topicRest as Topic) : null,
+    subject,
     // The generator types a followed key as possibly-many; this one is
     // a to-one and comes back as a single row. Flattened here so the
     // sheet reads a resource rather than a list of one.

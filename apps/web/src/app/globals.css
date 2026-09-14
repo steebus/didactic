@@ -67,15 +67,14 @@
   --space-5: 2.25rem;
   --space-6: 3.5rem;
 
-  /* How much room the lesson reader's floating buttons take at the foot
-     of the screen, set by the reader itself while it is on the page and
-     nought everywhere else. Anything else docked at the foot stands
-     clear of it, the same way it stands on --foot-bar: on a phone the
-     bench and the marks button were laid over each other in the same
-     corner, and the notice won because it is fixed and the buttons are
-     not. It is a measurement rather than a token -- the value is what
-     the buttons happen to be, not a decision about the design. */
-  --desk-stack: 0rem;
+  /* How much room the bench's notices take at the foot of the screen,
+     set by the bench itself while it has something to say and unset
+     otherwise. On a phone the lesson reader's floating buttons stand on
+     top of it, the same way anything docked at the foot stands on
+     --foot-bar; on a wide screen the two take opposite corners and this
+     goes unread. It is a measurement rather than a token -- the value
+     is what the notices happen to be, not a decision about the design. */
+  --bench-stack: 0px;
 }
 
 *,

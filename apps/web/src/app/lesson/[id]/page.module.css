@@ -38,10 +38,6 @@
   margin: 0 0 var(--space-2);
 }
 
-.eyebrowLink {
-  color: inherit;
-  text-decoration-color: rgba(239, 231, 214, 0.45);
-}
 
 .title {
   font-size: var(--step-3);
@@ -117,6 +113,38 @@
 @media (max-width: 48rem) {
   .body {
     padding: 0 var(--space-4);
+  }
+}
+
+/* On a phone the green band was most of the first screen: full padding,
+   a display title set for a wide measure, and three figures each taking
+   a line of their own. It is the same head, set tighter -- nothing is
+   dropped, because what it says is what tells a reader where they
+   are. */
+@media (max-width: 40rem) {
+  .head {
+    padding: var(--space-4);
+  }
+
+  /* One step down, and the tight display leading relaxes: at this size
+     a three-line title set at 0.95 reads as a block rather than as
+     lines. */
+  .title {
+    font-size: var(--step-2);
+    line-height: 1.05;
+  }
+
+  /* Stage, length and state are short enough to share a line at this
+     size, which is the difference between three rows and one. They stay
+     a wrapping flex so a long value still breaks cleanly rather than
+     pushing the band wider. */
+  .figures {
+    gap: var(--space-2) var(--space-4);
+    margin-top: var(--space-3);
+  }
+
+  .figureValue {
+    font-size: var(--step-0);
   }
 }
 

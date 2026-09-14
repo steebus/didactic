@@ -273,7 +273,7 @@ block shadow, and this world does not use one.
 
 | Measure | Surfaces |
 | --- | --- |
-| `var(--sheet-max)` = `1240px` | Stock list, inbox, topic, subject |
+| `var(--sheet-max)` = `1240px` | Subjects, inbox, topic, subject |
 | `68rem` | Curriculum |
 | `62rem` | Lesson, refresher, the reading |
 | `52rem` | Sow a subject |
@@ -322,18 +322,39 @@ case in the build. `0.7` is the quietest label, `0.9` is an active link.
 
 Topic, curriculum, and lesson print a parentage line above the title: `--step--2`,
 uppercase, `0.14em` tracking, `rgba(239,231,214,0.7)`. It carries live data —
-the subject names a topic is filed under, or the topic-and-curriculum a lesson
-sits inside — and its segments are links joined by ` · `. It exists to answer
-"where am I in the four-layer map", not to decorate the title.
+the subject a topic is filed under, or the subject-and-topic a lesson sits
+inside — and its segments are links. It exists to answer "where am I in the
+four-layer map", not to decorate the title.
 
 **Rule — this line is a breadcrumb or it is not printed.** It must resolve to
 real parents from the data. A surface with no parent (refresher) uses
 `.eyebrowless` and prints no line at all rather than inventing one.
 
+**Rule — one component prints it, and the descent reads left to right.**
+`components/Crumbs` is the trail on every sheet that has ancestors: Subject ›
+Topic on a lesson, Subject on a topic. A reader who learns to read it on one
+sheet must not have to learn it again on the next, so no surface prints its own.
+The separator is `›` rather than ` · ` — a middot is a list, and these are not
+siblings — and it is **drawn by the stylesheet on a wrapper around each link**,
+never written between them and never on the anchor's own `::before`: inside the
+anchor it would be underlined with the link, selected with its text, and read
+out as part of its name. The trail takes `font: inherit` and `color: inherit`
+from the eyebrow it stands in, so the same component prints in the green of a
+lesson head and in a subject's own plate without knowing either colour. The rule
+under each crumb is `color-mix`ed to 45% of that inherited ink, so a trail reads
+as a trail rather than as a row of buttons.
+
+The curriculum is **not** a step on a lesson's trail. That sheet is being phased
+out, and a route drafted from a topic takes the topic's own name in any case, so
+printing both read "Brokerage Accounts and Custody › Brokerage Accounts and
+Custody".
+
 ### The running head
 
-`SheetNav` gives every surface the same four sheets — Stock list, The bed,
-Inbox, Sow — plus an optional back link. Two rules the component enforces:
+`SheetNav` gives every surface the same sheets — Subjects, The bed, Library,
+Marked, Tend, Inbox, Sow — plus an optional back link. The first is named for
+what it lists rather than for the catalogue metaphor: *Stock list* was a word
+the reader had to learn before it told them anything. Two rules the component enforces:
 
 - **The sheet you are on is stated, not offered.** The current sheet renders as a
   `<span>` in `--plate-mustard` with `aria-current="page"`, not as a link.

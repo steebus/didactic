@@ -16,6 +16,18 @@
 .head {
   color: var(--paper);
   padding: var(--space-5);
+  /* The growing specimen is laid in as this band's ground, absolutely
+     placed against it, and cropped by it. */
+  position: relative;
+  overflow: hidden;
+}
+
+/* Everything printed in the band stands above the drawing behind it.
+   A stacking context of its own rather than a z-index on each child:
+   the band has four of them and they would all need the same figure. */
+.head > *:not([aria-hidden='true']) {
+  position: relative;
+  z-index: 1;
 }
 
 .headRow {
@@ -44,11 +56,6 @@
 
 /* The right of the band: the way back, and beneath it the progress
    plant grown to how far this topic's route has been worked. */
-.headAside {
-  display: grid;
-  justify-items: end;
-  gap: var(--space-4);
-}
 
 .back {
   font-size: var(--step--2);
@@ -563,16 +570,6 @@
        short value. */
     flex: 1 1 45%;
   }
-}
-
-.eyebrowLink {
-  color: inherit;
-  text-decoration: none;
-  border-bottom: 1px solid rgba(239, 231, 214, 0.4);
-}
-
-.eyebrowLink:hover {
-  border-bottom-color: rgba(239, 231, 214, 0.9);
 }
 
 /* --- Lessons --------------------------------------------------- */

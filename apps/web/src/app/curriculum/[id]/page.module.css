@@ -39,10 +39,6 @@
   margin: 0 0 var(--space-2);
 }
 
-.eyebrowLink {
-  color: inherit;
-  text-decoration-color: rgba(239, 231, 214, 0.45);
-}
 
 .title {
   font-size: var(--step-3);

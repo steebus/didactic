@@ -687,7 +687,7 @@ export function GraphCanvas({
   return (
     <div className={styles.frame}>
       <div className={styles.controls}>
-        <SheetNav back={{ href: '/', label: 'Stock list' }} current="bed" />
+        <SheetNav back={{ href: '/', label: 'Subjects' }} current="bed" />
         <div className={styles.filters}>
           <input
             className={styles.search}

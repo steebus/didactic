@@ -45,7 +45,7 @@ export default function RefresherPage({
         <div className={styles.headRow}>
           <h1 className={styles.eyebrowless}>{topic?.title ?? 'Tending'}</h1>
           <Link href="/" className={styles.back}>
-            Back to the stock list
+            Back to the subjects
           </Link>
         </div>
         {viability !== null && (
