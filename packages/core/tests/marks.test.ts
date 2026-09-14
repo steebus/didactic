@@ -4,7 +4,7 @@ import type { Highlight as Mark } from '../src/types'
 
 const mark = (id: string, quote = 'a passage'): Mark => ({
   id,
-  user_id: 'u',
+  user_id: 'u', kind: 'mark' as const,
   lesson_id: 'l',
   topic_id: null,
   quote,

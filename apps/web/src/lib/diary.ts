@@ -62,7 +62,10 @@ export async function createEntry(
       kind: 'diary',
       lesson_id: null,
       topic_id: topicId,
-      quote: null,
+      // Empty rather than null: `quote` is `not null` (020), and a mark
+      // with nothing quoted -- a note on a lesson as a whole -- has
+      // always been stored this way.
+      quote: '',
       prefix: null,
       note,
     })

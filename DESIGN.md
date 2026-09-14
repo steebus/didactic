@@ -1230,6 +1230,62 @@ cannot know.
 
 ---
 
+### The timeline, and writing into it
+
+The Marked sheet holds one date-ordered stream of two kinds of thing: passages
+kept while reading, and diary entries written about a week. They are the same
+history, so they are printed on one spine.
+
+| Part | Treatment |
+| --- | --- |
+| Day heading | The label register, `--ink-faint`, on a `1px solid var(--rule-strong)` that runs the sheet. One heading over a run, never a timestamp per row. |
+| A row | `--space-4` vertical, parted by `1px solid var(--rule)`. The first in a day carries no rule: the date's own rule is already above it. |
+| An entry | `--paper-deep` on a `2px` left rule in `--plate-plum`, `--space-4` padding, inset from the stream. |
+| A clipped entry | Its own first 240 characters and an ellipsis, with *Read it* under it. Never a fade. |
+
+**Rule — an entry is set apart by its ground, not by a card.** A mark is a
+sentence and an entry is a page; the difference is carried by the deeper paper
+the catalogue already uses for a block, so the date spine still reads straight
+down the sheet.
+
+**Rule — a long entry is clipped, and clipped to its own words.** What is shown
+is the entry's opening, not a summary of it, and the ellipsis is written into
+the text rather than drawn with a gradient — this world has no gradients as
+colour. Left whole, one entry pushes a month of marks off the screen.
+
+**Rule — today and yesterday are named; everything else is dated.** Those are
+the two days a reader locates by memory rather than by number. The year is
+printed only when it is not the current one. Days are local, never UTC: a UTC
+boundary files a third of someone's evenings under tomorrow.
+
+### Writing an entry
+
+The one control in the catalogue that appears on every sheet and is not a way
+to another sheet.
+
+| Part | Treatment |
+| --- | --- |
+| The control | In the masthead band with the sheets, set apart by `1px solid rgba(239,231,214,0.35)` on its left — the treatment leaving already carries. Paper at `0.82`, full paper when open. |
+| Open state | Stated in full-strength paper at `600`, as the current sheet is. |
+| The composer | The sheet's own paper and tooth, at the sheet's measure, positioned from the measured foot of the masthead band. `1px solid var(--rule-strong)` at its foot. |
+| Motion | One unroll, `--dur-settle` on `--ease-settle`, spatial through `--motion-travel`. |
+
+**Rule — a control that acts rather than navigates is set apart by a rule, not
+by a colour or a size.** Leaving and writing are the two, and they wear the
+same treatment.
+
+**Rule — the composer is not a modal, because this world has none.** It unrolls
+under the band on the sheet's own paper. Nothing is dimmed, nothing is trapped,
+the page carries on existing underneath, and Escape rolls it back up.
+
+**Rule — the panel is trimmed at the sheet's edges, never the browser's.** It is
+centred at `var(--sheet-max)` like every sheet in the build; a panel running the
+full width of the window would be the one thing here that bleeds.
+
+**Rule — the mustard rule belongs to the band.** The composer is ruled off in
+`--rule-strong`: a second mustard rule a few pixels under the band's own reads
+as a printing fault.
+
 ## 9. Browser Surfaces
 
 The chrome carries the design rather than defaulting:

@@ -134,14 +134,22 @@ export interface LessonPrereq {
   requires_lesson_id: string
 }
 
+/** What a highlight row is: a passage kept, or a page about a week. */
+export type MarkKind = 'mark' | 'diary'
+
 /** A passage marked in a lesson, and what was written about it. */
 export interface Highlight {
   id: string
   user_id: string
+  /** 'mark' for something kept while reading; 'diary' for an entry,
+   *  which has no quote and no lesson. Defaulted in the database (040),
+   *  so a row written before the diary existed reads as a mark. */
+  kind: MarkKind
   /** Null once the lesson it was taken from is gone. The passage and
    *  the note are the record; where it came from is a caption. */
   lesson_id: string | null
   topic_id: string | null
+  /** Empty on a note about the lesson as a whole, and on every entry. */
   quote: string
   prefix: string | null
   note: string | null

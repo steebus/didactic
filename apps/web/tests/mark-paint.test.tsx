@@ -10,7 +10,7 @@ const PROSE = 'Seeds germinate when the soil is warm enough for them.'
 
 const KEPT: Mark[] = [
   {
-    id: 'mark-1', user_id: 'u', lesson_id: 'l', topic_id: null,
+    id: 'mark-1', user_id: 'u', kind: 'mark' as const, lesson_id: 'l', topic_id: null,
     quote: 'germinate when the soil', prefix: 'Seeds ', note: null,
     created_at: '', updated_at: '',
   },
@@ -78,7 +78,7 @@ describe('painting onto a real lesson body', () => {
   ].join('\n')
 
   const marks = (quote: string, prefix: string | null): Mark[] => [
-    { id: 'm', user_id: 'u', lesson_id: 'l', topic_id: null, quote, prefix, note: null, created_at: '', updated_at: '' },
+    { id: 'm', user_id: 'u', kind: 'mark' as const, lesson_id: 'l', topic_id: null, quote, prefix, note: null, created_at: '', updated_at: '' },
   ]
 
   const render = (existing: Mark[]) =>
@@ -126,7 +126,7 @@ describe('a passage that crosses an element boundary', () => {
   ].join('\n')
 
   const mark = (quote: string): Mark[] => [
-    { id: 'm', user_id: 'u', lesson_id: 'l', topic_id: null, quote, prefix: null, note: null, created_at: '', updated_at: '' },
+    { id: 'm', user_id: 'u', kind: 'mark' as const, lesson_id: 'l', topic_id: null, quote, prefix: null, note: null, created_at: '', updated_at: '' },
   ]
 
   const render = (existing: Mark[], markdown = LIST) =>

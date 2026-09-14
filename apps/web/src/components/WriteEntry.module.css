@@ -1,0 +1,232 @@
+/* Writing an entry, from the running head of any sheet.
+
+   The control is printed into the masthead band with the sheets, and
+   set apart from them by a rule on its left -- the same way leaving is.
+   Both are the same kind of thing: not a place in the catalogue, but
+   something you do from wherever you are. */
+
+.open {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  /* 0.82 rather than 0.7: measured on the green band, 0.7 falls a hair
+     under the 4.5 floor, which is why every link in this head carries
+     0.82. */
+  color: rgba(239, 231, 214, 0.82);
+  background: none;
+  border: none;
+  border-left: 1px solid rgba(239, 231, 214, 0.35);
+  border-radius: 0;
+  padding: var(--space-2) 0 var(--space-2) var(--space-4);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  transition: color var(--dur-feedback) var(--ease-settle);
+}
+
+.open:hover {
+  color: var(--paper);
+}
+
+/* Open is a state, not a press: it is stated in full-strength paper the
+   way the sheet you are standing on is, because the composer below is
+   the thing this control is currently doing. */
+.open[aria-expanded='true'] {
+  color: var(--paper);
+  font-weight: 600;
+}
+
+.nib {
+  /* Held on the baseline with the label rather than centred against the
+     cap height, which would sit it a pixel proud of the word. */
+  align-self: center;
+}
+
+/* --- The composer ------------------------------------------------
+
+   Not a modal: this world has none. It unrolls from the top of the
+   window on the sheet's own paper, wearing the sheet's own tooth and
+   the mustard rule every masthead band carries. Nothing is dimmed
+   behind it and nothing is trapped -- the page carries on existing
+   underneath, and Escape rolls it back up.
+
+   Taken out of the running head's flow rather than laid out inside it:
+   the control sits in a wrapping flex run beside six sheet links, and a
+   panel left in that run would take whatever width was left at the end
+   of the line. */
+.composer {
+  /* In the flow of the sheet rather than over it: the composer belongs
+     under the masthead band, where the sheet's own content begins. It
+     is portalled to the body and placed there by the band's own height,
+     so the head it was opened from stays readable above it. */
+  position: absolute;
+  /* Trimmed at the sheet's own edges, never the browser's. The sheet is
+     centred on the press bed at its own measure, and a panel running
+     the full width of the window would be the one thing in the build
+     that bleeds. */
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(100%, var(--sheet-max));
+  /* Set from the measured foot of the masthead band -- see the
+     component. The band's height is the title's, which changes with the
+     sheet and with the width, so it is read rather than guessed. */
+  top: var(--under-band, 0px);
+  z-index: 20;
+  overflow-y: auto;
+  background: var(--paper);
+  /* The sheet's own tooth, because this is the sheet: a panel on flat
+     paper beside a toothed one reads as a different material. */
+  background-image:
+    repeating-linear-gradient(90deg, rgba(90, 70, 45, 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(90, 70, 45, 0.03) 0 1px, transparent 1px 4px);
+  /* A rule at the foot, as everything in this world is ruled off. The
+     mustard belongs to the band's own rule, which is directly above
+     this panel; a second mustard rule a few pixels under the first
+     reads as a printing fault. */
+  border-bottom: 1px solid var(--rule-strong);
+  /* The same soft drop that lifts every sheet off the press bed. Not an
+     offset block shadow; this world does not use one. */
+  box-shadow: 0 2px 24px rgba(36, 29, 22, 0.16);
+  /* The one authored moment on this surface: the paper unrolls from
+     under the band it is fixed to.
+
+     Spatial through --motion-travel like everything else in the build,
+     and with no reduced-motion guard of its own: the guard is off
+     globally by the owner's decision, and a surface that guarded
+     itself would be the one exception (globals.css).*/
+  animation: unroll var(--dur-settle) var(--ease-settle) both;
+  overflow: hidden;
+}
+
+/* The centring transform is part of the layout, so the unroll carries
+   it: an animation naming `transform` alone would drop the panel back
+   to the left edge for the length of it. */
+@keyframes unroll {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(calc(var(--motion-travel) * -0.5rem));
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* The composer is already the sheet's measure, so this only sets the
+   margins the writing is set to -- the same the sheet's own body uses. */
+.inner {
+  padding: var(--space-4) var(--space-5) var(--space-5);
+}
+
+.about {
+  margin: 0 0 var(--space-3);
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-width: 46rem;
+}
+
+/* The `@` printed in the sentence that explains it, so the mark the
+   reader is being told to type is shown in the ink it will wear. */
+.at {
+  font-weight: 700;
+  color: var(--plate-terracotta);
+}
+
+.editor {
+  background: var(--paper-deep);
+  border: 1px solid var(--rule-strong);
+}
+
+.problem {
+  margin: var(--space-3) 0 0;
+  font-size: var(--step--1);
+  color: var(--plate-terracotta);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.keep {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--paper);
+  background: var(--plate-green);
+  border: none;
+  border-radius: 0;
+  padding: var(--space-3) var(--space-5);
+  cursor: pointer;
+  transition: background-color var(--dur-feedback) var(--ease-settle);
+}
+
+.keep:hover:not(:disabled) {
+  background: var(--plate-terracotta);
+}
+
+.keep:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.quiet {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  padding: 0 0 2px;
+  cursor: pointer;
+}
+
+.quiet:hover:not(:disabled) {
+  color: var(--ink);
+  border-bottom-color: var(--plate-mustard);
+}
+
+.quiet:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+@media (max-width: 48rem) {
+  .inner {
+    padding: var(--space-4) var(--space-4) var(--space-5);
+  }
+}
+
+@media (max-width: 40rem) {
+  /* In the head's stacked column the rule on the left reads as a stray
+     tick against the sheets above it, so the control is set apart by
+     space and a rule above instead. */
+  .open {
+    border-left: none;
+    border-top: 1px solid rgba(239, 231, 214, 0.35);
+    padding: var(--space-3) 0 var(--space-2);
+    align-self: flex-start;
+    margin-top: var(--space-1);
+  }
+
+  .actions {
+    /* The keep control takes the width on a phone: it is the one thing
+       being asked for, and a 2.25rem-padded button beside a text link
+       leaves neither reachable. */
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .keep {
+    flex: 1 1 100%;
+    padding: var(--space-3);
+  }
+}

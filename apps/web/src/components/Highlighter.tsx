@@ -443,6 +443,9 @@ export function Highlighter({
     const draft: Mark = {
       id: `${UNSAVED}${crypto.randomUUID()}`,
       user_id: '',
+      // A mark: an entry is written from the running head and never
+      // from inside a lesson.
+      kind: 'mark',
       lesson_id: lessonId,
       topic_id: null,
       quote: pending.quote,

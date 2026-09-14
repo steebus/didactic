@@ -26,3 +26,41 @@ describe('what a verdict records', () => {
     expect(config.DEPTH_WEIGHTS[depthOf('applied')!]).toBe(1.0)
   })
 })
+
+describe('what an entry is stored as', () => {
+  it('writes an empty quote rather than a null one', async () => {
+    // `highlights.quote` is `not null` (020), and a mark with nothing
+    // quoted -- a note on a lesson as a whole -- has always been an
+    // empty string. The first version of this wrote null and every
+    // entry was refused by the database; 042 corrected the check
+    // constraint to match, and this holds the insert to it.
+    const { createEntry } = await import('@/lib/diary')
+
+    let written: Record<string, unknown> | null = null
+    const db = {
+      from: (table: string) => ({
+        select: () => ({
+          eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: null }) }) }),
+        }),
+        insert: (row: Record<string, unknown>) => {
+          if (table === 'highlights') written = row
+          return {
+            select: () => ({
+              single: async () => ({ data: { id: 'e1', ...row }, error: null }),
+            }),
+          }
+        },
+        delete: () => ({ eq: async () => ({ error: null }) }),
+      }),
+    }
+
+    await createEntry(db as never, { userId: 'u', note: 'Something worth keeping.' })
+
+    expect(written).not.toBeNull()
+    expect(written!.quote).toBe('')
+    expect(written!.kind).toBe('diary')
+    // An entry is not anchored to anything: it is a page about a week,
+    // not a thought about a sentence.
+    expect(written!.lesson_id).toBeNull()
+  })
+})

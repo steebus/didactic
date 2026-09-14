@@ -116,17 +116,88 @@
   max-width: 46ch;
 }
 
-/* --- The marks --------------------------------------------------- */
+/* --- The timeline -------------------------------------------------
 
-.marks {
+   One stream holding two kinds of thing: passages kept while reading,
+   and entries written about a week. They are the same history, so they
+   are printed on one spine -- a ruled date over each day's run, the way
+   a ledger is ruled off rather than the way a feed is carded. */
+
+.timeline {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.mark {
+.day {
+  margin-bottom: var(--space-5);
+}
+
+/* The date, in the label register, sitting on a rule that runs the
+   width of the sheet. It is the one repeated structural mark on the
+   surface, so it is stated quietly and by position rather than by
+   weight. */
+.dayName {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--rule-strong);
+}
+
+.strands {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.strand {
   padding: var(--space-4) 0;
   border-top: 1px solid var(--rule);
+}
+
+.strand:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+/* An entry is set apart from a mark by the ground it is printed on, not
+   by a colour or a card: it is a page rather than a line, so it gets
+   the deeper paper the catalogue uses for a block, inset from the
+   stream so the date spine still reads straight down. */
+.strand[data-strand='entry'] {
+  background: var(--paper-deep);
+  border-top: none;
+  border-left: 2px solid var(--plate-plum);
+  padding: var(--space-4);
+  margin: var(--space-3) 0;
+}
+
+/* What a row is, where it needs saying: an entry, or a note with no
+   passage under it. */
+.label {
+  margin: 0 0 var(--space-2);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* An entry before it is opened: its own opening words, not a summary of
+   them. The ellipsis is written into the text rather than drawn with a
+   fade, because a fade over newsprint is a gradient this world does not
+   use. */
+.clipped {
+  margin: 0 0 var(--space-3);
+  font-size: var(--step-0);
+  line-height: 1.55;
+  max-width: 60ch;
+  white-space: pre-wrap;
 }
 
 .quote {
@@ -137,16 +208,6 @@
   line-height: 1.55;
   color: var(--ink-soft);
   max-width: 60ch;
-}
-
-/* What a mark is about, where there is no passage to quote. */
-.about {
-  margin: 0;
-  font-size: var(--step--2);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
 }
 
 .note {

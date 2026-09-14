@@ -20,7 +20,7 @@ const PROSE = 'Seeds germinate when the soil is warm enough for them.'
 
 const KEPT: Mark[] = [
   {
-    id: 'mark-1', user_id: 'u', lesson_id: 'l', topic_id: null,
+    id: 'mark-1', user_id: 'u', kind: 'mark' as const, lesson_id: 'l', topic_id: null,
     quote: 'germinate when the soil', prefix: 'Seeds ', note: null,
     created_at: '', updated_at: '',
   },

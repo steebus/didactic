@@ -27,7 +27,7 @@ const BODY = [
 ].join('\n')
 
 const mark = (id: string, quote: string, note: string | null = null): Mark => ({
-  id, user_id: 'u', lesson_id: 'l', topic_id: null, quote,
+  id, user_id: 'u', kind: 'mark' as const, lesson_id: 'l', topic_id: null, quote,
   prefix: null, note, created_at: '', updated_at: '',
 })
 

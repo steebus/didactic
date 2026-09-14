@@ -1,7 +1,9 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { SignOut } from './SignOut'
 import { InboxTally } from './InboxTally'
 import { TendTally } from './TendTally'
+import { WriteEntry } from './WriteEntry'
 import styles from './SheetNav.module.css'
 
 /**
@@ -65,6 +67,20 @@ export function SheetNav({
             </Link>
           )
         )}
+        {/* Two things that are not sheets: writing something down, and
+            leaving. Both are done from wherever you are standing rather
+            than being places to go, and both are set apart from the
+            sheets by a rule. */}
+        {/* Behind a boundary because it reads the address it is
+            standing at -- an entry is filed under the topic you are on
+            -- and a client hook that reads URL data blocks the static
+            shell of every sheet that carries this head, which is all of
+            them. No fallback: the control is one item in a wrapping
+            run, and a placeholder that is later replaced would shift
+            the run it sits in. */}
+        <Suspense fallback={null}>
+          <WriteEntry />
+        </Suspense>
         {/* The catalogue is private, so every sheet carries the way
             out of it. */}
         <SignOut />
