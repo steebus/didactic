@@ -74,9 +74,11 @@ ${text.slice(0, MAX_CHARS)}`,
   }
 
   const read = readConcepts(tool.input)
-  // Kept on the result so the caller can say why, in the one place a
-  // reason reliably reaches the reader: the thrown error. A
-  // console.error here does not survive the serverless log stream.
+  // Why, kept on the result so the caller can put it in the error it
+  // throws. A console.error here does not survive the serverless log
+  // stream, and this is the one place the shape is still known: by the
+  // time `ingest` sees an empty array, "ran out of room", "answered in
+  // a shape nobody expects" and "genuinely found nothing" look alike.
   const held = (tool.input ?? {}) as Record<string, unknown>
   const why =
     `stop=${res.stop_reason} keys=${Object.keys(held).join('|') || 'none'} ` +
@@ -89,15 +91,6 @@ ${text.slice(0, MAX_CHARS)}`,
   // found nothing are three different problems with three different
   // fixes, and by the time `ingest` sees an empty array they look the
   // same.
-  if (read.concepts.length === 0) {
-    const shape = Array.isArray((tool.input as Record<string, unknown>)?.concepts)
-      ? 'array'
-      : typeof (tool.input as Record<string, unknown>)?.concepts
-    console.error(
-      `extractConcepts: nothing usable. stop_reason=${res.stop_reason} concepts=${shape} keys=${Object.keys((tool.input ?? {}) as object).join(',')} out=${res.usage?.output_tokens}`
-    )
-  }
-
   return { ...read, why }
 }
 
@@ -144,13 +137,29 @@ export function readConcepts(input: unknown): {
 }
 
 /** An array, whether it arrived as one or as JSON text holding one. */
-function asArray(value: unknown): unknown[] {
+function asArray(value: unknown, depth = 0): unknown[] {
   if (Array.isArray(value)) return value
   if (typeof value !== 'string') return []
 
+  // Three deep is far past anything seen; it only stops a pathological
+  // string from spinning.
+  if (depth > 3) return []
+
   try {
     const parsed = JSON.parse(value)
-    return Array.isArray(parsed) ? parsed : []
+    if (Array.isArray(parsed)) return parsed
+    // Double-encoded: the array was serialised, and then that string
+    // was serialised again. Parsing once yields another string, and
+    // returning [] here was the bug that filed a perfectly readable
+    // article against nothing while reporting success.
+    if (typeof parsed === 'string') return asArray(parsed, depth + 1)
+    // An object holding the array under some key of its own.
+    if (parsed && typeof parsed === 'object') {
+      for (const inner of Object.values(parsed as Record<string, unknown>)) {
+        if (Array.isArray(inner)) return inner
+      }
+    }
+    return salvage(value)
   } catch {
     // Truncated part way through. Ten good concepts followed by half an
     // eleventh is ten concepts, and throwing them away files the

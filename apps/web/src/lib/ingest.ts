@@ -150,10 +150,6 @@ export async function ingestResource(
     }
   }
 
-  console.error(
-    `[ingest] ${resourceId} concepts=${concepts.length} links=${links.length} new=${newTopics.length} pending=${pendingCount}`
-  )
-
   // 4. Commit topics first, so the new ones have real ids to relate.
   const { data: createdIds, error: commitError } = await db.rpc('commit_ingestion', {
     p_resource_id: resourceId,

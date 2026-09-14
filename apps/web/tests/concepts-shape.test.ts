@@ -71,6 +71,25 @@ describe('readConcepts', () => {
     expect(read.concepts.map(c => c.name)).toEqual(['React rendering', 'Profiling'])
   })
 
+  it('reads an array that was serialised twice', () => {
+    // Measured in production: `concepts` arrived as a string, parsing
+    // it once yielded another string, and returning [] there filed a
+    // perfectly readable article against nothing while reporting
+    // success.
+    const once = JSON.stringify([{ name: 'React rendering', relevance: 0.9 }])
+    const twice = JSON.stringify(once)
+    expect(readConcepts({ concepts: twice }).concepts).toEqual([
+      { name: 'React rendering', relevance: 0.9 },
+    ])
+  })
+
+  it('finds the array inside an object the model wrapped it in', () => {
+    const wrapped = JSON.stringify({ items: [{ name: 'Profiling', relevance: 0.6 }] })
+    expect(readConcepts({ concepts: wrapped }).concepts).toEqual([
+      { name: 'Profiling', relevance: 0.6 },
+    ])
+  })
+
   it('never throws, whatever arrives', () => {
     // This is the boundary where model output becomes app data. One
     // malformed field costs that field, never the resource.
