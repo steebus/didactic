@@ -136,7 +136,11 @@ export async function ingestResource(
   const { data: createdIds, error: commitError } = await db.rpc('commit_ingestion', {
     p_resource_id: resourceId,
     p_user_id: resource.user_id,
-    p_summary: summary,
+    // A reading that came back without one keeps the summary the
+    // resource already had, rather than wiping it: the model not
+    // saying anything this time is not the same as there being
+    // nothing to say.
+    p_summary: summary ?? resource.summary ?? null,
     p_new_topics: newTopics,
     p_links: links,
   })

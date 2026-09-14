@@ -95,7 +95,26 @@ Deno.serve(async () => {
       },
       body: JSON.stringify({ resourceId }),
     })
-    if (!res.ok) throw new Error(await res.text())
+    if (!res.ok) {
+      // What the app actually said, not "Error".
+      //
+      // The route answers `{"error": "..."}`; `String(e)` on an Error
+      // built from that body gave "Error" plus the JSON, and what was
+      // recorded against the job was the word alone -- so a resource
+      // that failed for a nameable reason said nothing about it on the
+      // sheet. The reason is what the reader needs and the only thing
+      // worth keeping.
+      const body = await res.text()
+      let reason = body
+      try {
+        reason = (JSON.parse(body) as { error?: string }).error ?? body
+      } catch {
+        // Not JSON: an upstream proxy, a timeout, an HTML error page.
+        // The status is then the most useful thing there is.
+        reason = `${res.status}: ${body.slice(0, 200)}`
+      }
+      throw new Error(reason)
+    }
 
     // A document read in rounds re-queues itself from inside the route
     // and is not finished yet; the message taken here is still done
@@ -108,7 +127,7 @@ Deno.serve(async () => {
     const permanent = attempts >= MAX_ATTEMPTS
     await db.from('ingestion_jobs').update({
       state: permanent ? 'failed' : 'pending',
-      error: String(e),
+      error: e instanceof Error ? e.message : String(e),
       updated_at: new Date().toISOString(),
     }).eq('resource_id', resourceId)
 
