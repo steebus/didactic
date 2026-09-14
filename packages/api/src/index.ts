@@ -19,6 +19,7 @@ import { clozes } from './clozes'
 import { curricula } from './curricula'
 import { graph } from './graph'
 import { highlights } from './highlights'
+import { diary } from './diary'
 import { home } from './home'
 import { inbox } from './inbox'
 import { lessons } from './lessons'
@@ -48,6 +49,7 @@ export type { AddResource, Filed } from './resources'
 export type { CurriculumDetail, CurriculumPatch, Drafted, NewLesson, Opened } from './curricula'
 export type { Completion, LessonDetail, LessonPatch, Written, WrittenWhole } from './lessons'
 export type { Kept, NewHighlight } from './highlights'
+export type { DiaryExposure } from './diary'
 export type { ClozeEdit, ClozeScope, NewCloze, SownClozes, Tended } from './clozes'
 export type { PriorResource, Refresher } from './refresher'
 
@@ -62,6 +64,7 @@ export function didactic(options: ApiOptions = {}) {
     curricula: curricula(api),
     graph: graph(api),
     highlights: highlights(api),
+    diary: diary(api),
     home: home(api),
     inbox: inbox(api),
     lessons: lessons(api),

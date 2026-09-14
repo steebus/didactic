@@ -102,6 +102,13 @@ export const ENDPOINTS = {
   'highlights.patch': { name: 'highlights.patch', method: 'PATCH', path: '/api/highlights', invalidates: MARKS },
   'highlights.remove': { name: 'highlights.remove', method: 'DELETE', path: '/api/highlights', invalidates: MARKS },
 
+  /* diary — an entry is a mark of kind 'diary'; reading it back writes
+     exposures, so it moves the same three tags a mark does */
+  'diary.create': { name: 'diary.create', method: 'POST', path: '/api/diary', invalidates: MARKS },
+  'diary.read': { name: 'diary.read', method: 'POST', path: '/api/diary/[id]/read', invalidates: MARKS },
+  'diary.exposures': { name: 'diary.exposures', method: 'GET', path: '/api/diary/[id]/read', invalidates: [] },
+  'diary.revoke': { name: 'diary.revoke', method: 'DELETE', path: '/api/diary/exposures/[exposureId]', invalidates: MARKS },
+
   'clozes.create': { name: 'clozes.create', method: 'POST', path: '/api/clozes', invalidates: GARDEN },
   'clozes.patch': { name: 'clozes.patch', method: 'PATCH', path: '/api/clozes/[id]', invalidates: GARDEN },
   'clozes.remove': { name: 'clozes.remove', method: 'DELETE', path: '/api/clozes/[id]', invalidates: GARDEN },
