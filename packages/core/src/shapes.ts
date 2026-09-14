@@ -116,15 +116,45 @@ export interface LibraryRow extends Resource {
 
 /* ------------------------------------------------------------- pending */
 
+/**
+ * What a topic is holding, for someone deciding whether two of them are
+ * the same thing.
+ *
+ * Two titles and, where there was one, a description: that was the whole
+ * of what the queue could show, and it is not enough to answer with. Two
+ * topics that sound alike are told apart by what has actually been filed
+ * against them -- the subjects they sit under, the material they were
+ * drawn from, whether either has been read at all. A topic with a route
+ * and nine marks on it is a place someone has been; a bare name that
+ * arrived an hour ago is not, and merging the first into the second is
+ * the mistake this queue exists to prevent.
+ */
+export interface TopicEvidence {
+  /** The beds it is filed in. Empty means it is loose stock. */
+  subjects: Array<{ id: string; title: string }>
+  /** What it was drawn from, by name, most relevant first. Capped --
+   *  this is a sample to recognise it by, not an inventory. */
+  sources: string[]
+  resources: number
+  lessons: number
+  marks: number
+  exposures: number
+}
+
 export interface PendingTopic {
   id: string
   title: string
   summary: string | null
+  /** When it arrived. A pair queued minutes apart usually came out of
+   *  one reading; one of them being months old means something else. */
+  created_at: string | null
+  evidence: TopicEvidence
   nearest: {
     id: string
     title: string
     summary: string | null
     similarity: number
+    evidence: TopicEvidence
   } | null
 }
 

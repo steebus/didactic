@@ -7,6 +7,7 @@ import { getTopicArea } from '@/lib/topic'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
 import { DraftCurriculum } from './DraftCurriculum'
 import { LessonList } from './LessonList'
+import { FiledUnder } from './FiledUnder'
 import { AddResource } from '@/components/AddResource'
 import { SheetNav } from '@/components/SheetNav'
 import { Crumbs } from '@/components/Crumbs'
@@ -308,6 +309,19 @@ export default async function TopicPage({
                 Read a refresher
               </Link>
             </section>
+
+            {/* Where it is filed, and the only place that can be
+                changed. A topic sits under every subject it genuinely
+                belongs to; until now the sheets could add one by name
+                and take one away from the bed's own edit mode, and
+                moving one meant retyping its name somewhere else and
+                hoping the resolver reached the same row. */}
+            <FiledUnder
+              topicId={topic.id}
+              topicTitle={topic.title}
+              subjects={subjects.map(s => ({ id: s.id, title: s.title, colour: s.colour }))}
+              primarySubjectId={topic.primary_subject_id}
+            />
 
             {neighbours.length > 0 && (
               <section className={styles.block}>

@@ -115,3 +115,64 @@ export const LEAVES: ReadonlyArray<{
   { x: 70, y: 48, angle: -42, scale: 0.64, stage: 5 },
   { x: 70, y: 48, angle: -138, scale: 0.64, stage: 5 },
 ]
+
+/* ------------------------------------------------------- the timeline */
+
+/**
+ * The three forms the Marked timeline draws on its stem.
+ *
+ * The sheet is a vintage botanical plate: one stem running down the
+ * page with specimens along it, each labelled and captioned. Which form
+ * a row gets is what the row *is*, not decoration -- a sentence someone
+ * kept is a leaf, their own thought about it is a bud, and a page
+ * written about a week is the thing in flower. Three strands, three
+ * forms, so the shape of a month can be read before a word of it is.
+ *
+ * Drawn in a 24x24 box. Paths here, elements in each front end, for the
+ * reason the rest of this file gives: the web draws with `<svg>` and the
+ * phone with `react-native-svg`, and the same mark must not grow a
+ * different form on each.
+ */
+export const GLYPH_BOX = 24
+
+export interface StrandGlyph {
+  /** The body of the form, filled in ink. */
+  outline: string
+  /** Hairlines over it: veins, sepals, the stem it stands on. */
+  detail: readonly string[]
+  /** Petals, each an angle about the box's centre. Empty for a form
+   *  that has none. */
+  petals: readonly number[]
+}
+
+export const STRAND_GLYPHS: Record<'passage' | 'note' | 'entry', StrandGlyph> = {
+  /** A leaf: a sentence kept off something that was read. */
+  passage: {
+    outline: 'M12 2.5 C 18.5 7 18.5 16.5 12 21.5 C 5.5 16.5 5.5 7 12 2.5 Z',
+    detail: [
+      'M12 4 L 12 20.5',
+      'M12 8.5 L 8.4 6.6',
+      'M12 8.5 L 15.6 6.6',
+      'M12 13 L 7.8 11',
+      'M12 13 L 16.2 11',
+    ],
+    petals: [],
+  },
+  /** A bud: the reader's own note, which is a thought not yet opened. */
+  note: {
+    outline: 'M12 3 C 16 6.5 16 11.5 12 14.5 C 8 11.5 8 6.5 12 3 Z',
+    detail: [
+      'M12 14.5 L 12 21.5',
+      'M12 15.5 C 9.6 15 8.1 13.4 7.6 11.4',
+      'M12 15.5 C 14.4 15 15.9 13.4 16.4 11.4',
+    ],
+    petals: [],
+  },
+  /** In flower: an entry, which is a page about a week rather than a
+   *  line about a sentence. */
+  entry: {
+    outline: 'M12 9.4 C 13.4 9.4 14.6 10.6 14.6 12 C 14.6 13.4 13.4 14.6 12 14.6 C 10.6 14.6 9.4 13.4 9.4 12 C 9.4 10.6 10.6 9.4 12 9.4 Z',
+    detail: ['M12 14.6 L 12 22'],
+    petals: PETALS,
+  },
+}

@@ -70,13 +70,17 @@ export const ENDPOINTS = {
   'subjects.qualify': { name: 'subjects.qualify', method: 'POST', path: '/api/subjects/qualify', invalidates: [] },
   'subjects.remove': { name: 'subjects.remove', method: 'DELETE', path: '/api/subjects/[id]', invalidates: SUBJECT_DEEP },
   'subjects.addTopic': { name: 'subjects.addTopic', method: 'POST', path: '/api/subjects/[id]/topics', invalidates: BED },
+  'subjects.fileTopic': { name: 'subjects.fileTopic', method: 'POST', path: '/api/subjects/[id]/topics', invalidates: BED },
   'subjects.removeTopic': { name: 'subjects.removeTopic', method: 'DELETE', path: '/api/subjects/[id]/topics', invalidates: BED },
   'subjects.relate': { name: 'subjects.relate', method: 'POST', path: '/api/subjects/[id]/relate', invalidates: [tags.subjects, tags.topics] },
   'subjects.resow': { name: 'subjects.resow', method: 'POST', path: '/api/subjects/[id]/resow', invalidates: BED },
 
   'topics.patch': { name: 'topics.patch', method: 'PATCH', path: '/api/topics/[id]', invalidates: CURATION },
   'topics.remove': { name: 'topics.remove', method: 'DELETE', path: '/api/topics/[id]', invalidates: CURATION },
-  'topics.decide': { name: 'topics.decide', method: 'PATCH', path: '/api/topics/pending', invalidates: [tags.pending, tags.topics, tags.subjects] },
+  /* A merge carries the duplicate's marks and cards over to the
+     survivor as well (`043`), so the two sheets that print those are
+     dropped with the map. */
+  'topics.decide': { name: 'topics.decide', method: 'PATCH', path: '/api/topics/pending', invalidates: [tags.pending, tags.topics, tags.subjects, tags.highlights, tags.clozes] },
 
   'resources.add': { name: 'resources.add', method: 'POST', path: '/api/resources', invalidates: MATERIAL },
   'resources.upload': { name: 'resources.upload', method: 'POST', path: '/api/resources/upload', invalidates: MATERIAL },

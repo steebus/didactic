@@ -474,6 +474,51 @@ worse than saying so.
 buttons print only above eight resources. Below that they are furniture over
 a list the reader can already see all of.
 
+### Two specimens, set side by side
+
+The adjudication queue asks the one question in the app that cannot be undone:
+whether two topics are the same thing. It used to ask it over two names and,
+where one happened to exist, one description. That is not enough to answer
+with, so the two are now set out as a pair of plates.
+
+| Part | Treatment |
+| --- | --- |
+| The pair | One column under `42rem`, two from `42rem`. Read down on a phone, compared across on a desk. |
+| A plate | `--paper-deep`, `--space-3` padding, a `3px` left rule: `--plate-mustard` for the one that has just arrived, `--plate-green` for the one already on the map. |
+| A missing description | Said in `--ink-faint` italic — *No description — there is only the name to go on* — never left as a gap. |
+| What it holds | The beds it sits in, in the label register; then its counts; then up to three of the resources it was drawn from, leadered with an em dash. |
+| The counsel | One line about *these two*, at `--step--1` in `--ink`, under both plates. |
+| A failed decision | `--plate-terracotta` behind a `3px` rule of the same ink, at the head of the queue. |
+
+**Rule — the two sides are told apart by ink, never by position alone.** On a
+phone one is above the other and position says nothing.
+
+**Rule — a gap is never left where a fact is missing.** An absent line cannot
+be told from one that failed to load, and *there is only the name to go on* is
+the most useful thing the plate can say about that topic.
+
+**Rule — the sheet may raise a question and may never settle one.** The counsel
+line names the asymmetry — a bare name against a topic with history, or two
+topics that have both been read — and never says *merge them*. The same rule
+the resolver and the sort are held to.
+
+### Filing, stated on the topic
+
+A topic sits under every subject it genuinely belongs to. The block that says
+so, and the only place it can be changed, is in the topic sheet's margin.
+
+| Part | Treatment |
+| --- | --- |
+| A filing | The subject's name, parted by `1px solid var(--rule)`, with its actions in the label register at the right. |
+| The home stamp | *home* in the label register, `--paper` on `--ink-soft`, `1px var(--space-2)` — stamped, never coloured. |
+| *Take out* | Set apart from *Make home* by a `1px solid var(--rule)` on its left, as removal is everywhere else in the build. |
+| The picker | A `--paper-deep` select on `1px solid var(--paper-edge)`, then *File it here too* and *Move it here* as outlined controls in the label register. |
+
+**Rule — the margin's controls are outlined, not the sheet's ink button.** Two
+ink buttons side by side in a column that narrow read as a dialog, which this
+world does not have.
+
+
 ---
 
 ## 5. Encoding State
@@ -1237,28 +1282,50 @@ cannot know.
 
 ---
 
-### The timeline, and writing into it
+### The timeline, drawn as a plate
 
 The Marked sheet holds one date-ordered stream of two kinds of thing: passages
 kept while reading, and diary entries written about a week. They are the same
-history, so they are printed on one spine.
+history, so they are printed on one spine — and the spine is **drawn**, not
+ruled. The sheet is a botanical plate: one stem down the page, the days as
+stations on it, every row hanging off it as a specimen.
 
 | Part | Treatment |
 | --- | --- |
-| Day heading | The label register, `--ink-faint`, on a `1px solid var(--rule-strong)` that runs the sheet. One heading over a run, never a timestamp per row. |
-| A row | `--space-4` vertical, parted by `1px solid var(--rule)`. The first in a day carries no rule: the date's own rule is already above it. |
-| An entry | `--paper-deep` on a `2px` left rule in `--plate-plum`, `--space-4` padding, inset from the stream. |
-| A clipped entry | Its own first 240 characters and an ellipsis, with *Read it* under it. Never a fade. |
+| The stem | Two hairlines `1px` apart — `1px solid var(--rule-strong)` on the left, `1px solid var(--rule)` on the right — running the length of the list inside a `2.5rem` gutter (`1.9rem` under `30rem`). |
+| A day station | A `1.4rem` disc on the stem: `--paper` ground, `1px solid var(--rule-strong)` ring, a `--rule-strong` centre inset `4px`. The date in the label register beside it, then a `1px` rule running out to the day's tally. |
+| A specimen | The row's form in a `24` box, on a `--paper` ground so the stem does not run through the drawing, in its strand's plate ink. |
+| The tendril | A `1px var(--rule)` hairline from the specimen out to the text it labels. |
+| Folded | The row's own opening words — `MARK_CLIP` 150 characters for a mark, `ENTRY_CLIP` 240 for an entry — with *Open* in the label register at the right. The whole line is the control. |
+| A passage, folded | Set in the display face at `'SOFT' 20, 'WONK' 0, 'opsz' 20`, `--ink`: it is someone else's sentence and is set as one. |
+| An open entry | `--paper-deep` on a `2px` left rule in `--plate-plum`, `--space-3` padding. |
+| Open them all | An outlined control in the label register beside the count, `1px solid var(--rule)`. |
+
+**Rule — the three forms are what the rows are, not decoration.** A leaf for a
+passage that was kept (`--plate-olive`), a bud for a note of your own
+(`--plate-mustard`), the thing in flower for an entry about a week
+(`--plate-plum`). The forms say what a row is before a word of it is read, so
+the shape of a month can be seen at arm's length: long runs of leaves where a
+lot was read, a flower where a week was thought about, bare stem where nothing
+happened. The geometry is in `core/specimens.STRAND_GLYPHS` for the reason the
+rest of the drawn forms are: the same mark must not grow a different form on
+each platform.
+
+**Rule — the summary is the row's own words, clipped.** Never a description of
+them, and never generated. This sheet is a record of what someone chose to
+keep, and a précis would be the app talking over them. The ellipsis is written
+into the text rather than drawn with a gradient — this world has no gradients as
+colour.
+
+**Rule — a row with nothing folded away gets no control that opens it.** A
+toggle that opens onto the same sentence teaches the reader that the toggles are
+not worth pressing, which costs more than the tidiness of having one on every
+row.
 
 **Rule — an entry is set apart by its ground, not by a card.** A mark is a
 sentence and an entry is a page; the difference is carried by the deeper paper
-the catalogue already uses for a block, so the date spine still reads straight
-down the sheet.
-
-**Rule — a long entry is clipped, and clipped to its own words.** What is shown
-is the entry's opening, not a summary of it, and the ellipsis is written into
-the text rather than drawn with a gradient — this world has no gradients as
-colour. Left whole, one entry pushes a month of marks off the screen.
+the catalogue already uses for a block, so the stem still reads straight down
+the sheet.
 
 **Rule — today and yesterday are named; everything else is dated.** Those are
 the two days a reader locates by memory rather than by number. The year is

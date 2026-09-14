@@ -55,13 +55,26 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id: subjectId } = await params
   const body = await req.json()
   const title = typeof body.title === 'string' ? body.title.trim() : ''
+  // A topic named by id rather than by name. Additive: a client that
+  // sends only a title behaves exactly as it did.
+  const topicId = typeof body.topicId === 'string' ? body.topicId.trim() : ''
 
-  if (!title) return NextResponse.json({ error: 'title is required' }, { status: 400 })
+  if (!title && !topicId) {
+    return NextResponse.json({ error: 'title or topicId is required' }, { status: 400 })
+  }
 
   const db = supabaseAdmin()
   const { data: subject } = await db
     .from('subjects').select('id, user_id, title').eq('id', subjectId).single()
   if (!subject) return NextResponse.json({ error: 'no such subject' }, { status: 404 })
+
+  // Filing a topic the reader has pointed at, rather than one they have
+  // typed the name of. There is nothing to resolve -- they have named
+  // the row itself, and running the embedding over its title could only
+  // disagree with them -- but it still has to be *placed*, which is the
+  // same job either way and the reason this does not just insert a
+  // membership row and stop.
+  if (topicId) return await file(db, subject, topicId)
 
   const vector = await embed(title)
   const candidates = await fetchCandidates(db, vector)
@@ -160,6 +173,83 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // Said plainly, because "waiting for you" reads very differently
     // depending on which reading raised the question.
     queriedBy: queued ? (sorted?.sameAs != null ? 'sort' : 'resolver') : null,
+    placed,
+    note: sorted?.note ?? null,
+    warnings,
+  })
+}
+
+/**
+ * File a topic that already exists into this bed, and place it in it.
+ *
+ * Membership is many-to-many by design: exposure is needed by portrait
+ * photography and by landscape photography, JavaScript by front-end and
+ * by app development, and `012` made a topic able to say so. What was
+ * missing was any way to say it after the fact -- a topic could be
+ * typed into a bed by name and taken out of one, and that was the whole
+ * vocabulary. Moving one, or filing one under a second subject, meant
+ * typing its name again somewhere else and hoping the resolver reached
+ * the same row.
+ *
+ * This is additive to the subject, never a move: the topic keeps every
+ * other subject it sits under. Taking it out of one is the DELETE
+ * below, and a move is the two together -- which is what the topic
+ * sheet does, in that order, so a failure leaves it filed somewhere
+ * rather than nowhere.
+ */
+async function file(
+  db: SupabaseClient,
+  subject: { id: string; user_id: string; title: string },
+  topicId: string
+) {
+  const { data: topic } = await db
+    .from('topics').select('id, title, user_id').eq('id', topicId).maybeSingle()
+
+  if (!topic) return NextResponse.json({ error: 'no such topic' }, { status: 404 })
+  // The bed and the topic have to belong to the same person. Every
+  // route is behind the gate, but a write that files one owner's topic
+  // into another's bed should be impossible rather than merely
+  // unreachable.
+  if (topic.user_id !== subject.user_id) {
+    return NextResponse.json({ error: 'no such topic' }, { status: 404 })
+  }
+
+  const { data: already } = await db
+    .from('topic_subjects')
+    .select('topic_id')
+    .eq('topic_id', topicId)
+    .eq('subject_id', subject.id)
+    .maybeSingle()
+
+  if (already) {
+    return NextResponse.json(
+      { topicId, title: topic.title, action: 'already-filed' },
+      { status: 200 }
+    )
+  }
+
+  const bed = await readBed(db, subject.id)
+  const warnings: string[] = []
+
+  const { error } = await db.from('topic_subjects').insert({
+    topic_id: topicId,
+    subject_id: subject.id,
+    created_by: 'user',
+  })
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // A topic arriving from elsewhere brings its own history and none of
+  // its edges into this bed. Unplaced, the outline prints it as one
+  // more root at the foot and the graph draws it floating beside
+  // everything it belongs to -- so it is sorted exactly as a new one is.
+  const sorted = await sort(subject.title, topicId, topic.title, bed, warnings)
+  const placed = await draw(db, subject.user_id, sorted)
+
+  dropCache()
+  return NextResponse.json({
+    topicId,
+    title: topic.title,
+    action: 'linked',
     placed,
     note: sorted?.note ?? null,
     warnings,

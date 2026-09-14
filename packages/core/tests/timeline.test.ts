@@ -1,5 +1,17 @@
 import { describe, it, expect } from 'vitest'
-import { byDay, dayName, dayOf, strandOf, clips, ENTRY_CLIP } from '../src/timeline'
+import {
+  byDay,
+  dayName,
+  dayOf,
+  strandOf,
+  clips,
+  gist,
+  opens,
+  ENTRY_CLIP,
+  MARK_CLIP,
+  STRAND_LABEL,
+  tallyOf,
+} from '../src/timeline'
 
 const at = (created_at: string, over: Record<string, unknown> = {}) => ({ created_at, ...over })
 
@@ -97,5 +109,87 @@ describe('clips', () => {
 
   it('opens one long enough to bury what is under it', () => {
     expect(clips('x'.repeat(ENTRY_CLIP + 1))).toBe(true)
+  })
+})
+
+describe('gist', () => {
+  const mark = (over: Record<string, unknown> = {}) => ({ kind: 'mark', quote: null, note: null, ...over }) as never
+
+  it('leads a passage with the passage, even when a note sits under it', () => {
+    // The quote is what was kept, and it is what the row is recognised
+    // by a month later.
+    expect(gist(mark({ quote: 'Price is what you pay.', note: 'Compare with Graham.' })))
+      .toBe('Price is what you pay.')
+  })
+
+  it('leads a note on a lesson with the note', () => {
+    expect(gist(mark({ note: 'This is the bit I keep forgetting.' })))
+      .toBe('This is the bit I keep forgetting.')
+  })
+
+  it('clips with an ellipsis written into the text', () => {
+    const long = 'a'.repeat(MARK_CLIP + 40)
+    const out = gist(mark({ quote: long }))
+    expect(out.endsWith('…')).toBe(true)
+    expect(out.length).toBe(MARK_CLIP + 1)
+  })
+
+  it("gives an entry the entry's longer clip", () => {
+    const long = 'b'.repeat(ENTRY_CLIP + 40)
+    expect(gist(mark({ kind: 'diary', note: long }))).toHaveLength(ENTRY_CLIP + 1)
+  })
+
+  it('is empty when there is nothing to show', () => {
+    expect(gist(mark({}))).toBe('')
+  })
+})
+
+describe('opens', () => {
+  const mark = (over: Record<string, unknown> = {}) => ({ kind: 'mark', quote: null, note: null, ...over }) as never
+
+  it('is false for a passage that fits and has nothing under it', () => {
+    // A toggle that opens onto the same sentence teaches the reader
+    // that the toggles are not worth pressing.
+    expect(opens(mark({ quote: 'Short enough.' }))).toBe(false)
+  })
+
+  it('is true for a passage with a note under it', () => {
+    expect(opens(mark({ quote: 'Short enough.', note: 'But worth saying why.' }))).toBe(true)
+  })
+
+  it('is true for anything longer than its own clip', () => {
+    expect(opens(mark({ quote: 'x'.repeat(MARK_CLIP + 1) }))).toBe(true)
+    expect(opens(mark({ note: 'x'.repeat(MARK_CLIP + 1) }))).toBe(true)
+    expect(opens(mark({ kind: 'diary', note: 'x'.repeat(ENTRY_CLIP + 1) }))).toBe(true)
+  })
+
+  it('holds an entry to the entry clip, not the mark clip', () => {
+    expect(opens(mark({ kind: 'diary', note: 'x'.repeat(MARK_CLIP + 1) }))).toBe(false)
+  })
+
+  it('ignores whitespace-only notes', () => {
+    expect(opens(mark({ quote: 'Kept.', note: '   ' }))).toBe(false)
+  })
+})
+
+describe('STRAND_LABEL', () => {
+  it('names every strand the sheet can print', () => {
+    expect(STRAND_LABEL.entry).toBe('Entry')
+    expect(STRAND_LABEL.passage).toBe('Passage')
+    expect(STRAND_LABEL.note).toBe('Note')
+  })
+})
+
+describe('tallyOf', () => {
+  const rows = (kinds: string[]) => kinds.map(kind => ({ kind })) as never[]
+
+  it('counts the two apart, because they are two different things', () => {
+    expect(tallyOf(rows(['mark', 'mark', 'diary']))).toBe('2 marks · 1 entry')
+  })
+
+  it('prints only what there is', () => {
+    expect(tallyOf(rows(['mark']))).toBe('1 mark')
+    expect(tallyOf(rows(['diary', 'diary']))).toBe('2 entries')
+    expect(tallyOf(rows([]))).toBe('')
   })
 })

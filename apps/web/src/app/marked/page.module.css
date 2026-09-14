@@ -100,12 +100,44 @@
   cursor: pointer;
 }
 
+.countRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin: 0 0 var(--space-4);
+}
+
 .count {
   font-size: var(--step--2);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--ink-faint);
-  margin: 0 0 var(--space-4);
+  margin: 0;
+}
+
+/* One press for the whole plate: the sheet is for reading a season
+   down, and doing that a row at a time is twenty presses. */
+.foldAll {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 0;
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+  transition: background-color 120ms ease-out, color 120ms ease-out;
+}
+
+.foldAll:hover {
+  background: var(--ink-soft);
+  border-color: var(--ink-soft);
+  color: var(--paper);
 }
 
 .empty {
@@ -118,26 +150,61 @@
 
 /* --- The timeline -------------------------------------------------
 
-   One stream holding two kinds of thing: passages kept while reading,
-   and entries written about a week. They are the same history, so they
-   are printed on one spine -- a ruled date over each day's run, the way
-   a ledger is ruled off rather than the way a feed is carded. */
+   A botanical plate rather than a list. One stem runs the length of the
+   sheet, the days are stations on it, and every row hangs off it as a
+   specimen: a leaf for a passage that was kept, a bud for a note of
+   your own, the thing in flower for an entry about a week.
+
+   It is a diagram of a habit, which is what the sheet is for. The forms
+   say what a row is before a word of it is read, so the shape of a
+   month can be seen at arm's length -- long runs of leaves where a lot
+   was read, a flower where a week was thought about, bare stem where
+   nothing happened. The old sheet printed every row whole and could
+   show none of that.
+
+   The stem is two hairlines a pixel apart, not one rule: a single line
+   reads as a border and two read as something drawn. */
 
 .timeline {
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 0 0 var(--stem-gutter);
+  position: relative;
+  --stem-gutter: 2.5rem;
+  /* Where the stem stands inside the gutter, and how wide a specimen
+     sits across it. */
+  --stem-x: 0.7rem;
+  --specimen: 1.4rem;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: var(--stem-x);
+  top: 0.4rem;
+  bottom: 0.6rem;
+  width: 3px;
+  border-left: 1px solid var(--rule-strong);
+  border-right: 1px solid var(--rule);
 }
 
 .day {
   margin-bottom: var(--space-5);
 }
 
-/* The date, in the label register, sitting on a rule that runs the
-   width of the sheet. It is the one repeated structural mark on the
-   surface, so it is stated quietly and by position rather than by
+.day:last-child {
+  margin-bottom: 0;
+}
+
+/* A station on the stem: a node, the date, a rule running out to the
+   day's tally. The date is the one repeated structural mark on the
+   surface, so it is stated by position and by the node rather than by
    weight. */
 .dayName {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   font-family: var(--font-text);
   font-size: var(--step--2);
   font-weight: 600;
@@ -146,7 +213,46 @@
   color: var(--ink-faint);
   margin: 0 0 var(--space-3);
   padding-top: var(--space-2);
-  border-top: 1px solid var(--rule-strong);
+}
+
+/* The node itself, drawn on the stem: a filled disc inside a ring, the
+   way a plate marks the point a stage is measured at. */
+.dayNode {
+  position: absolute;
+  left: calc(var(--stem-gutter) * -1);
+  top: 50%;
+  width: var(--specimen);
+  height: var(--specimen);
+  transform: translateY(-50%);
+  /* Centred on the stem rather than on the gutter. */
+  margin-left: calc(var(--stem-x) + 1px - var(--specimen) / 2);
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-radius: 50%;
+}
+
+.dayNode::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  background: var(--rule-strong);
+  border-radius: 50%;
+}
+
+.dayLabel {
+  white-space: nowrap;
+}
+
+.dayRule {
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+
+.dayCount {
+  white-space: nowrap;
+  font-weight: 400;
+  letter-spacing: 0.06em;
 }
 
 .strands {
@@ -155,32 +261,78 @@
   padding: 0;
 }
 
+/* One specimen on the stem. */
 .strand {
-  padding: var(--space-4) 0;
-  border-top: 1px solid var(--rule);
+  position: relative;
+  padding: var(--space-3) 0;
 }
 
-.strand:first-child {
-  border-top: none;
-  padding-top: 0;
+/* The tendril: a hairline leaving the specimen for the text it
+   labels, the way a plate leads from a drawing to its caption. */
+.stalk {
+  position: absolute;
+  left: calc(var(--stem-gutter) * -1 + var(--stem-x) + var(--specimen) / 2 + 1px);
+  top: calc(var(--space-3) + 0.62rem);
+  width: calc(var(--stem-gutter) - var(--stem-x) - var(--specimen) / 2 - 1px);
+  height: 1px;
+  background: var(--rule);
 }
 
-/* An entry is set apart from a mark by the ground it is printed on, not
-   by a colour or a card: it is a page rather than a line, so it gets
-   the deeper paper the catalogue uses for a block, inset from the
-   stream so the date spine still reads straight down. */
-.strand[data-strand='entry'] {
+.specimen {
+  position: absolute;
+  left: calc(var(--stem-gutter) * -1);
+  margin-left: calc(var(--stem-x) + 1px - var(--specimen) / 2);
+  top: var(--space-3);
+  width: var(--specimen);
+  height: var(--specimen);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Standing on the paper rather than on the stem it hangs from, so
+     the line does not run through the drawing. */
+  background: var(--paper);
+  color: var(--ink-soft);
+}
+
+/* Each form takes its own plate ink: a passage in the leaf green, a
+   note in mustard, an entry in plum -- the same three the catalogue
+   already uses for kept, held and written. */
+.strand[data-strand='passage'] .specimen {
+  color: var(--plate-olive);
+}
+
+.strand[data-strand='note'] .specimen {
+  color: var(--plate-mustard);
+}
+
+.strand[data-strand='entry'] .specimen {
+  color: var(--plate-plum);
+}
+
+.glyph {
+  display: block;
+}
+
+.strandBody {
+  min-width: 0;
+}
+
+/* An entry is a page about a week and a mark is a sentence. Once it is
+   open the difference has to be visible, so it takes the deeper paper
+   the catalogue uses for a block -- never a card, and never a colour on
+   its own. */
+.strand[data-strand='entry'][data-out] .strandBody {
   background: var(--paper-deep);
-  border-top: none;
   border-left: 2px solid var(--plate-plum);
-  padding: var(--space-4);
-  margin: var(--space-3) 0;
+  padding: var(--space-3);
+  /* Held to the measure its own prose is set to, so the ground ends
+     where the writing ends rather than running out to the trim. */
+  max-width: 68ch;
 }
 
-/* What a row is, where it needs saying: an entry, or a note with no
-   passage under it. */
-.label {
-  margin: 0 0 var(--space-2);
+.strandLabel {
+  margin: 0 0 var(--space-1);
+  font-family: var(--font-text);
   font-size: var(--step--2);
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -188,16 +340,60 @@
   color: var(--ink-faint);
 }
 
-/* An entry before it is opened: its own opening words, not a summary of
-   them. The ellipsis is written into the text rather than drawn with a
-   fade, because a fade over newsprint is a gradient this world does not
-   use. */
-.clipped {
-  margin: 0 0 var(--space-3);
+/* Folded: the row's own opening words, clipped. Never a description of
+   them -- this sheet is a record of what someone chose to keep, and a
+   précis would be the app talking over them. The whole line is the
+   control, because a row that can be opened should be openable by
+   pressing the thing you are reading. */
+.summary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  /* Held to the measure the text is set to. Pushed to the sheet's own
+     edge, *Open* ended up a hand's width from the sentence it opens. */
+  max-width: 68ch;
+  font: inherit;
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: 0 0 var(--space-1);
+  cursor: pointer;
+  color: inherit;
+}
+
+.summary:hover {
+  border-bottom-color: var(--rule);
+}
+
+.summaryText {
   font-size: var(--step-0);
-  line-height: 1.55;
-  max-width: 60ch;
-  white-space: pre-wrap;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  max-width: 62ch;
+}
+
+/* A kept passage is someone else's sentence, and is set as one. */
+.summaryText[data-strand='passage'] {
+  font-family: var(--font-display);
+  font-variation-settings: 'SOFT' 20, 'WONK' 0, 'opsz' 20;
+  color: var(--ink);
+}
+
+.summaryMore {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.summary:hover .summaryMore {
+  color: var(--plate-terracotta);
 }
 
 .quote {
@@ -208,6 +404,15 @@
   line-height: 1.55;
   color: var(--ink-soft);
   max-width: 60ch;
+}
+
+/* A mark with no passage under it: a note on the lesson as a whole,
+   said in words rather than printed as an empty rule. */
+.bare {
+  margin: 0;
+  font-size: var(--step-0);
+  font-style: italic;
+  color: var(--ink-faint);
 }
 
 .note {
@@ -223,6 +428,32 @@
   text-transform: uppercase;
   color: var(--ink-faint);
   margin: var(--space-3) 0 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+/* The gutter is worth a whole thumb on a phone. Narrowed, not dropped:
+   the stem is what makes this a plate rather than a list, and a list is
+   what it was. */
+@media (max-width: 30rem) {
+  .timeline {
+    --stem-gutter: 1.9rem;
+    --stem-x: 0.45rem;
+    --specimen: 1.15rem;
+  }
+}
+
+/* Under 40rem the summary stacks: *Open* beside three wrapped lines
+   takes a quarter of the measure off every one of them, and the
+   passage is the thing being read. */
+@media (max-width: 40rem) {
+  .summary {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-1);
+  }
 }
 
 .inlineLink {

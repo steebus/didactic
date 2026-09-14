@@ -490,6 +490,178 @@
   max-width: 58ch;
 }
 
+/* --- Filing ---------------------------------------------------- */
+
+/* Where the topic is filed, and moving it. Membership is many-to-many
+   -- a topic sits under every subject it genuinely belongs to -- and
+   this block is the only place that says so and the only place it can
+   be changed. */
+
+.filing {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.filingRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  font-size: var(--step--1);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--rule);
+}
+
+.filingRow:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.filingName {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* The home subject: the one ink the graph draws this topic in, and
+   what it falls back to when it is filed nowhere else. Stamped rather
+   than coloured, like the standings on the lessons. */
+.filingHome {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--ink-soft);
+  padding: 1px var(--space-2);
+  white-space: nowrap;
+}
+
+.filingActions {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.quiet {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.quiet:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Unfiling is set apart from the benign actions by a rule rather than a
+   colour, the same way the running head sets leaving apart from the
+   sheets. It destroys nothing -- a topic filed nowhere is loose stock --
+   but it is still the one here that moves the map. */
+.destructive {
+  border-left: 1px solid var(--rule);
+  padding-left: var(--space-2);
+}
+
+.filingForm {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.filingLabel {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.filingSelect {
+  font: inherit;
+  font-size: var(--step--1);
+  width: 100%;
+  padding: var(--space-2);
+  background: var(--paper-deep);
+  border: 1px solid var(--paper-edge);
+  border-radius: 0;
+  color: var(--ink);
+}
+
+.filingSelect:focus {
+  outline: 2px solid var(--plate-green);
+  outline-offset: -2px;
+}
+
+.filingButtons {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* The margin is a column, not a sheet: the block's own ink button is
+   too large for two of them side by side in it. */
+.filingAction {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: none;
+  border: 1px solid var(--rule-strong);
+  border-radius: 0;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  transition: background-color 120ms ease-out, color 120ms ease-out;
+}
+
+.filingAction:hover:not(:disabled) {
+  background: var(--plate-green);
+  border-color: var(--plate-green);
+  color: var(--paper);
+}
+
+.filingAction:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.filingNote {
+  margin: 0;
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--ink-soft);
+  border-left: 2px solid var(--plate-mustard);
+  padding-left: var(--space-3);
+}
+
+.filingProblem {
+  margin: 0;
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--plate-terracotta);
+  border-left: 2px solid var(--plate-terracotta);
+  padding-left: var(--space-3);
+}
+
 /* --- Motion --------------------------------------------------- */
 
 /* The routes are the actionable thing on a topic sheet, so they settle

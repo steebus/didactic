@@ -94,6 +94,28 @@
   margin: 0;
 }
 
+.decisionsTally {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* A failed decision, stated where the decision was made. It used to
+   borrow the empty-sheet style, so a Postgres constraint name arrived
+   set in the same quiet italic as "nothing here yet". */
+.decisionsProblem {
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--plate-terracotta);
+  border-left: 3px solid var(--plate-terracotta);
+  padding-left: var(--space-3);
+  margin: 0 0 var(--space-3);
+  max-width: 60ch;
+}
+
 .decisionsNote {
   font-size: var(--step--1);
   color: var(--ink-soft);
@@ -109,73 +131,172 @@
   gap: var(--space-3);
 }
 
+/* One decision: two specimens set side by side, then what they suggest,
+   then the call. Stacked rather than laid across the row, because the
+   comparison is the work and the buttons are the easy part. */
 .pendingRow {
   display: flex;
-  /* The row carries two descriptions now, so the buttons sit with the
-     top of the name rather than floating in the middle of a paragraph. */
-  align-items: flex-start;
+  flex-direction: column;
   gap: var(--space-3);
-  flex-wrap: wrap;
-  padding-top: var(--space-3);
-  padding-bottom: var(--space-3);
+  padding-top: var(--space-4);
+  padding-bottom: var(--space-4);
   border-top: 1px solid var(--rule);
 }
 
-.pendingName {
-  font-family: var(--font-display);
-  font-size: var(--step-1);
-  font-variation-settings: 'SOFT' 25, 'WONK' 1;
-  flex: 1 1 18rem;
+/* The two plates. One column on a phone, where the decision is read
+   down rather than across; two from 42rem, where they can be compared
+   at a glance, which is the whole point of setting them out at all. */
+.pendingCompare {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+@media (min-width: 42rem) {
+  .pendingCompare {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* A specimen plate: what the topic is called, what it covers, where it
+   is filed, and what it holds. Printed on the catalogue's deeper ground
+   with a coloured rule down its edge -- the same device the marked
+   sheet uses to set an entry apart from a mark. */
+.specimen {
+  background: var(--paper-deep);
+  border-left: 3px solid var(--rule);
+  padding: var(--space-3);
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  min-width: 0;
+}
+
+/* The one that has just arrived, and the one already standing on the
+   map. Told apart by ink, never by position alone -- on a phone they
+   are one above the other and position says nothing. */
+.specimen[data-side='new'] {
+  border-left-color: var(--plate-mustard);
+}
+
+.specimen[data-side='standing'] {
+  border-left-color: var(--plate-green);
+}
+
+.specimen[data-side='none'] {
+  border-left-color: var(--rule);
+  justify-content: center;
+}
+
+.specimenLabel {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.specimenName {
+  font-family: var(--font-display);
+  font-size: var(--step-0);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1;
+  line-height: 1.15;
+  margin: 0;
+  /* A long topic name is a phrase, not a word, and must not push the
+     plate wider than its column. */
+  overflow-wrap: anywhere;
+}
+
+.specimenLink {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--rule-strong);
 }
 
 /* What the topic actually covers. The decision is unanswerable from
    two titles alone, which is all this row used to print. */
-.pendingGloss {
-  font-family: var(--font-text);
+.specimenGloss {
   font-size: var(--step--1);
-  font-variation-settings: normal;
   line-height: 1.45;
   color: var(--ink-soft);
-  max-width: 46ch;
+  margin: var(--space-1) 0 0;
 }
 
-/* The thing it was matched against, set in from the topic itself so
-   the two read as a comparison rather than as one run-on entry. */
-.compare {
+/* Said, rather than left as a gap. An absent line cannot be told from
+   one that failed to load, and "there is only the name to go on" is the
+   most useful thing this plate can say about that topic. */
+.specimenMissing {
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--ink-faint);
+  font-style: italic;
+  margin: var(--space-1) 0 0;
+}
+
+.specimenFiled,
+.specimenHolds {
+  font-size: var(--step--2);
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  margin: 0;
+}
+
+.specimenFiled {
+  margin-top: var(--space-2);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* What it was drawn from, named. Two topics that sound alike are very
+   often told apart by the one line naming the article each came out
+   of. Set as a leadered list, like the stock entries elsewhere. */
+.specimenSources {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  margin-top: var(--space-2);
-  padding-left: var(--space-3);
-  border-left: 2px solid var(--rule);
+  gap: 2px;
 }
 
-.compareHead {
-  font-family: var(--font-text);
+.specimenSource {
   font-size: var(--step--2);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  font-variation-settings: normal;
   color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.compareName {
-  font-family: var(--font-display);
-  font-size: var(--step-0);
-  font-variation-settings: 'SOFT' 25, 'WONK' 1;
+.specimenSource::before {
+  content: '— ';
+  color: var(--ink-faint);
 }
 
-.compareAsk {
-  font-family: var(--font-text);
+.specimenAsk {
   font-size: var(--step--1);
-  font-variation-settings: normal;
   line-height: 1.45;
   color: var(--ink-soft);
   font-style: italic;
-  max-width: 46ch;
+  margin: var(--space-1) 0 0;
+}
+
+/* What these two in particular suggest. It never says "merge": the
+   sheet may raise a question and may not settle one. */
+.counsel {
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink);
+  margin: 0;
+  max-width: 62ch;
+}
+
+.overlap {
+  font-size: var(--step--2);
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  margin: 0;
 }
 
 /* --- Listing -------------------------------------------------- */

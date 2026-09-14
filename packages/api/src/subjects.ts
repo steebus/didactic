@@ -73,6 +73,10 @@ export interface Drawn {
 export interface TopicAdded {
   topicId: string
   action: 'created' | 'linked' | 'already-filed' | 'pending'
+  /** The topic's own name. Answered when the caller filed it by id and
+   *  so may not know it; absent on the by-name path, where the caller
+   *  typed it. */
+  title?: string
   /**
    * Which reading raised the question, where one was raised. The
    * resolver reads the title against the whole map by embedding; the
@@ -153,6 +157,22 @@ export const subjects = (api: Api) => ({
   remove: (id: string) => api.del<{ ok: true }>(`/api/subjects/${id}`),
   addTopic: (id: string, title: string) =>
     api.post<TopicAdded>(`/api/subjects/${id}/topics`, { title }),
+
+  /**
+   * File a topic that already exists into this subject, and place it in
+   * the bed.
+   *
+   * The difference from `addTopic` is who decides which topic: there,
+   * the resolver reads a typed name against the whole map and may land
+   * on a neighbour; here the caller has the row in its hand and nothing
+   * is inferred. Which is what makes it safe to build *move* out of --
+   * a name round-tripped through an embedding is not guaranteed to come
+   * back as the topic you were looking at.
+   *
+   * Additive to the topic: it keeps every other subject it sits under.
+   */
+  fileTopic: (id: string, topicId: string) =>
+    api.post<TopicAdded>(`/api/subjects/${id}/topics`, { topicId }),
   removeTopic: (id: string, topicId: string) =>
     api.del<TopicUnfiled>(`/api/subjects/${id}/topics`, { topicId }),
   relate: (id: string) => api.post<Drawn>(`/api/subjects/${id}/relate`),

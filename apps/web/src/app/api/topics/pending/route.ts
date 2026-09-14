@@ -16,6 +16,18 @@ function dropCache() {
   for (const tag of [tags.pending, tags.topics, tags.subjects]) revalidateTag(tag, 'max')
 }
 
+/**
+ * Drop what a merge moved, which is more than a decision moves.
+ *
+ * `043` has the merge carry the marked passages and the cards over to
+ * the survivor as well -- they were being cut loose from the topic they
+ * were about -- so the two sheets that print them have to be re-read.
+ */
+function dropMergedCache() {
+  dropCache()
+  for (const tag of [tags.highlights, tags.clozes]) revalidateTag(tag, 'max')
+}
+
 
 export async function GET() {
   try {
@@ -47,11 +59,12 @@ export async function PATCH(req: Request) {
     if (!mergeInto) {
       return NextResponse.json({ error: 'mergeInto is required to merge' }, { status: 400 })
     }
-    // merge_topics moves links, exposures, and edges before deleting the
-    // duplicate. Destructive and irreversible, hence a user decision.
+    // merge_topics moves links, exposures, edges, marks and cards before
+    // deleting the duplicate. Destructive and irreversible, hence a user
+    // decision.
     const { error } = await db.rpc('merge_topics', { p_from: topicId, p_into: mergeInto })
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-    dropCache()
+    if (error) return NextResponse.json({ error: sayWhy(error.message) }, { status: 500 })
+    dropMergedCache()
     return NextResponse.json({ ok: true })
   }
 
@@ -63,4 +76,26 @@ export async function PATCH(req: Request) {
   }
 
   return NextResponse.json({ error: `unknown action "${action}"` }, { status: 400 })
+}
+
+/**
+ * A database failure, said in the sheet's own words.
+ *
+ * The queue printed `error.message` straight through, so a reader
+ * pressing "same as" got *duplicate key value violates unique
+ * constraint "edges_from_node_to_node_kind_key"* -- a constraint name
+ * carrying two column names the schema stopped using in `012`. The
+ * cause of that one is fixed in `043`; the habit of printing the
+ * plumbing at someone mid-decision is fixed here. Anything not
+ * recognised is still passed through rather than swallowed: an
+ * unexplained failure is worse than an ugly one.
+ */
+function sayWhy(message: string): string {
+  if (message.includes('edges_from_node_to_node_kind')) {
+    return 'Both topics lead to the same thing, and the merge could not fold the two connections into one. The database needs migration 043; until it has run, keep these two separate.'
+  }
+  if (message.includes('cannot merge a topic into itself')) {
+    return 'That is the same topic on both sides, so there is nothing to merge.'
+  }
+  return message
 }
