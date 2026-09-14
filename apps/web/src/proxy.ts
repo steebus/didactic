@@ -33,8 +33,10 @@ export async function proxy(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       { auth: { persistSession: false } }
     )
-    const { data } = await anon.auth.getUser(bearer[1])
-    if (data.user) return NextResponse.next({ request })
+    // Verified against the project's public key rather than by asking
+    // the auth server -- see `src/lib/auth.ts` for why.
+    const { data } = await anon.auth.getClaims(bearer[1])
+    if (data?.claims) return NextResponse.next({ request })
     return NextResponse.json({ error: 'not signed in' }, { status: 401 })
   }
 
@@ -57,10 +59,19 @@ export async function proxy(request: NextRequest) {
   )
 
   // Refreshes the token as a side effect, which is the main reason this
-  // runs on every request.
-  const { data } = await supabase.auth.getUser()
+  // runs on every request -- `getClaims` reads the session to find the
+  // token, and reading the session is what refreshes it, so that still
+  // happens here.
+  //
+  // What no longer happens is the round trip. This proxy runs on every
+  // request that is not a static asset, and `getUser` asked the auth
+  // server over the network whether the token was good before any page
+  // or handler had begun: about 800ms in front of everything, and paid
+  // twice on an API call, once here and once in the handler. The
+  // signature is checked against the project's public key instead.
+  const { data } = await supabase.auth.getClaims()
 
-  if (data.user || isOpenPath(pathname)) return response
+  if (data?.claims || isOpenPath(pathname)) return response
 
   if (isApiPath(pathname)) {
     return NextResponse.json({ error: 'not signed in' }, { status: 401 })
