@@ -107,6 +107,24 @@ export async function ingestResource(
   // 2. Extract concepts.
   const { summary, concepts } = await extractConcepts(title, text)
 
+  // A reading that found nothing is a failure, and has to say so.
+  //
+  // It used to return `{linked: 0, created: 0}` with a 200 -- the job
+  // was marked done, the message was deleted, and the inbox printed
+  // "Filed under nothing", which is the phrase for an article about
+  // something genuinely new rather than for one that was never read.
+  // The two are indistinguishable to the reader and only one of them
+  // is worth retrying.
+  //
+  // Thrown rather than recorded quietly, so the worker retries it: the
+  // model is not deterministic, and the run that came back empty is
+  // often followed by one that does not.
+  if (concepts.length === 0) {
+    throw new Error(
+      `ingest: read ${text.length} characters of "${title}" and found no concepts in it`
+    )
+  }
+
   // 3. Resolve each against the graph.
   const links: Array<{ topic_id: string; relevance: number }> = []
   const newTopics: Array<Record<string, unknown>> = []
