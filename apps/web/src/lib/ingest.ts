@@ -99,6 +99,16 @@ export async function ingestResource(
       const extracted = extractFromHtml(await res.text(), resource.url)
       title = extracted.title
       text = extracted.text
+    } else if (resource.kind === 'book') {
+      // A book carries metadata and never its contents -- full-text
+      // ingestion is out of scope by design (PRODUCT.md). One looked up
+      // through Open Library arrives with the subjects the record
+      // carries written into `raw_text`; one typed by hand has only
+      // what was typed. Either way the title is a real statement about
+      // what it is about, and filing "The Intelligent Investor" under
+      // value investing is most of what anyone wanted from adding it.
+      text = [resource.title, resource.summary].filter(Boolean).join('. ')
+      if (!text.trim()) throw new Error('ingest: that book has nothing to file it by')
     } else {
       throw new Error('ingest: no text available')
     }
