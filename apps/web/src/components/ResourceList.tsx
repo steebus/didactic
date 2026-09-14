@@ -75,7 +75,7 @@ export function ResourceList({ resources }: { resources: Resource[] }) {
   }
 
   if (resources.length === 0) {
-    return <p className={styles.empty}>Nothing waiting. Send it a link and it will file itself.</p>
+    return <p className={styles.empty}>Nothing to read. Send it a link and it will file itself.</p>
   }
 
   return (
@@ -117,7 +117,7 @@ export function ResourceList({ resources }: { resources: Resource[] }) {
 
             {status === 'consumed' ? (
               <span className={`${styles.status} ${styles.statusConsumed}`}>
-                Sown{r.consumed_at
+                Read{r.consumed_at
                   ? ` · ${new Date(r.consumed_at).toLocaleDateString('en-GB', {
                       day: 'numeric', month: 'short',
                     })}`

@@ -8,7 +8,13 @@ import { supabaseAdmin } from './supabase'
 // The shape moved to `@didactic/core/shapes`, where the phone can name
 // it too; the query that builds it needs a client and the cache, so it
 // stays here. Re-exported so `@/lib/home` still answers for both.
-import type { SubjectCell, TopicSummary, CurriculumInProgress, HomeData } from '@didactic/core/shapes'
+import type {
+  SubjectCell,
+  TopicSummary,
+  CurriculumInProgress,
+  FertileGround,
+  HomeData,
+} from '@didactic/core/shapes'
 
 /**
  * Active curricula with lessons still to work, newest first, each with
@@ -192,9 +198,51 @@ export async function readHomeData(db: SupabaseClient): Promise<HomeData> {
     .slice(0, 5)
     .map(summary)
 
+  // Fertile ground: what was read, found interesting enough to put
+  // topics in the ground, and matched no subject already sown.
+  //
+  // Built from the reads already in flight above rather than a query of
+  // its own -- resources, resource_topics and topic_subjects are all
+  // here because the subject cells need them, and this is the same
+  // three tables asked a different question.
+  const unfiledTopics = active.filter(t => !filed.has(t.id))
+  const looseById = new Map(unfiledTopics.map(t => [t.id, t]))
+
+  const looseFor = new Map<string, TopicSummary[]>()
+  for (const link of links ?? []) {
+    const topic = looseById.get(link.topic_id)
+    if (!topic) continue
+    const list = looseFor.get(link.resource_id)
+    if (list) list.push(summary(topic))
+    else looseFor.set(link.resource_id, [summary(topic)])
+  }
+
+  const fertile: FertileGround[] = (resources ?? [])
+    .flatMap(r => {
+      const topics = looseFor.get(r.id)
+      if (!topics?.length) return []
+      return [{
+        resource: {
+          id: r.id,
+          title: r.title,
+          kind: r.kind,
+          status: r.status,
+          url: r.url,
+          summary: r.summary,
+        },
+        // Most relevant first, so the strongest case for the subject
+        // this could become is what gets read.
+        topics: topics.sort((a, b) => b.ability - a.ability || a.title.localeCompare(b.title)),
+      }]
+    })
+    // The richest seam first: a resource that put six topics in the
+    // ground is a likelier subject than one that put a single topic.
+    .sort((a, b) => b.topics.length - a.topics.length)
+
   return {
     subjects: subjectCells,
-    unfiled: active.filter(t => !filed.has(t.id)).map(summary),
+    unfiled: unfiledTopics.map(summary),
+    fertile,
     hot,
     cold,
     queued: queuedResources,

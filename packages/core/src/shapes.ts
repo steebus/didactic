@@ -60,9 +60,28 @@ export interface CurriculumInProgress {
   nextLesson: { id: string; title: string } | null
 }
 
+/**
+ * A resource whose subject matter matched nothing already sown.
+ *
+ * Reading it created topics, and those topics joined no subject, so
+ * until now they sat in "loose stock" as bare names with nothing
+ * saying where they came from. Named together with the resource that
+ * produced them, the same rows read as a proposal: here is a thing you
+ * kept, here is what it is about, none of it is ground you hold.
+ */
+export interface FertileGround {
+  resource: Pick<Resource, 'id' | 'title' | 'kind' | 'status' | 'url' | 'summary'>
+  /** The orphan topics this resource put in the ground, best first. */
+  topics: TopicSummary[]
+}
+
 export interface HomeData {
   subjects: SubjectCell[]
   unfiled: TopicSummary[]
+  /** Unfiled topics grouped under the resource that created them. A
+   *  subset of `unfiled`: a topic sown by hand belongs to no resource
+   *  and appears only in the loose list. */
+  fertile: FertileGround[]
   hot: TopicSummary[]
   cold: TopicSummary[]
   queued: Resource[]

@@ -9,6 +9,12 @@ vi.mock('next/headers', () => ({
   cookies: async () => mockCookies(),
 }))
 
+// The gate states it is request-time before reading the clock, which
+// outside a request has nothing to attach to. There is no request here
+// at all -- the headers are handed over directly -- so this is the
+// statement already having been made.
+vi.mock('next/server', () => ({ connection: async () => {} }))
+
 // The cookie client and the anon client are the two ends of the branch.
 const mockCookieGetUser = vi.fn()
 const mockTokenGetUser = vi.fn()

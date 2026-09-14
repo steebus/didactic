@@ -32,7 +32,7 @@ export default async function Home() {
         <div className={styles.masthead}>
           <h1 className={styles.title}>Didactic</h1>
           <div className={styles.edition}>
-            <span className={styles.editionRule}>Stock list · {today}</span>
+            <span className={styles.editionRule}>Subjects · {today}</span>
             <span className={styles.editionRule}>
               {data.totals.topics} topics · {data.totals.subjects} subjects
             </span>
@@ -46,11 +46,6 @@ export default async function Home() {
       <div className={styles.headRule} />
 
       <div className={styles.sheetBody}>
-      {/* The way into the garden from the sheet the reader lands on.
-          It prints nothing at all until something has been planted, so
-          a new catalogue is not advertised at about a feature it has
-          no use for yet. */}
-      <GardenLine />
       {data.totals.topics === 0 ? (
         <div className={styles.blank}>
           <h2 className={styles.blankTitle}>Nothing sown yet</h2>
@@ -66,10 +61,11 @@ export default async function Home() {
         <div className={styles.spread}>
           <section>
             <div className={styles.sectionHead}>
-              <h2 className={styles.sectionTitle}>Stock in hand</h2>
-              <span className={styles.sectionNote}>
-                Viability · condition
-              </span>
+              <h2 className={styles.sectionTitle}>Subjects</h2>
+              {/* The way into the garden, printed where the reader is
+                  already looking. It prints nothing at all until
+                  something has been planted. */}
+              <GardenLine />
             </div>
 
             <ul className={styles.listing}>
@@ -137,6 +133,42 @@ export default async function Home() {
                 )
               })}
             </ul>
+
+            {/* Something read that matched nothing already sown. The
+                topics are real and in the ground; what they are missing
+                is a subject to belong to, and the resource that put them
+                there is the case for sowing one. */}
+            {data.fertile.length > 0 && (
+              <section className={styles.loose}>
+                <h3 className={styles.looseTitle}>Fertile ground</h3>
+                <p className={styles.looseNote}>
+                  Read, but about nothing you are growing yet. Sowing a subject
+                  around one of these files it and its topics at once.
+                </p>
+                <ul className={styles.fertileList}>
+                  {data.fertile.map(({ resource, topics }) => (
+                    <li key={resource.id} className={styles.fertileRow}>
+                      <div className={styles.fertileHead}>
+                        <span className={styles.fertileTitle}>{resource.title}</span>
+                        <span className={styles.fertileKind}>{resource.kind}</span>
+                      </div>
+                      <p className={styles.fertileTopics}>
+                        {topics.map(t => t.title).join(' · ')}
+                      </p>
+                      {/* The sow form takes it from here: the resource
+                          rides along as evidence, and its loose topics
+                          are what the bed is laid out around. */}
+                      <Link
+                        href={`/subjects/new?from=${resource.id}`}
+                        className={styles.fertileAction}
+                      >
+                        Sow a subject from this
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
             {data.unfiled.length > 0 && (
               <section className={styles.loose}>
@@ -275,11 +307,6 @@ export default async function Home() {
             ? `${data.pendingCount} awaiting your decision`
             : 'Nothing awaiting decision'}
         </span>
-        <nav className={styles.footLinks}>
-          <Link href="/graph">The whole bed</Link>
-          <Link href="/inbox">Inbox</Link>
-          <Link href="/subjects/new">Sow a subject</Link>
-        </nav>
       </footer>
       </div>
     </main>

@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useEffect, useRef, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { SheetNav } from '@/components/SheetNav'
 import { RootsGauge, ROOT_STAGES } from '@/components/RootsGauge'
 import { didactic } from '@didactic/api'
@@ -48,7 +48,7 @@ const DEPTH_PICKS = [
  * Every field is optional. A subject named and nothing else still lays
  * out a bed — it just rests on the name alone, and says so.
  */
-export default function NewSubjectPage() {
+function SowSheet() {
   const [subject, setSubject] = useState('')
   /** The subject as committed. Null until the main box is submitted. */
   const [named, setNamed] = useState<string | null>(null)
@@ -84,6 +84,37 @@ export default function NewSubjectPage() {
     }
   }, [])
   const router = useRouter()
+
+  /**
+   * Arriving from fertile ground: a resource that was read, put topics
+   * in the ground, and matched no subject.
+   *
+   * It is filed as proof the moment the sheet opens, because that is
+   * exactly what it is -- something already read on this subject, which
+   * is the same claim the proof section makes about everything in it.
+   * The subject is left unnamed: only the reader knows what the subject
+   * around it is called, and a title guessed from an article headline
+   * would be a worse name than the one they would type.
+   */
+  const from = useSearchParams().get('from')
+  useEffect(() => {
+    if (!from) return
+    let live = true
+    void (async () => {
+      const { ok, body } = await api.resources.list()
+      if (!ok || !live) return
+      const resource = body.resources.find(r => r.id === from)
+      if (!resource) return
+      setProof(held =>
+        held.some(p => p.resourceId === resource.id)
+          ? held
+          : [...held, { resourceId: resource.id, title: resource.title, kind: resource.kind }]
+      )
+    })()
+    return () => {
+      live = false
+    }
+  }, [from])
 
   async function writeQuestions(name: string) {
     setQualifying('writing')
@@ -488,5 +519,19 @@ export default function NewSubjectPage() {
         )}
       </div>
     </main>
+  )
+}
+
+/**
+ * `useSearchParams` suspends, and this sheet is the whole page, so the
+ * boundary goes here rather than around a fragment of it. Nothing is
+ * shown while it resolves: the params are read on the first client
+ * render and the fallback is never seen in practice.
+ */
+export default function NewSubjectPage() {
+  return (
+    <Suspense fallback={null}>
+      <SowSheet />
+    </Suspense>
   )
 }

@@ -59,7 +59,14 @@ async function sow(title: string) {
 
   const { data: topic, error: topicError } = await admin
     .from('topics')
-    .insert({ user_id: DEV_USER, title: `${title} topic ${tag}`, created_by: 'user' })
+    .insert({
+      user_id: DEV_USER,
+      title: `${title} topic ${tag}`,
+      // Not null and no default, and unique per user -- the tag is
+      // already what keeps one run's rows apart from the next's.
+      slug: `${title.toLowerCase().replace(/\W+/g, '-')}-topic-${tag}`,
+      created_by: 'user',
+    })
     .select('id')
     .single()
   if (topicError) throw topicError

@@ -145,4 +145,56 @@ describe.skipIf(!reachable)('getHomeData against real Postgres', () => {
     // A plain mean would be ~0.2; the worst-weighted mean must be lower.
     expect(data.subjects[0].freshness).toBeLessThan(0.2)
   })
+
+  it('gathers unfiled topics under the resource that created them', async () => {
+    await wipe()
+
+    // Something read that matched nothing already sown: its topics are
+    // real and in the ground, and they belong to no subject.
+    const { data: resource } = await db.from('resources').insert({
+      user_id: USER, title: 'Byzantine Fault Tolerance', kind: 'article', status: 'queued',
+    }).select('id').single()
+
+    const bft = await makeTopic({ title: 'BFT', ability: 2 })
+    const quorum = await makeTopic({ title: 'Quorum', ability: 1 })
+    await db.from('resource_topics').insert([
+      { resource_id: resource!.id, topic_id: bft, relevance: 0.9 },
+      { resource_id: resource!.id, topic_id: quorum, relevance: 0.7 },
+    ])
+
+    // Sown by hand, belonging to no resource at all. It is loose stock
+    // and must not be attributed to anything.
+    await makeTopic({ title: 'Sown By Hand' })
+
+    const data = await getHomeData(db)
+
+    expect(data.fertile).toHaveLength(1)
+    expect(data.fertile[0].resource.title).toBe('Byzantine Fault Tolerance')
+    // Most able first, so the strongest case for the subject leads.
+    expect(data.fertile[0].topics.map(t => t.title)).toEqual(['BFT', 'Quorum'])
+    // Every fertile topic is loose; the hand-sown one is loose and not fertile.
+    expect(data.unfiled.map(t => t.title).sort()).toEqual(['BFT', 'Quorum', 'Sown By Hand'])
+  })
+
+  it('leaves a resource out of fertile ground once its topics have a subject', async () => {
+    await wipe()
+    const { data: subject } = await db.from('subjects')
+      .insert({ user_id: USER, title: 'Distributed Systems', colour: '#3d4a2f' })
+      .select('id').single()
+
+    const { data: resource } = await db.from('resources').insert({
+      user_id: USER, title: 'Raft in Practice', kind: 'article', status: 'queued',
+    }).select('id').single()
+
+    // Filed under a subject, which is what auto-filing does on ingest.
+    const topicId = await makeTopic({ title: 'Raft', primary_subject_id: subject!.id })
+    await db.from('resource_topics').insert({
+      resource_id: resource!.id, topic_id: topicId, relevance: 0.9,
+    })
+
+    const data = await getHomeData(db)
+    // Ground that is held is not fertile ground.
+    expect(data.fertile).toEqual([])
+    expect(data.unfiled).toEqual([])
+  })
 })

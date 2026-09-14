@@ -43,7 +43,7 @@ export default async function SourcePage({
   return (
     <main className={styles.sheet}>
       <header className={styles.head}>
-        <SheetNav current="library" />
+        <SheetNav current="inbox" />
         <p className={styles.eyebrow}>Cited from</p>
         <h1 className={styles.title}>{source.title}</h1>
         <p className={styles.where}>

@@ -401,6 +401,51 @@ column and the margin's left border becomes a `2px` top border.
 **Rule — when the margin stacks, it keeps its rule and changes its side.** A
 margin that loses its rule stops being a margin.
 
+### Fertile ground, under the stock list
+
+Material that was read, put topics in the ground, and matched no subject
+already sown. Each entry is a row rather than a column — unlike *Loose
+stock* beside it, which is a two-column list of bare names — set against a
+`2px solid var(--plate-mustard)` left edge with `var(--space-2)` of padding
+inside it:
+
+```
+.fertileRow {
+  padding-left: var(--space-2);
+  border-left: 2px solid var(--plate-mustard);
+}
+```
+
+**Rule — a proposal is set as a row, a list of names as columns.** The two
+sit one above the other and hold the same kind of thing — a topic filed
+under no subject — so the difference has to be structural or the reader
+reads one as a continuation of the other. Loose stock is scanned: names in
+two columns, nothing to do about any of them. Fertile ground is a small case
+being made, with the title of the thing read, what it turned out to be
+about, and the one action that answers it, so it takes a full-width row and
+the mustard edge the sheet already uses to mean *this is where the work is*.
+
+### An errand folded away
+
+The inbox holds two errands that are not the same errand: reading what is
+waiting, and tidying up after it — folding duplicates together, throwing a
+thing away. The second lives in a `<details>` at the foot, above a
+`1px solid var(--rule)`, its summary in the label register (`--step--2`,
+`0.14em`, uppercase, `--ink-faint`).
+
+**Rule — a destructive action is never printed beside the thing it would
+destroy.** *Remove* on every row is a mis-press waiting to happen on a sheet
+whose ordinary press is *Done with it*. Folded away, the reader has said
+what errand they are on before they are shown the way to do it. A resource
+with exposures behind it prints *read into the record — kept* instead of an
+action, because the row cannot be deleted without rewriting the log the
+figures are built on, and offering an action that fails at the server is
+worse than saying so.
+
+**Rule — a filter earns its place at eight rows.** The search box and kind
+buttons print only above eight resources. Below that they are furniture over
+a list the reader can already see all of.
+
 ---
 
 ## 5. Encoding State

@@ -15,12 +15,11 @@ export function SheetNav({
   /** Where "back" goes, and what it is called. */
   back?: { href: string; label: string }
   /** Which sheet is showing, so its link is marked rather than offered. */
-  current?: 'stock' | 'bed' | 'library' | 'marked' | 'tend' | 'inbox' | 'sow'
+  current?: 'stock' | 'bed' | 'marked' | 'tend' | 'inbox' | 'sow'
 }) {
   const sheets = [
-    { key: 'stock', href: '/', label: 'Stock list' },
+    { key: 'stock', href: '/', label: 'Subjects' },
     { key: 'bed', href: '/graph', label: 'The bed' },
-    { key: 'library', href: '/library', label: 'Library' },
     { key: 'marked', href: '/marked', label: 'Marked' },
     // Between Marked and Inbox on purpose: what you kept, then what you
     // are keeping hold of, then what is waiting to be filed.

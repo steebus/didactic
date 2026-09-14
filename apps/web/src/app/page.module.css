@@ -140,14 +140,15 @@
   margin-bottom: var(--space-1);
 }
 
+/* The garden line sits in the head here rather than under it, so it
+   drops the bottom margin it carries when it stands on its own. */
+.sectionHead > p {
+  margin-bottom: 0;
+}
+
 .sectionTitle {
   font-size: var(--step-2);
   font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 40;
-}
-
-.sectionNote {
-  font-size: var(--step--1);
-  color: var(--ink-faint);
 }
 
 .listing {
@@ -509,11 +510,6 @@
   text-transform: uppercase;
 }
 
-.footLinks {
-  display: flex;
-  gap: var(--space-4);
-}
-
 /* --- Empty state --------------------------------------------- */
 
 .blank {
@@ -660,4 +656,70 @@
   transition:
     color var(--dur-feedback) var(--ease-settle),
     border-bottom-color var(--dur-feedback) var(--ease-settle);
+}
+
+/* --- Fertile ground ------------------------------------------- */
+
+/* A read thing that matched nothing, and the topics it put in the
+   ground. Rows rather than columns, unlike loose stock: each is a
+   small case being made for a subject, not a name to scan past. */
+.fertileList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-3);
+}
+
+.fertileRow {
+  display: grid;
+  gap: var(--space-1);
+  padding-left: var(--space-2);
+  border-left: 2px solid var(--plate-mustard);
+}
+
+.fertileHead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.fertileTitle {
+  font-family: var(--font-display);
+  font-size: var(--step-0);
+  font-weight: 600;
+}
+
+.fertileKind {
+  font-size: var(--step--2);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.fertileTopics {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.fertileAction {
+  justify-self: start;
+  margin-top: var(--space-1);
+  font-size: var(--step--1);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+  border-bottom: 2px solid var(--plate-mustard);
+  padding-bottom: 2px;
+  text-decoration: none;
+  transition:
+    color var(--dur-feedback) var(--ease-settle),
+    border-bottom-color var(--dur-feedback) var(--ease-settle);
+}
+
+.fertileAction:hover {
+  border-bottom-color: var(--ink);
+  text-decoration: none;
 }

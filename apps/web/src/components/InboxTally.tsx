@@ -61,7 +61,7 @@ export function InboxTally() {
   const parts = [
     counts.decisions > 0 &&
       `${counts.decisions} ${counts.decisions === 1 ? 'topic needs' : 'topics need'} your call`,
-    counts.waiting > 0 && `${counts.waiting} unsown`,
+    counts.waiting > 0 && `${counts.waiting} unread`,
   ].filter(Boolean)
 
   return (
