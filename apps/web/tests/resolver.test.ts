@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { resolveConcept, neighboursFor } from '@/lib/resolver'
+import { resolveConcept, neighboursFor, settleResolution, type Resolution } from '@/lib/resolver'
 import cases from './fixtures/resolver-cases.json'
 import { config } from '@didactic/core/config'
 
@@ -171,5 +171,60 @@ describe('neighbours offered to a freshly sown bed', () => {
 
   it('returns nothing when the map is empty', () => {
     expect(neighboursFor([], new Set(), 30)).toEqual([])
+  })
+})
+
+describe('settling a resolution with a reading of the descriptions', () => {
+  const inBand = (config.RESOLVER_MATCH + config.RESOLVER_AMBIGUOUS) / 2
+  const belowBand = config.RESOLVER_AMBIGUOUS - 0.1
+  const similarities: Record<string, number> = { near: inBand, far: belowBand }
+  const similarityOf = (id: string) => similarities[id] ?? 0
+
+  const link: Resolution = { action: 'link', topicId: 'near', similarity: 0.97 }
+  const pending: Resolution = { action: 'pending', title: 'P/E', similarity: inBand, nearestId: 'near' }
+  const create: Resolution = { action: 'create', title: 'P/E' }
+  const unsure = { sameAs: null, distinct: false }
+
+  it('leaves the embedding answer alone when nothing was read', () => {
+    for (const r of [link, pending, create]) {
+      expect(settleResolution(r, undefined, similarityOf)).toBe(r)
+    }
+  })
+
+  it('never undoes a link, whatever the reading says', () => {
+    expect(settleResolution(link, { sameAs: null, distinct: true }, similarityOf)).toBe(link)
+  })
+
+  it('links in the band when the reading is sure they are one topic', () => {
+    expect(settleResolution(pending, { sameAs: 'near', distinct: false }, similarityOf))
+      .toMatchObject({ action: 'link', topicId: 'near' })
+  })
+
+  it('creates in the band when the reading is sure they are different', () => {
+    // The adjudication queue was taking every near name; the description
+    // is what says two near names are two topics.
+    expect(settleResolution(pending, { sameAs: null, distinct: true }, similarityOf))
+      .toMatchObject({ action: 'create', title: 'P/E' })
+  })
+
+  it('still asks in the band when the reading is unsure', () => {
+    expect(settleResolution(pending, unsure, similarityOf)).toBe(pending)
+  })
+
+  it('asks rather than links when the reading names a topic outside the band', () => {
+    expect(settleResolution(pending, { sameAs: 'far', distinct: false }, similarityOf))
+      .toMatchObject({ action: 'pending', nearestId: 'far' })
+  })
+
+  it('asks rather than links when the reading says same where the names said different', () => {
+    // A wrong link loses the name the resource was read under; a wrong
+    // question costs one press.
+    expect(settleResolution(create, { sameAs: 'far', distinct: false }, similarityOf))
+      .toMatchObject({ action: 'pending', title: 'P/E', nearestId: 'far' })
+  })
+
+  it('creates below the band when the reading agrees', () => {
+    expect(settleResolution(create, { sameAs: null, distinct: true }, similarityOf)).toBe(create)
+    expect(settleResolution(create, unsure, similarityOf)).toBe(create)
   })
 })

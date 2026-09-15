@@ -16,7 +16,7 @@ describe('extractConcepts', () => {
     mockCreate.mockResolvedValue(toolResponse({
       summary: 'An article about React hooks.',
       concepts: [
-        { name: 'React Hooks', relevance: 0.9 },
+        { name: 'React Hooks', description: 'State and effects in function components.', relevance: 0.9 },
         { name: 'useState', relevance: 0.7 },
       ],
     }))
@@ -24,7 +24,11 @@ describe('extractConcepts', () => {
     const result = await extractConcepts('Understanding React Hooks', 'Hooks let you...')
     expect(result.summary).toBe('An article about React hooks.')
     expect(result.concepts).toHaveLength(2)
-    expect(result.concepts[0]).toEqual({ name: 'React Hooks', relevance: 0.9 })
+    expect(result.concepts[0]).toEqual({
+      name: 'React Hooks',
+      description: 'State and effects in function components.',
+      relevance: 0.9,
+    })
   })
 
   it('drops concepts whose relevance is out of range rather than trusting them', async () => {

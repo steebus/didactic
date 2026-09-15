@@ -2,7 +2,16 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import { extractConcepts } from './llm/concepts'
 import { proposeEdges } from './llm/edges'
 import { embed } from './embedding'
-import { resolveConcept, fetchCandidates } from './resolver'
+import { resolveConcept, fetchCandidates, settleResolution } from './resolver'
+import {
+  judgeConcepts,
+  NEAREST_SHOWN,
+  SUBJECT_SAMPLE,
+  type ConceptToJudge,
+  type SubjectToJudge,
+  type Verdict,
+} from './llm/overlap'
+import { cosineSimilarity } from '@didactic/core/similarity'
 import { extractFromHtml } from './extract/url'
 import { readDocumentRound } from './document'
 
@@ -19,6 +28,19 @@ const slugify = (s: string) =>
  * table rather than a second pass over the file.
  */
 const CONCEPT_WORDS = 12_000
+
+/**
+ * What reading the descriptions needs, and what must still be left
+ * after it.
+ *
+ * It is one model call over every concept, and after it come the commit
+ * and the edge pass, which is another. Started with less than this of
+ * the minute left it does not improve the filing -- it pushes the edge
+ * pass past the platform's ceiling after the commit has landed, and a
+ * retried ingestion files its topics twice. Skipped, the concepts are
+ * judged by their names, as they always were, and the result says so.
+ */
+const JUDGING_NEEDS_MS = 35_000
 
 export interface IngestResult {
   linked: number
@@ -135,30 +157,68 @@ export async function ingestResource(
     )
   }
 
-  // 3. Resolve each against the graph.
-  const links: Array<{ topic_id: string; relevance: number }> = []
+  // 3. Resolve each against the graph: first by name, then by reading.
+  const searched: Array<{
+    concept: (typeof concepts)[number]
+    vector: number[]
+    candidates: Awaited<ReturnType<typeof fetchCandidates>>
+  }> = []
+  for (const concept of concepts) {
+    const vector = await embed(concept.name)
+    searched.push({ concept, vector, candidates: await fetchCandidates(db, vector) })
+  }
+
+  const warnings: string[] = []
+  const verdicts = await judge(db, {
+    userId: resource.user_id,
+    resourceTitle: title,
+    searched,
+    deadline,
+    warnings,
+  })
+
+  const links: Array<{ topic_id: string; relevance: number; summary: string | null }> = []
   const newTopics: Array<Record<string, unknown>> = []
   let pendingCount = 0
 
-  for (const concept of concepts) {
-    const vector = await embed(concept.name)
-    const candidates = await fetchCandidates(db, vector)
-    const resolution = resolveConcept(concept.name, candidates, vector)
+  searched.forEach(({ concept, vector, candidates }, index) => {
+    const verdict = verdicts?.get(keyOf(index))
+    const similarityOf = (id: string) => {
+      const found = candidates.find(c => c.id === id)
+      return found ? cosineSimilarity(vector, found.embedding) : 0
+    }
+    const resolution = settleResolution(
+      resolveConcept(concept.name, candidates, vector),
+      verdict,
+      similarityOf
+    )
 
     if (resolution.action === 'link') {
-      links.push({ topic_id: resolution.topicId, relevance: concept.relevance })
+      // The description rides along so a topic that has never had one
+      // gets this one. `045` writes it only where the summary is empty:
+      // a description somebody wrote, or an earlier reading, stands.
+      links.push({
+        topic_id: resolution.topicId,
+        relevance: concept.relevance,
+        summary: concept.description,
+      })
     } else {
       if (resolution.action === 'pending') pendingCount++
       newTopics.push({
         title: concept.name,
         slug: slugify(concept.name),
-        summary: null,
+        summary: concept.description,
         embedding: JSON.stringify(vector),
         state: resolution.action === 'pending' ? 'pending' : 'active',
         relevance: concept.relevance,
+        // Where the reading placed it. Present only when it was read:
+        // an absent key is what tells `045` to fall back on `039`'s
+        // agreement rule, and an empty array is a reading that said it
+        // stands alone -- two different answers that must not collapse.
+        ...(verdict ? { subject_ids: verdict.subjects } : {}),
       })
     }
-  }
+  })
 
   // 4. Commit topics first, so the new ones have real ids to relate.
   const { data: createdIds, error: commitError } = await db.rpc('commit_ingestion', {
@@ -207,5 +267,98 @@ export async function ingestResource(
     linked: links.length,
     created: newTopics.length,
     pending: pendingCount,
+    ...(warnings.length ? { warnings } : {}),
+  }
+}
+
+const keyOf = (index: number) => `c${index + 1}`
+
+/**
+ * Read the concepts' descriptions against the map, or say why not.
+ *
+ * Never throws. A failed reading costs the reading: the concepts are
+ * judged by name, exactly as ingestion did before, and the warning is
+ * the only trace -- failing a whole resource for want of a second
+ * opinion would be the tail wagging the dog.
+ */
+async function judge(
+  db: SupabaseClient,
+  input: {
+    userId: string
+    resourceTitle: string
+    searched: Array<{
+      concept: { name: string; description: string | null }
+      vector: number[]
+      candidates: Array<{ id: string; title: string; summary: string | null; embedding: number[] }>
+    }>
+    deadline?: number
+    warnings: string[]
+  }
+): Promise<Map<string, Verdict> | null> {
+  if (input.deadline !== undefined && input.deadline - Date.now() < JUDGING_NEEDS_MS) {
+    input.warnings.push('Judged by name only: too little of the minute was left to read the descriptions.')
+    return null
+  }
+
+  try {
+    const { data: subjectRows } = await db
+      .from('subjects').select('id, title').eq('user_id', input.userId).order('title')
+    const subjectList = (subjectRows ?? []) as Array<{ id: string; title: string }>
+    const subjectTitle = new Map(subjectList.map(s => [s.id, s.title]))
+
+    // Every membership in every subject: it says what each subject holds
+    // and where each candidate already sits, in one read.
+    const { data: memberships } = subjectList.length
+      ? await db
+          .from('topic_subjects').select('topic_id, subject_id')
+          .in('subject_id', subjectList.map(s => s.id))
+      : { data: [] }
+
+    const subjectsOf = new Map<string, string[]>()
+    const heldBy = new Map<string, string[]>()
+    for (const m of (memberships ?? []) as Array<{ topic_id: string; subject_id: string }>) {
+      const title = subjectTitle.get(m.subject_id)
+      if (title) subjectsOf.set(m.topic_id, [...(subjectsOf.get(m.topic_id) ?? []), title])
+      heldBy.set(m.subject_id, [...(heldBy.get(m.subject_id) ?? []), m.topic_id])
+    }
+
+    const sampled = [...new Set([...heldBy.values()].flatMap(ids => ids.slice(0, SUBJECT_SAMPLE)))]
+    const { data: sampleRows } = sampled.length
+      ? await db.from('topics').select('id, title').in('id', sampled)
+      : { data: [] }
+    const topicTitle = new Map(
+      ((sampleRows ?? []) as Array<{ id: string; title: string }>).map(t => [t.id, t.title])
+    )
+
+    const subjects: SubjectToJudge[] = subjectList.map(s => ({
+      id: s.id,
+      title: s.title,
+      topics: (heldBy.get(s.id) ?? [])
+        .slice(0, SUBJECT_SAMPLE)
+        .flatMap(id => topicTitle.get(id) ?? []),
+    }))
+
+    const concepts: ConceptToJudge[] = input.searched.map(({ concept, vector, candidates }, index) => ({
+      key: keyOf(index),
+      name: concept.name,
+      description: concept.description,
+      nearest: candidates
+        .map(c => ({
+          id: c.id,
+          title: c.title,
+          summary: c.summary,
+          similarity: cosineSimilarity(vector, c.embedding),
+          subjects: subjectsOf.get(c.id) ?? [],
+        }))
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, NEAREST_SHOWN),
+    }))
+
+    return await judgeConcepts({ resourceTitle: input.resourceTitle, concepts, subjects })
+  } catch (e) {
+    input.warnings.push(
+      `Judged by name only: reading the descriptions failed (${e instanceof Error ? e.message : String(e)}).`
+    )
+    return null
   }
 }

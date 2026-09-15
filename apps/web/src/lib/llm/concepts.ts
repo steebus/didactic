@@ -27,9 +27,14 @@ const TOOL = {
           type: 'object',
           properties: {
             name: { type: 'string', description: 'A canonical subtopic name, e.g. "React Hooks".' },
+            description: {
+              type: 'string',
+              description:
+                'One or two sentences saying what the topic covers, written about the topic in general rather than about this resource. It is what tells this topic apart from others with similar names, so name its scope, not its importance.',
+            },
             relevance: { type: 'number', description: '0-1: how central this concept is to the resource.' },
           },
-          required: ['name', 'relevance'],
+          required: ['name', 'description', 'relevance'],
         },
       },
     },
@@ -58,7 +63,7 @@ export async function extractConcepts(title: string, text: string) {
     tool_choice: { type: 'tool', name: 'record_concepts' },
     messages: [{
       role: 'user',
-      content: `Identify the learnable concepts in this resource. Prefer canonical, reusable subtopic names over phrasings specific to this text - the names are matched against an existing knowledge graph.
+      content: `Identify the learnable concepts in this resource. Prefer canonical, reusable subtopic names over phrasings specific to this text - the names are matched against an existing knowledge graph. Describe each one in general terms: the description is read beside the names already on the graph to decide whether it is one of them, and which subject it belongs under.
 
 Title: ${title}
 
@@ -116,7 +121,7 @@ ${text.slice(0, MAX_CHARS)}`,
  */
 export function readConcepts(input: unknown): {
   summary: string | null
-  concepts: Array<{ name: string; relevance: number }>
+  concepts: Array<{ name: string; description: string | null; relevance: number }>
 } {
   const held = (input ?? {}) as Record<string, unknown>
 
@@ -126,18 +131,25 @@ export function readConcepts(input: unknown): {
       .map(c => {
         const row = (c ?? {}) as Record<string, unknown>
         const name = typeof row.name === 'string' ? row.name.trim() : ''
+        // Missing costs the description and nothing else: the concept
+        // is still filed, judged by its name the way it always was.
+        const description =
+          typeof row.description === 'string' && row.description.trim()
+            ? row.description.trim()
+            : null
         // A concept with no relevance is still a concept. Missing, it
         // is taken as squarely relevant rather than dropped: the model
         // named it, which is the part that matters.
         const relevance = typeof row.relevance === 'number' ? row.relevance : 0.5
-        return { name, relevance }
+        return { name, description, relevance }
       })
       .filter(c => c.name && c.relevance >= 0 && c.relevance <= 1),
   }
 }
 
-/** An array, whether it arrived as one or as JSON text holding one. */
-function asArray(value: unknown, depth = 0): unknown[] {
+/** An array, whether it arrived as one or as JSON text holding one.
+ *  Every tool answer that carries a list can arrive either way. */
+export function asArray(value: unknown, depth = 0): unknown[] {
   if (Array.isArray(value)) return value
   if (typeof value !== 'string') return []
 

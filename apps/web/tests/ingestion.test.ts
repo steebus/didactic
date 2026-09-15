@@ -15,6 +15,12 @@ vi.mock('@/lib/llm/concepts', () => ({
   }),
 }))
 vi.mock('@/lib/llm/edges', () => ({ proposeEdges: vi.fn().mockResolvedValue([]) }))
+// Nothing read unless a case says so: the name-only path is the one the
+// older cases describe.
+vi.mock('@/lib/llm/overlap', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/lib/llm/overlap')>()),
+  judgeConcepts: vi.fn().mockResolvedValue(null),
+}))
 vi.mock('@/lib/embedding', () => ({
   embed: vi.fn().mockImplementation(async (t: string) => {
     const v = new Array(1536).fill(0)
@@ -46,6 +52,7 @@ function mockDb(opts: {
       select: () => api,
       eq: () => api,
       in: () => api,
+      order: () => api,
       single: async () => ({
         data: table === 'resources'
           ? { user_id: 'u1', title: 'T', ...opts.resource }
@@ -200,5 +207,145 @@ describe('ingestResource', { timeout: 30_000 }, () => {
 
     const newNodes = (db.rpcArgs('commit_ingestion')[0] as { p_new_topics: Array<{ state: string }> }).p_new_topics
     expect(newNodes.some(n => n.state === 'pending')).toBe(true)
+  })
+})
+
+describe('ingestion reads the descriptions', { timeout: 30_000 }, () => {
+  const article = { id: 'r1', url: 'https://example.com/a', kind: 'article', raw_text: null }
+  const unit = (similarity: number) => {
+    const v = new Array(1536).fill(0)
+    v[0] = similarity
+    v[1] = Math.sqrt(1 - similarity * similarity)
+    return v
+  }
+  const midBand = (config.RESOLVER_MATCH + config.RESOLVER_AMBIGUOUS) / 2
+
+  type Commit = {
+    p_new_topics: Array<Record<string, unknown>>
+    p_links: Array<Record<string, unknown>>
+  }
+
+  beforeEach(async () => {
+    const { extractConcepts } = await import('@/lib/llm/concepts')
+    vi.mocked(extractConcepts).mockResolvedValue({
+      summary: 'About React hooks.',
+      concepts: [
+        { name: 'React Hooks', description: 'State and effects in function components.', relevance: 0.9 },
+        { name: 'CDN Distribution', description: 'Serving assets from edge caches.', relevance: 0.4 },
+      ],
+      why: '',
+    } as never)
+  })
+
+  it('stores each new topic with the description it was read with', async () => {
+    const db = mockDb({ resource: article, candidates: [], html })
+    const { ingestResource } = await import('@/lib/ingest')
+    await ingestResource(db as never, 'r1')
+
+    const commit = db.rpcArgs('commit_ingestion')[0] as Commit
+    expect(commit.p_new_topics.map(t => t.summary)).toEqual([
+      'State and effects in function components.',
+      'Serving assets from edge caches.',
+    ])
+  })
+
+  it('offers the description to a matched topic, which only takes it if it has none', async () => {
+    const db = mockDb({
+      resource: article,
+      candidates: [{ id: 'topic-react', title: 'React Hooks', embedding: unit(1) }],
+      html,
+    })
+    const { ingestResource } = await import('@/lib/ingest')
+    await ingestResource(db as never, 'r1')
+
+    const commit = db.rpcArgs('commit_ingestion')[0] as Commit
+    expect(commit.p_links[0]).toMatchObject({
+      topic_id: 'topic-react',
+      summary: 'State and effects in function components.',
+    })
+  })
+
+  it('files a new topic where the reading puts it, and says nothing when it was not read', async () => {
+    const { judgeConcepts } = await import('@/lib/llm/overlap')
+    vi.mocked(judgeConcepts).mockResolvedValueOnce(new Map([
+      ['c1', { sameAs: null, distinct: true, subjects: ['frontend'] }],
+      // c2 read, and stands alone.
+      ['c2', { sameAs: null, distinct: true, subjects: [] }],
+    ]))
+    const db = mockDb({ resource: article, candidates: [], html })
+    const { ingestResource } = await import('@/lib/ingest')
+    await ingestResource(db as never, 'r1')
+
+    const commit = db.rpcArgs('commit_ingestion')[0] as Commit
+    expect(commit.p_new_topics[0].subject_ids).toEqual(['frontend'])
+    expect(commit.p_new_topics[1].subject_ids).toEqual([])
+  })
+
+  it('leaves the subject key off entirely when nothing was read, so the agreement rule applies', async () => {
+    const db = mockDb({ resource: article, candidates: [], html })
+    const { ingestResource } = await import('@/lib/ingest')
+    await ingestResource(db as never, 'r1')
+
+    const commit = db.rpcArgs('commit_ingestion')[0] as Commit
+    for (const t of commit.p_new_topics) expect(t).not.toHaveProperty('subject_ids')
+  })
+
+  it('creates an ambiguous concept the reading is sure is different, instead of queueing it', async () => {
+    const { judgeConcepts } = await import('@/lib/llm/overlap')
+    vi.mocked(judgeConcepts).mockResolvedValueOnce(new Map([
+      ['c1', { sameAs: null, distinct: true, subjects: [] }],
+      ['c2', { sameAs: null, distinct: true, subjects: [] }],
+    ]))
+    const db = mockDb({
+      resource: article,
+      candidates: [{ id: 'topic-x', title: 'Something Adjacent', embedding: unit(midBand) }],
+      html,
+    })
+    const { ingestResource } = await import('@/lib/ingest')
+    const result = await ingestResource(db as never, 'r1')
+
+    expect(result.pending).toBe(0)
+    const commit = db.rpcArgs('commit_ingestion')[0] as Commit
+    expect(commit.p_new_topics.every(t => t.state === 'active')).toBe(true)
+  })
+
+  it('shows the reading each concept with its nearest topics and their descriptions', async () => {
+    const { judgeConcepts } = await import('@/lib/llm/overlap')
+    const db = mockDb({
+      resource: article,
+      candidates: [{ id: 'topic-x', title: 'Something Adjacent', embedding: unit(midBand) }],
+      html,
+    })
+    const { ingestResource } = await import('@/lib/ingest')
+    await ingestResource(db as never, 'r1')
+
+    const asked = vi.mocked(judgeConcepts).mock.calls[0][0]
+    expect(asked.concepts[0]).toMatchObject({
+      key: 'c1',
+      name: 'React Hooks',
+      description: 'State and effects in function components.',
+      nearest: [{ id: 'topic-x', title: 'Something Adjacent' }],
+    })
+  })
+
+  it('judges by name, and says so, when too little of the minute is left to read', async () => {
+    const { judgeConcepts } = await import('@/lib/llm/overlap')
+    const db = mockDb({ resource: article, candidates: [], html })
+    const { ingestResource } = await import('@/lib/ingest')
+    const result = await ingestResource(db as never, 'r1', { deadline: Date.now() + 5_000 })
+
+    expect(judgeConcepts).not.toHaveBeenCalled()
+    expect(result.warnings?.[0]).toMatch(/by name only/)
+  })
+
+  it('files the resource by name when the reading throws', async () => {
+    const { judgeConcepts } = await import('@/lib/llm/overlap')
+    vi.mocked(judgeConcepts).mockRejectedValueOnce(new Error('overloaded'))
+    const db = mockDb({ resource: article, candidates: [], html })
+    const { ingestResource } = await import('@/lib/ingest')
+    const result = await ingestResource(db as never, 'r1')
+
+    expect(result.created).toBe(2)
+    expect(result.warnings?.[0]).toMatch(/overloaded/)
   })
 })

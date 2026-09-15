@@ -53,11 +53,53 @@ export function resolveConcept(
   return { action: 'create', title: concept }
 }
 
+/**
+ * What a reading of the descriptions is worth against the embedding.
+ *
+ * The two are asked the same question from different evidence, and
+ * neither is trusted alone where they disagree:
+ *
+ *  - A **link** stands. Above `RESOLVER_MATCH` the names are all but
+ *    the same, and that bar was tuned against real rows.
+ *  - In the **ambiguous band**, the reading settles it. Sure it is the
+ *    same topic -- and that topic is itself in the band -- links; sure
+ *    it is none of them creates. Unsure stays a question for the reader.
+ *  - Below the band, a reading that says **same** where the names said
+ *    different is a question for the reader, never a link. A wrong link
+ *    files the resource against someone else's topic and loses the name
+ *    it was read under; a wrong question costs one press.
+ *
+ * No verdict, and the embedding's answer is the answer, which is what
+ * ingestion did before descriptions were read at all.
+ */
+export function settleResolution(
+  resolution: Resolution,
+  verdict: { sameAs: string | null; distinct: boolean } | undefined,
+  similarityOf: (topicId: string) => number
+): Resolution {
+  if (!verdict || resolution.action === 'link') return resolution
+
+  if (verdict.sameAs) {
+    const similarity = similarityOf(verdict.sameAs)
+    if (resolution.action === 'pending' && similarity >= config.RESOLVER_AMBIGUOUS) {
+      return { action: 'link', topicId: verdict.sameAs, similarity }
+    }
+    const title = resolution.title
+    return { action: 'pending', title, similarity, nearestId: verdict.sameAs }
+  }
+
+  if (verdict.distinct && resolution.action === 'pending') {
+    return { action: 'create', title: resolution.title }
+  }
+
+  return resolution
+}
+
 export async function fetchCandidates(
   db: SupabaseClient,
   conceptEmbedding: number[],
   limit = 10
-): Promise<Array<{ id: string; title: string; embedding: number[] }>> {
+): Promise<Array<{ id: string; title: string; summary: string | null; embedding: number[] }>> {
   const { data, error } = await db.rpc('match_topics', {
     query_embedding: conceptEmbedding,
     match_count: limit,
@@ -68,9 +110,17 @@ export async function fetchCandidates(
   // unparsed it reaches cosineSimilarity as characters, every score
   // comes back near zero, and the resolver creates a duplicate for
   // every concept it should have linked.
-  return (data ?? []).map((row: { id: string; title: string; embedding: number[] | string }) => ({
+  return (data ?? []).map((row: {
+    id: string
+    title: string
+    summary?: string | null
+    embedding: number[] | string
+  }) => ({
     id: row.id,
     title: row.title,
+    // `019` returns it, and it is what tells two near names apart when
+    // ingestion asks whether a concept is one of these.
+    summary: row.summary ?? null,
     embedding: typeof row.embedding === 'string' ? JSON.parse(row.embedding) : row.embedding,
   }))
 }

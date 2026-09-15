@@ -41,7 +41,27 @@ describe('readConcepts', () => {
     // The model named it, which is the part that matters. Dropping it
     // would lose a topic over a missing number.
     const read = readConcepts({ concepts: [{ name: 'Memoisation' }] })
-    expect(read.concepts).toEqual([{ name: 'Memoisation', relevance: 0.5 }])
+    expect(read.concepts).toEqual([{ name: 'Memoisation', description: null, relevance: 0.5 }])
+  })
+
+  it('reads the description each concept is judged by', () => {
+    // It is what tells "Speculation vs Investment" apart from a topic
+    // with a similar name, and what places it under a subject, so it is
+    // stored as the topic's summary rather than thrown away.
+    const read = readConcepts({
+      concepts: [
+        { name: 'P/E Ratio', description: '  Share price over earnings per share.  ', relevance: 0.7 },
+        { name: 'Margin of Safety', description: '   ', relevance: 0.9 },
+        { name: 'Mr Market', description: 42, relevance: 0.6 },
+      ],
+    })
+    expect(read.concepts).toEqual([
+      { name: 'P/E Ratio', description: 'Share price over earnings per share.', relevance: 0.7 },
+      // A missing or blank description costs the description, never the
+      // concept: it is judged by name, as it always was.
+      { name: 'Margin of Safety', description: null, relevance: 0.9 },
+      { name: 'Mr Market', description: null, relevance: 0.6 },
+    ])
   })
 
   it('drops what cannot be used, and only that', () => {
@@ -54,7 +74,7 @@ describe('readConcepts', () => {
         { name: 'Good', relevance: 0.8 },
       ],
     })
-    expect(read.concepts).toEqual([{ name: 'Good', relevance: 0.8 }])
+    expect(read.concepts).toEqual([{ name: 'Good', description: null, relevance: 0.8 }])
   })
 
   it('keeps the whole concepts out of a truncated array', () => {
@@ -79,14 +99,14 @@ describe('readConcepts', () => {
     const once = JSON.stringify([{ name: 'React rendering', relevance: 0.9 }])
     const twice = JSON.stringify(once)
     expect(readConcepts({ concepts: twice }).concepts).toEqual([
-      { name: 'React rendering', relevance: 0.9 },
+      { name: 'React rendering', description: null, relevance: 0.9 },
     ])
   })
 
   it('finds the array inside an object the model wrapped it in', () => {
     const wrapped = JSON.stringify({ items: [{ name: 'Profiling', relevance: 0.6 }] })
     expect(readConcepts({ concepts: wrapped }).concepts).toEqual([
-      { name: 'Profiling', relevance: 0.6 },
+      { name: 'Profiling', description: null, relevance: 0.6 },
     ])
   })
 
