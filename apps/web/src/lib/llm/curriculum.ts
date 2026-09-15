@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { NO_THINKING } from './thinking'
 import type { CurriculumShape, LessonStage } from '@didactic/core/types'
 import { blockPromptSection } from '@didactic/core/blocks'
 import { lessonSlug, type LessonLink } from '@didactic/core/lessonLinks'
@@ -105,6 +106,7 @@ export async function proposeCurriculum(brief: CurriculumBrief): Promise<Propose
   const res = await getClient().messages.create({
     model: 'claude-sonnet-5',
     max_tokens: 4000,
+    thinking: NO_THINKING,
     tools: [TOOL],
     tool_choice: { type: 'tool', name: 'record_curriculum' },
     messages: [{
@@ -358,6 +360,7 @@ ${blockPromptSection()}`
   const stream = client.messages.stream({
     model: 'claude-sonnet-5',
     max_tokens: ROUND_TOKENS,
+    thinking: NO_THINKING,
     messages,
   })
   const res = await stream.finalMessage()

@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { NO_THINKING } from './thinking'
 import { clozeProblem } from '@didactic/core/clozes'
 
 /**
@@ -143,6 +144,7 @@ export async function proposeClozes(
   const res = await getClient().messages.create({
     model: 'claude-sonnet-5',
     max_tokens: 4000,
+    thinking: NO_THINKING,
     tools: [TOOL],
     tool_choice: { type: 'tool', name: 'record_clozes' },
     messages: [

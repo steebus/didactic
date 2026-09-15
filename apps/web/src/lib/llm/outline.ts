@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { NO_THINKING } from './thinking'
 import type { PageText } from '@didactic/core/passages'
 
 /**
@@ -86,6 +87,7 @@ export async function readContentsPages({
   const res = await client.messages.create({
     model: 'claude-sonnet-5',
     max_tokens: 2000,
+    thinking: NO_THINKING,
     tools: [TOOL],
     tool_choice: { type: 'tool', name: TOOL.name },
     messages: [

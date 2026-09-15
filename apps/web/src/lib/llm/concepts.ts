@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { NO_THINKING } from './thinking'
 
 let client: Anthropic | null = null
 
@@ -59,6 +60,7 @@ export async function extractConcepts(title: string, text: string) {
     // is headroom for the malformed case, not an invitation to write
     // more.
     max_tokens: 8000,
+    thinking: NO_THINKING,
     tools: [TOOL],
     tool_choice: { type: 'tool', name: 'record_concepts' },
     messages: [{

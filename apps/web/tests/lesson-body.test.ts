@@ -16,6 +16,8 @@ const finalMessage = vi.fn()
 /** Only the part of the request these tests read back. */
 interface Asked {
   messages: Array<{ role: string; content: string | Array<Record<string, unknown>> }>
+  max_tokens: number
+  thinking?: { type: string }
 }
 const mockStream = vi.fn((options: Asked) => {
   void options
@@ -57,6 +59,16 @@ const said = (text: string, stop = 'end_turn') => ({
 
 /** The messages the last round was asked with. */
 const asked = () => mockStream.mock.calls.at(-1)![0].messages
+
+/** The whole request the last round was asked with. */
+const request = () => mockStream.mock.calls.at(-1)![0]
+
+/** A round that spent its whole ceiling thinking and never got to the prose. */
+const thoughtOnly = () => ({
+  stop_reason: 'max_tokens',
+  usage: { output_tokens: 2500 },
+  content: [{ type: 'thinking', thinking: '' }],
+})
 
 describe('a lesson that fits', () => {
   it('is written in one round and says it is finished', async () => {
@@ -167,5 +179,41 @@ describe('carrying on from a round that filled up', () => {
     const { text } = await write('Some prose,')
     expect(text).toBe('Some prose,more.')
     expect(text).not.toMatch(/\s$/)
+  })
+})
+
+describe('the round ceiling', () => {
+  /**
+   * The second bug of the kind the mock above warns about: right in
+   * shape, wrong about the model. `claude-sonnet-5` thinks unless it is
+   * told not to, and thinking is spent from the same `max_tokens` the
+   * prose comes out of -- so a round measured at 2500 tokens of lesson
+   * was really 2500 shared with a think nobody had budgeted for. A long
+   * enough think spent the lot and the reply came back with a thinking
+   * block and no text in it, which is what reached the reader as
+   * "curriculum: no text returned" and a 502.
+   */
+  it('is asked for the prose alone, not shared with a think', async () => {
+    finalMessage.mockResolvedValue(said('All of it.'))
+    await write()
+
+    expect(request().thinking).toEqual({ type: 'disabled' })
+  })
+
+  it('is asked that way on a carried round too, which is the tight one', async () => {
+    // The round most likely to run long is the one continuing a lesson
+    // that already filled a ceiling once.
+    finalMessage.mockResolvedValue(said(' and the rest.'))
+    await write('Half a lesson, ending mid')
+
+    expect(request().thinking).toEqual({ type: 'disabled' })
+  })
+
+  it('says so plainly when a round comes back with no prose at all', async () => {
+    // Belt and braces: if a reply ever arrives without text in it, the
+    // lesson is not silently stored as empty.
+    finalMessage.mockResolvedValue(thoughtOnly())
+
+    await expect(write()).rejects.toThrow('no text returned')
   })
 })

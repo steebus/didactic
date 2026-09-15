@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { NO_THINKING } from './thinking'
 
 /**
  * A question that probes whether the user actually holds a subject, in a
@@ -82,6 +83,7 @@ export async function proposeQualifyingQuestions(
   const res = await getClient().messages.create({
     model: 'claude-sonnet-5',
     max_tokens: 2000,
+    thinking: NO_THINKING,
     tools: [TOOL],
     tool_choice: { type: 'tool', name: 'record_qualifying_questions' },
     messages: [{

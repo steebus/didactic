@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { NO_THINKING } from './thinking'
 import { asArray } from './concepts'
 
 /**
@@ -146,6 +147,7 @@ export async function judgeConcepts(input: {
     // of them. Headroom for the answer that arrives serialised as a
     // string, which spends several times the tokens.
     max_tokens: 6000,
+    thinking: NO_THINKING,
     tools: [TOOL],
     tool_choice: { type: 'tool', name: 'record_judgements' },
     messages: [{ role: 'user', content: prompt(input.resourceTitle, concepts, input.subjects) }],

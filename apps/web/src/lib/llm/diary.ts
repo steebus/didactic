@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { NO_THINKING } from './thinking'
 import type { ExposureDepth } from '@didactic/core/types'
 
 /**
@@ -117,6 +118,7 @@ export async function readEntry(
   const res = await getClient().messages.create({
     model: 'claude-sonnet-5',
     max_tokens: 2000,
+    thinking: NO_THINKING,
     tools: [TOOL],
     tool_choice: { type: 'tool', name: 'record_reading' },
     messages: [

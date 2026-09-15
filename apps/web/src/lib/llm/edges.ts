@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { NO_THINKING } from './thinking'
 import type { EdgeKind } from '@didactic/core/types'
 
 let client: Anthropic | null = null
@@ -54,6 +55,7 @@ export async function proposeEdges(
     // mid-list and the call came back with nothing at all, while the
     // same request at 8000 produced thirty-three edges in 2720 tokens.
     max_tokens: 8000,
+    thinking: NO_THINKING,
     tools: [TOOL],
     tool_choice: { type: 'tool', name: 'record_edges' },
     messages: [{
