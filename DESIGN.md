@@ -429,11 +429,27 @@ column and the margin's left border becomes a `2px` top border.
 **Rule — when the margin stacks, it keeps its rule and changes its side.** A
 margin that loses its rule stops being a margin.
 
+### Loose stock, folded behind one entry
+
+The subjects sheet does not list loose topics. Under the stock list, a
+second section head — `.sectionHead` and `.sectionTitle`, the *Subjects* head
+again — reads *Loose stock*, and under it a single `.entry` leads to `/loose`.
+The entry is set exactly as a holding: a plate (a specimen on
+`--plate-terracotta`, the loose sheet's own band), its size and padding
+weighted by the unfiled count against the largest bed, the name in the display
+face, and in the figures column one label, *Total*, over the count where a
+subject prints *Viability* and *Condition*.
+
+**Rule — a job is offered as one door, not glanced at as a list.** A list of
+bare names on the stock sheet grew with whatever was unfiled and pushed
+everything under it down the page, while doing nothing about any of them. The
+count says how big the job is; the sheet behind it is where it gets done. The
+separate head is what stops the entry being read as one more bed.
+
 ### Fertile ground, under the stock list
 
 Material that was read, put topics in the ground, and matched no subject
-already sown. Each entry is a row rather than a column — unlike *Loose
-stock* beside it, which is a two-column list of bare names — set against a
+already sown. Each entry is a row set against a
 `2px solid var(--plate-mustard)` left edge with `var(--space-2)` of padding
 inside it:
 
@@ -444,11 +460,7 @@ inside it:
 }
 ```
 
-**Rule — a proposal is set as a row, a list of names as columns.** The two
-sit one above the other and hold the same kind of thing — a topic filed
-under no subject — so the difference has to be structural or the reader
-reads one as a continuation of the other. Loose stock is scanned: names in
-two columns, nothing to do about any of them. Fertile ground is a small case
+**Rule — a proposal is set as a row.** Fertile ground is a small case
 being made, with the title of the thing read, what it turned out to be
 about, and the one action that answers it, so it takes a full-width row and
 the mustard edge the sheet already uses to mean *this is where the work is*.
@@ -1473,7 +1485,7 @@ Four breakpoints, each with a stated reason:
 | --- | --- |
 | `60rem` | The spread collapses to one column; the margin unsticks and moves its rule to the top. |
 | `48rem` | Sheet body padding steps `--space-5` → `--space-4`. |
-| `40rem` | The stock row stops being a table row and becomes a stacked card; leader dots are dropped; the graph panel becomes a bottom sheet; the graph canvas inset grows to `7.5rem` for the wrapped control strip; loose stock goes single-column; the contents list goes single-column; every mark panel docks across the foot of the screen; an opened-out note takes all but the top `12dvh` instead of standing beside the reading; and the marks list comes in off the right edge over the reading at `min(22rem, 86vw)`, leaving a strip of the lesson showing behind it. |
+| `40rem` | The stock row stops being a table row and becomes a stacked card; leader dots are dropped; the graph panel becomes a bottom sheet; the graph canvas inset grows to `7.5rem` for the wrapped control strip; the loose sheet goes single-column; the contents list goes single-column; every mark panel docks across the foot of the screen; an opened-out note takes all but the top `12dvh` instead of standing beside the reading; and the marks list comes in off the right edge over the reading at `min(22rem, 86vw)`, leaving a strip of the lesson showing behind it. |
 
 **Rule — below 40rem a table row becomes a card, it does not shrink.** The
 three-column grid cannot survive 390px without wrapping titles into their own

@@ -8,6 +8,7 @@ import { SheetNav } from '@/components/SheetNav'
 import { LeaveLine } from '@/components/LeaveLine'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
+import { plate } from '@didactic/tokens'
 
 
 
@@ -143,6 +144,50 @@ export default async function Home() {
               })}
             </ul>
 
+            {/* Loose stock, folded behind one entry. The names are not
+                listed here: a list of them is a glance at a job rather
+                than the place it gets done, and it pushed everything
+                below it down the sheet by however much was unfiled. The
+                entry is set as a holding, so it takes its size from its
+                count against the largest bed, and prints the total where
+                a subject prints its viability and condition -- it has
+                neither, because it is not a bed. */}
+            {data.unfiled.length > 0 && (
+              <section className={styles.looseStock}>
+                <div className={styles.sectionHead}>
+                  <h2 className={styles.sectionTitle}>Loose stock</h2>
+                </div>
+                <Link
+                  href="/loose"
+                  className={styles.entry}
+                  style={{
+                    '--weight': Math.min(1, data.unfiled.length / largestHolding),
+                    '--i': data.subjects.length,
+                  } as React.CSSProperties}
+                >
+                  <Emblem
+                    slug="loose-stock"
+                    colour={plate.terracotta}
+                    size={48 + Math.min(1, data.unfiled.length / largestHolding) * 28}
+                  />
+
+                  <div className={styles.entryBody}>
+                    <h3 className={styles.entryTitle}>
+                      {data.unfiled.length === 1 ? 'Unfiled topic' : 'Unfiled topics'}
+                    </h3>
+                    <div className={styles.entryMeta}>
+                      <span>Sown, but filed under no subject</span>
+                    </div>
+                  </div>
+
+                  <div className={styles.entryFigures}>
+                    <span className={styles.figureLabel}>Total</span>
+                    <span className={styles.viability}>{data.unfiled.length}</span>
+                  </div>
+                </Link>
+              </section>
+            )}
+
             {/* Something read that matched nothing already sown. The
                 topics are real and in the ground; what they are missing
                 is a subject to belong to, and the resource that put them
@@ -179,34 +224,6 @@ export default async function Home() {
               </section>
             )}
 
-            {data.unfiled.length > 0 && (
-              <section className={styles.loose}>
-                <h3 className={styles.looseTitle}>
-                  <Link href="/loose" className={styles.looseLink}>
-                    Loose stock
-                  </Link>
-                </h3>
-                <p className={styles.looseNote}>
-                  Sown but not yet filed under a subject. There is a sheet for
-                  dealing with these in handfuls — filing several under a
-                  subject at once, promoting one that turned out to be a whole
-                  field, throwing away what came from a passing mention.
-                </p>
-                <ul className={styles.looseList}>
-                  {data.unfiled.map(topic => (
-                    <li key={topic.id} className={styles.blockRow}>
-                      <Link href={`/topics/${topic.id}`} className={styles.blockRowName}>
-                        {topic.title}
-                      </Link>
-                      <span className={styles.leaders} aria-hidden="true" />
-                      <span className={styles.blockFigure}>
-                        {viabilityFigure(topic.ability)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
           </section>
 
           <aside className={styles.margin}>

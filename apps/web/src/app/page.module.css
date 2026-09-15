@@ -300,20 +300,6 @@
   margin: 0;
 }
 
-/* The heading is the way to the sheet. Loose stock is the one thing on
-   the stock list that is a job rather than a reading, and the list here
-   is a glance at it rather than the place it gets done. */
-.looseLink {
-  color: inherit;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  text-decoration-color: var(--rule);
-}
-
-.looseLink:hover {
-  color: var(--plate-terracotta);
-}
-
 .looseNote {
   margin: var(--space-1) 0 var(--space-3);
   font-size: var(--step--1);
@@ -321,19 +307,12 @@
   font-style: italic;
 }
 
-.looseList {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: var(--space-2);
-  columns: 2;
-}
-
-@media (max-width: 40rem) {
-  .looseList {
-    columns: 1;
-  }
+/* Loose stock on this sheet is one entry under its own head, set exactly
+   as a holding and leading to the sheet where the job is done. The head
+   is the Subjects head again, so it reads as a second listing rather than
+   as one more subject. */
+.looseStock {
+  margin-top: var(--space-6);
 }
 
 .stateLine {
