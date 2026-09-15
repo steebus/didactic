@@ -4,6 +4,7 @@ import { tags } from '@didactic/core/tags'
 import type { HighlightRow } from '@didactic/core/shapes'
 import { computeFreshness } from '@didactic/core/scoring'
 import { curriculumProgress } from '@didactic/core/curriculum'
+import { figureRecord } from '@didactic/core/figureRecord'
 import type { Resource, Subject } from '@didactic/core/types'
 import { supabaseAdmin } from './supabase'
 
@@ -51,6 +52,7 @@ export async function readTopicArea(
     { data: edges },
     { data: exposures },
     { data: highlights },
+    { data: tagged },
   ] = await Promise.all([
     db.from('topics').select('*').eq('id', topicId).single(),
     db.from('topic_subjects').select('subjects(id, title, colour)').eq('topic_id', topicId),
@@ -59,14 +61,20 @@ export async function readTopicArea(
     db.from('resource_topics').select('relevance, resources(*)').eq('topic_id', topicId),
     db.from('edges').select('from_topic, to_topic, kind')
       .or(`from_topic.eq.${topicId},to_topic.eq.${topicId}`),
-    db.from('exposures').select('id, reason, depth, created_at').eq('topic_id', topicId)
-      .order('created_at', { ascending: false }).limit(8),
+    // The whole log, not the last eight: the record replays it from the
+    // start to say what each event moved, and a prefix of it is not the
+    // figure. `exposures` below still answers with the newest eight.
+    db.from('exposures').select('id, reason, depth, created_at, source, source_id')
+      .eq('topic_id', topicId)
+      .order('created_at', { ascending: false }),
     // Carries lesson_id, so the per-lesson counts are derived from this
     // rather than fetched a second time.
     db.from('highlights')
       .select('*, lesson:lessons(id, title), topic:topics(id, title)')
       .eq('topic_id', topicId)
       .order('created_at', { ascending: false }),
+    // Entries that name this topic without being written from it.
+    db.from('highlight_tags').select('highlight_id').eq('topic_id', topicId),
   ])
 
   if (!topic) return null
@@ -120,11 +128,18 @@ export async function readTopicArea(
     return { data: (without.data ?? []) as LessonSelect[] }
   }
 
-  const [{ data: lessons }, { data: neighbourTopics }] = await Promise.all([
+  const filedEntries = (highlights ?? []).filter(h => h.kind === 'diary')
+  const namingIds = [...new Set((tagged ?? []).map(t => t.highlight_id as string))]
+    .filter(id => !filedEntries.some(h => h.id === id))
+
+  const [{ data: lessons }, { data: neighbourTopics }, { data: namingEntries }] = await Promise.all([
     readLessons(),
     neighbourIds.length
       ? db.from('topics').select('id, title').in('id', neighbourIds)
       : Promise.resolve({ data: [] as Array<{ id: string; title: string }> }),
+    namingIds.length
+      ? db.from('highlights').select('id, note, created_at').eq('kind', 'diary').in('id', namingIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; note: string | null; created_at: string }> }),
   ])
 
   const lessonMarks = highlights ?? []
@@ -178,6 +193,19 @@ export async function readTopicArea(
         ? [{ id: otherId, title, kind: e.kind, incoming: e.to_topic === topicId }]
         : []
     }),
-    exposures: exposures ?? [],
+    exposures: (exposures ?? []).slice(0, 8).map(e => ({
+      id: e.id,
+      reason: e.reason,
+      depth: e.depth,
+      created_at: e.created_at,
+    })),
+    record: figureRecord(
+      exposures ?? [],
+      [...filedEntries, ...(namingEntries ?? [])].map(h => ({
+        id: h.id as string,
+        note: (h.note as string | null) ?? '',
+        created_at: h.created_at as string,
+      }))
+    ),
   }
 }

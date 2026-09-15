@@ -9,6 +9,7 @@ import { DraftCurriculum } from './DraftCurriculum'
 import { LessonList } from './LessonList'
 import { FiledUnder } from './FiledUnder'
 import { ChangeLevel } from './ChangeLevel'
+import { FigureRecord } from './FigureRecord'
 import { AddResource } from '@/components/AddResource'
 import { SheetNav } from '@/components/SheetNav'
 import { Crumbs } from '@/components/Crumbs'
@@ -35,7 +36,7 @@ export default async function TopicPage({
   const [, area] = await Promise.all([requireOwner(), getTopicArea(id)])
   if (!area) notFound()
 
-  const { topic, subjects, curricula, resources, neighbours, exposures, highlights } = area
+  const { topic, subjects, curricula, resources, neighbours, highlights } = area
   const vague = vagueFigure(topic.ability_confidence)
   const state = stockState(topic.freshness, topic.last_exposure_at)
   const colour = subjects[0]?.colour ?? 'var(--plate-green)'
@@ -100,19 +101,15 @@ export default async function TopicPage({
 
         {topic.summary && <p className={styles.summary}>{topic.summary}</p>}
 
-        <div className={styles.figures}>
-          <span className={styles.figure}>
-            <span className={styles.figureLabel}>Viability</span>
-            <span className={styles.figureValue}>
-              {vague && <span className={styles.about}>about </span>}
-              {viabilityFigure(topic.ability)}
-            </span>
-          </span>
-          <span className={styles.figure}>
-            <span className={styles.figureLabel}>Condition</span>
-            <span className={styles.figureValue}>{STOCK_LABEL[state]}</span>
-          </span>
-        </div>
+        {/* Press either figure for the account behind it. It used to be
+            a block in the margin, a column and a screen away from the
+            number it explained. */}
+        <FigureRecord
+          viability={{ figure: viabilityFigure(topic.ability), vague }}
+          condition={STOCK_LABEL[state]}
+          lastTended={topic.last_exposure_at}
+          record={area.record}
+        />
       </header>
       <div className={styles.headRule} />
 
@@ -262,35 +259,6 @@ export default async function TopicPage({
 
           <aside className={styles.margin}>
             <section className={styles.block}>
-              <h2 className={styles.blockTitle}>Why this figure</h2>
-              {exposures.length === 0 ? (
-                <p className={styles.empty}>
-                  Nothing recorded. The figure is the starting floor, not a
-                  measurement.
-                </p>
-              ) : (
-                <ul className={styles.record}>
-                  {exposures.map(e => (
-                    <li key={e.id} className={styles.recordRow}>
-                      <span>{e.reason}</span>
-                      <span className={styles.recordDate}>
-                        {new Date(e.created_at).toLocaleDateString('en-GB', {
-                          day: 'numeric',
-                          month: 'short',
-                        })}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              {vague && (
-                <p className={styles.caveat}>
-                  Not much to go on yet — this figure is a guess.
-                </p>
-              )}
-            </section>
-
-            <section className={styles.block}>
               <h2 className={styles.blockTitle}>Condition</h2>
               <StockBar
                 freshness={topic.freshness}
@@ -339,7 +307,7 @@ export default async function TopicPage({
                 resources: resources.length,
                 lessons: curricula.reduce((n, c) => n + c.total, 0),
                 marks: highlights.length,
-                exposures: exposures.length,
+                exposures: area.record.filter(e => e.kind === 'exposure').length,
               }}
             />
 

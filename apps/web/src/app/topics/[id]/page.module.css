@@ -112,15 +112,6 @@
   color: var(--paper);
 }
 
-/* An uncertain figure prints hedged. Ability is app-owned and cannot be
-   corrected by hand, so it must not look more certain than it is. */
-.about {
-  font-family: var(--font-text);
-  font-size: var(--step--1);
-  font-style: italic;
-  opacity: 0.75;
-}
-
 .headRule {
   height: 5px;
   background: var(--plate-mustard);
@@ -473,13 +464,6 @@
   color: var(--ink-faint);
   font-size: var(--step--2);
   white-space: nowrap;
-}
-
-.caveat {
-  margin: 0;
-  font-size: var(--step--1);
-  font-style: italic;
-  color: var(--ink-faint);
 }
 
 .empty {

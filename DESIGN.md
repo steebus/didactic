@@ -601,6 +601,38 @@ as a number** at `--step-2` in Fraunces, `tabular-nums lining-nums`.
 
 This is PRODUCT principle 4 made material: vagueness is visible, not hidden.
 
+### Why this figure → a slip unrolled from the figures
+
+On the topic sheet, *Viability* and *Condition* in the band are the controls
+that explain them. Each label carries a dotted underline in paper at `0.45`,
+firming to full paper on hover and while open; the figure beside it is
+unchanged. Either one unrolls the same slip, and pressing it again, pressing
+anywhere else, or Escape rolls it back up.
+
+| Part | Treatment |
+| --- | --- |
+| The slip | The sheet's paper and tooth, the margin block's `2px solid var(--rule-strong)` head rule, `1px` at its foot, and the soft sheet drop. Starts under the band's mustard rule, at the figures' left edge, `34rem` wide, trimmed at the sheet's edges; its own scroll past `min(70vh, 36rem)`. |
+| The standing | Both figures in one line of `--ink-soft`, with the date last tended. |
+| A line | The reason, what it moved, and the date. What it moved is signed and in points — `+6` in `--plate-green` at `600`, `±0` and *moved nothing* in `--ink-faint` italic, *made it a guess* in `--plate-terracotta`. On a phone the date drops under the reason, tighter to it than to the next line. |
+| The key | One faint italic line under a dotted rule saying the numbers are points and that the same work is worth less the more of it there is. |
+
+**Rule — every number explains itself where it is printed.** The account was a
+margin block a column and a screen away from the figure it accounted for. It
+is now one press on the figure.
+
+**Rule — an impact is the log replayed, never an estimate.** Each line is
+`computeAbility` on the log up to and including it, minus the one before
+(`core/figureRecord`), so the lines add up to the figure from the floor. A
+struggle moves no points and is printed as what it did: it made the figure a
+guess.
+
+**Rule — something the reader did here is listed even when it moved nothing.**
+A diary entry filed under or naming the topic whose reading recorded nothing
+is still printed, quoted, as *moved nothing*. A record that silently leaves
+out what the reader wrote reads as the entry having been lost.
+
+Still not a modal: nothing is dimmed and nothing is trapped (see the composer).
+
 ### Freshness → hatch density, plus a word, plus a label
 
 `StockBar` renders an SVG bar whose **hatch density** carries state. Fill length

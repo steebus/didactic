@@ -1,3 +1,4 @@
+import type { FigureEvent } from './figureRecord'
 import type { Filing } from './filingState'
 /**
  * What the API answers with.
@@ -238,7 +239,13 @@ export interface TopicArea {
   curricula: CurriculumCard[]
   resources: Array<{ relevance: number; resource: Resource }>
   neighbours: TopicNeighbour[]
+  /** The newest eight exposures. Kept as it was for the builds already
+   *  on phones; `record` is the whole account. */
   exposures: Array<{ id: string; reason: string; depth: string; created_at: string }>
+  /** Why the figure is what it is: every exposure, and every diary entry
+   *  that moved nothing here, newest first, each with what it moved.
+   *  Additive. */
+  record: FigureEvent[]
   /** Passages marked in this topic's lessons, newest first. The lesson
    *  they came from stops mattering quickly; the topic is what makes
    *  them worth keeping. */

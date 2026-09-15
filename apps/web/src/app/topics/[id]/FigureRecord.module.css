@@ -1,0 +1,189 @@
+/* The band's figures, and the record that unrolls from them. */
+
+.figures {
+  display: flex;
+  gap: var(--space-5);
+  margin-top: var(--space-4);
+  flex-wrap: wrap;
+}
+
+/* A figure is a control now, and says so the way this world says a
+   thing can be pressed: a dotted rule under the label, firming on hover.
+   Nothing else about it changes -- it is still the figure first. */
+.figure {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  /* A label and its figure are one object; the pair must not break. */
+  white-space: nowrap;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.figureLabel {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(239, 231, 214, 0.6);
+  text-decoration: underline dotted rgba(239, 231, 214, 0.45);
+  text-underline-offset: 3px;
+  transition:
+    color var(--dur-feedback) var(--ease-settle),
+    text-decoration-color var(--dur-feedback) var(--ease-settle);
+}
+
+.figure:hover .figureLabel,
+.figure[aria-expanded='true'] .figureLabel {
+  color: var(--paper);
+  text-decoration-color: var(--paper);
+}
+
+.figureValue {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variant-numeric: tabular-nums lining-nums;
+  color: var(--paper);
+}
+
+.about {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  font-style: italic;
+  opacity: 0.75;
+}
+
+/* The slip: the margin block it replaced, on the sheet's own paper,
+   unrolled under the band from the figures that asked for it. */
+.slip {
+  position: absolute;
+  z-index: 20;
+  display: grid;
+  gap: var(--space-2);
+  max-height: min(70vh, 36rem);
+  overflow-y: auto;
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  background-color: var(--paper);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(90, 70, 45, 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(90, 70, 45, 0.03) 0 1px, transparent 1px 4px);
+  /* The margin block's own head rule, and ruled off at the foot. */
+  border-top: 2px solid var(--rule-strong);
+  border-bottom: 1px solid var(--rule-strong);
+  /* The soft drop that lifts every sheet off the press bed, as the
+     composer wears it. */
+  box-shadow: 0 2px 24px rgba(36, 29, 22, 0.16);
+  animation: unroll var(--dur-settle) var(--ease-settle) both;
+}
+
+@keyframes unroll {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-travel) * -0.5rem));
+  }
+}
+
+.title {
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1, 'opsz' 24;
+  margin: 0;
+}
+
+.standing {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.record {
+  list-style: none;
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* What happened, what it moved, and when. The impact sits between the
+   reason and the date so it is read with the event rather than as a
+   column of numbers on its own. */
+.row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: var(--space-3);
+  align-items: baseline;
+  font-size: var(--step--1);
+}
+
+.reason {
+  min-width: 0;
+}
+
+.impact {
+  font-size: var(--step--2);
+  font-variant-numeric: tabular-nums lining-nums;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.impactUp {
+  color: var(--plate-green);
+  font-weight: 600;
+}
+
+/* A figure made a guess: terracotta, the ink this world uses for what
+   is unresolved. */
+.impactHeld {
+  color: var(--plate-terracotta);
+  font-weight: 600;
+}
+
+.impactNone {
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.date {
+  color: var(--ink-faint);
+  font-size: var(--step--2);
+  white-space: nowrap;
+}
+
+.key,
+.caveat,
+.empty {
+  margin: 0;
+  font-size: var(--step--1);
+  font-style: italic;
+  color: var(--ink-faint);
+}
+
+.key {
+  font-size: var(--step--2);
+  padding-top: var(--space-2);
+  border-top: 1px dotted var(--rule);
+}
+
+/* On a phone the date drops under the reason, so the reason keeps the
+   width and the impact stays beside it. */
+@media (max-width: 40rem) {
+  .record {
+    gap: var(--space-3);
+  }
+
+  /* The date sits tight under its own reason, closer to it than to the
+     next event, or it reads as the next event's. */
+  .row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 2px;
+  }
+
+  .date {
+    grid-column: 1 / -1;
+  }
+}
