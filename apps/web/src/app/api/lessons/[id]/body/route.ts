@@ -32,6 +32,32 @@ function dropCache() {
 export const maxDuration = 60
 
 /**
+ * How much of the reader's library a lesson is shown.
+ *
+ * Both shelves are written into the prompt whole -- title, link, whether
+ * it was read, and its summary -- so the prompt grows with the library
+ * rather than with the lesson. The near shelf had no ceiling at all,
+ * which was fine while a topic held a handful of things and stopped
+ * being fine when ingestion started filing properly: a well-stocked
+ * topic hands the model a reading list where it used to hand it a
+ * paragraph, and a bigger question is a longer answer and a longer
+ * think, on a round that has 2500 tokens to spend.
+ *
+ * Ordered by `relevance` rather than by whatever Postgres returns
+ * first, because a ceiling on an unordered read keeps an arbitrary
+ * forty. `resource_topics.relevance` is what filing scored the pairing
+ * at, is `not null`, and is already what a merge keeps the greater of.
+ *
+ * Forty each, which is the ceiling the further shelf has always had:
+ * the near shelf is the one the prompt calls "the shelf to reach for
+ * first", so it is not given less room than the detour. What changes
+ * for the further shelf is only the ordering -- its forty were already
+ * a ceiling, and are now the right forty.
+ */
+const SHELF_HERE = 40
+const SHELF_OVER = 40
+
+/**
  * Write one round of the lesson.
  *
  * Most drafted lessons are never reached and a reshaped curriculum
@@ -98,12 +124,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         .eq('curriculum_id', curriculum.id).order('position'),
       db.from('curriculum_sources').select('resources(title, summary, url)')
         .eq('curriculum_id', curriculum.id),
-      // Everything filed against the topic, so the lesson can point at
+      // What is filed against the topic, so the lesson can point at
       // material the reader already has rather than sending them off to
-      // find something new.
+      // find something new. The best-scored `SHELF_HERE` of it: this
+      // was every row, which is a prompt that grows without limit as
+      // the library does.
       db.from('resource_topics')
         .select('resources(title, summary, url, status)')
-        .eq('topic_id', curriculum.topic_id),
+        .eq('topic_id', curriculum.topic_id)
+        .order('relevance', { ascending: false })
+        .limit(SHELF_HERE),
     ])
 
   // Material filed against the topic's neighbours in the same subjects.
@@ -127,7 +157,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     ? await db.from('resource_topics')
         .select('resources(title, summary, url, status)')
         .in('topic_id', nearbyIds)
-        .limit(40)
+        .order('relevance', { ascending: false })
+        .limit(SHELF_OVER)
     : { data: [] }
 
   // The lessons this one may point at, so the body can be written into
