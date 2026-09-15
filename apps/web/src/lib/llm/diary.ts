@@ -108,7 +108,9 @@ const TOOL = {
  */
 export async function readEntry(
   entry: string,
-  topics: Array<{ id: string; title: string }>
+  /** `writtenFrom` marks the topic whose sheet the entry was written on,
+   *  which the entry need not name to be about. */
+  topics: Array<{ id: string; title: string; writtenFrom?: boolean }>
 ): Promise<Reading[]> {
   if (topics.length === 0) return []
 
@@ -129,8 +131,11 @@ Be conservative. This decides figures the writer cannot edit by hand, so:
 - Use "mentioned" freely. A topic named in passing, or named only as context for something else, gets "mentioned" and nothing is recorded against it. This is the right answer more often than not.
 - Quote the writer's own words in "because". Do not paraphrase, and do not write a sentence they did not write.
 
-Topics named in this entry:
-${topics.map(t => `- ${t.title} (id: ${t.id})`).join('\n')}
+${topics.some(t => !t.writtenFrom) ? `Topics named in this entry:
+${topics.filter(t => !t.writtenFrom).map(t => `- ${t.title} (id: ${t.id})`).join('\n')}
+
+` : ''}${topics.filter(t => t.writtenFrom).map(t => `The entry was written on the sheet for this topic, so it may be about it without naming it. Judge it by the same rules, and if the entry is plainly about something else it gets "mentioned":
+- ${t.title} (id: ${t.id})`).join('\n')}
 
 The entry:
 

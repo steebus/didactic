@@ -130,9 +130,13 @@ export async function entriesForTopic(
  * survives whatever happens: the writing is the record, and what the
  * app made of it is a reading over the top.
  *
- * Only the topics the entry names are considered, and only those the
- * owner actually holds. A verdict of `mentioned` writes nothing, which
- * is the common case and is meant to be.
+ * The topics the entry names are considered, and so is the topic it was
+ * written from. That one was missing: an entry written on a topic's own
+ * sheet about that topic rarely names it -- the sheet already says what
+ * it is about -- so it was filed under the topic, indexed as naming
+ * nothing, and read against nothing at all, and the figure it was
+ * written beside never heard about it. Only topics the owner holds, and
+ * a verdict of `mentioned` still writes nothing.
  */
 export async function readBack(
   db: SupabaseClient,
@@ -140,7 +144,7 @@ export async function readBack(
   entryId: string
 ): Promise<{ recorded: number }> {
   const { data: entry } = await db.from('highlights')
-    .select('id, note, kind, user_id')
+    .select('id, note, kind, user_id, topic_id')
     .eq('id', entryId)
     .eq('user_id', userId)
     .maybeSingle()
@@ -152,9 +156,19 @@ export async function readBack(
     .eq('highlight_id', entryId)
     .not('topic_id', 'is', null)
 
-  const topics = (tags ?? [])
+  const named = (tags ?? [])
     .map(t => (t as unknown as { topic: { id: string; title: string } | null }).topic)
     .filter((t): t is { id: string; title: string } => Boolean(t))
+
+  const { data: home } = entry.topic_id && !named.some(t => t.id === entry.topic_id)
+    ? await db.from('topics').select('id, title')
+        .eq('id', entry.topic_id).eq('user_id', userId).maybeSingle()
+    : { data: null }
+
+  const topics = [
+    ...named,
+    ...(home ? [{ id: home.id as string, title: home.title as string, writtenFrom: true }] : []),
+  ]
   if (topics.length === 0) return { recorded: 0 }
 
   const readings = await readEntry(entry.note, topics)
