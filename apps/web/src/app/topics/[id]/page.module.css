@@ -409,6 +409,11 @@
   border-left: 1px solid var(--rule-strong);
   padding-left: var(--space-4);
   display: grid;
+  /* One column that is allowed to be narrower than what is in it. An
+     implicit grid column is sized to its content's minimum, so one row
+     holding a bare URL beside a long topic name set the whole margin
+     wider than its track and pushed it off the sheet. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-5);
   align-content: start;
   position: sticky;
@@ -430,6 +435,7 @@
   border-top: 2px solid var(--rule-strong);
   padding-top: var(--space-3);
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
 }
 
@@ -449,6 +455,7 @@
   margin: 0;
   padding: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
 }
 
@@ -1122,4 +1129,10 @@
 .lessonStamp[data-lesson='opened'] {
   border: 1px solid var(--plate-mustard);
   color: var(--ink);
+}
+
+.recordRow > :first-child {
+  min-width: 0;
+  /* A title that is a bare URL has no spaces to break at. */
+  overflow-wrap: anywhere;
 }

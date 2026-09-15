@@ -572,6 +572,11 @@
 
 .margin {
   display: grid;
+  /* One column that is allowed to be narrower than what is in it. An
+     implicit grid column is sized to its content's minimum, so one row
+     holding a bare URL beside a long topic name set the whole margin
+     wider than its track and pushed it off the sheet. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-5);
 }
 
@@ -579,6 +584,7 @@
   border-top: 2px solid var(--rule-strong);
   padding-top: var(--space-3);
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
 }
 
@@ -598,6 +604,7 @@
   margin: 0;
   padding: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
 }
 
@@ -606,11 +613,17 @@
   align-items: baseline;
   gap: var(--space-2);
   font-size: var(--step--1);
+  /* Where the name and its figure cannot share a line, the figure goes
+     under the name rather than crushing it into a column a word wide. */
+  flex-wrap: wrap;
 }
 
 .blockRowName {
   color: var(--ink);
   min-width: 0;
+  flex: 1 1 10rem;
+  /* A title that is a bare URL has no spaces to break at. */
+  overflow-wrap: anywhere;
 }
 
 .blockFigure {
