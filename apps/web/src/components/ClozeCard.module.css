@@ -336,3 +336,131 @@
     gap: var(--space-2);
   }
 }
+
+/* --- The three shapes ---------------------------------------------- *
+
+   Added with the kinds in 046. A card is now a cloze, a question and
+   its answer, or a statement to judge, and the reader has to be able to
+   tell which before they start answering -- so the eyebrow carries the
+   kind first and the concept second, in that order, because the kind
+   changes what they are about to do and the concept only says what it
+   is about.
+
+   Nothing here gives the card a second personality. The plum rule, the
+   type, the answer buttons and the quiet row are what they always were;
+   what differs between the three is one line of front and one block of
+   back. A reader meeting a true-or-false after a cloze should be
+   meeting a different question, not a different instrument. */
+
+/* The eyebrow is now a row of two or three small things rather than one
+   word, so it needs to wrap on a phone rather than push the card wide. */
+.eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+/* Which of the three. Plum and set solid — this is the one part of the
+   eyebrow that is about the instrument rather than the material. */
+.kind {
+  font-weight: 700;
+}
+
+/* The concept, after the kind, and divided from it by a hairline rather
+   than by punctuation: two uppercase runs with a middle dot between
+   them read as one long label. */
+.concept {
+  color: var(--ink-faint);
+  padding-left: var(--space-2);
+  border-left: 1px solid var(--paper-edge);
+}
+
+/* A card the reader made themselves, said quietly and last. */
+.own {
+  color: var(--ink-faint);
+  text-transform: none;
+  letter-spacing: 0.04em;
+  font-style: italic;
+}
+
+/* The back of a standard card: divided off the question by a rule
+   rather than by space alone, because the two are both sentences at
+   reading size and the reader has just pressed a button to make the
+   second appear. The rule is what says *this is the other side*. */
+.back {
+  border-top: 1px solid var(--paper-edge);
+  padding-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* The answer to a question. Plum and weighted, the same treatment a
+   revealed blank gets, so the answer reads the same wherever it is. */
+.answerLine {
+  font-size: var(--step-1);
+  line-height: 1.5;
+  color: var(--plate-plum);
+  font-weight: 700;
+  margin: 0;
+}
+
+/* A verdict, and the only single-word answer in the app. Set larger
+   than the question it settles, because it is read at a glance and then
+   the reason under it is read properly.
+
+   Green for true and terracotta for false: the two plate colours the
+   catalogue already uses for *this holds* and *this does not*, so the
+   card is not inventing a private traffic light. The word itself is
+   never the only carrier — it is the word "True" or "False", in full,
+   for a reader who cannot tell the two plates apart. */
+.verdict {
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  line-height: 1.1;
+  margin: 0;
+  color: var(--plate-plum);
+}
+
+.verdict[data-truth='true'] {
+  color: var(--plate-green);
+}
+
+.verdict[data-truth='false'] {
+  color: var(--plate-terracotta);
+}
+
+/* Why it is so. Never shown before the verdict, and never optional on a
+   true-or-false: a statement judged false with no correction leaves the
+   reader knowing they were wrong and not what is right. */
+.note {
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* Picking the verdict when a true-or-false is being written. Two
+   buttons rather than a text field, because there are exactly two
+   answers and typing "true." is a card the server refuses. */
+.verdictRow {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.verdictPick {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  padding: var(--space-2) var(--space-4);
+  background: transparent;
+  border: 1px solid var(--paper-edge);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.verdictPick[data-picked] {
+  border-color: var(--plate-plum);
+  color: var(--plate-plum);
+  font-weight: 700;
+}

@@ -127,11 +127,21 @@ export function ClozeMaker({
       concept_id: null,
       lesson_id: lessonId,
       topic_id: topicId,
+      kind: 'cloze',
       text: quote,
       prefix,
       blank,
       blank_start: blankStart,
       blank_end: blankStart + blank.length,
+      question: null,
+      answer: null,
+      note: null,
+      // A cloze made by hand is verbatim by construction -- the reader
+      // selected the sentence out of the prose -- so it is its own
+      // anchor and the plum lands on the words they chose. Sent
+      // explicitly rather than left to `cardAnchor`'s fallback, so the
+      // server checks it against the body like any other.
+      anchor: quote,
       hint: null,
       created_by: 'user',
       ...memoryColumns(freshMemory(new Date(now))),
@@ -147,9 +157,11 @@ export function ClozeMaker({
     void (async () => {
       const { ok, body, error: failed } = await api.clozes.create({
         lessonId,
+        kind: 'cloze',
         text: quote,
         blank,
         blankStart,
+        anchor: quote,
         hint: null,
       })
       if (!ok) {

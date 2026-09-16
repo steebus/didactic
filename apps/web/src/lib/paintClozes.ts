@@ -23,17 +23,30 @@ import { paintPassages } from './paintPassages'
 
 export interface PaintableCloze {
   id: string
-  /** The passage the cloze was cut from, whole. */
+  /**
+   * The sentence to wash: the card's anchor, read through
+   * `core/clozes.cardAnchor`.
+   *
+   * Before 046 this was simply the cloze's passage, because a cloze
+   * quoted its lesson verbatim and so *was* its own anchor. It no
+   * longer has to, so the two have come apart: a card is written for
+   * the purpose, and where the model could honestly name the sentence
+   * it came out of, that sentence is what the wash goes on. What the
+   * wash means is unchanged -- *the garden is holding on to this* --
+   * and a card with no anchor is simply one the reading does not show.
+   */
   text: string
   prefix: string | null
 }
 
 /**
- * Wrap every findable cloze in the container.
+ * Wrap every findable card in the container.
  *
- * Returns the ids it managed to draw. A cloze whose sentence is no
- * longer in the body -- the lesson was written again -- is simply not
- * drawn; it is still due, and the Tend sheet is where it is met.
+ * Returns the ids it managed to draw. A card whose anchor is no longer
+ * in the body -- the lesson was written again -- is simply not drawn,
+ * as is one that never had an anchor at all: it is still due, and the
+ * Tend sheet, or "Tend this lesson" at the foot of the reading, is
+ * where it is met.
  */
 export function paintClozes(
   root: HTMLElement,
@@ -57,7 +70,7 @@ export function paintClozes(
         if (first) {
           piece.tabIndex = 0
           piece.setAttribute('role', 'button')
-          piece.setAttribute('aria-label', 'Tended passage — open its cloze')
+          piece.setAttribute('aria-label', 'Tended passage — open its card')
         }
       },
       onOpen: (id, piece) => {

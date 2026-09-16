@@ -1,22 +1,49 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NO_THINKING } from './thinking'
-import { clozeProblem } from '@didactic/core/clozes'
+import {
+  BLANK_WORDS_WANTED,
+  FALSE_WORD,
+  TRUE_WORD,
+  cardFront,
+  cardKey,
+  cardProblem,
+  type CardKind,
+} from '@didactic/core/clozes'
 
 /**
  * Reading a worked lesson for what is worth keeping.
  *
- * Two to four concepts, and two or more clozes under each. The second
- * number is the one that matters: a concept asked one way is a
- * phrasing memorised, not a thing held, and the whole claim of this
- * feature is that it can tell those apart a month later.
+ * Two to four concepts, and two or more cards under each. The second
+ * number is the one that matters: a concept asked one way is a phrasing
+ * memorised, not a thing held, and the whole claim of this feature is
+ * that it can tell those apart a month later.
  *
- * The hard constraint is that a cloze quotes the lesson **verbatim**.
- * Every passage that comes back is checked against the body before it
- * is written down, and one that is not in it is dropped rather than
- * repaired. That is not fussiness: the passage is what the reading
- * highlights and what the reader recognises, so a passage the model
- * tidied on its way past is a card that can never be drawn in its own
- * lesson and a sentence the reader never actually read.
+ * Until 046 the hard constraint was that a card quoted the lesson
+ * **verbatim** — every passage was checked against the body and one
+ * that had been tidied on the way past was dropped rather than
+ * repaired. The reasoning was sound and the cards were bad, for a
+ * reason the rule made unavoidable: a lesson does not write in
+ * sentences shaped like questions. What came back was whichever
+ * sentence happened to be quotable with whichever clause happened to be
+ * removable taken out of it, so blanks ran to eight and ten words and
+ * the answer was a paraphrase the reader could neither have produced
+ * nor checked.
+ *
+ * A card is now written **from** the lesson rather than cut out of it,
+ * and it may be a question and an answer rather than only a passage and
+ * a blank. What survives of the old rule is `anchor`: the sentence the
+ * card came out of, quoted exactly, still checked against the body
+ * character for character and dropped to null when it is not found.
+ * That is what the plum wash in the reading is drawn on, so the one
+ * thing the verbatim rule actually bought — the reader recognising, in
+ * the lesson, which sentences the garden is holding — is bought without
+ * making it the constraint every card has to be written under.
+ *
+ * Generation is **additive**. A lesson that already has cards is read
+ * again with those cards in hand, and what comes back is the cards it
+ * does not have; nothing standing is deleted, because a card the reader
+ * has been answering for three months is the last thing to throw away
+ * in the name of a better prompt.
  */
 
 let client: Anthropic | null = null
@@ -38,27 +65,47 @@ const MAX_CHARS = 60_000
  *  enough to be worth the two minutes, little enough to be done. */
 export const CONCEPTS_MIN = 2
 export const CONCEPTS_MAX = 4
-export const CLOZES_PER_CONCEPT_MIN = 2
-export const CLOZES_PER_CONCEPT_MAX = 3
+export const CARDS_PER_CONCEPT_MIN = 2
+export const CARDS_PER_CONCEPT_MAX = 4
 
-export interface ProposedCloze {
-  /** The passage, quoted from the lesson exactly as it is written. */
-  text: string
-  /** The words inside it to take out. A substring of `text`. */
-  blank: string
+/** How many fronts already standing are shown to the model. Enough to
+ *  cover a lesson tended three or four times over; past that the list
+ *  costs more than the duplicates it prevents. */
+const SEEN_SHOWN = 60
+
+/** The most a blank may be when the model is the one choosing it.
+ *  Tighter than what a reader is refused for by hand
+ *  (`BLANK_WORDS_MAX`), because this is where the standard is set. */
+const BLANK_WORDS_GENERATED = 4
+
+export interface ProposedCard {
+  kind: CardKind
+  /** cloze: the sentence, blank included in full. */
+  text?: string
+  /** cloze: the words inside it to take out. A substring of `text`. */
+  blank?: string
+  /** qa / truefalse: the question, term, or statement. */
+  question?: string
+  /** qa: the answer or definition. truefalse: `True` or `False`. */
+  answer?: string
+  /** truefalse: one line saying why. */
+  note?: string
   hint?: string
+  /** The lesson sentence this came out of, quoted exactly. Optional,
+   *  and dropped where it turns out not to be in the lesson. */
+  anchor?: string
 }
 
 export interface ProposedConcept {
   name: string
   gist: string
-  clozes: ProposedCloze[]
+  cards: ProposedCard[]
 }
 
 const TOOL = {
-  name: 'record_clozes',
+  name: 'record_cards',
   description:
-    'Record the concepts a lesson teaches and, under each, the passages worth asking back.',
+    'Record the concepts a lesson teaches and, under each, the cards that ask whether the reader still holds them.',
   input_schema: {
     type: 'object' as const,
     properties: {
@@ -71,40 +118,64 @@ const TOOL = {
             name: {
               type: 'string',
               description:
-                'The concept, as a short noun phrase. What the reader would have to still hold for the lesson to have counted.',
+                'The concept, as a short noun phrase. What the reader would have to still hold for the lesson to have counted. Reuse the exact name of a concept already standing when a card belongs under it.',
             },
             gist: {
               type: 'string',
               description:
-                'One sentence saying what the lesson said about it. Shown above the card, so it must not give the blank away.',
+                'One sentence saying what the lesson said about it. Shown above the card, so it must never contain the answer to any card under it.',
             },
-            clozes: {
+            cards: {
               type: 'array',
-              description: `${CLOZES_PER_CONCEPT_MIN} to ${CLOZES_PER_CONCEPT_MAX} different ways of asking whether the reader still holds this concept.`,
+              description: `${CARDS_PER_CONCEPT_MIN} to ${CARDS_PER_CONCEPT_MAX} different ways of asking whether the reader still holds this concept. Pick whichever shape suits the material.`,
               items: {
                 type: 'object',
                 properties: {
+                  kind: {
+                    type: 'string',
+                    enum: ['cloze', 'qa', 'truefalse'],
+                    description:
+                      'cloze: a sentence with one to three words taken out. qa: a question and its answer, or a term and its definition, or the definition and the term. truefalse: a statement, whether it holds, and why.',
+                  },
                   text: {
                     type: 'string',
                     description:
-                      'One complete sentence COPIED CHARACTER FOR CHARACTER from the lesson. Do not tidy, shorten, re-punctuate or join sentences. Between 40 and 300 characters.',
+                      'cloze only. One complete sentence, 40 to 300 characters, whose blank is the thing worth holding. Write it for the card — it does not have to be a sentence the lesson contains.',
                   },
                   blank: {
                     type: 'string',
+                    description: `cloze only. The words to take out of that sentence, copied from it exactly. One to ${BLANK_WORDS_WANTED} words — a term, a figure, a named quantity. Never a clause.`,
+                  },
+                  question: {
+                    type: 'string',
                     description:
-                      'The words to take out of that sentence, copied from it exactly. One to six words, carrying the meaning: a term, a figure, a condition, a consequence. Never a whole clause, never the subject of the sentence alone.',
+                      'qa and truefalse only. For qa, the question, or the term whose definition is wanted, or the definition whose term is wanted. For truefalse, the statement to judge.',
+                  },
+                  answer: {
+                    type: 'string',
+                    description: `qa and truefalse only. For qa, the answer — a phrase or one short sentence, never a paragraph. For truefalse, exactly "${TRUE_WORD}" or "${FALSE_WORD}".`,
+                  },
+                  note: {
+                    type: 'string',
+                    description:
+                      'truefalse only, and required there. One line saying why it is so. A false statement with no correction leaves the reader knowing they were wrong and not what is right.',
                   },
                   hint: {
                     type: 'string',
                     description:
-                      'Optional. A few words that would nudge without answering. Omit unless the blank is genuinely ambiguous.',
+                      'Optional. A few words that would nudge without answering. Omit unless the card is genuinely ambiguous.',
+                  },
+                  anchor: {
+                    type: 'string',
+                    description:
+                      'Optional, and worth giving wherever it is honest. One sentence COPIED CHARACTER FOR CHARACTER from the lesson that this card came out of — it is highlighted in the reading so the reader can see which sentences are being held. Omit it rather than paraphrase: a sentence that is not in the lesson word for word is discarded.',
                   },
                 },
-                required: ['text', 'blank'],
+                required: ['kind'],
               },
             },
           },
-          required: ['name', 'gist', 'clozes'],
+          required: ['name', 'gist', 'cards'],
         },
       },
     },
@@ -116,41 +187,60 @@ const BRIEF = `You are preparing spaced-repetition cards from a lesson the reade
 
 Find the ${CONCEPTS_MIN} to ${CONCEPTS_MAX} concepts that the lesson exists to teach — the things whose loss would mean the lesson had not stuck. Ignore scaffolding, orientation, and anything the lesson only mentions in passing.
 
-For each concept, choose ${CLOZES_PER_CONCEPT_MIN} to ${CLOZES_PER_CONCEPT_MAX} sentences from the lesson and say which words to blank out. The rules:
+For each concept, write ${CARDS_PER_CONCEPT_MIN} to ${CARDS_PER_CONCEPT_MAX} cards. Choose the shape that fits the material rather than filling a quota of each: a definition wants a term-and-definition card, a named quantity or a direction of effect wants a cloze, a claim the reader is likely to have half-absorbed wants a true-or-false.
 
-1. Quote the sentence EXACTLY as the lesson writes it, character for character. It is shown back to the reader inside the lesson itself, so a sentence you improved is a sentence they will not recognise.
-2. Choose sentences that are load-bearing on their own. A sentence that only means something after the one before it makes an unanswerable card.
-3. Blank the words that carry the concept — the term, the figure, the condition, the direction of an effect. Never blank a word that the rest of the sentence gives away, and never blank so much that the sentence stops being a sentence.
-4. Ask the same concept different ways. Two cards over the same clause are one card.
-5. Skip a concept rather than inventing a card for it. Fewer, answerable cards beat four and two that cannot be answered.
-6. Mathematics between $ or $$ is typeset when the card is shown. A blank may take a whole formula, delimiters included, or stay clear of one — never part of one. "The equation $2^x = 100$ has no ordinary answer" may blank "$2^x = 100$" or "ordinary", never "100".
+**What a card is about.** Almost always a piece of key terminology and what it means — the term for the meaning, or the meaning for the term. The reader should finish the card able to use the word, not able to recognise a sentence.
 
-Do not use headings, code fences, list markers or markdown links as the sentence.`
+**Cards do not have to quote the lesson.** Write the sentence, question or statement the concept deserves, in plain language, even where the lesson said it at greater length or across two paragraphs. What you must not do is teach something the lesson does not say.
+
+**Cloze cards.** One complete sentence that stands on its own, with ONE to ${BLANK_WORDS_WANTED} words taken out. The blank is the term, the figure, the named condition — never a clause, never a whole predicate. These are the shape:
+  - Many people have a [pet] at home, like a dog or a cat.
+  - A bird flaps its [wings] to fly.
+  - A request from Sydney to a server in Virginia pays for the [physical length] of that path every time, no matter how small the reply.
+The rest of the sentence must give the reader something to recall from and must not give the answer away.
+
+**Question-and-answer cards.** Either direction, and use both across a lesson: "What is a CDN?" → "A network of edge servers that serve content from near the visitor", and "A network of edge servers that serve content from near the visitor" → "A CDN". The answer is a phrase or one short sentence. Never write a question whose answer is sitting inside it.
+
+**True-or-false cards.** A statement worth being wrong about — a plausible confusion the lesson corrects, not a triviality. Answer exactly "${TRUE_WORD}" or "${FALSE_WORD}", and always give the one-line reason.
+
+**Anchors.** Where the card came out of one particular sentence of the lesson, give that sentence in \`anchor\`, copied character for character. It is washed in the reading so the reader can see which sentences the garden holds. A sentence you have improved on its way past is not the sentence they read, so omit the anchor rather than paraphrase one.
+
+**Mathematics** between $ or $$ is typeset when the card is shown. A cloze blank may take a whole formula, delimiters included, or stay clear of one — never part of one. "The equation $2^x = 100$ has no ordinary answer" may blank "$2^x = 100$" or "ordinary", never "100".
+
+Skip a concept rather than inventing cards for it. Fewer, answerable cards beat four concepts and two cards that cannot be answered.`
 
 /**
  * Read a lesson and propose what to tend.
  *
- * Answers only what it could verify against the body: a passage that is
- * not in the lesson, or a blank that is not in its passage, is dropped
- * here rather than written to the database and found to be undrawable
- * weeks later. A concept left with nothing answerable is dropped with
- * it — two good cards under three concepts is a better morning than
- * four concepts and a card that makes no sense.
+ * `standing` is what the lesson already carries, as fronts: the model
+ * is shown them and told to write what is missing, and anything it
+ * writes anyway that matches one is dropped in `verify`. Both, because
+ * telling it is what produces genuinely different cards and dropping is
+ * what guarantees no duplicates — a prompt is an instruction and a
+ * filter is a promise.
  */
 export async function proposeClozes(
   title: string,
-  body: string
+  body: string,
+  standing: string[] = []
 ): Promise<ProposedConcept[]> {
+  const already = standing.slice(0, SEEN_SHOWN)
+  const avoid = already.length
+    ? `\n\nThis lesson already has these cards. Write cards that ask about something they do not, or ask the same thing from a genuinely different direction. Do not restate any of them:\n${already
+        .map(front => `- ${front}`)
+        .join('\n')}`
+    : ''
+
   const res = await getClient().messages.create({
     model: 'claude-sonnet-5',
-    max_tokens: 4000,
+    max_tokens: 6000,
     thinking: NO_THINKING,
     tools: [TOOL],
-    tool_choice: { type: 'tool', name: 'record_clozes' },
+    tool_choice: { type: 'tool', name: 'record_cards' },
     messages: [
       {
         role: 'user',
-        content: `${BRIEF}
+        content: `${BRIEF}${avoid}
 
 Lesson: ${title}
 
@@ -165,76 +255,158 @@ ${body.slice(0, MAX_CHARS)}`,
   }
 
   const { concepts } = tool.input as { concepts: ProposedConcept[] }
-  return verify(concepts ?? [], body)
+  return verify(concepts ?? [], body, standing)
 }
 
 /**
- * Drop everything that is not actually in the lesson.
+ * Drop everything that cannot be answered, and everything already asked.
  *
- * The check is done on whitespace-collapsed text on both sides, and
- * nothing else is forgiven. Collapsing is necessary because the body is
- * markdown and a sentence can be wrapped across two lines in the source
- * and read as one in the prose; anything beyond that -- a changed dash,
- * a tidied quote mark -- is the model rewriting, and a rewritten
- * passage is exactly what this exists to refuse.
+ * What is checked here is no longer whether the card is *in* the lesson
+ * — that rule is gone, and it is why the cards are better — but whether
+ * it holds together as a card: the shape its kind requires, a blank
+ * that is genuinely inside its own sentence and short enough to be a
+ * term, and a front nobody has been asked before.
+ *
+ * The anchor is the one thing still held to the old standard. It is
+ * checked against whitespace-collapsed text on both sides, because the
+ * body is markdown and a sentence can be wrapped across two lines in
+ * the source and read as one in the prose; anything beyond that is the
+ * model rewriting, and an anchor that has been rewritten is a wash that
+ * lands on the wrong words or on nothing. An anchor that fails is
+ * dropped — the card is kept, and simply is not drawn on the prose.
  */
-export function verify(concepts: ProposedConcept[], body: string): ProposedConcept[] {
+export function verify(
+  concepts: ProposedConcept[],
+  body: string,
+  standing: string[] = []
+): ProposedConcept[] {
   const flat = collapse(body)
-  const seen = new Set<string>()
+  const seen = new Set(standing.map(front => cardKey(front)).filter(Boolean))
   const kept: ProposedConcept[] = []
 
   for (const concept of concepts.slice(0, CONCEPTS_MAX)) {
     if (!concept?.name?.trim()) continue
 
-    const clozes: ProposedCloze[] = []
-    for (const cloze of concept.clozes ?? []) {
-      const text = (cloze?.text ?? '').trim()
-      const blank = (cloze?.blank ?? '').trim()
-      if (!text || !blank) continue
+    const cards: ProposedCard[] = []
+    for (const proposed of concept.cards ?? []) {
+      const card = tidy(proposed)
+      if (!card) continue
 
-      // Quoted, not composed.
-      if (!flat.includes(collapse(text))) continue
-      // And the blank is genuinely inside the passage it came with.
-      if (!text.includes(blank)) continue
-      // Enough sentence left to answer from, and not so much that the
-      // card is a paragraph -- and a blank that takes a whole formula
-      // or none of one, because the card typesets the passage either
-      // side of the blank and half an equation cannot be set. The same
-      // judgement the reader's own clozes are held to, from the same
-      // function, rather than a second opinion written here.
-      if (text.length < 24 || text.length > 400) continue
-      if (blank.length > text.length / 2) continue
-      if (clozeProblem(text, blank)) continue
+      // The same judgement a card made by hand is held to, from the
+      // same function in the shared package, rather than a second
+      // opinion written here that could come to disagree with it.
+      if (cardProblem(asShape(card))) continue
 
-      // The same passage asked twice is one card, however it is blanked
-      // -- the second is the first with the answer in a different
-      // place, which the reader will simply read off the first.
-      const key = collapse(text).toLowerCase()
-      if (seen.has(key)) continue
+      // A blank the model chose is held to the tighter number: this is
+      // where the standard is set, and a four-word blank generated by
+      // the thousand is how the old cards got to eight.
+      if (card.kind === 'cloze' && words(card.blank ?? '') > BLANK_WORDS_GENERATED) continue
+
+      // The same question asked twice is one card — across the whole
+      // lesson, not merely within one concept, and counting what was
+      // already standing before this call.
+      const key = cardKey(cardFront(asShape(card)))
+      if (!key || seen.has(key)) continue
       seen.add(key)
 
-      clozes.push({
-        text,
-        blank,
-        hint: cloze.hint?.trim() || undefined,
-      })
-      if (clozes.length >= CLOZES_PER_CONCEPT_MAX) break
+      // Quoted, not composed. The card survives a failed anchor; only
+      // the wash in the reading is lost, which is what already happened
+      // to any card whose lesson had been rewritten under it.
+      if (card.anchor && !flat.includes(collapse(card.anchor))) delete card.anchor
+
+      cards.push(card)
+      if (cards.length >= CARDS_PER_CONCEPT_MAX) break
     }
 
     // A concept with one card is a phrasing memorised. Either it can be
     // asked more than one way or it is not a concept this lesson taught
     // well enough to test.
-    if (clozes.length < CLOZES_PER_CONCEPT_MIN) continue
+    if (cards.length < CARDS_PER_CONCEPT_MIN) continue
 
     kept.push({
       name: concept.name.trim(),
       gist: (concept.gist ?? '').trim(),
-      clozes,
+      cards,
     })
   }
 
   return kept
 }
+
+/**
+ * A proposed card with its strings trimmed and its kind settled, or
+ * null where there was never a card there.
+ *
+ * `kind` is taken on trust only as far as being one of the three; a
+ * model that omits it, or answers with a fourth, is read by what it
+ * actually filled in — a row with a blank in a sentence is a cloze
+ * whatever it was labelled. Cheaper than losing the card.
+ */
+function tidy(raw: ProposedCard | undefined): ProposedCard | null {
+  if (!raw) return null
+
+  const said = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
+  const text = said(raw.text)
+  const blank = said(raw.blank)
+  const question = said(raw.question)
+  const answer = said(raw.answer)
+  const note = said(raw.note)
+  const hint = said(raw.hint)
+  const anchor = said(raw.anchor)
+
+  const kind: CardKind =
+    raw.kind === 'cloze' || raw.kind === 'qa' || raw.kind === 'truefalse'
+      ? raw.kind
+      : text && blank
+        ? 'cloze'
+        : note || isVerdict(answer)
+          ? 'truefalse'
+          : 'qa'
+
+  const card: ProposedCard = { kind }
+  if (kind === 'cloze') {
+    if (!text || !blank) return null
+    card.text = text
+    card.blank = blank
+  } else {
+    if (!question || !answer) return null
+    card.question = question
+    // A model that answers "true" or "TRUE." has said the right thing
+    // in the wrong case, and the card is drawn from this word.
+    card.answer = kind === 'truefalse' ? verdict(answer) : answer
+    if (note) card.note = note
+  }
+  if (hint) card.hint = hint
+  if (anchor) card.anchor = anchor
+  return card
+}
+
+/** Whether a word is one of the two verdicts, however it was cased. */
+const isVerdict = (s: string) =>
+  [TRUE_WORD, FALSE_WORD].includes(verdict(s))
+
+/** The verdict word as the card prints it, or the answer untouched. */
+function verdict(s: string) {
+  const bare = s.trim().replace(/[.!]$/, '').toLowerCase()
+  if (bare === 'true' || bare === 'yes') return TRUE_WORD
+  if (bare === 'false' || bare === 'no') return FALSE_WORD
+  return s.trim()
+}
+
+/** A proposal read as the shape the shared judgement takes. */
+const asShape = (card: ProposedCard) => ({
+  kind: card.kind,
+  text: card.text ?? null,
+  blank: card.blank ?? null,
+  blank_start: null,
+  blank_end: null,
+  question: card.question ?? null,
+  answer: card.answer ?? null,
+  note: card.note ?? null,
+  anchor: card.anchor ?? null,
+})
+
+const words = (s: string) => s.trim().split(/\s+/).filter(Boolean).length
 
 /** Whitespace as the prose renders it, not as the markdown stores it. */
 const collapse = (s: string) => s.replace(/\s+/g, ' ').trim()

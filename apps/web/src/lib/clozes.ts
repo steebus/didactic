@@ -1,8 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Cloze, ClozeCard, ClozeCount } from '@didactic/core/clozes'
-import { memoryColumns, memoryOf } from '@didactic/core/clozes'
+import { cardFront, memoryColumns, memoryOf, shuffled } from '@didactic/core/clozes'
 import { freshMemory, review, type Rating } from '@didactic/core/fsrs'
-import { proposeClozes } from './llm/clozes'
+import { proposeClozes, type ProposedCard } from './llm/clozes'
 
 /**
  * The garden: what is planted when a lesson is worked, and what is
@@ -79,6 +79,75 @@ export interface Sown {
 }
 
 /**
+ * A card as anything that writes one holds it.
+ *
+ * The model's proposal, plus the one thing only a client sends: where
+ * inside the passage the reader's selection started. Held together so
+ * that the three places a card is written -- sown, made by hand,
+ * rewritten -- go through one function and cannot drift apart.
+ */
+export type WritableCard = ProposedCard & { blankStart?: number }
+
+/**
+ * The columns a card is written from, whatever shape it is.
+ *
+ * One function rather than a branch at each call site, because a card
+ * is written in three places -- sown from a lesson, made by hand, and
+ * rewritten -- and a kind that sets its columns differently in one of
+ * them is a row the database's `clozes_shape` refuses at the third
+ * attempt, in production, on a Sunday.
+ *
+ * A standard card carries nulls where a cloze carries its passage, and
+ * the other way about. That is what the constraint checks and what
+ * every reader of a row may therefore assume.
+ */
+export function cardColumns(card: WritableCard, body = ''): {
+  kind: ProposedCard['kind']
+  text: string | null
+  blank: string | null
+  blank_start: number | null
+  blank_end: number | null
+  question: string | null
+  answer: string | null
+  note: string | null
+  anchor: string | null
+  prefix: string | null
+  hint: string | null
+} {
+  const anchor = card.anchor?.trim() || null
+  const cloze = card.kind === 'cloze'
+  const text = card.text ?? ''
+  const blank = card.blank ?? ''
+  // `blankStart` is a hint and never taken on trust: it settles a word
+  // that appears twice in one sentence, and it is wrong whenever it
+  // came off a selection in the rendered prose rather than out of the
+  // passage stored beside it.
+  const start = !cloze
+    ? -1
+    : card.blankStart !== undefined &&
+        text.slice(card.blankStart, card.blankStart + blank.length) === blank
+      ? card.blankStart
+      : text.indexOf(blank)
+
+  return {
+    kind: card.kind,
+    text: cloze ? text : null,
+    blank: cloze ? blank : null,
+    blank_start: cloze && start >= 0 ? start : null,
+    blank_end: cloze && start >= 0 ? start + blank.length : null,
+    question: cloze ? null : (card.question ?? null),
+    answer: cloze ? null : (card.answer ?? null),
+    note: cloze ? null : (card.note ?? null),
+    anchor,
+    // The prefix disambiguates whatever the wash is drawn on, which is
+    // the anchor where there is one and the passage itself on a card
+    // written before 046 -- the same rule `cardAnchor` states.
+    prefix: prefixFor(body, anchor ?? (cloze ? text : '')),
+    hint: card.hint ?? null,
+  }
+}
+
+/**
  * Plant the trackers for a lesson.
  *
  * Idempotent by default, and that is the whole design of it: this is
@@ -86,19 +155,31 @@ export interface Sown {
  * un-marked and marked again. Finding concepts already standing, it
  * says so and asks the model nothing -- otherwise every second press
  * would be another model call and another four cards over the same
- * sentences, and the garden would fill with duplicates faster than
+ * material, and the garden would fill with duplicates faster than
  * anyone could tend it.
  *
- * `regenerate` is the reader asking for the lesson to be read again,
- * which replaces the agent's concepts and their clozes. Anything the
- * reader made by hand is left alone -- it belongs to no concept, and
- * they did not ask for their own work to be thrown away.
+ * `more` is the reader pressing *Write some more* under a lesson, and
+ * it **adds**. Nothing standing is deleted: a card they have been
+ * answering for three months carries a review history that is the only
+ * evidence of what they hold, and throwing it away in the name of a
+ * better prompt would be the app deciding its own writing matters more
+ * than their answering. What stops the deck doubling is that the model
+ * is handed every front already standing and told to write what is
+ * missing, and anything it writes anyway that matches one is dropped in
+ * `verify` -- told, so the cards are genuinely different; dropped, so
+ * the promise does not rest on having been told.
+ *
+ * A concept the model names that is already standing is reused rather
+ * than written twice, matched on its name with the case and spacing
+ * taken off. The alternative is two "Latency" rows under one lesson
+ * with two cards each, which reads to the reader as the app having
+ * forgotten what it did last week.
  */
 export async function sowClozes(
   db: SupabaseClient,
   userId: string,
   lessonId: string,
-  { regenerate = false }: { regenerate?: boolean } = {}
+  { more = false }: { more?: boolean } = {}
 ): Promise<Sown> {
   const lesson = await topicOf(db, lessonId)
   if (!lesson) throw new Error('That lesson is not there.')
@@ -106,68 +187,76 @@ export async function sowClozes(
 
   const { data: standing } = await db
     .from('cloze_concepts')
-    .select('id')
+    .select('id, name, position')
     .eq('lesson_id', lessonId)
     .eq('user_id', userId)
+    .order('position', { ascending: true })
 
-  if ((standing?.length ?? 0) > 0 && !regenerate) {
+  if ((standing?.length ?? 0) > 0 && !more) {
     return { concepts: [], total: await countFor(db, userId, lessonId), already: true }
   }
 
-  const proposed = await proposeClozes(lesson.title, lesson.body)
+  // What is already asked here, as fronts. Every card against the
+  // lesson, not only the ones under a concept: a cloze the reader made
+  // by hand over a passage they chose belongs to no concept and is
+  // still a question they have been asked.
+  const { data: asked } = await db
+    .from('clozes')
+    // The whole row rather than the columns this needs by name: the
+    // migration and this code go up on the same push but are not a
+    // transaction, and a `select` naming a column the database has not
+    // got yet is an error where `*` is simply a narrower row.
+    .select('*')
+    .eq('user_id', userId)
+    .eq('lesson_id', lessonId)
 
-  // Only now, once the model has answered with something usable. Doing
-  // it first would mean a failed call left the lesson with nothing
-  // where it had something.
-  if (regenerate && (standing?.length ?? 0) > 0) {
-    // The clozes go with the concepts by cascade (035, where it became
-    // true: 034 filed `concept_id` as `set null`, so this left every
-    // old card standing and wrote the new set alongside it -- the one
-    // path that exists to replace a lesson's cards doubled them).
-    // A cloze the reader made by hand belongs to no concept and is
-    // untouched, which is the other half of what this means.
-    await db.from('cloze_concepts').delete().eq('lesson_id', lessonId).eq('user_id', userId)
-  }
+  const fronts = ((asked ?? []) as unknown as Parameters<typeof cardFront>[0][]).map(card =>
+    cardFront(card, '…')
+  )
+
+  const proposed = await proposeClozes(lesson.title, lesson.body, fronts)
 
   const now = new Date()
   const written: Sown['concepts'] = []
+  const byName = new Map(
+    (standing ?? []).map(c => [String(c.name).trim().toLowerCase(), c.id as string])
+  )
+  let position = (standing ?? []).reduce((n, c) => Math.max(n, Number(c.position) + 1), 0)
 
-  for (const [position, concept] of proposed.entries()) {
-    const { data: row, error } = await db
-      .from('cloze_concepts')
-      .insert({
-        user_id: userId,
-        lesson_id: lessonId,
-        topic_id: lesson.topicId,
-        name: concept.name,
-        gist: concept.gist || null,
-        position,
-        created_by: 'ai',
-      })
-      .select('id')
-      .single()
-    if (error || !row) continue
+  for (const concept of proposed) {
+    let conceptId = byName.get(concept.name.trim().toLowerCase()) ?? null
 
-    const rows = concept.clozes.map(cloze => {
-      const start = cloze.text.indexOf(cloze.blank)
-      return {
-        user_id: userId,
-        concept_id: row.id,
-        lesson_id: lessonId,
-        topic_id: lesson.topicId,
-        text: cloze.text,
-        prefix: prefixFor(lesson.body, cloze.text),
-        blank: cloze.blank,
-        blank_start: start,
-        blank_end: start + cloze.blank.length,
-        hint: cloze.hint ?? null,
-        created_by: 'ai' as const,
-        ...memoryColumns(freshMemory(now)),
-      }
-    })
+    if (!conceptId) {
+      const { data: row, error } = await db
+        .from('cloze_concepts')
+        .insert({
+          user_id: userId,
+          lesson_id: lessonId,
+          topic_id: lesson.topicId,
+          name: concept.name,
+          gist: concept.gist || null,
+          position: position++,
+          created_by: 'ai',
+        })
+        .select('id')
+        .single()
+      if (error || !row) continue
+      conceptId = row.id as string
+      byName.set(concept.name.trim().toLowerCase(), conceptId)
+    }
+
+    const rows = concept.cards.map(card => ({
+      user_id: userId,
+      concept_id: conceptId,
+      lesson_id: lessonId,
+      topic_id: lesson.topicId,
+      created_by: 'ai' as const,
+      ...cardColumns(card, lesson.body),
+      ...memoryColumns(freshMemory(now)),
+    }))
 
     const { data: planted } = await db.from('clozes').insert(rows).select('id')
-    written.push({ id: row.id, name: concept.name, clozes: planted?.length ?? 0 })
+    written.push({ id: conceptId, name: concept.name, clozes: planted?.length ?? 0 })
   }
 
   return { concepts: written, total: await countFor(db, userId, lessonId), already: false }
@@ -208,13 +297,26 @@ async function within(db: SupabaseClient, scope: Scope): Promise<string[] | null
 }
 
 /**
- * What is due, oldest first.
+ * What is due: chosen oldest-first, then shuffled.
  *
- * Oldest rather than newest because an overdue card is the one the
- * schedule is most wrong about, and the sooner it is answered the
- * sooner the schedule stops being wrong. A limit is always applied:
- * a reader who has been away for a month has several hundred due and
- * wants a sitting, not a backlog.
+ * The two halves are doing different jobs and it is worth being clear
+ * which is which. **Chosen** oldest-first, because an overdue card is
+ * the one the schedule is most wrong about and a reader who has been
+ * away for a month has several hundred due and wants a sitting rather
+ * than a backlog -- so the sitting has to be drawn from the most
+ * overdue end, not from wherever the table happens to start.
+ *
+ * **Shuffled** after, because the order cards were planted in is the
+ * order they were *read* in: a lesson's whole deck arrives in a block,
+ * and each card is answered with the one before it still in mind. That
+ * is not recall, it is a run-on, and every *Easy* it earns is a lie the
+ * scheduler then reasons from for a fortnight. Shuffling is what makes
+ * each card meet the reader cold, which is the only state an answer is
+ * worth grading in.
+ *
+ * Done here rather than in Postgres for the same reason `randomCloze`
+ * is: `order by random()` is a full sort of the table on every read,
+ * and this is a page of forty rows already in hand.
  */
 export async function dueClozes(
   db: SupabaseClient,
@@ -240,7 +342,7 @@ export async function dueClozes(
   }
 
   const { data } = await query
-  return (data ?? []) as unknown as ClozeCard[]
+  return shuffled((data ?? []) as unknown as ClozeCard[])
 }
 
 /**
@@ -277,7 +379,15 @@ export async function randomCloze(
   return (data ?? null) as unknown as ClozeCard | null
 }
 
-/** Every cloze taken from one lesson, for drawing them on its prose. */
+/**
+ * Every card against one lesson, oldest first.
+ *
+ * Two callers with two uses: the reading, which draws the ones with an
+ * anchor onto the prose, and "Tend this lesson", which lists all of
+ * them to be read over, rewritten or pulled up. One read rather than
+ * two, because they are the same rows and the list is the honest
+ * inventory -- a card the reader cannot see is a card they cannot fix.
+ */
 export async function clozesIn(
   db: SupabaseClient,
   userId: string,

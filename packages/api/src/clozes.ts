@@ -1,5 +1,5 @@
 import type { Api } from './client'
-import type { Cloze, ClozeCard, ClozeCount } from '@didactic/core/clozes'
+import type { CardKind, Cloze, ClozeCard, ClozeCount } from '@didactic/core/clozes'
 import type { Rating } from '@didactic/core/fsrs'
 
 /** Which clozes a question is about. All three are optional and all
@@ -31,12 +31,28 @@ export interface SownClozes {
 
 export interface NewCloze {
   lessonId: string
-  /** The passage, as the lesson writes it. */
-  text: string
-  /** The words inside it to take out. */
-  blank: string
-  /** Where they start in `text`, for a word that appears twice. */
+  /**
+   * Which shape. Omitted means `cloze`, which is what the maker in the
+   * reading sends: it exists to turn a passage the reader selected into
+   * a card, and a passage with a hole in it is the only thing it makes.
+   */
+  kind?: CardKind
+  /** cloze: the passage, as the lesson writes it. */
+  text?: string
+  /** cloze: the words inside it to take out. */
+  blank?: string
+  /** cloze: where they start in `text`, for a word that appears twice. */
   blankStart?: number
+  /** qa / truefalse: the question, term, or statement to judge. */
+  question?: string
+  /** qa: the answer or definition. truefalse: `True` or `False`. */
+  answer?: string
+  /** truefalse: one line saying why, shown with the back. */
+  note?: string | null
+  /** The lesson sentence this came out of, for the wash in the reading.
+   *  Checked against the body server-side and dropped where it is not
+   *  found, so a card is never refused for a bad anchor. */
+  anchor?: string | null
   hint?: string | null
 }
 
@@ -44,12 +60,16 @@ export interface ClozeEdit {
   text?: string
   blank?: string
   blankStart?: number
+  question?: string
+  answer?: string
+  note?: string | null
+  anchor?: string | null
   hint?: string | null
 }
 
 export const clozes = (api: Api) => {
-  const sow = (lessonId: string, regenerate = false) =>
-    api.post<SownClozes>(`/api/lessons/${lessonId}/clozes`, { regenerate })
+  const sow = (lessonId: string, more = false) =>
+    api.post<SownClozes>(`/api/lessons/${lessonId}/clozes`, { more })
 
   return {
     /** What is due now, oldest first, narrowed however the caller likes. */
@@ -67,17 +87,22 @@ export const clozes = (api: Api) => {
     random: (scope: ClozeScope = {}) =>
       api.get<{ clozes: ClozeCard[] }>('/api/clozes', { mode: 'random', ...scope }),
 
-    /** Every cloze taken from one lesson, for drawing on its prose. */
+    /** Every card against one lesson: what the reading washes on the
+     *  prose, and what "Tend this lesson" lists to be read over. */
     inLesson: (lessonId: string) =>
       api.get<{ clozes: ClozeCard[] }>('/api/clozes', { mode: 'lesson', lessonId }),
 
     /** What is waiting. Cheap enough for a nav on every sheet. */
     count: () => api.get<ClozeCount>('/api/clozes/count'),
 
-    /** Make one by hand, over a passage the reader chose. */
+    /** Make one by hand: a passage the reader chose, or a question and
+     *  an answer they wrote. */
     create: (body: NewCloze) => api.post<{ cloze: ClozeCard }>('/api/clozes', body),
 
-    /** Rewrite one, or move its blank. Never resets the schedule. */
+    /** Rewrite one, or move its blank. Never resets the schedule, and
+     *  never changes its kind: a question is not a passage with a hole
+     *  in it, and turning one into the other would leave a row the
+     *  database refuses. Pull it up and write the other. */
     patch: (id: string, body: ClozeEdit) =>
       api.patch<{ cloze: ClozeCard }>(`/api/clozes/${id}`, body),
 
@@ -87,7 +112,8 @@ export const clozes = (api: Api) => {
     review: (id: string, rating: Rating) =>
       api.post<Tended>(`/api/clozes/${id}/review`, { rating }),
 
-    /** Read a worked lesson and plant its trackers. */
+    /** Read a worked lesson and plant its trackers. `more` asks for
+     *  another reading, which **adds**: nothing standing is removed. */
     sow,
 
     /**
@@ -99,18 +125,20 @@ export const clozes = (api: Api) => {
      * asking for a lesson to be read again -- and a sentence worded
      * twice is a sentence that comes to disagree with itself.
      */
-    tend: async (lessonId: string, regenerate = false) => {
-      const sown = await sow(lessonId, regenerate)
+    tend: async (lessonId: string, more = false) => {
+      const sown = await sow(lessonId, more)
       if (!sown.ok) return { ...sown, body: { ...sown.body, said: '' } }
 
       const cards = sown.body.concepts.reduce((n, c) => n + c.clozes, 0)
       const said = sown.body.already
         ? 'Already in the garden.'
         : cards === 0
-          ? 'Nothing in this lesson could be asked back.'
+          ? more
+            ? 'Nothing new to ask — this lesson is already asked every way it can be.'
+            : 'Nothing in this lesson could be asked back.'
           : `${sown.body.concepts.length} ${
               sown.body.concepts.length === 1 ? 'concept' : 'concepts'
-            } tracked, ${cards} ${cards === 1 ? 'cloze' : 'clozes'} planted.`
+            } tracked, ${cards} ${cards === 1 ? 'card' : 'cards'} planted.`
 
       return { ...sown, body: { ...sown.body, said } }
     },

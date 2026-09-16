@@ -27,16 +27,25 @@ const api = didactic()
  * Idempotent on the server. A lesson marked worked, un-marked and
  * marked again finds its concepts already standing and asks the model
  * nothing, so there is no guard needed here beyond the bench's own key.
+ *
+ * `more` is the other caller: the reader pressing *Write some more*
+ * under "Tend this lesson", who is standing there and did ask for a
+ * model call. It goes through the same bench job for the same reason
+ * the first one does -- it is a minute of reading and they may well
+ * turn the page mid-way -- and it **adds** rather than replaces, so
+ * pressing it twice is two more sets of cards and never a deck thrown
+ * away. Answers what the bench answered, so the caller can read the
+ * list again once it has landed.
  */
 export function useTendLesson() {
   const { start, running } = useBench()
 
   return useCallback(
-    (lesson: { id: string; title: string }) => {
+    (lesson: { id: string; title: string }, more = false) => {
       if (running('tending', lesson.id)) return Promise.resolve({ kind: 'joined' as const })
 
       return start({ kind: 'tending', id: lesson.id, name: lesson.title }, async () => {
-        const { ok, body, error } = await api.clozes.tend(lesson.id)
+        const { ok, body, error } = await api.clozes.tend(lesson.id, more)
         if (!ok) throw new Error(error ?? 'The lesson could not be read back.')
 
         // The tally in every running head has just moved.

@@ -90,7 +90,7 @@ export function GardenLine({
         )
       )}
       <Link href={`/tend?${randomQuery}`} className={styles.random}>
-        {here ? `A random cloze from ${here}` : 'A random cloze'}
+        {here ? `A random card from ${here}` : 'A random card'}
       </Link>
       {!wide && (
         <>

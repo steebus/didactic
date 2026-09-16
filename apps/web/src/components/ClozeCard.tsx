@@ -6,7 +6,12 @@ import { didactic } from '@didactic/api'
 import type { ClozeCard as Card } from '@didactic/core/clozes'
 import {
   BLANK_MARK,
+  FALSE_WORD,
+  KIND_LABEL,
   TENDING,
+  TRUE_WORD,
+  cardProblem,
+  cardTruth,
   clozeFace,
   clozeProblem,
   memoryOf,
@@ -20,25 +25,34 @@ import styles from './ClozeCard.module.css'
 const api = didactic()
 
 /**
- * One cloze, face down and then face up.
+ * One card, face down and then face up.
  *
  * The same card wherever it is met: on the Tend sheet, where they come
- * one after another, and in the lesson, where pressing a purple passage
- * opens the card that was taken from it. Two renderings of a flashcard
- * would be two sets of answer buttons that could come to mean different
+ * one after another; in the lesson, where pressing a plum passage opens
+ * the card that was written from it; and in "Tend this lesson" at the
+ * foot of the reading. Several renderings of a flashcard would be
+ * several sets of answer buttons that could come to mean different
  * things, which is the one thing a scheduler cannot survive.
  *
- * A new card is a new question, so every caller keys this on the
- * cloze's id: the state that matters here is whether the answer is
- * showing, and carrying that from one card to the next would hand the
- * reader the next answer before they had read the question. A key is
- * the right instrument for that -- resetting five pieces of state in an
- * effect is the same thing said worse, and a render later.
+ * Three shapes since 046, and the branch is deliberately shallow: what
+ * differs between them is the **front** and the **back**, and nothing
+ * else. The eyebrow, the gist, the nudge, *Show it*, the four rungs and
+ * the quiet row underneath are the same furniture around all three, so
+ * a reader meeting a true-or-false after a cloze is meeting a different
+ * question and not a different instrument.
+ *
+ * A new card is a new question, so every caller keys this on the card's
+ * id: the state that matters here is whether the answer is showing, and
+ * carrying that from one card to the next would hand the reader the
+ * next answer before they had read the question. A key is the right
+ * instrument for that -- resetting five pieces of state in an effect is
+ * the same thing said worse, and a render later.
  *
  * What a card must never do is give the answer away before it is asked
  * for. So the blank is a rule of the right length rather than the word
- * greyed out, the gist above it is written not to contain the answer,
- * and the answer is not in the DOM until the reader asks for it.
+ * greyed out, a true-or-false prints no verdict until it is turned
+ * over, the gist above it is written not to contain the answer, and
+ * none of the back is in the DOM until the reader asks for it.
  */
 export function ClozeCard({
   cloze,
@@ -78,7 +92,9 @@ export function ClozeCard({
   const [editing, setEditing] = useState(false)
   const [confirming, setConfirming] = useState(false)
 
+  const kind = cloze.kind ?? 'cloze'
   const face = clozeFace(cloze)
+  const truth = cardTruth(cloze)
 
   /**
    * What each answer would cost, before it is pressed.
@@ -99,13 +115,13 @@ export function ClozeCard({
    *
    * The caller is told on the press and moves on there and then; the
    * writing happens behind the reader, the way keeping a mark does.
-   * Answering a cloze is not work anyone is waiting on -- they have
-   * made their judgement and want the next question -- and the wait the
+   * Answering a card is not work anyone is waiting on -- they have made
+   * their judgement and want the next question -- and the wait the
    * answer buys was already printed on the button they pressed, so
    * there is nothing left to confirm afterwards.
    *
    * A failure is not silent, but nor does it drag the card back: the
-   * schedule was never moved, so the cloze is still due and comes round
+   * schedule was never moved, so the card is still due and comes round
    * again on the next read. What is owed is a sentence saying so.
    */
   function answer(rating: Rating) {
@@ -134,7 +150,7 @@ export function ClozeCard({
     const { ok, error: failed } = await api.clozes.remove(cloze.id)
     setBusy(false)
     if (!ok) {
-      setError(failed ?? 'That cloze was not pulled up.')
+      setError(failed ?? 'That card was not pulled up.')
       return
     }
     saidTended()
@@ -155,49 +171,78 @@ export function ClozeCard({
   }
 
   return (
-    <article className={styles.card} data-where={where} aria-label="A cloze">
-      {cloze.concept && (
-        <p className={styles.eyebrow}>
-          {cloze.concept.name}
-          {cloze.created_by === 'user' && <span className={styles.own}> · yours</span>}
-        </p>
-      )}
-      {!cloze.concept && cloze.created_by === 'user' && (
-        <p className={styles.eyebrow}>Your own</p>
-      )}
+    <article
+      className={styles.card}
+      data-where={where}
+      data-kind={kind}
+      aria-label={KIND_LABEL[kind]}
+    >
+      <p className={styles.eyebrow}>
+        {/* Which of the three this is, always and first: a reader about
+            to answer needs to know whether they are recalling a word,
+            producing a definition or judging a claim, and finding out
+            from the shape of the sentence is a beat of confusion at
+            exactly the wrong moment. */}
+        <span className={styles.kind}>{KIND_LABEL[kind]}</span>
+        {cloze.concept && <span className={styles.concept}>{cloze.concept.name}</span>}
+        {cloze.created_by === 'user' && <span className={styles.own}>yours</span>}
+      </p>
 
       {cloze.concept?.gist && (
         <Rich as="p" className={styles.gist} text={cloze.concept.gist} />
       )}
 
-      {/* The passage in three pieces, each formatted in its own right.
-          A cloze is cut from a lesson, so it carries the lesson's
-          emphasis and the lesson's notation -- printed raw, a card
-          about an equation asks about a row of dollar signs.
+      {kind === 'cloze' ? (
+        /* The passage in three pieces, each formatted in its own right.
+           A card carries the lesson's emphasis and the lesson's
+           notation -- printed raw, a card about an equation asks about
+           a row of dollar signs.
 
-          Rendering the pieces apart rather than the passage whole is
-          what the blank makes necessary, and it is also why a blank may
-          not be put inside a formula: half an equation either side of a
-          hole is two broken formulas. `clozeProblem` refuses that. */}
-      <p className={styles.passage} data-shown={shown || undefined}>
-        <Rich text={face.before} />
-        {face.blank ? (
-          shown ? (
-            <Rich className={styles.answer} text={face.blank} />
+           Rendering the pieces apart rather than the passage whole is
+           what the blank makes necessary, and it is also why a blank
+           may not be put inside a formula: half an equation either side
+           of a hole is two broken formulas. `clozeProblem` refuses
+           that. */
+        <p className={styles.passage} data-shown={shown || undefined}>
+          <Rich text={face.before} />
+          {face.blank ? (
+            shown ? (
+              <Rich className={styles.answer} text={face.blank} />
+            ) : (
+              <span
+                className={styles.blank}
+                /* Wide enough to be a word and never wide enough to be
+                   the word: the length of a blank is a hint, and a hint
+                   nobody asked for. */
+                aria-label="the missing words"
+              >
+                {BLANK_MARK}
+              </span>
+            )
+          ) : null}
+          <Rich text={face.after} />
+        </p>
+      ) : (
+        <Rich as="p" className={styles.passage} text={cloze.question ?? ''} />
+      )}
+
+      {/* The back of a standard card, and nothing of it in the document
+          until it is asked for. A true-or-false prints its verdict as a
+          verdict rather than as a sentence -- it is the one answer in
+          the app that is a single word, and burying it in prose would
+          make the reader hunt for what they already half know. */}
+      {kind !== 'cloze' && shown && (
+        <div className={styles.back}>
+          {kind === 'truefalse' ? (
+            <p className={styles.verdict} data-truth={truth === null ? undefined : String(truth)}>
+              {truth === null ? cloze.answer : truth ? TRUE_WORD : FALSE_WORD}
+            </p>
           ) : (
-            <span
-              className={styles.blank}
-              /* Wide enough to be a word and never wide enough to be
-                 the word: the length of a blank is a hint, and a hint
-                 nobody asked for. */
-              aria-label="the missing words"
-            >
-              {BLANK_MARK}
-            </span>
-          )
-        ) : null}
-        <Rich text={face.after} />
-      </p>
+            <Rich as="p" className={styles.answerLine} text={cloze.answer ?? ''} />
+          )}
+          {cloze.note && <Rich as="p" className={styles.note} text={cloze.note} />}
+        </div>
+      )}
 
       {cloze.hint && !shown && (
         <p className={styles.hint}>
@@ -260,10 +305,10 @@ export function ClozeCard({
           </>
         ) : (
           <>
-            {/* A cloze still being written down has nothing on the
-                other end to edit or pull up yet. It is answerable --
-                the question is right there -- and it can be changed in
-                a moment. */}
+            {/* A card still being written down has nothing on the other
+                end to edit or pull up yet. It is answerable -- the
+                question is right there -- and it can be changed in a
+                moment. */}
             <button
               type="button"
               className={styles.quietAction}
@@ -298,13 +343,21 @@ export function ClozeCard({
 }
 
 /**
- * Rewriting a cloze, and moving its blank.
+ * Rewriting a card.
  *
- * The blank is set by selecting inside the passage and pressing the
- * button, rather than by typing underscores into the text: a cloze is
- * a passage *and* a span inside it, and asking the reader to encode a
- * span in punctuation is asking them to do the parsing. Selecting what
- * should disappear is the thing itself.
+ * Two forms in one, because the three kinds are two shapes: a passage
+ * with a span inside it, and a front with a back. A cloze's blank is
+ * set by selecting inside the passage and pressing the button, rather
+ * than by typing underscores into the text -- a cloze is a passage
+ * *and* a span inside it, and asking the reader to encode a span in
+ * punctuation is asking them to do the parsing. Selecting what should
+ * disappear is the thing itself.
+ *
+ * The kind is not one of the fields. A question is not a passage with a
+ * hole in it, and the row the two of them would share is one the
+ * database refuses; the server ignores a kind sent here for the same
+ * reason. A card that should have been the other shape is pulled up and
+ * written again, which is two presses and no ambiguity.
  *
  * Editing never resets the schedule. The reader is correcting a card,
  * not declaring they have forgotten it, and its history is the only
@@ -319,9 +372,13 @@ function ClozeEditor({
   onDone: (next: Card | null) => void
   onSettled?: (id: string, cloze: Card | null, error: string | null) => void
 }) {
-  const [text, setText] = useState(cloze.text)
-  const [blank, setBlank] = useState(cloze.blank)
-  const [at, setAt] = useState(cloze.blank_start)
+  const kind = cloze.kind ?? 'cloze'
+  const [text, setText] = useState(cloze.text ?? '')
+  const [blank, setBlank] = useState(cloze.blank ?? '')
+  const [at, setAt] = useState(cloze.blank_start ?? 0)
+  const [question, setQuestion] = useState(cloze.question ?? '')
+  const [answer, setAnswer] = useState(cloze.answer ?? '')
+  const [note, setNote] = useState(cloze.note ?? '')
   const [hint, setHint] = useState(cloze.hint ?? '')
   const [error, setError] = useState<string | null>(null)
   const field = useRef<HTMLTextAreaElement>(null)
@@ -341,21 +398,38 @@ function ClozeEditor({
     setError(null)
   }
 
-  const problem = clozeProblem(text, blank, at)
+  /* The same judgement the server will make, from the same function in
+     the shared package, so the form cannot come to disagree with the
+     route about what a card is. */
+  const problem =
+    kind === 'cloze'
+      ? clozeProblem(text, blank, at)
+      : cardProblem({
+          kind,
+          text: null,
+          blank: null,
+          blank_start: null,
+          blank_end: null,
+          question,
+          answer,
+          note: note.trim() || null,
+          anchor: cloze.anchor,
+        })
 
   /**
    * Save, and close on the press.
    *
    * The edit is applied here from what the reader typed rather than
-   * waited for: every field the card draws from is one of the four on
+   * waited for: every field the card draws from is one of the few on
    * this form, so the row can be built locally and is right unless the
    * write fails. A form that sits there saying "Saving…" over an edit
    * the reader has finished making is the app asking them to supervise
    * its network.
    *
-   * The prefix is the one field only the server can set -- it is
-   * re-found against the lesson body -- so the real row replaces this
-   * one when it arrives. A failure puts back the row as it stood.
+   * The prefix and the anchor are the fields only the server can
+   * settle -- they are re-found against the lesson body -- so the real
+   * row replaces this one when it arrives. A failure puts back the row
+   * as it stood.
    */
   function save() {
     if (problem) {
@@ -363,14 +437,31 @@ function ClozeEditor({
       return
     }
 
-    const written = { text: text.trim(), blank, blankStart: at, hint: hint.trim() || null }
+    const written =
+      kind === 'cloze'
+        ? { text: text.trim(), blank, blankStart: at, hint: hint.trim() || null }
+        : {
+            question: question.trim(),
+            answer: answer.trim(),
+            note: note.trim() || null,
+            hint: hint.trim() || null,
+          }
+
     onDone({
       ...cloze,
-      text: written.text,
-      blank,
-      blank_start: at,
-      blank_end: at + blank.length,
-      hint: written.hint,
+      ...(kind === 'cloze'
+        ? {
+            text: text.trim(),
+            blank,
+            blank_start: at,
+            blank_end: at + blank.length,
+          }
+        : {
+            question: question.trim(),
+            answer: answer.trim(),
+            note: note.trim() || null,
+          }),
+      hint: hint.trim() || null,
     })
 
     void (async () => {
@@ -384,35 +475,96 @@ function ClozeEditor({
   }
 
   return (
-    <article className={styles.card} aria-label="Rewriting a cloze">
-      <p className={styles.eyebrow}>Rewriting</p>
+    <article className={styles.card} aria-label="Rewriting a card">
+      <p className={styles.eyebrow}>
+        <span className={styles.kind}>Rewriting</span>
+        <span className={styles.concept}>{KIND_LABEL[kind]}</span>
+      </p>
 
-      <label className={styles.label} htmlFor={`cloze-text-${cloze.id}`}>
-        The passage
-      </label>
-      <textarea
-        id={`cloze-text-${cloze.id}`}
-        ref={field}
-        className={styles.field}
-        value={text}
-        rows={4}
-        onChange={e => setText(e.target.value)}
-      />
+      {kind === 'cloze' ? (
+        <>
+          <label className={styles.label} htmlFor={`cloze-text-${cloze.id}`}>
+            The passage
+          </label>
+          <textarea
+            id={`cloze-text-${cloze.id}`}
+            ref={field}
+            className={styles.field}
+            value={text}
+            rows={4}
+            onChange={e => setText(e.target.value)}
+          />
 
-      <div className={styles.editRow}>
-        <button type="button" className={styles.quietAction} onClick={blankTheSelection}>
-          Blank the selection
-        </button>
-        <span className={styles.blankNow}>
-          {blank ? (
-            <>
-              Blanked: <strong>{blank}</strong>
-            </>
+          <div className={styles.editRow}>
+            <button type="button" className={styles.quietAction} onClick={blankTheSelection}>
+              Blank the selection
+            </button>
+            <span className={styles.blankNow}>
+              {blank ? (
+                <>
+                  Blanked: <strong>{blank}</strong>
+                </>
+              ) : (
+                'Nothing blanked yet'
+              )}
+            </span>
+          </div>
+        </>
+      ) : (
+        <>
+          <label className={styles.label} htmlFor={`card-question-${cloze.id}`}>
+            {kind === 'truefalse' ? 'The statement' : 'The question'}
+          </label>
+          <textarea
+            id={`card-question-${cloze.id}`}
+            className={styles.field}
+            value={question}
+            rows={3}
+            onChange={e => setQuestion(e.target.value)}
+          />
+
+          <label className={styles.label} htmlFor={`card-answer-${cloze.id}`}>
+            {kind === 'truefalse' ? 'Does it hold?' : 'The answer'}
+          </label>
+          {kind === 'truefalse' ? (
+            <div className={styles.verdictRow}>
+              {[TRUE_WORD, FALSE_WORD].map(word => (
+                <button
+                  key={word}
+                  type="button"
+                  className={styles.verdictPick}
+                  data-picked={answer.trim() === word || undefined}
+                  onClick={() => setAnswer(word)}
+                >
+                  {word}
+                </button>
+              ))}
+            </div>
           ) : (
-            'Nothing blanked yet'
+            <textarea
+              id={`card-answer-${cloze.id}`}
+              className={styles.field}
+              value={answer}
+              rows={2}
+              onChange={e => setAnswer(e.target.value)}
+            />
           )}
-        </span>
-      </div>
+
+          {/* Required on a true-or-false, and the reason is in the
+              label: a statement judged false with no correction leaves
+              the reader knowing they were wrong and not what is right. */}
+          <label className={styles.label} htmlFor={`card-note-${cloze.id}`}>
+            {kind === 'truefalse' ? 'Why, in one line' : 'A line of context, if it helps'}
+          </label>
+          <input
+            id={`card-note-${cloze.id}`}
+            className={styles.field}
+            value={note}
+            onChange={e => setNote(e.target.value)}
+            placeholder={kind === 'truefalse' ? 'Shown with the answer' : 'Optional'}
+          />
+        </>
+      )}
 
       <label className={styles.label} htmlFor={`cloze-hint-${cloze.id}`}>
         A nudge, if it needs one

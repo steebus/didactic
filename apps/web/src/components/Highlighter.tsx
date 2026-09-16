@@ -10,6 +10,7 @@ import { paintMarks } from '@/lib/paintMarks'
 import { paintClozes } from '@/lib/paintClozes'
 import { panelSpot, pinSpot, type Spot } from '@didactic/core/markAnchor'
 import type { ClozeCard as Card } from '@didactic/core/clozes'
+import { cardAnchor } from '@didactic/core/clozes'
 import { ClozeCard } from './ClozeCard'
 import { ClozeMaker } from './ClozeMaker'
 import { NoteEditor } from './NoteEditor'
@@ -387,7 +388,14 @@ export function Highlighter({
     // of what the reader thought about it.
     paintClozes(
       root,
-      tended.map(c => ({ id: c.id, text: c.text, prefix: c.prefix })),
+      // `cardAnchor` is what a card offers the prose: its own anchor,
+      // or -- for every cloze written before 046, when a card had to
+      // quote its lesson -- the passage itself. A card with neither is
+      // dropped here rather than searched for and not found.
+      tended.flatMap(c => {
+        const anchor = cardAnchor(c)
+        return anchor ? [{ id: c.id, text: anchor, prefix: c.prefix }] : []
+      }),
       (id, piece) => {
         const cloze = tended.find(c => c.id === id)
         if (!cloze) return

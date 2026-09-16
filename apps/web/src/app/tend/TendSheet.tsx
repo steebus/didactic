@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { didactic } from '@didactic/api'
 import type { ClozeCard as Card } from '@didactic/core/clozes'
-import { tendPhrase } from '@didactic/core/clozes'
+import { cardsPhrase, tendPhrase } from '@didactic/core/clozes'
 import { ClozeCard } from '@/components/ClozeCard'
 import { Setting } from '@/components/Setting'
 import styles from './page.module.css'
@@ -111,10 +111,10 @@ export function TendSheet({
         </h2>
         <p className={styles.restNote}>
           {done > 0
-            ? `${done} ${done === 1 ? 'cloze' : 'clozes'} tended. The rest are not due yet — a
+            ? `${cardsPhrase(done)} tended. The rest are not due yet — a
                thing asked for before you were going to forget it teaches nothing, which is
                the whole point of waiting.`
-            : `Nothing is asking for you. Clozes are planted when you mark a lesson read or
+            : `Nothing is asking for you. Cards are planted when you mark a lesson read or
                worked, and they come back on their own schedule.`}
         </p>
         {error && <p className={styles.problem}>{error}</p>}

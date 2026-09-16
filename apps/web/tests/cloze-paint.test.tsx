@@ -32,7 +32,9 @@ function cloze(over: Partial<ClozeCard> = {}): ClozeCard {
   const start = text.indexOf(blank)
   return {
     id: 'cloze-1', concept_id: null, lesson_id: 'l', topic_id: null,
+    kind: 'cloze',
     text, prefix: null, blank, blank_start: start, blank_end: start + blank.length,
+    question: null, answer: null, note: null, anchor: null,
     hint: null, created_by: 'ai',
     stability: null, difficulty: null, state: 'new', reps: 0, lapses: 0,
     due: '2026-09-12T09:00:00.000Z', last_reviewed_at: null,

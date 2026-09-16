@@ -1154,17 +1154,53 @@ sideways is a broken page (§8). The scroll belongs to the equation.
 
 ### Tended passages, and the card
 
-A sentence a cloze was cut from is drawn back onto its own lesson, by the same
+The sentence a card came out of is drawn back onto its own lesson, by the same
 engine that draws a mark and for the same reason: both store their words rather
 than an offset into a body that is regenerable.
 
 | Part | Treatment |
 | --- | --- |
-| Rule | `inset 0 -2px 0 rgba(107,53,80,0.55)` — a plum rule *under* the words, drawn inside the box so it cannot reflow the line when the clozes land a beat after the prose. |
+| Rule | `inset 0 -2px 0 rgba(107,53,80,0.55)` — a plum rule *under* the words, drawn inside the box so it cannot reflow the line when the cards land a beat after the prose. |
 | Hover | The rule at full `--plate-plum`, plus a `0.08` plum ground. |
 | Focus | `2px solid var(--plate-plum)`, offset `2px` — the plate's own, because this plate is what the whole garden wears. |
-| The card | Plum 5px left edge on `--paper-deep`; the concept in the label register above, the answer in plum when it is shown. |
+| The card | Plum 5px left edge on `--paper-deep`; the kind and then the concept in the label register above, the answer in plum when it is shown. |
 | The blank | `min-width: 5em`, transparent text, `2px` plum underline. |
+| The verdict | `--font-display` at `--step-2`; `--plate-green` for *True*, `--plate-terracotta` for *False*, the word itself always written out. |
+
+**Rule — a card wears its kind before its concept.** A card is one of three
+things — a sentence with a blank in it, a question and its answer, or a
+statement to judge — and the eyebrow says which first and the concept second.
+A reader about to answer needs to know whether they are recalling a term,
+producing a definition or judging a claim; working it out from the shape of the
+sentence is a beat of confusion at exactly the wrong moment.
+
+**Rule — the three kinds differ in the question and in nothing else.** The
+plum rule, the reading-size type, *Show it*, the four rungs and the quiet row
+underneath are identical across all three. What changes between them is one
+line of front and one block of back. A reader meeting a true-or-false after a
+cloze is meeting a different question, never a different instrument.
+
+**Rule — a blank is a term, not a clause.** One to three words, and five is the
+refusal (`BLANK_WORDS_MAX`); the model that writes them is held to four. A hole
+any wider is a sentence to reproduce from memory, which nobody can grade
+themselves on having recalled, and it is precisely what the old verbatim cards
+produced: *pays for the physical length of that path* is a paraphrase, not an
+answer.
+
+**Rule — a verdict carries its reason, always.** A true-or-false prints one
+line saying why, under the word, and the card cannot be written without it. A
+statement judged false with no correction leaves the reader knowing they were
+wrong and not knowing what is right, which is a card that costs attention and
+teaches nothing.
+
+**Rule — the wash follows the anchor, not the card.** A card no longer has to
+quote its lesson to exist; it has to quote it to be *drawn* in it. Where the
+model can honestly name the sentence a card came out of, that sentence is
+checked against the body character for character and is what the plum lands on.
+A card with no anchor is answered on the Tend sheet or under the lesson and is
+simply not in the prose — which is already what happened to any card whose
+lesson had been written again beneath it. What the plum means is unchanged:
+*the garden is holding on to this sentence*.
 
 **Rule — the two layers carry differently, so a sentence can be both.** A mark is
 a mustard wash *behind* the text from the baseline down; a tended passage is a
@@ -1210,7 +1246,7 @@ buys was on the button before it was pressed, which is the only moment it could
 change what the reader does, and a card that lingers while a request goes out
 invites a second press on a question already answered. A write that fails says so
 in a sentence under the deck and does not drag the card back: the schedule was
-never moved, so the cloze is still due.
+never moved, so the card is still due.
 
 **Rule — the sitting is dealt, not loaded.** Two edges sit behind the card while
 more than one is left, and each card rises from just below with a hair of scale.
@@ -1220,6 +1256,13 @@ the question a reader has mid-sitting — is there much more of this. All of it
 runs through `--motion-travel`, so reduced motion keeps the fade and flattens the
 deck to a single card rather than leaving edges that promise a movement nobody
 asked to see.
+
+**Rule — a sitting is shuffled, never dealt in the order it was planted.** The
+queue is *chosen* oldest-first, because an overdue card is the one the schedule
+is most wrong about, and then shuffled before it is dealt. Cards planted
+together were read together: answered in that order, each one is answered with
+the one before it still in mind, which is a run-on rather than a recall, and
+every *Easy* it earns is a lie the scheduler then reasons from for a fortnight.
 
 **Rule — an answer states its consequence, not an adjective.** The four answers
 carry the wait each would give — on a card being met for the first time,
@@ -1240,6 +1283,55 @@ reading opens. Below 40rem it is two by two, with the label and the wait on one
 line: a mis-tap here schedules a card wrongly for a year, and four stacked rows
 would push the last answer below the fold of a card the reader already scrolled
 past the passage to reach.
+
+### Tend this lesson
+
+The garden at the foot of the reading: a sitting over one lesson's cards, the
+whole deck listed, and a way to ask for more. It stands between the prose and
+*How did you go?*, which is the order the two things happen in — you finish
+reading, you find out whether it stuck, and then you say honestly how you
+worked through it.
+
+| Part | Treatment |
+| --- | --- |
+| The section | A `--paper-edge` rule above, `--space-5` of air under it, `--space-6` clear of the prose. |
+| Heading | `--font-display` at `--step-1`, in `--plate-plum`. |
+| Standing | One line at `--step--1` in `--ink-faint`, on the same baseline: *12 cards, 3 due*. |
+| Start a sitting | The one outlined control: `1px solid var(--plate-plum)`, plum on paper, inverting on hover. |
+| The rest | Underlined quiet actions in `--ink-faint`, going plum on hover. |
+| A list row | Three columns — the kind in the label register, the front clipped to one line, when it is next wanted, right-aligned. Hairline between rows. |
+
+**Rule — it is quiet, and it is not a second ending.** A rule, a heading at
+section size and one line of standing. Everything else is folded away until it
+is asked for. A reader who came to the bottom of a lesson for the prose should
+be able to pass this without deciding anything.
+
+**Rule — one card at a time here too, but the deck may be a list.** The sitting
+is the Tend sheet's instrument unchanged, down to the same component. The
+inventory is a list, and can be, because it is a thing to *fix* rather than a
+queue to work: nobody feels behind for owning thirty cards, they feel behind
+for being shown thirty questions at once.
+
+**Rule — a list row prints the front and never the back.** A cloze's blank is
+drawn as a short rule in the row exactly as it is on the card. A deck listed
+with its answers showing is a deck that teaches itself by being read, which is
+the one thing a deck must not do.
+
+**Rule — a row opens into the whole card, not into its own controls.** Pressing
+a row replaces it with the card, which already carries *Edit* and *Pull up*. A
+second set of controls written into the list would be a second set that could
+come to disagree with the first about what pulling a card up means.
+
+**Rule — writing more adds, and the button says so.** *Write some more*, never
+*regenerate*. Generation hands the model every question the lesson already asks
+and keeps what it writes that is new; nothing standing is deleted. A card the
+reader has been answering for three months carries the only evidence of what
+they hold, and no improvement to a prompt is worth it.
+
+**Rule — a sitting with nothing due offers the deck anyway.** *Turn one over
+anyway* draws the whole lesson shuffled. A reader who has just finished the
+prose and wants to be asked about it is not asking the scheduler's permission;
+answering early costs them only the schedule they chose to skip.
 
 ### Making a mark
 

@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { ownerId } from '@/lib/auth'
-import { clozesIn, dueClozes, prefixFor, randomCloze } from '@/lib/clozes'
-import { clozeProblem } from '@didactic/core/clozes'
+import { cardColumns, clozesIn, dueClozes, randomCloze, type WritableCard } from '@/lib/clozes'
+import { cardProblem, type CardKind } from '@didactic/core/clozes'
 import { freshMemory } from '@didactic/core/fsrs'
 import { memoryColumns } from '@didactic/core/clozes'
 import { revalidateTag } from 'next/cache'
@@ -61,28 +61,63 @@ export async function GET(req: Request) {
   }
 }
 
+/** The three shapes, as a client may name them. Anything else is a
+ *  cloze, which is what every caller that omits the field is making. */
+const KINDS: CardKind[] = ['cloze', 'qa', 'truefalse']
+
 /**
  * Make one by hand.
  *
  * The same thing the agent does when a lesson is worked, with the
- * reader choosing the sentence and the words instead. It belongs to no
- * concept: naming one on their behalf would be putting a word in their
- * mouth, and the cards they make are usually the ones the agent's
- * concepts missed.
+ * reader holding the pen: a passage they chose with words taken out of
+ * it, or a question and an answer they wrote, or a statement they want
+ * to be asked to judge. It belongs to no concept -- naming one on their
+ * behalf would be putting a word in their mouth, and the cards they
+ * make are usually the ones the agent's concepts missed.
+ *
+ * Everything the row is built from goes through `cardColumns`, the same
+ * function the sowing uses, so a card made by hand and a card written
+ * by the model are the same shape in the table. The judgement is
+ * `core/clozes.cardProblem`, which both platforms share: a card the web
+ * refuses cannot be the card the phone writes.
  */
 export async function POST(req: Request) {
   const userId = await ownerId()
   if (!userId) return NextResponse.json({ error: 'not signed in' }, { status: 401 })
 
   const body = await req.json()
-  const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
-  const lessonId = text(body.lessonId)
-  const passage = text(body.text)
-  const blank = text(body.blank)
+  const said = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
+  const lessonId = said(body.lessonId)
 
   if (!lessonId) return NextResponse.json({ error: 'lessonId is required' }, { status: 400 })
 
-  const problem = clozeProblem(passage, blank, body.blankStart)
+  const kind: CardKind = KINDS.includes(body.kind) ? body.kind : 'cloze'
+  const card: WritableCard = {
+    kind,
+    text: said(body.text) || undefined,
+    blank: said(body.blank) || undefined,
+    blankStart: typeof body.blankStart === 'number' ? body.blankStart : undefined,
+    question: said(body.question) || undefined,
+    answer: said(body.answer) || undefined,
+    note: said(body.note) || undefined,
+    hint: said(body.hint) || undefined,
+    anchor: said(body.anchor) || undefined,
+  }
+
+  const problem = cardProblem(
+    {
+      kind,
+      text: card.text ?? null,
+      blank: card.blank ?? null,
+      blank_start: null,
+      blank_end: null,
+      question: card.question ?? null,
+      answer: card.answer ?? null,
+      note: card.note ?? null,
+      anchor: card.anchor ?? null,
+    },
+    card.blankStart
+  )
   if (problem) return NextResponse.json({ error: problem }, { status: 400 })
 
   const db = supabaseAdmin()
@@ -95,15 +130,15 @@ export async function POST(req: Request) {
 
   const curriculum = lesson.curricula as { topic_id: string } | { topic_id: string }[] | null
   const topicId = Array.isArray(curriculum) ? curriculum[0]?.topic_id : curriculum?.topic_id
+  const lessonBody = ((lesson.body as string | null) ?? '')
 
-  // The offsets are recomputed here rather than taken from the client.
-  // A selection reports an offset into the rendered prose, which is not
-  // an offset into the passage that was stored beside it.
-  const start =
-    typeof body.blankStart === 'number' &&
-    passage.slice(body.blankStart, body.blankStart + blank.length) === blank
-      ? body.blankStart
-      : passage.indexOf(blank)
+  // An anchor is a promise the painter relies on, so it is checked here
+  // rather than taken on trust, and dropped rather than refused: a card
+  // whose sentence is not in the body is perfectly answerable and
+  // simply is not drawn on the prose.
+  if (card.anchor && !collapse(lessonBody).includes(collapse(card.anchor))) {
+    delete card.anchor
+  }
 
   const { data: written, error } = await db
     .from('clozes')
@@ -112,17 +147,12 @@ export async function POST(req: Request) {
       concept_id: null,
       lesson_id: lessonId,
       topic_id: topicId ?? null,
-      text: passage,
-      // Taken from the body where there is one, rather than from the
-      // client: the client's idea of what came before the passage is
-      // the rendered prose, and the prefix has to match what the
-      // painter will search.
-      prefix: prefixFor((lesson.body as string | null) ?? '', passage) ?? (text(body.prefix) || null),
-      blank,
-      blank_start: start,
-      blank_end: start + blank.length,
-      hint: text(body.hint) || null,
       created_by: 'user',
+      // The prefix is taken from the body inside here rather than from
+      // the client: the client's idea of what came before the passage
+      // is the rendered prose, and the prefix has to match what the
+      // painter will search.
+      ...cardColumns(card, lessonBody),
       ...memoryColumns(freshMemory()),
     })
     .select('*, concept:cloze_concepts (id, name, gist), lesson:lessons (id, title), topic:topics (id, title)')
@@ -135,3 +165,6 @@ export async function POST(req: Request) {
   dropCache()
   return NextResponse.json({ cloze: written })
 }
+
+/** Whitespace as the prose renders it, not as the markdown stores it. */
+const collapse = (s: string) => s.replace(/\s+/g, ' ').trim()

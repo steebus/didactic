@@ -10,6 +10,7 @@ import { Answering } from '@/components/blocks/answering'
 import { useBench } from '@/components/Bench'
 import { useWriteLesson } from '@/components/useWriteLesson'
 import { useTendLesson } from '@/components/useTendLesson'
+import { TendLesson } from '@/components/TendLesson'
 import { didactic } from '@didactic/api'
 import type { ExposureDepth, Highlight as Mark } from '@didactic/core/types'
 import type { ClozeCard } from '@didactic/core/clozes'
@@ -680,6 +681,19 @@ export default function LessonSheet({
             </ul>
           </section>
         )}
+
+        {/* The garden, at the foot of the reading and before saying how
+            it went. That order is the order the two things happen in: a
+            reader finishes the prose, finds out whether it actually
+            stuck, and then says honestly how they worked through it --
+            and a card answered badly is exactly the evidence that
+            should be in hand when they answer that last question.
+
+            Shown only once there is prose to have read. A lesson still
+            being written has nothing to be asked about, and a section
+            offering to write cards from a body that does not exist yet
+            is a button that can only fail. */}
+        {body && <TendLesson lessonId={id} title={lesson.title} revision={garden} />}
 
         <section className={styles.finish}>
           {done ? (

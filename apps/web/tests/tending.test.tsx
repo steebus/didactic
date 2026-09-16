@@ -35,7 +35,9 @@ function card(id: string, text: string, blank: string): Card {
   const start = text.indexOf(blank)
   return {
     id, concept_id: null, lesson_id: 'l', topic_id: null,
+    kind: 'cloze',
     text, prefix: null, blank, blank_start: start, blank_end: start + blank.length,
+    question: null, answer: null, note: null, anchor: null,
     hint: null, created_by: 'ai',
     stability: null, difficulty: null, state: 'new', reps: 0, lapses: 0,
     due: '2026-09-12T09:00:00.000Z', last_reviewed_at: null,
@@ -152,14 +154,14 @@ describe('a sitting', () => {
     })
 
     await sitting()
-    expect(container.textContent).toContain('2 clozes are due')
+    expect(container.textContent).toContain('2 cards are due')
 
     press('Show it')
     await act(async () => {
       press('Got it')
     })
 
-    expect(container.textContent).toContain('1 cloze is due')
+    expect(container.textContent).toContain('1 card is due')
     expect(container.textContent).toContain('1 tended')
   })
 
@@ -216,6 +218,6 @@ describe('a sitting', () => {
     }
 
     expect(container.textContent).toContain('That is the lot')
-    expect(container.textContent).toContain('2 clozes tended')
+    expect(container.textContent).toContain('2 cards tended')
   })
 })

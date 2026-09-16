@@ -2,9 +2,19 @@ import { describe, it, expect } from 'vitest'
 import {
   BLANK_MARK,
   TENDING,
+  BLANK_WORDS_MAX,
+  FALSE_WORD,
+  TRUE_WORD,
+  cardAnchor,
+  cardBack,
+  cardFront,
+  cardKey,
+  cardProblem,
+  cardTruth,
   clozeFace,
   clozeProblem,
   conceptStanding,
+  shuffled,
   isDue,
   locateBlank,
   mathSpans,
@@ -27,11 +37,16 @@ function cloze(over: Partial<Cloze> = {}): Cloze {
     concept_id: 'k1',
     lesson_id: 'l1',
     topic_id: 't1',
+    kind: 'cloze',
     text,
     prefix: null,
     blank,
     blank_start: start,
     blank_end: start + blank.length,
+    question: null,
+    answer: null,
+    note: null,
+    anchor: null,
     hint: null,
     created_by: 'ai',
     stability: null,
@@ -175,8 +190,8 @@ describe('TENDING', () => {
 describe('tendPhrase', () => {
   it('counts, and agrees with itself', () => {
     expect(tendPhrase(0)).toBe('Nothing is due')
-    expect(tendPhrase(1)).toBe('1 cloze is due')
-    expect(tendPhrase(9)).toBe('9 clozes are due')
+    expect(tendPhrase(1)).toBe('1 card is due')
+    expect(tendPhrase(9)).toBe('9 cards are due')
   })
 })
 
@@ -278,5 +293,187 @@ describe('a blank against the mathematics in a passage', () => {
 
   it('refuses a blank buried inside a formula', () => {
     expect(clozeProblem(EQUATION, '100')).toMatch(/whole formula/)
+  })
+})
+
+/* ------------------------------------------------------------------ *
+ *  The three shapes (046)
+ * ------------------------------------------------------------------ */
+
+/** A standard card, built off the same fixture so the two shapes are
+ *  tested as the one row type they actually are. */
+const standard = (over: Partial<Cloze> = {}): Cloze =>
+  cloze({
+    kind: 'qa',
+    text: null,
+    blank: null,
+    blank_start: null,
+    blank_end: null,
+    question: 'What is a CDN?',
+    answer: 'Edge servers that serve content from near the visitor.',
+    ...over,
+  })
+
+describe('a card of any shape, read the same way', () => {
+  it('reads a cloze front as the passage with its blank drawn', () => {
+    expect(cardFront(cloze())).toBe(
+      `Saving a resource is intent; only ${BLANK_MARK} it counts.`
+    )
+    expect(cardBack(cloze())).toBe('consuming')
+  })
+
+  it('reads a question card front and back off its own two columns', () => {
+    expect(cardFront(standard())).toBe('What is a CDN?')
+    expect(cardBack(standard())).toBe('Edge servers that serve content from near the visitor.')
+  })
+
+  it('says whether a true-or-false holds, and nothing for the others', () => {
+    expect(cardTruth(standard({ kind: 'truefalse', answer: TRUE_WORD }))).toBe(true)
+    expect(cardTruth(standard({ kind: 'truefalse', answer: FALSE_WORD }))).toBe(false)
+    expect(cardTruth(standard())).toBeNull()
+    expect(cardTruth(cloze())).toBeNull()
+  })
+
+  /* A row the database would refuse, read defensively: this runs on
+     rows, and a card that throws is a sitting that stops. */
+  it('says nothing rather than guessing for a verdict that is neither word', () => {
+    expect(cardTruth(standard({ kind: 'truefalse', answer: 'Sometimes' }))).toBeNull()
+  })
+})
+
+describe('the sentence a card is drawn on', () => {
+  it('takes the anchor where there is one', () => {
+    expect(cardAnchor(cloze({ anchor: 'The lesson said this.' }))).toBe('The lesson said this.')
+  })
+
+  /* Every cloze written before 046 quoted its lesson, so its passage is
+     its anchor. Nothing has to be backfilled for the wash to keep
+     appearing exactly where it always did. */
+  it('falls back to the passage for a cloze that has none', () => {
+    expect(cardAnchor(cloze())).toBe(PASSAGE)
+  })
+
+  /* A question was never in the lesson. Washing a sentence it was
+     merely *about* would claim a correspondence the app does not have. */
+  it('never falls back for a standard card', () => {
+    expect(cardAnchor(standard())).toBeNull()
+  })
+})
+
+describe('what can be wrong with a card', () => {
+  it('passes each of the three shapes written properly', () => {
+    expect(cardProblem(cloze())).toBeNull()
+    expect(cardProblem(standard())).toBeNull()
+    expect(
+      cardProblem(
+        standard({
+          kind: 'truefalse',
+          question: 'A CDN makes the response body smaller.',
+          answer: FALSE_WORD,
+          note: 'It shortens the distance, not the payload.',
+        })
+      )
+    ).toBeNull()
+  })
+
+  it('refuses a question with no answer, and an answer with no question', () => {
+    expect(cardProblem(standard({ answer: null }))).toBe('A card needs its answer.')
+    expect(cardProblem(standard({ question: 'Eh?' }))).toBe('A card needs a question to ask.')
+  })
+
+  it('refuses a question that gives its own answer away', () => {
+    expect(
+      cardProblem(standard({ question: 'Is a CDN a network of edge servers?', answer: 'edge servers' }))
+    ).toBe('The question gives the answer away.')
+  })
+
+  it('refuses a verdict that is neither word, and one with no reason', () => {
+    const statement = { kind: 'truefalse' as const, question: 'A CDN shrinks the payload.' }
+    expect(cardProblem(standard({ ...statement, answer: 'Sometimes', note: 'Why' }))).toBe(
+      `A true-or-false card is answered ${TRUE_WORD} or ${FALSE_WORD}.`
+    )
+    expect(cardProblem(standard({ ...statement, answer: FALSE_WORD, note: null }))).toBe(
+      'Say in one line why it is so.'
+    )
+  })
+
+  /* The rule the whole overhaul turns on. A blank this wide is a
+     sentence to write out from memory, which nobody can grade
+     themselves on honestly -- and it is exactly what the verbatim cards
+     produced by the thousand. */
+  it('refuses a blank the length of a clause', () => {
+    const wide = 'A request from Sydney pays for the physical length of that path every time.'
+    const problem = clozeProblem(wide, 'the physical length of that path')
+    expect(problem).toContain(`${BLANK_WORDS_MAX} words at most`)
+  })
+
+  it('passes the blank that clause should have been', () => {
+    const wide = 'A request from Sydney pays for the physical length of that path every time.'
+    expect(clozeProblem(wide, 'physical length')).toBeNull()
+  })
+
+  it('sends a cloze through the same judgement it always had', () => {
+    expect(cardProblem(cloze({ blank: 'nowhere in it' }))).toBe(
+      'Those words are not in the passage.'
+    )
+  })
+})
+
+describe('shuffling a sitting', () => {
+  it('keeps every card, and only the cards it was given', () => {
+    const deck = ['a', 'b', 'c', 'd', 'e']
+    expect(shuffled(deck).sort()).toEqual([...deck].sort())
+  })
+
+  it('leaves the deck it was handed alone', () => {
+    const deck = ['a', 'b', 'c']
+    shuffled(deck, () => 0)
+    expect(deck).toEqual(['a', 'b', 'c'])
+  })
+
+  /* Fisher–Yates, walked from the top with the source of randomness
+     handed in, so the order is a fact rather than a belief. `() => 0`
+     swaps each position with the first, which rotates the deck. */
+  it('deals the order its randomness asked for', () => {
+    // Walked from the end: each position in turn is swapped with the
+    // first, which slides the deck up and drops the top card last.
+    expect(shuffled(['a', 'b', 'c', 'd'], () => 0)).toEqual(['b', 'c', 'd', 'a'])
+  })
+
+  it('survives an empty deck and a deck of one', () => {
+    expect(shuffled([])).toEqual([])
+    expect(shuffled(['only'])).toEqual(['only'])
+  })
+})
+
+describe('telling two questions apart', () => {
+  it('reads one question asked twice as one question', () => {
+    expect(cardKey('What is a CDN?')).toBe(cardKey('what is a cdn'))
+    expect(cardKey('  Two   spaces. ')).toBe(cardKey('two spaces'))
+  })
+
+  it('keeps two genuinely different questions apart', () => {
+    expect(cardKey('What is a CDN?')).not.toBe(cardKey('What is a cache?'))
+  })
+})
+
+/* A row read in the minutes between the web deploying and the migration
+   landing has no `kind` at all, and every card that exists then is a
+   cloze. Read as a question it would draw blank; read as a cloze it
+   draws plainly, which is the failure worth having. */
+describe('a row whose kind has not arrived yet', () => {
+  const nameless = { ...cloze(), kind: undefined as unknown as Cloze['kind'] }
+
+  it('reads as a cloze, front and back', () => {
+    expect(cardFront(nameless)).toContain(BLANK_MARK)
+    expect(cardBack(nameless)).toBe('consuming')
+  })
+
+  it('still offers its passage to the prose', () => {
+    expect(cardAnchor(nameless)).toBe(PASSAGE)
+  })
+
+  it('is judged as a cloze', () => {
+    expect(cardProblem(nameless)).toBeNull()
   })
 })

@@ -1,0 +1,233 @@
+/* Tend this lesson: the garden at the foot of the reading.
+
+   Plum throughout, like everything the garden owns -- the wash on a
+   tended sentence, the rule down the side of a card, the band on the
+   Tend sheet. A reader arriving at the bottom of a lesson should know
+   from the colour alone which of the app's several list-shaped things
+   this is, before reading the heading.
+
+   Quiet by default and quiet on purpose. It sits between the prose and
+   "How did you go?", which is the order the two things actually happen
+   in: you finish reading, you find out whether it stuck, you say how
+   you worked. It must not read as a second ending to the lesson -- so
+   it is a rule, a heading at section size, and one line of standing,
+   with everything else folded away until asked for. */
+
+.garden {
+  border-top: 1px solid var(--paper-edge);
+  padding-top: var(--space-5);
+  margin-top: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  line-height: 1.2;
+  margin: 0;
+  color: var(--plate-plum);
+}
+
+/* What is standing, in one line: how many cards and how many are
+   asking. The figure is the whole of the invitation -- "3 due" is a
+   thing a reader can act on, and "you have cards" is not. */
+.standing {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* The one weighted control here. Starting a sitting is the thing this
+   section is for; listing the deck and writing more are both errands. */
+.action {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  padding: var(--space-2) var(--space-4);
+  background: transparent;
+  border: 1px solid var(--plate-plum);
+  color: var(--plate-plum);
+  cursor: pointer;
+}
+
+.action:hover {
+  background: var(--plate-plum);
+  color: var(--paper);
+}
+
+.quietAction,
+.quietLink {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--ink-faint);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.quietAction:hover,
+.quietLink:hover {
+  color: var(--plate-plum);
+}
+
+.quietAction:disabled {
+  color: var(--ink-faint);
+  opacity: 0.6;
+  cursor: default;
+  text-decoration: none;
+}
+
+.said {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.problem {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  color: var(--plate-terracotta);
+  margin: 0;
+}
+
+/* --- A sitting ----------------------------------------------------- */
+
+.sitting {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* How many are left. Under the card rather than over it, because it is
+   a thing to glance at between questions and never a thing to read
+   before one. */
+.left {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0;
+}
+
+.rest {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- The deck, listed ---------------------------------------------- *
+
+   The only place in the app that prints a lesson's whole deck, and the
+   reason it can be a list where the Tend sheet cannot: this is an
+   inventory to be fixed, not a queue to be worked. Nobody feels behind
+   for owning thirty cards; they feel behind for being shown thirty
+   questions at once, which is what a sitting would be.
+
+   A row prints the front only. A list that printed every answer would
+   be a list that taught the reader the deck by being read, which is
+   the one thing a deck must not do. */
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  border-top: 1px solid var(--paper-edge);
+}
+
+.row:last-child {
+  border-bottom: 1px solid var(--paper-edge);
+}
+
+/* An opened row is a whole card, which brings its own frame. The row's
+   own hairlines would then be a box inside a box. */
+.row[data-open] {
+  border: none;
+  padding: var(--space-3) 0;
+}
+
+.rowFace {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(6.5rem, auto) 1fr auto;
+  align-items: baseline;
+  gap: var(--space-3);
+  text-align: left;
+  background: none;
+  border: none;
+  padding: var(--space-3) 0;
+  cursor: pointer;
+  font-family: var(--font-text);
+}
+
+.rowFace:hover .rowFront {
+  color: var(--plate-plum);
+}
+
+.rowKind {
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--plate-plum);
+}
+
+/* One line, clipped. A card's front can be a three-line sentence and a
+   list of them at full height is a page of prose nobody asked for. */
+.rowFront {
+  font-size: var(--step--1);
+  line-height: 1.4;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* When it is next wanted, or that it is wanted now. Right-aligned so
+   the column reads as a column and the eye can run down it. */
+.rowWhen {
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  justify-self: end;
+}
+
+/* On a phone the three columns become two lines: the kind and the due
+   figure on one, the front under them with the width to be read. */
+@media (max-width: 34rem) {
+  .rowFace {
+    grid-template-columns: 1fr auto;
+  }
+
+  .rowFront {
+    grid-column: 1 / -1;
+    white-space: normal;
+  }
+}
