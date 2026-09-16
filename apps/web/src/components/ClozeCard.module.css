@@ -328,12 +328,33 @@
   color: var(--ink-soft);
 }
 
-.quietLink {
+/* Where the card came from, at the far end of the quiet row.
+   ---------------------------------------------------------------
+
+   A `Crumbs` trail rather than two links. The lesson sits inside the
+   topic, and printed side by side as peers they said nothing about
+   that -- on the Tend sheet, where cards arrive out of order from
+   anywhere the reader has read, where a card comes from is exactly the
+   context they are missing.
+
+   It sets the label register's size, tracking and ink, which `Crumbs`
+   inherits, so the trail reads as part of the quiet row rather than as
+   two more controls in it.
+
+   `.quiet` in the selector only to outrank the bottom margin `Crumbs`
+   carries for the trail's usual home above a title: both classes land
+   on the same element, and which of two modules is written out first is
+   not this file's to know. */
+.quiet .quietLink {
   font-size: var(--card-label);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-faint);
   margin-left: auto;
+  margin-bottom: 0;
+  /* Pushed to the end, and wrapping within itself on a narrow card
+     rather than stretching the row it sits in. */
+  justify-content: flex-end;
 }
 
 .problem {
@@ -405,6 +426,17 @@
     justify-content: space-between;
     align-items: baseline;
     gap: var(--space-2);
+  }
+
+  /* The trail takes its own line rather than the end of the row.
+     Right-aligned and wrapping, it broke after the topic and left the
+     separator hanging at the start of the second line, where a mark
+     that means *and inside it* reads as a bullet. Given the width of
+     the card it wraps like the trail it is, from the left. */
+  .quiet .quietLink {
+    flex: 1 0 100%;
+    margin-left: 0;
+    justify-content: flex-start;
   }
 }
 

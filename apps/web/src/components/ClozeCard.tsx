@@ -1,7 +1,6 @@
 'use client'
 
 import { useMemo, useRef, useState } from 'react'
-import Link from 'next/link'
 import { didactic } from '@didactic/api'
 import type { ClozeCard as Card } from '@didactic/core/clozes'
 import {
@@ -18,6 +17,7 @@ import {
 } from '@didactic/core/clozes'
 import { isUnsaved } from '@didactic/core/marks'
 import { review, waitPhrase, type Rating } from '@didactic/core/fsrs'
+import { Crumbs } from './Crumbs'
 import { Rich } from './Rich'
 import { saidTended } from './TendTally'
 import styles from './ClozeCard.module.css'
@@ -347,15 +347,35 @@ export function ClozeCard({
             >
               Pull up
             </button>
-            {where === 'sheet' && cloze.lesson && (
-              <Link className={styles.quietLink} href={`/lesson/${cloze.lesson.id}`}>
-                {cloze.lesson.title}
-              </Link>
-            )}
-            {where === 'sheet' && cloze.topic && (
-              <Link className={styles.quietLink} href={`/topics/${cloze.topic.id}`}>
-                {cloze.topic.title}
-              </Link>
+            {/* Where this card came from, as a trail rather than as two
+                links.
+
+                They were printed side by side and read as two peers --
+                *Lazy Loading Techniques* and *Web Performance
+                Optimization*, alike in every respect, saying nothing
+                about the fact that the first sits inside the second.
+                A reader on the Tend sheet is meeting cards out of
+                order, from anywhere they have read, so where a card
+                comes from is the context they are missing and it is
+                worth one mark to say it properly.
+
+                The same `Crumbs` the lesson and topic sheets carry
+                above their titles, outermost first, so a reader who
+                learned to read the trail there does not have to learn
+                it again here. `here` is the card, which is why the
+                trail ends at the lesson. */}
+            {where === 'sheet' && (
+              <Crumbs
+                className={styles.quietLink}
+                trail={[
+                  ...(cloze.topic
+                    ? [{ href: `/topics/${cloze.topic.id}`, label: cloze.topic.title }]
+                    : []),
+                  ...(cloze.lesson
+                    ? [{ href: `/lesson/${cloze.lesson.id}`, label: cloze.lesson.title }]
+                    : []),
+                ]}
+              />
             )}
           </>
         )}

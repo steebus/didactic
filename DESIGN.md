@@ -1167,6 +1167,7 @@ than an offset into a body that is regenerable.
 | The back | A `--paper-edge` rule above it; the answer, then the reason, then the concept's gist in `--ink-faint`, each less specific than the last. |
 | The blank | `min-width: 5em`, transparent text, `2px` plum underline. |
 | The verdict | `--font-display` at `calc(var(--card-body) * 1.4)`; `--plate-green` for *True*, `--plate-terracotta` for *False*, the word itself always written out. |
+| Where it came from | The `Crumbs` trail, topic then lesson, at the end of the quiet row in the label register; its own line on a narrow card. |
 | The card's scale | Four local steps — `--card-body`, `--card-concept`, `--card-prose`, `--card-label` — plus `--card-pad` and `--card-gap`. Everything inside a card is sized off these and nothing off the catalogue's scale directly. |
 
 **Rule — a card wears its kind before its concept.** A card is one of three
@@ -1185,6 +1186,19 @@ printed face up without eventually handing over an answer, so the concept's
 label register it was furniture; set above it, it is a heading. It stays
 `--ink-faint` and stays second in the eyebrow: larger here means nearer to
 hand, not louder.
+
+**Rule — a card says where it came from as a trail, not as two links.**
+The lesson sits inside the topic, and printed side by side as peers —
+*Web Performance Optimization* and *Lazy Loading Techniques*, alike in every
+respect — they said nothing about that. It is the same `Crumbs` the lesson and
+topic sheets carry above their titles, outermost first, so a reader who learned
+to read the trail there does not have to learn it again here; *here* is the
+card, which is why the trail ends at the lesson rather than passing through it.
+
+This matters more on a card than on a sheet. A reader on the Tend sheet is
+meeting cards out of order, from anywhere they have read, so where one came
+from is precisely the context they do not have. Only on the sheet: a card met
+inside a lesson is already in the place the trail would name.
 
 **Rule — on the Tend sheet the card takes the room it is given.** A sitting is
 one card on an otherwise empty sheet, so the card's six local steps grow fluidly
