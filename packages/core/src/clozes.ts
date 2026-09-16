@@ -368,6 +368,14 @@ export function clozeProblem(text: string, blank: string, at?: number): string |
     if (!clear && !whole) return 'A blank has to take a whole formula, or none of one.'
   }
 
+  // The same words blanked in one place and left standing in another.
+  // The reader does not recall that card, they read it off the rest of
+  // the sentence — and then grade it *Easy*, honestly, which is how a
+  // crib gets filed away for four months.
+  if (givesAway(maskCloze({ text, blank, blank_start: start, blank_end: end }), blank)) {
+    return 'Those words are still in the rest of the sentence.'
+  }
+
   return null
 }
 
@@ -536,10 +544,9 @@ export function cardProblem(card: CardShape, at?: number): string | null {
   if (back.length > 400) return 'That answer is too long to check yourself against.'
   // A question whose answer is sitting inside it is a card that can be
   // read off rather than recalled — the standard-card version of a
-  // blank the rest of the sentence gives away.
-  if (back.length > 3 && front.toLowerCase().includes(back.toLowerCase())) {
-    return 'The question gives the answer away.'
-  }
+  // blank the rest of the sentence gives away, and judged by the same
+  // function so the two cannot come to disagree.
+  if (givesAway(front, back)) return 'The question gives the answer away.'
 
   return null
 }
@@ -565,6 +572,42 @@ export function shuffled<T>(items: readonly T[], random: () => number = Math.ran
     ;[deck[i], deck[j]] = [deck[j], deck[i]]
   }
   return deck
+}
+
+/**
+ * Does the front of a card hand over its own back?
+ *
+ * The one failure a flashcard cannot survive. A card that can be read
+ * off rather than recalled still gets graded — *Easy*, honestly, because
+ * it genuinely was — and the scheduler then files it away for four
+ * months on the strength of a reading. One crib does more damage than
+ * ten missing cards.
+ *
+ * Whole words on both sides, over text with its case and punctuation
+ * taken off, so *that* does not match inside *thatch* and "~16.7ms,"
+ * matches "16.7ms". Two characters is the floor: below that the match
+ * is noise rather than a giveaway.
+ *
+ * What it does not do is read units or synonyms: "16.7 milliseconds"
+ * and "16.7ms" are different runs of words and this will not connect
+ * them. That is the honest limit of a string comparison, and the reason
+ * the brief asks for the same thing in words as well -- the check is
+ * the floor under the instruction, not a replacement for it.
+ *
+ * Not applied to a true-or-false. Its back is one of exactly two words
+ * and a statement containing *true* has not thereby revealed that it is
+ * true — enforcing it there would delete good cards for a word.
+ */
+export function givesAway(front: string, back: string): boolean {
+  const said = cardKey(back)
+  if (said.length < 2) return false
+  const asked = cardKey(front)
+  const at = asked.indexOf(said)
+  if (at === -1) return false
+  // Whole words: a run that begins and ends on a boundary of `asked`.
+  const before = at === 0 || asked[at - 1] === ' '
+  const after = at + said.length === asked.length || asked[at + said.length] === ' '
+  return before && after
 }
 
 /**

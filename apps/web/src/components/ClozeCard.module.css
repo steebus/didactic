@@ -65,11 +65,32 @@
   letter-spacing: 0.04em;
 }
 
+/* What the lesson said about the concept this card sits under.
+
+   On the **back** since 047, not above the question. It belongs to the
+   concept rather than to the card, and a concept carries two to four
+   cards -- one sentence cannot be written to avoid all of their answers,
+   so printed face up it eventually hands one over. Printing it only
+   when it happens not to leak would be worse: absence is information,
+   and a reader who notices it missing has been told where the answer
+   is. What orients them before they answer is the concept's name in the
+   eyebrow, which is a heading rather than a sentence.
+
+   Last in the back and the faintest thing in it, because it is the
+   least specific: the answer, then why, then the framing it sits in. */
 .gist {
   font-size: var(--step--1);
   line-height: 1.5;
-  color: var(--ink-soft);
+  color: var(--ink-faint);
   margin: 0;
+}
+
+/* Divided from the answer above it when it is not the only thing there
+   -- three stacked paragraphs at the same size need the eye told where
+   the answer stops and its surroundings start. */
+.back .gist:not(:first-child) {
+  border-top: 1px solid var(--paper-edge);
+  padding-top: var(--space-2);
 }
 
 /* The question itself. Set at reading size rather than display size:

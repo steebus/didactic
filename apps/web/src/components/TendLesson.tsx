@@ -6,8 +6,10 @@ import { didactic } from '@didactic/api'
 import type { ClozeCard as Card } from '@didactic/core/clozes'
 import {
   KIND_LABEL,
+  cardBack,
   cardFront,
   cardsPhrase,
+  givesAway,
   isDue,
   shuffled,
 } from '@didactic/core/clozes'
@@ -288,7 +290,30 @@ export function TendLesson({
                   className={styles.rowFace}
                   onClick={() => setReading(entry.id)}
                 >
-                  <span className={styles.rowKind}>{KIND_LABEL[entry.kind ?? 'cloze']}</span>
+                  {/* One cell, not two: the row is a three-column grid
+                      and a fourth child would wrap onto its own line. */}
+                  <span className={styles.rowKind}>
+                    {KIND_LABEL[entry.kind ?? 'cloze']}
+                    {cribs(entry) && (
+                      /* A card that gives away its own answer. Nothing
+                         written since 047 can be one — `verify` drops
+                         them and the routes refuse them — but cards
+                         planted before it were held to no such rule,
+                         and they are not deleted for it: throwing away
+                         a card the reader has been answering for
+                         months, unasked, is not a correction the app
+                         gets to make. So it is said here instead, in
+                         the one place the whole deck can be read over,
+                         where it can be rewritten or pulled up on
+                         purpose. */
+                      <span
+                        className={styles.rowCrib}
+                        title="The question contains its own answer — worth rewriting."
+                      >
+                        reads off
+                      </span>
+                    )}
+                  </span>
                   {/* The front, with the blank drawn as a short rule
                       rather than the word: a list of a lesson's cards
                       that printed every answer would be a list nobody
@@ -304,6 +329,26 @@ export function TendLesson({
         </ul>
       )}
     </section>
+  )
+}
+
+/**
+ * Can this card be read off rather than recalled?
+ *
+ * The same judgement `verify` and the routes make, from the same shared
+ * function, so the list cannot come to disagree with what the app will
+ * accept. Only old cards can be one: since 047 nothing that cribs is
+ * written or saved. The concept's name counts because it is printed
+ * above the question; its gist does not, because it is on the back.
+ */
+function cribs(card: Card): boolean {
+  if ((card.kind ?? 'cloze') === 'truefalse') return false
+  const back = cardBack(card)
+  if (!back) return false
+  return (
+    givesAway(cardFront(card), back) ||
+    givesAway(card.concept?.name ?? '', back) ||
+    givesAway(card.hint ?? '', back)
   )
 }
 

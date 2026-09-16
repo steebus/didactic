@@ -196,6 +196,13 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--plate-plum);
+  /* The kind and, where there is one, the crib marker: one grid cell
+     between them, because the row is three columns and a fourth child
+     would drop to a line of its own. */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
 }
 
 /* One line, clipped. A card's front can be a three-line sentence and a
@@ -230,4 +237,23 @@
     grid-column: 1 / -1;
     white-space: normal;
   }
+}
+
+/* A card that gives away its own answer.
+
+   Only a card planted before 047 can be one: nothing written since is
+   accepted that cribs. They are not deleted for it — throwing away a
+   card the reader has been answering for months, unasked, is not a
+   correction the app gets to make — so they are marked instead, here,
+   in the one place the whole deck can be read over.
+
+   Terracotta, which is what this catalogue uses for *this does not
+   hold*, and a word rather than a dot, because a coloured mark with no
+   text is a thing the reader has to learn before it means anything. */
+.rowCrib {
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--plate-terracotta);
+  white-space: nowrap;
 }

@@ -94,6 +94,48 @@ function deferred<T>() {
   return { promise, settle }
 }
 
+/* The bug 047 fixes, at the surface it appeared on.
+
+   The gist was printed above the question, so that an answer was
+   recalled from something rather than guessed from nothing. But a gist
+   belongs to the *concept*, and a concept carries two to four cards —
+   one sentence cannot be written to avoid all of their answers, so
+   sooner or later it hands one over. It did: "Jank is a stutter that
+   happens when the work needed to produce a frame overruns the ~16.7ms
+   budget", printed above a card asking what the frame budget is. */
+describe('what a card shows before it is turned over', () => {
+  const GIST = 'Jank happens when a frame overruns the ~16.7ms budget for 60fps.'
+
+  const withGist = (): Card => ({
+    ...card('c9', 'A browser must produce a new frame roughly every 16.7 milliseconds.', '16.7 milliseconds'),
+    concept: { id: 'k1', name: 'Jank and the frame budget', gist: GIST },
+  })
+
+  it('keeps the concept gist out of the document until the answer is asked for', async () => {
+    due.mockResolvedValue({ ok: true, body: { clozes: [withGist()] }, status: 200, error: null })
+    await sitting()
+
+    expect(container.textContent).toContain('A browser must produce')
+    // Not merely hidden: not there at all, so it cannot be read off the
+    // page, selected, or found by a search.
+    expect(container.textContent).not.toContain('16.7ms')
+    expect(container.textContent).not.toContain(GIST)
+  })
+
+  it('still prints the concept name, which is a heading and not a claim', async () => {
+    due.mockResolvedValue({ ok: true, body: { clozes: [withGist()] }, status: 200, error: null })
+    await sitting()
+    expect(container.textContent).toContain('Jank and the frame budget')
+  })
+
+  it('shows the gist with the answer, where it reinforces instead of cribbing', async () => {
+    due.mockResolvedValue({ ok: true, body: { clozes: [withGist()] }, status: 200, error: null })
+    await sitting()
+    press('Show it')
+    expect(container.textContent).toContain(GIST)
+  })
+})
+
 describe('a sitting', () => {
   it('shows the first card face down, with the answer nowhere on the page', async () => {
     await sitting()

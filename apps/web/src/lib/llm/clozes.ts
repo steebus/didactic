@@ -4,9 +4,11 @@ import {
   BLANK_WORDS_WANTED,
   FALSE_WORD,
   TRUE_WORD,
+  cardBack,
   cardFront,
   cardKey,
   cardProblem,
+  givesAway,
   type CardKind,
 } from '@didactic/core/clozes'
 
@@ -38,6 +40,14 @@ import {
  * thing the verbatim rule actually bought — the reader recognising, in
  * the lesson, which sentences the garden is holding — is bought without
  * making it the constraint every card has to be written under.
+ *
+ * Nothing a card shows before it is answered may contain its answer,
+ * and `verify` enforces that rather than trusting the brief: the front,
+ * the nudge, and the concept's name, which is printed above every card
+ * under it. The concept's `gist` is the one thing exempt, because 047
+ * moved it to the back of the card -- it belongs to a concept carrying
+ * two to four cards, and no one sentence can be written to avoid all of
+ * their answers.
  *
  * Generation is **additive**. A lesson that already has cards is read
  * again with those cards in hand, and what comes back is the cards it
@@ -118,12 +128,12 @@ const TOOL = {
             name: {
               type: 'string',
               description:
-                'The concept, as a short noun phrase. What the reader would have to still hold for the lesson to have counted. Reuse the exact name of a concept already standing when a card belongs under it.',
+                'The concept, as a short noun phrase — a heading, not a claim. It is printed on every card under it BEFORE the reader answers, so it must name the area without stating any answer: "Jank and the frame budget", never "The 16.7ms frame budget". Reuse the exact name of a concept already standing when a card belongs under it.',
             },
             gist: {
               type: 'string',
               description:
-                'One sentence saying what the lesson said about it. Shown above the card, so it must never contain the answer to any card under it.',
+                'One sentence saying what the lesson said about this concept. Shown on the BACK of every card under it, once the reader has answered, as reinforcement — so it may state the substance plainly and should.',
             },
             cards: {
               type: 'array',
@@ -202,6 +212,10 @@ The rest of the sentence must give the reader something to recall from and must 
 **Question-and-answer cards.** Either direction, and use both across a lesson: "What is a CDN?" → "A network of edge servers that serve content from near the visitor", and "A network of edge servers that serve content from near the visitor" → "A CDN". The answer is a phrase or one short sentence. Never write a question whose answer is sitting inside it.
 
 **True-or-false cards.** A statement worth being wrong about — a plausible confusion the lesson corrects, not a triviality. Answer exactly "${TRUE_WORD}" or "${FALSE_WORD}", and always give the one-line reason.
+
+**Nothing may hand over its own answer.** The concept's name is printed on every card under it before the reader answers, so it is a heading — the area, never a figure or a term some card asks for. The sentence of a cloze must not contain its own blanked words somewhere else in it, and a question must not contain its answer. A nudge nudges; it never answers. A card that can be read off is worse than no card at all: it is graded *Easy*, honestly, and the scheduler then files it away for four months on the strength of a reading.
+
+The concept's \`gist\` is the exception and is shown on the back, after the answer, so write it plainly and let it say what the lesson actually said.
 
 **Anchors.** Where the card came out of one particular sentence of the lesson, give that sentence in \`anchor\`, copied character for character. It is washed in the reading so the reader can see which sentences the garden holds. A sentence you have improved on its way past is not the sentence they read, so omit the anchor rather than paraphrase one.
 
@@ -296,6 +310,23 @@ export function verify(
       // same function in the shared package, rather than a second
       // opinion written here that could come to disagree with it.
       if (cardProblem(asShape(card))) continue
+
+      // Nothing on the face of this card may hand over its back. The
+      // brief says so and this is what makes it true: a crib is graded
+      // *Easy*, honestly, and the scheduler files the card away for
+      // four months on the strength of a reading. The concept's name
+      // counts, because it is printed above every card under it -- and
+      // the model chose that name once for two to four different
+      // answers, which is exactly the shape of mistake it cannot see.
+      // A `truefalse` is exempt: its back is one of two words and a
+      // statement containing *true* has revealed nothing.
+      if (card.kind !== 'truefalse') {
+        const front = cardFront(asShape(card))
+        const back = cardBack(asShape(card))
+        if (givesAway(front, back)) continue
+        if (givesAway(concept.name ?? '', back)) continue
+        if (card.hint && givesAway(card.hint, back)) delete card.hint
+      }
 
       // A blank the model chose is held to the tighter number: this is
       // where the standard is set, and a four-word blank generated by

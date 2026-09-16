@@ -11,6 +11,7 @@ import {
   cardKey,
   cardProblem,
   cardTruth,
+  givesAway,
   clozeFace,
   clozeProblem,
   conceptStanding,
@@ -124,9 +125,20 @@ describe('clozeProblem', () => {
     expect(clozeProblem(PASSAGE, 'photosynthesis')).toMatch(/not in the passage/)
   })
 
-  it('takes the offset as the answer when the words appear twice', () => {
+  /* This used to pass, and it should not have. Blanking the second
+     *consuming* leaves the first standing two clauses away: the reader
+     does not recall that card, they read it off — and then grades it
+     *Easy*, honestly, which is how a crib gets filed away for four
+     months. Which occurrence the offset picked was never the question. */
+  it('refuses a blank whose words are still standing elsewhere in the sentence', () => {
     const twice = 'Intent is not consuming, and consuming is not intent.'
-    expect(clozeProblem(twice, 'consuming', 29)).toBeNull()
+    expect(clozeProblem(twice, 'consuming', 29)).toMatch(/still in the rest of the sentence/)
+  })
+
+  it('still takes the offset for a blank that appears once', () => {
+    expect(clozeProblem(PASSAGE, 'consuming', PASSAGE.indexOf('consuming'))).toBeNull()
+    // A stale offset falls back to the words rather than refusing.
+    expect(clozeProblem(PASSAGE, 'consuming', 3)).toBeNull()
   })
 })
 
@@ -475,5 +487,54 @@ describe('a row whose kind has not arrived yet', () => {
 
   it('is judged as a cloze', () => {
     expect(cardProblem(nameless)).toBeNull()
+  })
+})
+
+/* The one failure a flashcard cannot survive. A card that can be read
+   off is still graded honestly — *Easy*, because it genuinely was — and
+   the scheduler files it away for four months on the strength of a
+   reading. One crib does more damage than ten missing cards. */
+describe('a face that hands over its own back', () => {
+  it('catches the answer sitting in the question', () => {
+    expect(givesAway('What is a CDN, the content delivery network?', 'content delivery network')).toBe(true)
+  })
+
+  it('catches it through punctuation and case', () => {
+    expect(givesAway('Jank and the ~16.7ms budget', '16.7ms')).toBe(true)
+    expect(givesAway('THE MAIN THREAD, and what runs on it', 'the main thread')).toBe(true)
+  })
+
+  /* The honest limit of comparing strings: these are the same quantity
+     and different words, and nothing here will connect them. It is why
+     the brief asks for this in words too — the check is the floor under
+     the instruction rather than a replacement for it. */
+  it('does not read units, and says so', () => {
+    expect(givesAway('Jank and the ~16.7ms budget', '16.7 milliseconds')).toBe(false)
+  })
+
+  it('leaves a front that merely talks around the answer', () => {
+    expect(
+      givesAway(
+        'To hit 60 frames a second, a browser must produce a new frame roughly every ————.',
+        '16.7 milliseconds'
+      )
+    ).toBe(false)
+  })
+
+  /* Whole words, or every card mentioning a cat would fail on *cat* in
+     *catalogue* and the rule would delete more than it saved. */
+  it('matches whole words and not fragments of them', () => {
+    expect(givesAway('A thatched roof', 'that')).toBe(false)
+    expect(givesAway('The rate limiter', 'rate')).toBe(true)
+  })
+
+  it('says nothing about a back too short to be given away', () => {
+    expect(givesAway('A sentence with a in it', 'a')).toBe(false)
+  })
+
+  it('is the rule a question card is actually judged by', () => {
+    expect(
+      cardProblem(standard({ question: 'What is the main thread?', answer: 'The main thread.' }))
+    ).toBe('The question gives the answer away.')
   })
 })

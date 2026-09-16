@@ -1164,6 +1164,7 @@ than an offset into a body that is regenerable.
 | Hover | The rule at full `--plate-plum`, plus a `0.08` plum ground. |
 | Focus | `2px solid var(--plate-plum)`, offset `2px` — the plate's own, because this plate is what the whole garden wears. |
 | The card | Plum 5px left edge on `--paper-deep`; the kind and then the concept in the label register above, the answer in plum when it is shown. |
+| The back | A `--paper-edge` rule above it; the answer, then the reason, then the concept's gist in `--ink-faint`, each less specific than the last. |
 | The blank | `min-width: 5em`, transparent text, `2px` plum underline. |
 | The verdict | `--font-display` at `--step-2`; `--plate-green` for *True*, `--plate-terracotta` for *False*, the word itself always written out. |
 
@@ -1239,6 +1240,28 @@ either side of it does.
 its own width.** The length of a blank is a hint, and a hint nobody asked for.
 The answer is not in the document at all until *Show it* is pressed.
 
+**Rule — the concept's gist is on the back, always.** It was above the question,
+on the reasoning that an answer should be recalled from something rather than
+guessed from nothing. But a gist belongs to the *concept*, and a concept carries
+two to four cards: one sentence cannot be written to avoid all of their answers,
+so sooner or later it hands one over — *"Jank is a stutter that happens when the
+work needed to produce a frame overruns the ~16.7ms budget"*, above a card asking
+what the frame budget is. Printing it only when it happens not to leak would be
+worse, because absence is information: a reader who notices it missing has been
+told the answer is in the sentence they are not being shown. So it moves for
+every card, and becomes what it is good at — the lesson's own words about the
+concept, read once the answer is in. What orients the reader beforehand is the
+concept's **name**, which is a heading rather than a claim.
+
+**Rule — nothing on the face of a card may contain its back.** Not the question,
+not the sentence around a blank, not the nudge, and not the concept name printed
+above it. A card that can be read off is graded *Easy* — honestly, because it
+genuinely was — and the scheduler then files it away for four months on the
+strength of a reading. One crib does more damage than ten missing cards, which is
+why a card that trips this is dropped rather than repaired. A true-or-false is
+exempt: its back is one of two words, and a statement containing *true* has not
+thereby revealed that it is true.
+
 **Rule — an answer is final on the press, and confirms nothing.** The card goes
 the moment a rung is pressed and the next rises into its place; the write happens
 behind the reader. There is nothing to confirm afterwards — the wait the answer
@@ -1300,6 +1323,7 @@ worked through it.
 | Start a sitting | The one outlined control: `1px solid var(--plate-plum)`, plum on paper, inverting on hover. |
 | The rest | Underlined quiet actions in `--ink-faint`, going plum on hover. |
 | A list row | Three columns — the kind in the label register, the front clipped to one line, when it is next wanted, right-aligned. Hairline between rows. |
+| A card that cribs | *Reads off*, in `--plate-terracotta`, beside the kind. A word rather than a dot: a coloured mark with no text has to be learnt before it means anything. |
 
 **Rule — it is quiet, and it is not a second ending.** A rule, a heading at
 section size and one line of standing. Everything else is folded away until it
@@ -1311,6 +1335,13 @@ is the Tend sheet's instrument unchanged, down to the same component. The
 inventory is a list, and can be, because it is a thing to *fix* rather than a
 queue to work: nobody feels behind for owning thirty cards, they feel behind
 for being shown thirty questions at once.
+
+**Rule — an old card that cribs is marked, not deleted.** Nothing written
+since 047 can give away its own answer. Cards planted before it were held to no
+such rule, and throwing one away — a card the reader may have been answering for
+months — is not a correction the app gets to make unasked. So the list says
+*reads off* against it, in the one place the whole deck can be read over, and
+leaves rewriting or pulling it up to the reader.
 
 **Rule — a list row prints the front and never the back.** A cloze's blank is
 drawn as a short rule in the row exactly as it is on the card. A deck listed

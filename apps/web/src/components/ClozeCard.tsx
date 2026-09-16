@@ -36,7 +36,7 @@ const api = didactic()
  *
  * Three shapes since 046, and the branch is deliberately shallow: what
  * differs between them is the **front** and the **back**, and nothing
- * else. The eyebrow, the gist, the nudge, *Show it*, the four rungs and
+ * else. The eyebrow, the nudge, *Show it*, the four rungs and
  * the quiet row underneath are the same furniture around all three, so
  * a reader meeting a true-or-false after a cloze is meeting a different
  * question and not a different instrument.
@@ -49,10 +49,14 @@ const api = didactic()
  * the same thing said worse, and a render later.
  *
  * What a card must never do is give the answer away before it is asked
- * for. So the blank is a rule of the right length rather than the word
- * greyed out, a true-or-false prints no verdict until it is turned
- * over, the gist above it is written not to contain the answer, and
- * none of the back is in the DOM until the reader asks for it.
+ * for, and everything face-down here is arranged around that. The blank
+ * is a rule of the right length rather than the word greyed out. A
+ * true-or-false prints no verdict until it is turned over. The
+ * concept's gist is on the **back** (047) -- it belongs to a concept
+ * carrying two to four cards, so no one sentence can be written to
+ * avoid all their answers, and it handed one over often enough to be a
+ * bug rather than an accident. None of the back is in the DOM until the
+ * reader asks for it.
  */
 export function ClozeCard({
   cloze,
@@ -188,10 +192,6 @@ export function ClozeCard({
         {cloze.created_by === 'user' && <span className={styles.own}>yours</span>}
       </p>
 
-      {cloze.concept?.gist && (
-        <Rich as="p" className={styles.gist} text={cloze.concept.gist} />
-      )}
-
       {kind === 'cloze' ? (
         /* The passage in three pieces, each formatted in its own right.
            A card carries the lesson's emphasis and the lesson's
@@ -226,21 +226,43 @@ export function ClozeCard({
         <Rich as="p" className={styles.passage} text={cloze.question ?? ''} />
       )}
 
-      {/* The back of a standard card, and nothing of it in the document
-          until it is asked for. A true-or-false prints its verdict as a
-          verdict rather than as a sentence -- it is the one answer in
-          the app that is a single word, and burying it in prose would
-          make the reader hunt for what they already half know. */}
-      {kind !== 'cloze' && shown && (
+      {/* The back, and nothing of it in the document until it is asked
+          for. A true-or-false prints its verdict as a verdict rather
+          than as a sentence -- it is the one answer in the app that is a
+          single word, and burying it in prose would make the reader hunt
+          for what they already half know.
+
+          The gist is here rather than above the question, and that is
+          the correction 047 makes. It was printed face up, on the
+          reasoning that an answer should be recalled from something
+          rather than guessed from nothing -- but a gist belongs to the
+          *concept*, and a concept carries two to four cards. One
+          sentence cannot be written to avoid the answer to all of them,
+          so sooner or later it hands one over: "Jank is a stutter that
+          happens when the work needed to produce a frame overruns the
+          ~16.7ms budget", above a card asking what the frame budget is.
+
+          Printing it only when it happens not to leak would be worse,
+          not better. Absence is information: a reader who notices the
+          gist missing has been told the answer is in the gist-shaped
+          sentence they are not being shown. So it moves for every card,
+          always, and becomes what it is actually good at -- the lesson's
+          own words about the concept, read once the answer is in. What
+          orients the reader beforehand is the concept's name in the
+          eyebrow, which is a heading rather than a sentence. */}
+      {shown && (kind !== 'cloze' || cloze.concept?.gist || cloze.note) && (
         <div className={styles.back}>
           {kind === 'truefalse' ? (
             <p className={styles.verdict} data-truth={truth === null ? undefined : String(truth)}>
               {truth === null ? cloze.answer : truth ? TRUE_WORD : FALSE_WORD}
             </p>
-          ) : (
+          ) : kind === 'qa' ? (
             <Rich as="p" className={styles.answerLine} text={cloze.answer ?? ''} />
-          )}
+          ) : null}
           {cloze.note && <Rich as="p" className={styles.note} text={cloze.note} />}
+          {cloze.concept?.gist && (
+            <Rich as="p" className={styles.gist} text={cloze.concept.gist} />
+          )}
         </div>
       )}
 

@@ -139,6 +139,76 @@ describe('verifying what the model proposed', () => {
     expect(kept[0].cards.every(c => c.answer !== 'intent')).toBe(true)
   })
 
+  /* 047. The brief tells the model not to crib; this is what makes it
+     true. A card that can be read off is graded *Easy*, honestly, and
+     the scheduler files it away for four months on the strength of a
+     reading — so a missing card is much the cheaper failure. */
+  it('drops a cloze whose blanked words are still standing in its sentence', () => {
+    const crib: ProposedCard = {
+      kind: 'cloze',
+      text: 'A CDN serves from the edge, which is what makes a CDN quick.',
+      blank: 'CDN',
+    }
+    const kept = verify([concept({ cards: [crib, CLOZE, QA] })], BODY)
+    expect(kept[0].cards.every(c => c.blank !== 'CDN')).toBe(true)
+  })
+
+  /* The concept's name is printed above every card under it, before the
+     reader answers — and the model chose that one name for two to four
+     different answers, which is exactly the mistake it cannot see. */
+  it('drops a card whose answer is sitting in its concept name', () => {
+    const named: ProposedCard = {
+      kind: 'qa',
+      question: 'What does the map become once only consumption counts?',
+      answer: 'An honest record',
+    }
+    const kept = verify(
+      [concept({ name: 'What an honest record costs', cards: [named, QA, CLOZE] })],
+      BODY
+    )
+    expect(kept[0].cards).toHaveLength(2)
+    expect(kept[0].cards.every(c => c.answer !== 'An honest record')).toBe(true)
+  })
+
+  /* The name leaking is the concept's problem, not one card's: a name
+     that gives away most of what is under it takes the concept with it,
+     which is the same rule as a concept that cannot be asked two ways. */
+  it('drops the concept when its name gives away nearly all of it', () => {
+    expect(
+      verify([concept({ name: 'Consuming a resource, not saving it' })], BODY)
+    ).toEqual([])
+  })
+
+  /* A nudge that answers is not a nudge. It goes on its own, though:
+     the card around it is fine and is worth keeping without it. */
+  it('strips a nudge that answers, and keeps the card', () => {
+    const nudged: ProposedCard = { ...CLOZE, hint: 'Think about consuming it.' }
+    const kept = verify([concept({ cards: [nudged, QA] })], BODY)
+    expect(kept[0].cards).toHaveLength(2)
+    expect(kept[0].cards[0].blank).toBe('consuming')
+    expect(kept[0].cards[0].hint).toBeUndefined()
+  })
+
+  it('keeps a nudge that merely points', () => {
+    const nudged: ProposedCard = { ...CLOZE, hint: 'Not the saving half.' }
+    expect(verify([concept({ cards: [nudged, QA] })], BODY)[0].cards[0].hint).toBe(
+      'Not the saving half.'
+    )
+  })
+
+  /* A statement containing the word *true* has not revealed that it is
+     true, and refusing it there would delete good cards for a word. */
+  it('leaves a true-or-false out of the giveaway rule', () => {
+    const fine: ProposedCard = {
+      kind: 'truefalse',
+      question: 'It is true that saving a resource counts as an exposure.',
+      answer: 'False',
+      note: 'Only consuming it counts.',
+    }
+    const kept = verify([concept({ cards: [fine, CLOZE] })], BODY)
+    expect(kept[0].cards[0].kind).toBe('truefalse')
+  })
+
   it('drops a concept left with fewer than two answerable cards', () => {
     expect(verify([concept({ cards: [CLOZE] })], BODY)).toEqual([])
   })
