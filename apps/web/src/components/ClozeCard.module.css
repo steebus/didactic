@@ -5,18 +5,80 @@
    the answer when it is shown -- so a card met in the lesson and a card
    met on the sheet read as the same object. */
 
-/* Dealt, not loaded.
+/* A card is read at its own size, not the sheet's.
+   ---------------------------------------------------------------
 
-   A card answered is gone on the press and the next one rises into its
-   place, so the sheet has to say *another card* rather than *the page
-   changed*. It lifts from just below with a hair of scale, which is
-   what a card coming off a deck does, and it is the only motion on the
-   sheet -- everything else here is type.
+   Everything inside a card is sized off four local steps rather than
+   off the catalogue's scale directly, so the whole instrument grows or
+   shrinks as one thing and the hierarchy inside it never re-orders
+   itself halfway up. The four are: the body (the question, and the
+   answer that settles it), the concept above it, the supporting prose
+   (the nudge, the reason, the gist) and the label register (the kind,
+   the waits, the quiet row).
 
-   Only on the Tend sheet. In the reading the card is a panel opened
-   against a passage, and a panel that deals itself would be furniture
-   showing off. */
+   --card-body is the largest thing on a card and --card-concept is
+   second, in that order and by a clear margin: what the reader wants
+   first is the sentence they have to answer, and immediately after it
+   the name of the thing it is about -- the eyebrow is the card's
+   heading, and at the label register it was furniture.
+
+   Nowhere near the catalogue's display scale, though. A card is a
+   sentence out of a lesson and it should read the way it read there. */
+.card {
+  --card-body: var(--step-1);
+  --card-concept: var(--step-0);
+  --card-prose: var(--step--1);
+  --card-label: var(--step--2);
+  --card-pad: var(--space-4);
+  --card-gap: var(--space-3);
+
+  /* Above the deck's own edges, which are drawn behind it. */
+  position: relative;
+  z-index: 1;
+  background: var(--paper-deep);
+  border: 1px solid var(--paper-edge);
+  /* The one edge that is not a hairline: the plum rule is what says
+     which of the app's several list-shaped things this is. */
+  border-left: 5px solid var(--plate-plum);
+  padding: var(--card-pad);
+  display: flex;
+  flex-direction: column;
+  gap: var(--card-gap);
+}
+
+/* On the Tend sheet, where the card is the page.
+   ---------------------------------------------------------------
+
+   Dealt, not loaded. A card answered is gone on the press and the next
+   one rises into its place, so the sheet has to say *another card*
+   rather than *the page changed*. It lifts from just below with a hair
+   of scale, which is what a card coming off a deck does, and it is the
+   only motion on the sheet -- everything else here is type. In the
+   reading the card is a panel opened against a passage, and a panel
+   that deals itself would be furniture showing off.
+
+   And larger, for the same reason. A sitting is one card on an
+   otherwise empty sheet, and at the catalogue's reading size that sheet
+   is mostly margin -- a desk with a postcard on it. Here the card takes
+   the room it is given: the four steps and the padding grow with the
+   viewport, up to a body at 1.75rem, which is about twice the card's
+   area at the width the sheet used to hold it to. The panel in the
+   reading keeps the catalogue's steps, because a panel set larger than
+   the prose it interrupts is the interruption shouting; what changed
+   for it is the ordering above, and nothing else.
+
+   Fluid rather than stepped at a breakpoint, because there is no width
+   at which a reader wants the card to jump: the sheet is one card and a
+   couple of lines, so the size it should be is a straight function of
+   how much room there is. The floors are the catalogue's steps, so
+   nothing below ~50rem moves at all. */
 .card[data-where='sheet'] {
+  --card-body: clamp(var(--step-1), 0.6rem + 1.35vw, 1.75rem);
+  --card-concept: clamp(var(--step-0), 0.5rem + 0.95vw, 1.3rem);
+  --card-prose: clamp(var(--step--1), 0.45rem + 0.72vw, 1.0625rem);
+  --card-label: clamp(var(--step--2), 0.42rem + 0.52vw, 0.875rem);
+  --card-pad: clamp(var(--space-4), 0.6rem + 1.6vw, 2.25rem);
+  --card-gap: clamp(var(--space-3), 0.4rem + 1vw, 1.375rem);
   animation: deal var(--dur-settle) var(--ease-settle) both;
 }
 
@@ -34,24 +96,9 @@
   }
 }
 
-.card {
-  /* Above the deck's own edges, which are drawn behind it. */
-  position: relative;
-  z-index: 1;
-  background: var(--paper-deep);
-  border: 1px solid var(--paper-edge);
-  /* The one edge that is not a hairline: the plum rule is what says
-     which of the app's several list-shaped things this is. */
-  border-left: 5px solid var(--plate-plum);
-  padding: var(--space-4);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
 .eyebrow {
   font-family: var(--font-text);
-  font-size: var(--step--2);
+  font-size: var(--card-label);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--plate-plum);
@@ -60,6 +107,7 @@
 
 /* A cloze the reader made themselves, said quietly on the same line. */
 .own {
+  font-size: var(--card-label);
   color: var(--ink-faint);
   text-transform: none;
   letter-spacing: 0.04em;
@@ -79,7 +127,7 @@
    Last in the back and the faintest thing in it, because it is the
    least specific: the answer, then why, then the framing it sits in. */
 .gist {
-  font-size: var(--step--1);
+  font-size: var(--card-prose);
   line-height: 1.5;
   color: var(--ink-faint);
   margin: 0;
@@ -93,11 +141,12 @@
   padding-top: var(--space-2);
 }
 
-/* The question itself. Set at reading size rather than display size:
-   it is a sentence from a lesson, and it should read the way it read
-   there. */
+/* The question itself, and the largest thing on the card. Set in the
+   text face rather than the display one whatever size it takes: it is a
+   sentence out of a lesson, and it should read the way it read there.
+   What grows on a wide sheet is the size, not the register. */
 .passage {
-  font-size: var(--step-1);
+  font-size: var(--card-body);
   line-height: 1.55;
   margin: 0;
 }
@@ -124,13 +173,13 @@
 }
 
 .hint {
-  font-size: var(--step--1);
+  font-size: var(--card-prose);
   color: var(--ink-soft);
   margin: 0;
 }
 
 .hintLabel {
-  font-size: var(--step--2);
+  font-size: var(--card-label);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-faint);
@@ -148,7 +197,7 @@
 
 .show {
   font-family: var(--font-text);
-  font-size: var(--step--2);
+  font-size: var(--card-label);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -221,12 +270,12 @@
 }
 
 .answerLabel {
-  font-size: var(--step--1);
+  font-size: var(--card-prose);
   font-weight: 600;
 }
 
 .answerWait {
-  font-size: var(--step--2);
+  font-size: var(--card-label);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-faint);
@@ -240,7 +289,7 @@
 }
 
 .doneNote {
-  font-size: var(--step--1);
+  font-size: var(--card-prose);
   color: var(--ink-soft);
   margin: 0;
 }
@@ -258,7 +307,7 @@
 
 .quietAction {
   font-family: var(--font-text);
-  font-size: var(--step--2);
+  font-size: var(--card-label);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-faint);
@@ -275,12 +324,12 @@
 }
 
 .quietNote {
-  font-size: var(--step--1);
+  font-size: var(--card-prose);
   color: var(--ink-soft);
 }
 
 .quietLink {
-  font-size: var(--step--2);
+  font-size: var(--card-label);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-faint);
@@ -288,7 +337,7 @@
 }
 
 .problem {
-  font-size: var(--step--1);
+  font-size: var(--card-prose);
   color: var(--plate-terracotta);
   margin: 0;
 }
@@ -296,7 +345,7 @@
 /* --- Rewriting --------------------------------------------------- */
 
 .label {
-  font-size: var(--step--2);
+  font-size: var(--card-label);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-faint);
@@ -304,7 +353,8 @@
 
 .field {
   font: inherit;
-  font-size: var(--step-0);
+  /* Rewriting happens at the size the card is read at, never below it. */
+  font-size: max(var(--step-0), var(--card-prose));
   line-height: 1.5;
   width: 100%;
   padding: var(--space-3);
@@ -326,7 +376,7 @@
 }
 
 .blankNow {
-  font-size: var(--step--1);
+  font-size: var(--card-prose);
   color: var(--ink-soft);
 }
 
@@ -390,8 +440,23 @@
 
 /* The concept, after the kind, and divided from it by a hairline rather
    than by punctuation: two uppercase runs with a middle dot between
-   them read as one long label. */
+   them read as one long label.
+
+   Set at --card-concept, which makes it the second largest thing on the
+   card and the only part of the eyebrow above the label register. It is
+   the card's heading: the reader cannot be shown the gist before they
+   answer -- it would hand them the answer -- so the concept's *name* is
+   the whole of what orients them, and at the label register it was
+   doing that job in a whisper. Tracking eases off as it grows: 0.1em is
+   set for small caps, and turns a long concept name into a fence at
+   reading size.
+
+   Still --ink-faint, and still after the kind, because what the reader
+   must know before anything is which of the three instruments this is.
+   Larger is not louder here; it is nearer to hand. */
 .concept {
+  font-size: var(--card-concept);
+  letter-spacing: 0.05em;
   color: var(--ink-faint);
   padding-left: var(--space-2);
   border-left: 1px solid var(--paper-edge);
@@ -399,6 +464,7 @@
 
 /* A card the reader made themselves, said quietly and last. */
 .own {
+  font-size: var(--card-label);
   color: var(--ink-faint);
   text-transform: none;
   letter-spacing: 0.04em;
@@ -411,7 +477,7 @@
    second appear. The rule is what says *this is the other side*. */
 .back {
   border-top: 1px solid var(--paper-edge);
-  padding-top: var(--space-3);
+  padding-top: var(--card-gap);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -420,7 +486,7 @@
 /* The answer to a question. Plum and weighted, the same treatment a
    revealed blank gets, so the answer reads the same wherever it is. */
 .answerLine {
-  font-size: var(--step-1);
+  font-size: var(--card-body);
   line-height: 1.5;
   color: var(--plate-plum);
   font-weight: 700;
@@ -438,7 +504,7 @@
    for a reader who cannot tell the two plates apart. */
 .verdict {
   font-family: var(--font-display);
-  font-size: var(--step-2);
+  font-size: calc(var(--card-body) * 1.4);
   line-height: 1.1;
   margin: 0;
   color: var(--plate-plum);
@@ -456,7 +522,7 @@
    true-or-false: a statement judged false with no correction leaves the
    reader knowing they were wrong and not what is right. */
 .note {
-  font-size: var(--step--1);
+  font-size: var(--card-prose);
   line-height: 1.5;
   color: var(--ink-soft);
   margin: 0;
@@ -472,7 +538,7 @@
 
 .verdictPick {
   font-family: var(--font-text);
-  font-size: var(--step--1);
+  font-size: var(--card-prose);
   padding: var(--space-2) var(--space-4);
   background: transparent;
   border: 1px solid var(--paper-edge);

@@ -52,9 +52,19 @@
   margin-bottom: var(--space-5);
 }
 
+/* Wider than a reading column, because nothing here is a reading column.
+   The sheet holds one card, the line above it and the two ways out
+   underneath -- at 46rem on a laptop that was a postcard on a desk, with
+   the right two thirds of the screen empty. The card grows its own type
+   with the viewport (see ClozeCard.module.css), so the line length stays
+   in the seventies at the top of the range rather than running away.
+
+   Still bounded, and well inside --sheet-max: a card is a sentence to
+   answer, and a sentence set the full width of a wide monitor is a
+   sentence the eye loses coming back for the next line. */
 .body {
   padding: 0 var(--space-5);
-  max-width: 46rem;
+  max-width: 65rem;
 }
 
 @media (max-width: 48rem) {

@@ -1163,10 +1163,11 @@ than an offset into a body that is regenerable.
 | Rule | `inset 0 -2px 0 rgba(107,53,80,0.55)` — a plum rule *under* the words, drawn inside the box so it cannot reflow the line when the cards land a beat after the prose. |
 | Hover | The rule at full `--plate-plum`, plus a `0.08` plum ground. |
 | Focus | `2px solid var(--plate-plum)`, offset `2px` — the plate's own, because this plate is what the whole garden wears. |
-| The card | Plum 5px left edge on `--paper-deep`; the kind and then the concept in the label register above, the answer in plum when it is shown. |
+| The card | Plum 5px left edge on `--paper-deep`; the kind in the label register and then the concept at `--card-concept` above, the answer in plum when it is shown. |
 | The back | A `--paper-edge` rule above it; the answer, then the reason, then the concept's gist in `--ink-faint`, each less specific than the last. |
 | The blank | `min-width: 5em`, transparent text, `2px` plum underline. |
-| The verdict | `--font-display` at `--step-2`; `--plate-green` for *True*, `--plate-terracotta` for *False*, the word itself always written out. |
+| The verdict | `--font-display` at `calc(var(--card-body) * 1.4)`; `--plate-green` for *True*, `--plate-terracotta` for *False*, the word itself always written out. |
+| The card's scale | Four local steps — `--card-body`, `--card-concept`, `--card-prose`, `--card-label` — plus `--card-pad` and `--card-gap`. Everything inside a card is sized off these and nothing off the catalogue's scale directly. |
 
 **Rule — a card wears its kind before its concept.** A card is one of three
 things — a sentence with a blank in it, a question and its answer, or a
@@ -1175,8 +1176,31 @@ A reader about to answer needs to know whether they are recalling a term,
 producing a definition or judging a claim; working it out from the shape of the
 sentence is a beat of confusion at exactly the wrong moment.
 
+**Rule — the question is the largest thing on a card, and the concept is
+second.** Not by a hair: `--card-body` against `--card-concept`, with the kind,
+the waits and the quiet row together in the label register well below both. The
+concept is the card's heading and it is doing real work — the gist cannot be
+printed face up without eventually handing over an answer, so the concept's
+*name* is the whole of what orients a reader before they answer. Set at the
+label register it was furniture; set above it, it is a heading. It stays
+`--ink-faint` and stays second in the eyebrow: larger here means nearer to
+hand, not louder.
+
+**Rule — on the Tend sheet the card takes the room it is given.** A sitting is
+one card on an otherwise empty sheet, so the card's six local steps grow fluidly
+with the viewport — `--card-body` to `1.75rem`, the padding to `--space-5` — in a
+column bounded at `65rem`, about twice the area the sheet used to hold it to.
+The floors are the catalogue's steps, so nothing below ~50rem moves at all, and
+the growth is fluid rather than stepped at a breakpoint: there is no width at
+which a reader wants the card to jump.
+
+The card met inside a lesson keeps the catalogue's steps unchanged. It is a
+panel opened against a passage in a column of prose, and a panel set larger than
+the prose it interrupts is the interruption shouting. Only the ordering above
+travels with it.
+
 **Rule — the three kinds differ in the question and in nothing else.** The
-plum rule, the reading-size type, *Show it*, the four rungs and the quiet row
+plum rule, the card's own scale, *Show it*, the four rungs and the quiet row
 underneath are identical across all three. What changes between them is one
 line of front and one block of back. A reader meeting a true-or-false after a
 cloze is meeting a different question, never a different instrument.
