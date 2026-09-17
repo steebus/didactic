@@ -1267,6 +1267,13 @@ line of a lesson and the first card of its garden. Four sections did it in a
 row, so the last screen of every lesson was mostly rules and air. A foot section
 now brings its rule and the clearance under it and nothing else.
 
+**Rule — a rule at the foot runs the width of the sheet.** The record under
+*Worked* carried the reading measure and its own `2px` top border together, so
+the heaviest rule on the page stopped three fifths of the way across, between
+two hairlines that did not, and read as a rule that had been cut off rather than
+one that had been drawn. The measure belongs to the words, so the words carry
+it: `max-width: 68ch` on the children, nothing on the section.
+
 **Rule — maintenance is not a peer of the work.** *Write this lesson again* sat
 under a `--rule` hairline with a section's worth of air above it, which made it
 the first of four ruled bands and a peer of *Tend this lesson* — so the last

@@ -390,11 +390,26 @@
 
 /* --- Finishing --------------------------------------------------- */
 
+/* The record, under the heaviest rule at the foot.
+   ---------------------------------------------------------------
+
+   The rule runs the width of the sheet, like every other rule down
+   here. It used to stop at 68ch, because the section carried the
+   reading measure and its own top border with it -- so the one 2px
+   rule on the page ended three fifths of the way across, between two
+   hairlines that did not, and read as a rule that had been cut off
+   rather than one that had been drawn.
+
+   The measure belongs to the words, so the words are what carry it. */
 .finish {
   border-top: 2px solid var(--rule-strong);
   padding-top: var(--space-4);
   display: grid;
   gap: var(--space-2);
+  justify-items: start;
+}
+
+.finish > * {
   max-width: 68ch;
 }
 
@@ -483,7 +498,12 @@
   display: grid;
   gap: var(--space-2);
   justify-items: start;
-  margin-top: var(--space-4);
+  /* No margin, for the same reason the foot sections have none: the
+     reading above already ends in `--space-5` plus a thumb's worth of
+     clearance, which the marking desk needs so its sticky buttons come
+     to rest below the last line rather than on top of it
+     (`Highlighter.module.css`). Holding this off that clearance as well
+     is the sheet paying twice over again, at a smaller scale. */
   padding-top: var(--space-3);
   border-top: 1px solid var(--paper-edge);
 }
