@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { getPendingTopics } from '@/lib/pending'
+import { fileWhatTheBedIsSureOf } from '@/lib/filing'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
 
@@ -51,8 +52,27 @@ export async function PATCH(req: Request) {
   if (action === 'confirm') {
     const { error } = await db.from('topics').update({ state: 'active' }).eq('id', topicId)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    // `commit_ingestion` refuses to file a pending topic -- it must not
+    // be filed anywhere until the question about it is settled -- and
+    // this is what settles it. The deferred filing never happened, so
+    // every topic kept from the inbox landed in loose stock with its
+    // edges already drawn, which is the shape the bed was showing: a
+    // pale node joined five times to a coloured hull and belonging to
+    // nothing. The bed is asked now, on the same bar ingestion uses.
+    //
+    // Never fatal. The topic is confirmed either way; an unfiled one is
+    // on the loose sheet, which exists to list it and now says where it
+    // looks like it goes.
+    let filed: Array<{ topicId: string; subjectId: string }> = []
+    try {
+      filed = await fileWhatTheBedIsSureOf(db, [topicId])
+    } catch {
+      // Left loose, deliberately silently: the confirm succeeded.
+    }
+
     dropCache()
-    return NextResponse.json({ ok: true })
+    return NextResponse.json({ ok: true, filed: filed.length })
   }
 
   if (action === 'merge') {

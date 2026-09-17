@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { extractConcepts } from './llm/concepts'
 import { proposeEdges } from './llm/edges'
+import { fileWhatTheBedIsSureOf } from './filing'
 import { embed } from './embedding'
 import { resolveConcept, fetchCandidates, settleResolution } from './resolver'
 import {
@@ -46,6 +47,10 @@ export interface IngestResult {
   linked: number
   created: number
   pending: number
+  /** How many of the new topics the bed itself placed, once the edges
+   *  were drawn. Additive, and absent on the early returns that file
+   *  nothing at all. */
+  filedByBed?: number
   /** True when the document is only part read and the queue should
    *  bring it back. Nothing has been filed into the graph yet. */
   more?: boolean
@@ -248,6 +253,8 @@ export async function ingestResource(
     title: c.out_title,
   }))
 
+  let filedByBed = 0
+
   if (newTopicRefs.length > 0) {
     const edges = await proposeEdges(newTopicRefs, existingTopics ?? [])
     if (edges.length > 0) {
@@ -260,6 +267,25 @@ export async function ingestResource(
         created_by: 'ai' as const,
       })))
     }
+
+    // 5b. Now that the edges exist, the bed can be asked about anything
+    // still filed under nothing. It is the only reading that could not
+    // run in `commit_ingestion`: the evidence is drawn in the pass
+    // above, so at step 4 there was none. A resource whose concepts
+    // matched nothing by name used to leave every one of them loose
+    // however plainly they sat among a subject's topics -- five edges
+    // into one bed and no membership in it.
+    //
+    // Never fatal. A topic that stays loose is on a sheet that exists
+    // to list it; failing the whole ingestion for want of a filing
+    // would lose the reading itself.
+    try {
+      filedByBed = (await fileWhatTheBedIsSureOf(db, newTopicRefs.map((t: { id: string }) => t.id))).length
+    } catch (e) {
+      warnings.push(
+        `Filed nothing from the bed: ${e instanceof Error ? e.message : String(e)}`
+      )
+    }
   }
 
   // 6. Status stays 'queued'. Filing is not reading.
@@ -267,6 +293,7 @@ export async function ingestResource(
     linked: links.length,
     created: newTopics.length,
     pending: pendingCount,
+    filedByBed,
     ...(warnings.length ? { warnings } : {}),
   }
 }

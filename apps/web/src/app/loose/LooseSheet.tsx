@@ -4,9 +4,10 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { didactic } from '@didactic/api'
-import type { LooseTopic } from '@didactic/core/shapes'
+import type { LooseClaim, LooseTopic } from '@didactic/core/shapes'
 import { holdings, established } from '@didactic/core/adjudication'
 import { reckon, RECKONING_EMPTY } from '@didactic/core/loose'
+import { claimSentence } from '@didactic/core/filing'
 import { viabilityFigure } from '@didactic/core/scoring'
 import styles from './page.module.css'
 
@@ -112,6 +113,34 @@ export function LooseSheet({
     } else {
       setDone(gone => gone.filter(id => !ids.includes(id)))
       setError(failed ?? 'Could not throw them away.')
+    }
+    setBusy(null)
+  }
+
+  /**
+   * File one topic where the bed says it goes.
+   *
+   * The same call the bulk control makes, on one row, so it carries the
+   * same caveat: filing does not work out what the topic sits under,
+   * and the answer's note points at *Draw connections*. The press is
+   * here because the reasoning is here -- a reader who has just read
+   * "2 of its 3 neighbours sit in Personal Essays" should not have to
+   * tick a box and find the subject again in a list to act on it.
+   */
+  async function fileWhereItLooks(topic: LooseTopic, claim: LooseClaim) {
+    setBusy(topic.id)
+    setError(null)
+    setNote(null)
+    setDone(gone => [...gone, topic.id])
+
+    const { ok, body, error: failed } = await api.subjects.fileTopics(claim.subjectId, [topic.id])
+    if (ok) {
+      setPicked(ids => ids.filter(i => i !== topic.id))
+      setNote(`${topic.title} filed under ${claim.subjectTitle}. ${body.note}`)
+      startTransition(() => router.refresh())
+    } else {
+      setDone(gone => gone.filter(id => id !== topic.id))
+      setError(failed ?? `Could not file ${topic.title}.`)
     }
     setBusy(null)
   }
@@ -302,6 +331,39 @@ export function LooseSheet({
                       and {topic.evidence.resources - topic.evidence.sources.length} more
                     </li>
                   )}
+                </ul>
+              )}
+
+              {/* What the bed already knows, which nothing used to ask
+                  it. A topic's subjects are settled when it is made and
+                  its edges are drawn afterwards, so a topic can sit
+                  with several edges into one subject and no membership
+                  in it -- which is what the bed draws as a pale node
+                  hanging off a coloured hull. Above the bar in
+                  `config.FILING_SETTLED` a topic files itself and never
+                  reaches this sheet; what is printed here is the band
+                  below it, with the count rather than a verdict, so the
+                  reasoning is the thing being read. */}
+              {topic.nearby.length > 0 && (
+                <ul className={styles.claims}>
+                  {topic.nearby.map(claim => (
+                    <li key={claim.subjectId} className={styles.claim}>
+                      <span className={styles.claimSays}>
+                        {claimSentence(claim, claim.ofFiled)}{' '}
+                        <Link href={`/subjects/${claim.subjectId}`} className={styles.claimBed}>
+                          {claim.subjectTitle}
+                        </Link>
+                      </span>
+                      <button
+                        type="button"
+                        className={styles.claimAction}
+                        onClick={() => fileWhereItLooks(topic, claim)}
+                        disabled={busy !== null}
+                      >
+                        {busy === topic.id ? 'Filing…' : 'File it there'}
+                      </button>
+                    </li>
+                  ))}
                 </ul>
               )}
 

@@ -1,9 +1,10 @@
 import { cacheLife, cacheTag } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { LooseTopic } from '@didactic/core/shapes'
+import type { LooseClaim, LooseTopic } from '@didactic/core/shapes'
 import { tags } from '@didactic/core/tags'
 import { supabaseAdmin } from './supabase'
 import { EMPTY_EVIDENCE, gatherEvidence } from './evidence'
+import { claimsFor } from './filing'
 
 /**
  * Loose stock: every topic filed under no subject at all.
@@ -40,14 +41,42 @@ export async function readLooseStock(db: SupabaseClient): Promise<LooseTopic[]> 
   const loose = (topics ?? []).filter(t => !filed.has(t.id as string))
   if (loose.length === 0) return []
 
-  const [evidence, routed] = await Promise.all([
-    gatherEvidence(db, loose.map(t => t.id as string)),
+  const looseIds = loose.map(t => t.id as string)
+
+  const [evidence, routed, claims, { data: subjectRows }] = await Promise.all([
+    gatherEvidence(db, looseIds),
     // Which of them carry a route. `044` refuses to change the level of
     // a topic that does, so the sheet has to know before it offers to.
-    db.from('curricula').select('topic_id').in('topic_id', loose.map(t => t.id as string)),
+    db.from('curricula').select('topic_id').in('topic_id', looseIds),
+    // What the bed says about each one. The sheet only ever shows these
+    // and never acts on them: a claim the bed was sure about filed
+    // itself when the topic was made, so anything still loose is either
+    // under that bar or was taken out of a subject by hand -- and this
+    // sheet cannot tell those apart, which is exactly why it asks
+    // rather than files.
+    claimsFor(db, looseIds),
+    db.from('subjects').select('id, title'),
   ])
 
   const hasRoute = new Set((routed.data ?? []).map(r => r.topic_id as string))
+  const subjectTitle = new Map(
+    (subjectRows ?? []).map(s => [s.id as string, s.title as string])
+  )
+
+  const nearbyFor = (topicId: string): LooseClaim[] =>
+    (claims.get(topicId) ?? []).flatMap(claim => {
+      const title = subjectTitle.get(claim.subjectId)
+      if (!title) return []
+      return [{
+        subjectId: claim.subjectId,
+        subjectTitle: title,
+        agreeing: claim.agreeing,
+        // The share back as the two counts it came from. A sheet saying
+        // "0.67 of its neighbours" is a sheet nobody can check; "2 of
+        // its 3" is the same claim and is the reasoning itself.
+        ofFiled: Math.round(claim.agreeing / claim.share),
+      }]
+    })
 
   return loose.map(t => ({
     id: t.id as string,
@@ -56,6 +85,7 @@ export async function readLooseStock(db: SupabaseClient): Promise<LooseTopic[]> 
     ability: Number(t.ability),
     created_at: (t.created_at as string | null) ?? null,
     hasRoute: hasRoute.has(t.id as string),
+    nearby: nearbyFor(t.id as string),
     evidence: evidence.get(t.id as string) ?? EMPTY_EVIDENCE,
   }))
 }

@@ -171,12 +171,35 @@ export interface PendingTopic {
  * it says whether two topics are one thing, here it says what throwing
  * this one away would destroy.
  */
+/**
+ * Where the bed says a loose topic goes, from the subjects its
+ * neighbours sit in.
+ *
+ * Only claims the bed is *not* sure enough about reach a sheet: one
+ * over `config.FILING_SETTLED` files itself when the topic is made, so
+ * a topic carrying one is not loose to begin with. What is left is the
+ * band worth showing and not worth acting on, which is why the counts
+ * are carried rather than a verdict -- "2 of its 3" is the reasoning,
+ * and the reader is the one deciding.
+ */
+export interface LooseClaim {
+  subjectId: string
+  subjectTitle: string
+  /** How many of its neighbours sit in this subject. */
+  agreeing: number
+  /** How many of its neighbours are filed anywhere at all. */
+  ofFiled: number
+}
+
 export interface LooseTopic {
   id: string
   title: string
   summary: string | null
   ability: number
   created_at: string | null
+  /** What the bed says, strongest first; empty where it says nothing.
+   *  Additive. */
+  nearby: LooseClaim[]
   /** Whether a curriculum runs through it. A topic carrying a route
    *  cannot be promoted or demoted (`044`), so the sheet has to know
    *  before it offers to. */

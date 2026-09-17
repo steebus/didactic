@@ -116,6 +116,46 @@ export const config = {
     applied: 1.0,
   },
 
+  // How many of a loose topic's neighbours must sit in one subject
+  // before the topic files itself there, and how much of what it
+  // touches they have to be.
+  //
+  // A topic's subjects are settled when it is made and never revisited,
+  // and its edges are drawn in a pass after that, so the bed holds
+  // evidence nothing ever reads: a topic with five edges into one
+  // subject and no membership in it. This is the bar for acting on that
+  // evidence unasked.
+  //
+  // Measured on the real bed rather than assumed -- 108 active topics,
+  // 23 of them filed under nothing:
+  //
+  //   5 agreeing   Price-to-Earnings Ratio, Value Investing     both right
+  //   2 agreeing   thirteen topics, twelve of them right
+  //                (Data Science -> Web Development is not)
+  //   1 agreeing   seven topics, two of them wrong
+  //                (Statistics, Database Normalization)
+  //
+  // The errors are all one shape: a broad topic that is genuinely its
+  // own subject and merely adjacent to this one. They stop at three.
+  // Three separate topics in one subject is a cluster; two is a pair of
+  // edges, which is what a neighbouring subject looks like from
+  // outside.
+  //
+  // The bar is set where the errors stop rather than where most of the
+  // filing is, because the two mistakes do not cost the same. A topic
+  // left loose is sitting on a sheet that exists to list it, asking to
+  // be filed. A topic filed wrongly is quiet, and it is quiet inside a
+  // bed somebody trusts. Below the bar the claim is printed with its
+  // count and waits to be pressed, which costs one press and cannot be
+  // wrong.
+  FILING_SETTLED: 3,
+
+  // Of the neighbours filed anywhere, the share that must agree. Inert
+  // on this bed, where every loose topic's neighbours sat in one
+  // subject and the share was 1.00 throughout. It is what will keep a
+  // topic bridging two subjects out of whichever has one more edge.
+  FILING_SHARE: 0.6,
+
   // You cannot read your way to expert.
   CONSUMPTION_CEILING: 3.5,
 

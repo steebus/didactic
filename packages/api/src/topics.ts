@@ -112,6 +112,13 @@ export const topics = (api: Api) => ({
     api.post<Demoted>(`/api/topics/${id}/demote`, { intoTopicId }),
 
   pending: () => api.get<{ pending: PendingTopic[] }>('/api/topics/pending'),
+  /**
+   * `filed` rides along on a `confirm`: how many subjects the kept topic
+   * was filed under from the bed it sits in. `commit_ingestion` refuses
+   * to file a pending topic and this is what settles it, so the filing
+   * it deferred happens here. Additive, and `0` is the ordinary answer
+   * rather than a failure.
+   */
   decide: (topicId: string, action: PendingAction, mergeInto?: string) =>
-    api.patch<{ ok: true }>('/api/topics/pending', { topicId, action, mergeInto }),
+    api.patch<{ ok: true; filed?: number }>('/api/topics/pending', { topicId, action, mergeInto }),
 })

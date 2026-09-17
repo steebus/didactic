@@ -387,6 +387,67 @@
   color: var(--ink-faint);
 }
 
+/* What the bed says about where a row goes.
+   Set as an aside to the row rather than as another control on it: this
+   is the sheet answering a question nobody asked, and it should read
+   like a note in the margin of the entry, not like a third option
+   competing with *Make it a subject*. The rule down the left is the
+   quoted-passage idiom this world already uses for something the app is
+   reporting rather than asserting. */
+.claims {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0 0 0 var(--space-3);
+  border-left: 1px solid var(--rule);
+  display: grid;
+  gap: var(--space-1);
+}
+
+.claim {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+}
+
+.claimSays {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+/* The bed it points at is a place, so it is a link. */
+.claimBed {
+  font-style: normal;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.claimAction {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--plate-green);
+  background: none;
+  border: none;
+  border-bottom: 1px solid currentColor;
+  border-radius: 0;
+  padding: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.claimAction:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+.claimAction:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
 .rowActions {
   display: flex;
   align-items: center;
