@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "apps/web/src/components/blocks/blocks.module.css"
+        ],
+        "createdAt": "2026-09-17T00:57:53.020Z",
+        "reason": "DESIGN.md specifies the left tab for this app's plate language in five places: L499 a plate's 3px left rule, L1050 the check accent's 2px, L1062 the flow step's 3px tab, L1590 a marked passage, L1682 an open entry. Carried forward unchanged from the previous .flowBox; not introduced here."
+      }
+    ]
+  }
+}

@@ -5,6 +5,7 @@ node_modules/
 *.tsbuildinfo
 .turbo/
 apps/web/.impeccable/hook.cache.json
+.impeccable/hook.cache.json
 apps/web/.impeccable/config.local.json
 apps/web/.impeccable/review/
 .playwright-mcp/
