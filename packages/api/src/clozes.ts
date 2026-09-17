@@ -27,6 +27,9 @@ export interface SownClozes {
   /** True when the lesson was already tended and nothing was asked of
    *  the model. The ordinary answer on a second visit. */
   already: boolean
+  /** Why a reading planted nothing, where it planted nothing. Null when
+   *  cards were planted and the count says it. */
+  note?: string | null
 }
 
 export interface NewCloze {
@@ -130,12 +133,22 @@ export const clozes = (api: Api) => {
       if (!sown.ok) return { ...sown, body: { ...sown.body, said: '' } }
 
       const cards = sown.body.concepts.reduce((n, c) => n + c.clozes, 0)
+
+      // A reading that planted nothing says why, in the words the
+      // reading itself came back with. It used to assert a reason --
+      // "already asked every way it can be" -- that the app had no way
+      // of knowing: the same sentence was printed whether the model
+      // found no concepts, wrote cards that every rule refused, or had
+      // its rows turned down by the database, and those want opposite
+      // fixes. The fallbacks below are what is said when a reading
+      // somehow comes back with nothing to say for itself.
       const said = sown.body.already
         ? 'Already in the garden.'
         : cards === 0
-          ? more
-            ? 'Nothing new to ask — this lesson is already asked every way it can be.'
-            : 'Nothing in this lesson could be asked back.'
+          ? (sown.body.note ??
+            (more
+              ? 'Nothing new could be asked of this lesson.'
+              : 'Nothing in this lesson could be asked back.'))
           : `${sown.body.concepts.length} ${
               sown.body.concepts.length === 1 ? 'concept' : 'concepts'
             } tracked, ${cards} ${cards === 1 ? 'card' : 'cards'} planted.`

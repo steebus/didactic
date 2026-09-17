@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Cloze, ClozeCard, ClozeCount } from '@didactic/core/clozes'
 import { cardFront, memoryColumns, memoryOf, shuffled } from '@didactic/core/clozes'
 import { freshMemory, review, type Rating } from '@didactic/core/fsrs'
-import { proposeClozes, type ProposedCard } from './llm/clozes'
+import { proposeClozes, readingNote, type ProposedCard } from './llm/clozes'
 
 /**
  * The garden: what is planted when a lesson is worked, and what is
@@ -76,6 +76,19 @@ export interface Sown {
   /** Said when the lesson was already tended and nothing was asked of
    *  the model. The ordinary case on a second visit. */
   already: boolean
+  /**
+   * Why a reading planted nothing, where it planted nothing.
+   *
+   * A reading that comes to nothing has several quite different causes
+   * and they want opposite fixes: the model found no concepts, it wrote
+   * cards that every rule refused, they were all already asked, or the
+   * database would not take them. All four used to arrive at the reader
+   * as one sentence -- "already asked every way it can be" -- which the
+   * app had no way of knowing and which was, on the reading that
+   * prompted this, false. Null when cards were planted and there is
+   * nothing to explain.
+   */
+  note?: string | null
 }
 
 /**
@@ -214,9 +227,11 @@ export async function sowClozes(
     cardFront(card, '…')
   )
 
-  const proposed = await proposeClozes(lesson.title, lesson.body, fronts)
+  const { concepts: proposed, report } = await proposeClozes(lesson.title, lesson.body, fronts)
 
   const now = new Date()
+  /** What the database would not take, said in its own words. */
+  const refused: string[] = []
   const written: Sown['concepts'] = []
   const byName = new Map(
     (standing ?? []).map(c => [String(c.name).trim().toLowerCase(), c.id as string])
@@ -240,7 +255,13 @@ export async function sowClozes(
         })
         .select('id')
         .single()
-      if (error || !row) continue
+      if (error || !row) {
+        // Said rather than skipped. A concept the database refuses is
+        // every one of its cards lost, and it used to leave no trace at
+        // all -- the reading simply came back smaller than it was.
+        refused.push(`the concept "${concept.name}" (${error?.message ?? 'no row came back'})`)
+        continue
+      }
       conceptId = row.id as string
       byName.set(concept.name.trim().toLowerCase(), conceptId)
     }
@@ -255,11 +276,29 @@ export async function sowClozes(
       ...memoryColumns(freshMemory(now)),
     }))
 
-    const { data: planted } = await db.from('clozes').insert(rows).select('id')
+    // The error was discarded here, and a refused batch was reported as
+    // a concept with nought cards under it -- which reads, at the other
+    // end, exactly like a lesson with nothing left to ask. A row that
+    // fails `clozes_shape` takes its whole batch with it, so this is
+    // the difference between "nothing to ask" and "nine cards the
+    // database would not have".
+    const { data: planted, error: refusal } = await db.from('clozes').insert(rows).select('id')
+    if (refusal) refused.push(`${rows.length} under "${concept.name}" (${refusal.message})`)
     written.push({ id: conceptId, name: concept.name, clozes: planted?.length ?? 0 })
   }
 
-  return { concepts: written, total: await countFor(db, userId, lessonId), already: false }
+  const cards = written.reduce((n, c) => n + c.clozes, 0)
+
+  return {
+    concepts: written,
+    total: await countFor(db, userId, lessonId),
+    already: false,
+    // Only where the reading came to nothing: a reading that planted
+    // cards has said what it did by planting them.
+    note: cards > 0 ? null : refused.length
+      ? `The database refused ${refused.join('; ')}.`
+      : readingNote(report),
+  }
 }
 
 async function countFor(db: SupabaseClient, userId: string, lessonId: string) {

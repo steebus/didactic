@@ -112,6 +112,67 @@ export interface ProposedConcept {
   cards: ProposedCard[]
 }
 
+/**
+ * What a reading came to, for when it came to nothing.
+ *
+ * A reading that plants no cards has several quite different causes --
+ * the model wrote nothing, it wrote cards that every rule refused, or
+ * it wrote good cards that were all already asked -- and they want
+ * opposite fixes. Without this they are one silent outcome and the
+ * reader is told the lesson is "already asked every way it can be",
+ * which the app has no way of knowing and which was, on the reading
+ * that prompted this, not true.
+ */
+export interface VerifyReport {
+  /** Concepts the model named. */
+  concepts: number
+  /** Cards it wrote under them, before any rule was applied. */
+  wrote: number
+  /** Cards refused, and the count against each reason. */
+  dropped: number
+  why: Record<string, number>
+  /** Concepts lost whole because too few of their cards survived. */
+  starved: string[]
+}
+
+export const emptyReport = (): VerifyReport => ({
+  concepts: 0,
+  wrote: 0,
+  dropped: 0,
+  why: {},
+  starved: [],
+})
+
+/**
+ * What a reading came to, in a sentence, or null where it came to
+ * cards and needs no explaining.
+ *
+ * Written here rather than where it is printed because it is a fact
+ * about the reading, not about any one sheet -- and because the phone
+ * will want the same sentence.
+ */
+export function readingNote(report: VerifyReport): string | null {
+  if (report.concepts === 0) {
+    return 'The model found nothing in this lesson worth asking back.'
+  }
+  const reasons = Object.entries(report.why)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([reason, n]) => `${n} ${n === 1 ? 'was' : 'were'} refused because ${reason}`)
+
+  const starved = report.starved.length
+    ? ` ${report.starved.length} ${
+        report.starved.length === 1 ? 'concept' : 'concepts'
+      } went with them, for want of a second way to ask.`
+    : ''
+
+  return `The model wrote ${report.wrote} ${
+    report.wrote === 1 ? 'card' : 'cards'
+  } for ${report.concepts} ${report.concepts === 1 ? 'concept' : 'concepts'}, and ${
+    reasons.length ? reasons.join('; ') : 'none of them held together'
+  }.${starved}`
+}
+
 const TOOL = {
   name: 'record_cards',
   description:
@@ -237,7 +298,7 @@ export async function proposeClozes(
   title: string,
   body: string,
   standing: string[] = []
-): Promise<ProposedConcept[]> {
+): Promise<{ concepts: ProposedConcept[]; report: VerifyReport }> {
   const already = standing.slice(0, SEEN_SHOWN)
   const avoid = already.length
     ? `\n\nThis lesson already has these cards. Write cards that ask about something they do not, or ask the same thing from a genuinely different direction. Do not restate any of them:\n${already
@@ -269,7 +330,8 @@ ${body.slice(0, MAX_CHARS)}`,
   }
 
   const { concepts } = tool.input as { concepts: ProposedConcept[] }
-  return verify(concepts ?? [], body, standing)
+  const report = emptyReport()
+  return { concepts: verify(concepts ?? [], body, standing, report), report }
 }
 
 /**
@@ -292,11 +354,32 @@ ${body.slice(0, MAX_CHARS)}`,
 export function verify(
   concepts: ProposedConcept[],
   body: string,
-  standing: string[] = []
+  standing: string[] = [],
+  /**
+   * Where the reasons go, when the caller wants them.
+   *
+   * Every rule in here drops a card silently, which is right for the
+   * card and wrong for the lesson: a reading where every card fails one
+   * of these is indistinguishable, from outside, from a reading where
+   * the model wrote nothing at all -- and the two want opposite fixes.
+   * Optional, so nothing that only wants the cards has to hold a
+   * bucket.
+   */
+  report?: VerifyReport
 ): ProposedConcept[] {
   const flat = collapse(body)
+  const threw = (reason: string) => {
+    if (!report) return
+    report.dropped++
+    report.why[reason] = (report.why[reason] ?? 0) + 1
+  }
   const seen = new Set(standing.map(front => cardKey(front)).filter(Boolean))
   const kept: ProposedConcept[] = []
+
+  if (report) {
+    report.wrote = concepts.reduce((n, c) => n + (c?.cards?.length ?? 0), 0)
+    report.concepts = concepts.length
+  }
 
   for (const concept of concepts.slice(0, CONCEPTS_MAX)) {
     if (!concept?.name?.trim()) continue
@@ -304,12 +387,19 @@ export function verify(
     const cards: ProposedCard[] = []
     for (const proposed of concept.cards ?? []) {
       const card = tidy(proposed)
-      if (!card) continue
+      if (!card) {
+        threw('not a card at all')
+        continue
+      }
 
       // The same judgement a card made by hand is held to, from the
       // same function in the shared package, rather than a second
       // opinion written here that could come to disagree with it.
-      if (cardProblem(asShape(card))) continue
+      const problem = cardProblem(asShape(card))
+      if (problem) {
+        threw(problem)
+        continue
+      }
 
       // Nothing on the face of this card may hand over its back. The
       // brief says so and this is what makes it true: a crib is graded
@@ -323,21 +413,33 @@ export function verify(
       if (card.kind !== 'truefalse') {
         const front = cardFront(asShape(card))
         const back = cardBack(asShape(card))
-        if (givesAway(front, back)) continue
-        if (givesAway(concept.name ?? '', back)) continue
+        if (givesAway(front, back)) {
+          threw('the card gives its own answer away')
+          continue
+        }
+        if (givesAway(concept.name ?? '', back)) {
+          threw(`the concept name "${concept.name}" gives the answer away`)
+          continue
+        }
         if (card.hint && givesAway(card.hint, back)) delete card.hint
       }
 
       // A blank the model chose is held to the tighter number: this is
       // where the standard is set, and a four-word blank generated by
       // the thousand is how the old cards got to eight.
-      if (card.kind === 'cloze' && words(card.blank ?? '') > BLANK_WORDS_GENERATED) continue
+      if (card.kind === 'cloze' && words(card.blank ?? '') > BLANK_WORDS_GENERATED) {
+        threw('the blank is longer than a term')
+        continue
+      }
 
       // The same question asked twice is one card — across the whole
       // lesson, not merely within one concept, and counting what was
       // already standing before this call.
       const key = cardKey(cardFront(asShape(card)))
-      if (!key || seen.has(key)) continue
+      if (!key || seen.has(key)) {
+        threw('already asked here')
+        continue
+      }
       seen.add(key)
 
       // Quoted, not composed. The card survives a failed anchor; only
@@ -352,7 +454,14 @@ export function verify(
     // A concept with one card is a phrasing memorised. Either it can be
     // asked more than one way or it is not a concept this lesson taught
     // well enough to test.
-    if (cards.length < CARDS_PER_CONCEPT_MIN) continue
+    if (cards.length < CARDS_PER_CONCEPT_MIN) {
+      // Counted apart from the cards themselves: this is the rule that
+      // turns a handful of rejected cards into a whole concept lost,
+      // and a reading that fails entirely usually fails here rather
+      // than because nothing was written.
+      if (report) report.starved.push(concept.name.trim())
+      continue
+    }
 
     kept.push({
       name: concept.name.trim(),

@@ -373,3 +373,76 @@ describe('ratingWord', () => {
     expect(ratingWord(EASY)).toBe('easy')
   })
 })
+
+/**
+ * Why a reading came to nothing.
+ *
+ * Every rule in `verify` drops a card silently, which is right for the
+ * card and wrong for the lesson: a reading where the model wrote twelve
+ * cards and every one was refused is indistinguishable, from outside,
+ * from a reading where it wrote none — and the two want opposite fixes.
+ * The reader was told "this lesson is already asked every way it can
+ * be" for both, which the app had no way of knowing.
+ */
+describe('what a reading says for itself', () => {
+  const BODY =
+    'The preload scanner runs ahead of the main parser. ' +
+    'A font declared only inside a CSS file is invisible to it.'
+
+  it('counts what was written and names why it went', async () => {
+    const { verify, emptyReport, readingNote } = await import('@/lib/llm/clozes')
+    const report = emptyReport()
+
+    const kept = verify(
+      [
+        {
+          name: 'The preload scanner',
+          gist: 'Runs ahead of the parser.',
+          cards: [
+            // Answer sitting in its own question.
+            { kind: 'qa', question: 'What is the preload scanner?', answer: 'the preload scanner' },
+            // A blank that is a clause rather than a term.
+            {
+              kind: 'cloze',
+              text: 'The preload scanner runs ahead of the main parser.',
+              blank: 'runs ahead of the main parser',
+            },
+          ],
+        },
+      ],
+      BODY,
+      [],
+      report
+    )
+
+    expect(kept).toHaveLength(0)
+    expect(report.concepts).toBe(1)
+    expect(report.wrote).toBe(2)
+    expect(report.dropped).toBe(2)
+    // The concept went with its cards, which is the rule that turns a
+    // couple of refusals into a reading that plants nothing.
+    expect(report.starved).toEqual(['The preload scanner'])
+
+    const said = readingNote(report)
+    expect(said).toContain('2 cards')
+    expect(said).toContain('1 concept')
+    expect(said).not.toMatch(/already asked every way/)
+  })
+
+  it('says plainly when the model named no concepts at all', async () => {
+    const { verify, emptyReport, readingNote } = await import('@/lib/llm/clozes')
+    const report = emptyReport()
+
+    expect(verify([], BODY, [], report)).toHaveLength(0)
+    expect(readingNote(report)).toBe(
+      'The model found nothing in this lesson worth asking back.'
+    )
+  })
+
+  it('still answers nothing at all when it is not asked for a reason', async () => {
+    const { verify } = await import('@/lib/llm/clozes')
+    // Every existing caller passes three arguments and must go on
+    // getting exactly the cards back.
+    expect(verify([], BODY, [])).toEqual([])
+  })
+})
