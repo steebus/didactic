@@ -10,6 +10,7 @@ import { useLabour, DRAWINGS } from '@/components/useLabour'
 import { useOpenBed } from '@/components/useOpenBed'
 import { routeProgress, ROUTE_LABEL } from '@didactic/core/progress'
 import { orderSubjectOutline } from '@didactic/core/outline'
+import { grubbingOut } from '@didactic/core/adjudication'
 import type { SubjectTopicRow, TopicTreeNode } from '@didactic/core/subject'
 import styles from './page.module.css'
 
@@ -180,6 +181,35 @@ export function SubjectBed({
     }
   }
 
+  /**
+   * Grub a topic out from the bed it sits in.
+   *
+   * The sibling of `remove`, and the opposite of it. Taking a topic out
+   * of a subject leaves it standing as loose stock with everything it
+   * holds; this destroys it. They have looked like one action for as
+   * long as both have existed -- the bed offered *Remove*, which reads
+   * as a delete and is not one, and the actual delete lived only on the
+   * graph canvas and on the loose sheet.
+   *
+   * The reckoning is read from the topic itself rather than from the
+   * row: the bed carries resources and lessons but not marks or
+   * readings, and the two things the reader most needs told are that
+   * their marked passages survive and their reading log does not.
+   */
+  async function grub(topic: SubjectTopicRow) {
+    setError(null)
+    setNote(null)
+    try {
+      const { ok, error: failed } = await api.topics.remove(topic.id)
+      if (!ok) throw new Error(failed ?? 'Could not grub that out.')
+
+      setNote(`"${topic.title}" is off the map, with its routes and lessons.`)
+      startTransition(() => router.refresh())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong.')
+    }
+  }
+
   async function remove(topic: SubjectTopicRow) {
     setError(null)
     setNote(null)
@@ -286,6 +316,7 @@ export function SubjectBed({
               colour={colour}
               editing={editing}
               onRemove={remove}
+              onGrub={grub}
             />
           ))}
         </ul>
@@ -385,13 +416,19 @@ function TreeRow({
   colour,
   editing,
   onRemove,
+  onGrub,
 }: {
   node: TopicTreeNode
   depth: number
   colour: string
   editing: boolean
   onRemove: (topic: SubjectTopicRow) => void
+  onGrub: (topic: SubjectTopicRow) => void
 }) {
+  // Asked per row rather than per sheet: the second press has to be
+  // next to the name it destroys, or it is a confirmation of nothing in
+  // particular.
+  const [asked, setAsked] = useState(false)
   const { topic } = node
   const state = stockState(topic.freshness, topic.last_exposure_at)
   const vague = vagueFigure(topic.ability_confidence)
@@ -463,15 +500,54 @@ function TreeRow({
           <span className={styles.topicState}>{STOCK_LABEL[state]}</span>
         </div>
 
-        {editing && (
-          <button
-            type="button"
-            className={styles.remove}
-            onClick={() => onRemove(topic)}
-            aria-label={`Remove ${topic.title} from this subject`}
-          >
-            Remove
-          </button>
+        {/* Two different acts that have always looked like one. Taking
+            it out of the bed leaves the topic standing as loose stock;
+            grubbing it out destroys it. They are worded apart and the
+            destroying one asks twice. */}
+        {editing && !asked && (
+          <span className={styles.rowActions}>
+            <button
+              type="button"
+              className={styles.remove}
+              onClick={() => onRemove(topic)}
+              aria-label={`Take ${topic.title} out of this subject`}
+            >
+              Take out
+            </button>
+            <button
+              type="button"
+              className={styles.grubRow}
+              onClick={() => setAsked(true)}
+              aria-label={`Grub out ${topic.title}`}
+            >
+              Grub out
+            </button>
+          </span>
+        )}
+
+        {editing && asked && (
+          <span className={styles.rowConfirm}>
+            <span className={styles.rowConfirmNote}>
+              {grubLine(topic)} This cannot be undone.
+            </span>
+            <button
+              type="button"
+              className={styles.remove}
+              onClick={() => setAsked(false)}
+            >
+              Leave it
+            </button>
+            <button
+              type="button"
+              className={styles.grubRowGo}
+              onClick={() => {
+                setAsked(false)
+                onGrub(topic)
+              }}
+            >
+              Grub it out
+            </button>
+          </span>
         )}
       </div>
 
@@ -548,10 +624,37 @@ function TreeRow({
               colour={colour}
               editing={editing}
               onRemove={onRemove}
+              onGrub={onGrub}
             />
           ))}
         </ul>
       )}
     </li>
   )
+}
+
+/**
+ * What grubbing this row out would take, from what the bed already has.
+ *
+ * The bed carries resources and lessons per topic but not marks or
+ * readings, and widening its query to print one sentence would be a
+ * join across every row of every bed for a line nobody reads until they
+ * are deleting something. What it can say, it says; the topic's own
+ * sheet says the rest, including the reassuring half.
+ */
+function grubLine(topic: SubjectTopicRow): string {
+  const lessons = topic.curricula.reduce((n, c) => n + c.total, 0)
+  const { takes } = grubbingOut({
+    subjects: [],
+    sources: [],
+    resources: topic.resources.length,
+    lessons,
+    marks: 0,
+    exposures: 0,
+  })
+
+  if (takes.length === 0) {
+    return `Takes “${topic.title}” off the map, with its reading log.`
+  }
+  return `Takes ${takes.join(', ')}, and its reading log.`
 }

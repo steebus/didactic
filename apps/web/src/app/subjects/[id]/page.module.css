@@ -1013,3 +1013,74 @@
   color: var(--plate-terracotta);
   margin: var(--space-2) 0 0;
 }
+
+/* ------------------------------------- taking out vs grubbing out */
+
+/* Two acts that have always looked like one. `Take out` unfiles and is
+   the ordinary one; `Grub out` destroys and is set in the terracotta
+   the catalogue reserves for a decision that cannot be undone. */
+
+.rowActions {
+  display: flex;
+  gap: var(--space-3);
+  align-self: start;
+  margin-top: var(--space-1);
+}
+
+.grubRow {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  padding: 0 0 2px;
+  cursor: pointer;
+}
+
+.grubRow:hover {
+  color: var(--plate-terracotta);
+  border-bottom-color: var(--plate-terracotta);
+}
+
+/* Asked. The note has to sit with the name it names, so the whole
+   confirmation wraps onto the row rather than replacing it. */
+.rowConfirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-3);
+  align-self: start;
+  margin-top: var(--space-1);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--plate-terracotta);
+  max-width: 44ch;
+}
+
+.rowConfirmNote {
+  font-size: var(--step--1);
+  line-height: 1.4;
+  color: var(--ink-soft);
+  flex-basis: 100%;
+}
+
+.grubRowGo {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--plate-terracotta);
+  background: none;
+  border: 1px solid var(--plate-terracotta);
+  border-radius: 0;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+}
+
+.grubRowGo:hover {
+  background: var(--plate-terracotta);
+  color: var(--paper);
+}

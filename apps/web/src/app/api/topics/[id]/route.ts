@@ -30,6 +30,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     { data: edges },
     { data: memberships },
     { data: curricula },
+    { data: marks },
   ] = await Promise.all([
     db.from('topics').select('*').eq('id', id).single(),
     db.from('exposures').select('*').eq('topic_id', id).order('created_at', { ascending: false }),
@@ -38,6 +39,11 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       .or(`from_topic.eq.${id},to_topic.eq.${id}`),
     db.from('topic_subjects').select('subjects(id, title, colour)').eq('topic_id', id),
     db.from('curricula').select('*').eq('topic_id', id).order('created_at', { ascending: false }),
+    // Marks are counted, never listed, and only so a delete can say
+    // they survive it. A mark outlives the topic it was taken in (022),
+    // which is the one thing a reader about to grub one out wants to
+    // know and the one thing they cannot infer.
+    db.from('highlights').select('id').eq('topic_id', id),
   ])
 
   if (!topic) return NextResponse.json({ error: 'not found' }, { status: 404 })
@@ -68,6 +74,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     subjects: (memberships ?? []).flatMap(m => m.subjects ?? []),
     nearby,
     exposures: exposures ?? [],
+    marks: (marks ?? []).length,
     resources: resources ?? [],
     edges: edges ?? [],
     curricula: (curricula ?? []).map(c => {

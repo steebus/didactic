@@ -33,6 +33,11 @@ export interface TopicDetail {
   nearby: LooseClaim[]
   subjects: Array<Pick<Subject, 'id' | 'title' | 'colour'>>
   exposures: Exposure[]
+  /** How many marked passages name this topic. Counted rather than
+   *  listed: the only caller is a delete confirmation saying they
+   *  survive it (022). Additive — a client that has never heard of it
+   *  reads the same topic it always did. */
+  marks?: number
   resources: Array<{ relevance: number; resources: Resource }>
   edges: Array<{ from_topic: string; to_topic: string; kind: string; weight: number }>
   curricula: Array<Curriculum & { lessonCount: number; completedCount: number }>

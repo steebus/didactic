@@ -169,3 +169,48 @@ export function arrived(at: string, now: Date = new Date()): string {
   ]
   return `${then.getDate()} ${MONTHS[then.getMonth()]}`
 }
+
+/**
+ * What grubbing out one topic takes with it, and what it leaves.
+ *
+ * Both halves, because the anxiety of this press is never "will it go"
+ * but "does my reading go with it". The answer is not obvious and is
+ * not uniform: a topic takes its routes and their lessons by cascade
+ * (014), and the cards cut from those lessons follow them down (035) --
+ * but a mark is something the reader wrote and deliberately outlives
+ * the topic it was taken in (022), and the material stays in the
+ * library, filed against one topic fewer.
+ *
+ * Here rather than in the sheet because three surfaces ask it -- the
+ * subject bed, the topic's own sheet, and the phone after them -- and a
+ * warning that counted differently in two places would be two accounts
+ * of the same loss.
+ */
+export function grubbingOut(evidence: TopicEvidence): { takes: string[]; keeps: string[] } {
+  const takes: string[] = []
+  const keeps: string[] = []
+
+  if (evidence.lessons > 0) {
+    takes.push(
+      `${evidence.lessons} ${evidence.lessons === 1 ? 'lesson' : 'lessons'}, the route through them, and any cards cut from them`
+    )
+  }
+  if (evidence.exposures > 0) {
+    takes.push(
+      `${evidence.exposures} recorded ${evidence.exposures === 1 ? 'reading' : 'readings'} — the working behind a figure that will no longer exist`
+    )
+  }
+
+  if (evidence.marks > 0) {
+    keeps.push(
+      `${evidence.marks} marked ${evidence.marks === 1 ? 'passage' : 'passages'} — kept on the Marked sheet, no longer filed under a topic`
+    )
+  }
+  if (evidence.resources > 0) {
+    keeps.push(
+      `${evidence.resources} ${evidence.resources === 1 ? 'piece' : 'pieces'} of material — kept in the Library`
+    )
+  }
+
+  return { takes, keeps }
+}

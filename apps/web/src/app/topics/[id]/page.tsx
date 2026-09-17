@@ -9,6 +9,7 @@ import { DraftCurriculum } from './DraftCurriculum'
 import { LessonList } from './LessonList'
 import { FiledUnder } from './FiledUnder'
 import { ChangeLevel } from './ChangeLevel'
+import { GrubOut } from './GrubOut'
 import { FigureRecord } from './FigureRecord'
 import { AddResource } from '@/components/AddResource'
 import { SheetNav } from '@/components/SheetNav'
@@ -302,6 +303,25 @@ export default async function TopicPage({
               topicTitle={topic.title}
               hasRoute={curricula.length > 0}
               routeId={route?.id ?? null}
+              evidence={{
+                subjects: subjects.map(s => ({ id: s.id, title: s.title })),
+                sources: resources.slice(0, 3).map(r => r.resource.title),
+                resources: resources.length,
+                lessons: curricula.reduce((n, c) => n + c.total, 0),
+                marks: highlights.length,
+                exposures: area.record.filter(e => e.kind === 'exposure').length,
+              }}
+            />
+
+            {/* Last on the sheet, past everything the topic holds.
+                Grubbing one out is the rarest thing done here and the
+                only one that cannot be undone, so it sits below the
+                reading rather than beside it. */}
+            <GrubOut
+              topicId={topic.id}
+              topicTitle={topic.title}
+              routes={curricula.length}
+              backTo={subjects[0] ? `/subjects/${subjects[0].id}` : '/'}
               evidence={{
                 subjects: subjects.map(s => ({ id: s.id, title: s.title })),
                 sources: resources.slice(0, 3).map(r => r.resource.title),
