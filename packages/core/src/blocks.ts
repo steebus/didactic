@@ -186,9 +186,9 @@ export const BLOCKS: BlockSpec[] = [
   {
     name: 'picture',
     when:
-      'the thing has to be seen to be understood -- a diagram, a photograph of the object itself -- AND you know a real, stable https address for it. The picture is not copied or hosted here, only pointed at, so a guessed address is a blank space in the lesson: if you are not sure the address is real, write the paragraph instead',
+      'the thing has to be seen to be understood -- a diagram, a photograph of the object itself. Strongly prefer Wikimedia Commons, and when you do, give the FILE PAGE -- `https://commons.wikimedia.org/wiki/File:Name_of_the_file.svg` -- and not an `upload.wikimedia.org` address. The upload path contains the first characters of the MD5 of the file name, so it cannot be worked out from the name and you will get it wrong; the file page is looked up and turned into the real address before the lesson is saved. Give the file name as exactly as you can remember it, extension included. For anything that is not Wikimedia, only give an address you are confident is real and stable. Every address is checked when the lesson is written and a picture that cannot be found is removed, so a guess costs the lesson the figure: if you are not sure the picture exists, write the paragraph instead',
     example: `{
-  "url": "https://upload.wikimedia.org/wikipedia/commons/2/2c/Bean_seed_diagram.svg",
+  "url": "https://commons.wikimedia.org/wiki/File:Bean_seed_diagram.svg",
   "alt": "A bean seed cut lengthways, with the seed coat, cotyledon, plumule and radicle labelled",
   "caption": "The radicle is the first thing out, and the cotyledon is the packed lunch it lives on until there are leaves.",
   "source": "Wikimedia Commons"

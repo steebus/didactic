@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { generateLessonBody, ROUNDS_MAX } from '@/lib/llm/curriculum'
+import { settlePictures } from '@/lib/pictures'
 import { lessonsWithinReach } from '@/lib/curriculum'
 import { passagesForLesson, unsupportedCitations } from '@/lib/citations'
 import { revalidateTag } from 'next/cache'
@@ -232,10 +233,28 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   const round = roundsSoFar + 1
+
+  /* The pictures, settled before anyone reads them.
+     -----------------------------------------------------------------
+
+     Only on the round that finishes the lesson. `has_body` stays false
+     until then, so nothing reads a part-written body, and the text of
+     the last round is the whole lesson -- so one pass here covers every
+     picture in it, and a lesson written over five rounds does not ask
+     Commons the same question five times.
+
+     A picture that cannot be found anywhere is taken out rather than
+     left to fail in front of the reader: the block's own fallback is
+     for a link that dies later, which is a different thing from one
+     that was never alive. */
+  const pictures = written.finished
+    ? await settlePictures(written.text)
+    : { text: written.text, fixed: 0, dropped: 0 }
+
   const { error } = await db
     .from('lessons')
     .update({
-      body: written.text,
+      body: pictures.text,
       body_finished: written.finished,
       body_rounds: round,
     })
@@ -255,21 +274,36 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // rewriting the body to strip it risks breaking the sentence it sits
   // in, and it already prints as a stub at read time because
   // `resolveSource` refuses a page past the end of a document.
-  const unsupported = unsupportedCitations(written.text, passages)
+  const unsupported = unsupportedCitations(pictures.text, passages)
+
+  /* Said rather than swallowed. A figure the lesson asked for and did
+     not get is a small hole in it, and the writer is the one person who
+     can put a paragraph there instead. */
+  const notes = [
+    unsupported.length
+      ? `${unsupported.length} ${
+          unsupported.length === 1 ? 'citation points' : 'citations point'
+        } at a passage this lesson was not shown, and will print as unresolved.`
+      : null,
+    pictures.dropped
+      ? `${pictures.dropped} ${
+          pictures.dropped === 1 ? 'picture was' : 'pictures were'
+        } named at an address that does not exist, and ${
+          pictures.dropped === 1 ? 'was' : 'were'
+        } taken out.`
+      : null,
+  ].filter(Boolean)
 
   return NextResponse.json({
-    body: written.text,
+    // What was stored, not what was written: the pictures have been
+    // settled since, and the sheet should print the body the database
+    // has rather than the one the model handed over.
+    body: pictures.text,
     cached: false,
     done: written.finished,
     round,
-    words: words(written.text),
-    ...(unsupported.length
-      ? {
-          warning: `${unsupported.length} ${
-            unsupported.length === 1 ? 'citation points' : 'citations point'
-          } at a passage this lesson was not shown, and will print as unresolved.`,
-        }
-      : {}),
+    words: words(pictures.text),
+    ...(notes.length ? { warning: notes.join(' ') } : {}),
   })
 }
 

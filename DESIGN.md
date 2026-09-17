@@ -1120,14 +1120,31 @@ not say so is a figure most readers will read as a picture.
 
 **Rule — a picture is pointed at, never kept.** Nothing is uploaded, copied,
 cached or optimised: optimising it would mean fetching it through this app,
-which is hosting it by another name. Two consequences are designed for rather
-than hidden. The picture may not be there — a model cannot check a link — so a
-picture that will not load is not an error state: the block prints what the
-picture was of, keeps the caption that said the thing the picture was there to
-say, and links out for anyone who wants to try. And fetching it tells its host
-that somebody is reading; the request goes out `referrerPolicy="no-referrer"`,
-so the host learns that a browser asked, not which page asked. A picture with no
-`alt` is not drawn at all.
+which is hosting it by another name. Fetching it tells its host that somebody is
+reading, so the request goes out `referrerPolicy="no-referrer"` — the host
+learns that a browser asked, not which page asked. A picture with no `alt` is
+not drawn at all.
+
+**Rule — an address is resolved when the lesson is written, not trusted.** A
+`picture` address is written from a model's memory, and for Wikimedia — which is
+where nearly all of them come from — it is not something any model could get
+right: `upload.wikimedia.org/wikipedia/commons/3/3f/Name.svg` carries the first
+characters of the MD5 of the file name in the path. The model is asked for the
+Commons *file page* instead, which is a name rather than a hash, and the name is
+looked up before the lesson is saved. A file the model remembered as a PNG that
+is really an SVG is found too: the name is the part it knows.
+
+A picture that cannot be found under any name is **taken out** of the lesson,
+and the writer is told how many were. The block's fallback is for a link that
+dies later, which is a different thing from one that was never alive: a lesson
+should not ship a sentence about a picture nobody can see, and the one person
+who could have written a paragraph there instead is the one person who never
+found out.
+
+**Rule — a picture that dies later is not an error state.** The block prints
+what the picture was of, keeps the caption that said the thing the picture was
+there to say, and links out for anyone who wants to try. Resolution catches what
+was never there; nothing can catch what goes away afterwards.
 
 ### Marks
 

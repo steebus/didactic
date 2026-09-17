@@ -78,8 +78,14 @@ describe('the picture block', () => {
   it('points at the picture rather than copying it', () => {
     draw('picture', example('picture'))
     const img = picture()!
+    // The example is a Commons *file page* rather than an upload path:
+    // the upload path carries the MD5 shard of the file name, which is
+    // the one part of the address a model cannot work out. It is turned
+    // into the real address when the lesson is written -- see
+    // `lib/pictures.ts` -- so what a block carries by then is whatever
+    // Commons said. The renderer points at whatever it is given.
     expect(img.getAttribute('src')).toBe(
-      'https://upload.wikimedia.org/wikipedia/commons/2/2c/Bean_seed_diagram.svg'
+      'https://commons.wikimedia.org/wiki/File:Bean_seed_diagram.svg'
     )
     expect(img.getAttribute('alt')).toContain('bean seed')
     // The host learns that a browser asked, not which page asked.
