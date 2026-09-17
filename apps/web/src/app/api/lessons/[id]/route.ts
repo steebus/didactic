@@ -6,7 +6,6 @@ import type { ExposureDepth, LessonStage } from '@didactic/core/types'
 import { ownerId } from '@/lib/auth'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
-import { answeredIn } from '@/lib/answers'
 import { readLesson } from '@/lib/lesson'
 
 /**

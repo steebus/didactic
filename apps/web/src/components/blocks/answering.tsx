@@ -92,20 +92,58 @@ export function Answering({
 /**
  * What a question block needs to know about its own question.
  *
- * `already` is true where this question has been answered before this
- * session -- which is what decides whether the block may offer a boost
+ * `already` is true where this question was answered before the reader
+ * pressed -- which is what decides whether the block may offer a boost
  * or has to say the question is closed.
+ *
+ * Before the press, and that is the whole of this.
+ * -----------------------------------------------------------------
+ *
+ * It used to read the channel live: `key in answered`, evaluated at
+ * render. And the channel closes a question the moment it is pressed
+ * rather than when the server answers, deliberately, so that a second
+ * press while the reader is reading the explanation cannot pay twice.
+ * Those two are the bug. Pressing an answer put the key into
+ * `answered`, that re-rendered the block, and `already` was true by the
+ * time the block printed what the answer had been worth -- so every
+ * first answer to every question was met with *you have answered this
+ * one before, so it counts for nothing now*, which was not true and was
+ * the opposite of what had just happened. The boost was real and
+ * entered; only the sentence under it was wrong. Nothing in the record
+ * was ever affected, which is why this survived: the figures were
+ * right, and only the reader was misinformed.
+ *
+ * So the value is latched at the press. `atPress` holds what was true
+ * when the reader last answered, and the block's own answer arriving in
+ * the channel a moment later cannot come back as evidence that they had
+ * answered before.
+ *
+ * Asking again still works, and reads correctly the second time: the
+ * second press latches what is by then genuinely true, so it says the
+ * question is closed and sends nothing.
  */
 export function useQuestion(question: string | undefined) {
   const { answered, record } = useContext(Channel)
   const key = question ? questionKey(question) : null
+  const live = key !== null && key in answered
+
+  // Null until the reader has pressed, which is when the live reading
+  // is still the honest one.
+  const [atPress, setAtPress] = useState<boolean | null>(null)
 
   return {
-    already: key !== null && key in answered,
+    already: atPress ?? live,
     record: useCallback(
-      (correct: boolean) =>
-        question ? record(question, correct) : Promise.resolve({ counted: false, paid: false }),
-      [question, record]
+      (correct: boolean): Promise<AnswerOutcome> => {
+        setAtPress(live)
+        // A question already closed is not sent again. The server would
+        // refuse it anyway -- the unique index is what actually decides
+        // this -- but a request whose answer is known is a request not
+        // worth making.
+        if (live || !question) return Promise.resolve({ counted: false, paid: false })
+        return record(question, correct)
+      },
+      [live, question, record]
     ),
   }
 }

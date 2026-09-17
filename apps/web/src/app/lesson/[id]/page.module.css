@@ -233,7 +233,10 @@
   display: flex;
   align-items: baseline;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-5);
+  /* Deeper at the foot than at the head. The rows are aligned on their
+     baselines, so the name's descenders hang below the last baseline in
+     the band and even padding put them on the mustard rule. */
+  padding: var(--space-2) var(--space-5) var(--space-3);
   min-width: 0;
 }
 
@@ -249,13 +252,25 @@
   flex: none;
 }
 
-/* The lesson's name, in the display face but at reading size: it is the
-   same title, said in passing rather than announced. A `p` and not a
-   heading -- the sheet has one h1 and it is in the head. */
+/* The lesson's name, set as the head sets it.
+   -----------------------------------------------------------------
+
+   It was the display face at reading size on the rail's own axes --
+   `SOFT 25`, no `opsz` -- which is the same family cut two different
+   ways, and read as a second typeface rather than as the title said
+   again. The head's axes exactly, so a reader who scrolls past the
+   band and meets the rule recognises the name rather than reading a
+   new piece of furniture, and a step up in size so it carries the
+   weight of a title rather than sitting in the trail's register.
+
+   A `p` and not a heading: the sheet has one h1 and it is in the
+   head. */
 .railTitle {
   font-family: var(--font-display);
-  font-size: var(--step-0);
-  font-variation-settings: 'SOFT' 25, 'WONK' 1;
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 72;
+  letter-spacing: -0.01em;
+  line-height: 1.1;
   margin: 0;
   min-width: 0;
   /* A long title gives way rather than pushing the trail off the rail:
@@ -267,7 +282,7 @@
 
 @media (max-width: 48rem) {
   .railInner {
-    padding: var(--space-2) var(--space-4);
+    padding: var(--space-2) var(--space-4) var(--space-3);
   }
 }
 
@@ -284,14 +299,14 @@
    its fourteen lessons they are halfway through.
 
    So both, stacked, in the order they are asked in: where am I, then
-   what am I reading. The trail keeps the label register and the name
-   drops a step from the wide rail's, which is what buys the second line
-   without the band growing into the reading. */
+   what am I reading. The trail keeps the label register it has on the
+   wide rail and the name keeps its size, so the band is one line taller
+   here and says both things rather than one of them. */
 @media (max-width: 34rem) {
   .railInner {
     display: grid;
     gap: 2px;
-    padding: var(--space-2) var(--space-4);
+    padding: var(--space-2) var(--space-4) var(--space-3);
   }
 
   /* One line, whatever the trail measures: a rail two lines tall at one
@@ -327,8 +342,12 @@
     flex-shrink: 8;
   }
 
+  /* The wide rail's size, kept: the name is the thing this rail gained
+     on a phone, and setting it smaller here than on a desk would be
+     giving it back. The line it costs is paid for by the trail sitting
+     in the label register above it. */
   .railTitle {
-    font-size: var(--step--1);
+    font-size: var(--step-1);
   }
 }
 

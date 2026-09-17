@@ -1267,9 +1267,9 @@ for the top of the page.
 | The rail | The head's own plate — `--plate-green` on `--paper` — at the width of the sheet, under a `3px` `--plate-mustard` rule, which is the head's rule kept. |
 | What it carries | The trail, then the lesson's name. Nothing else. |
 | The trail | The label register at `--step--2`, `rgba(239,231,214,0.75)`. |
-| The name | `--font-display` at `--step-0` — the same title, said in passing rather than announced. A `p`, not a heading: the sheet has one `h1` and it is in the head. |
+| The name | `--font-display` at `--step-1` on the head's own axes (`SOFT 40, WONK 1, opsz 72`) — the same title, said in passing rather than announced. A `p`, not a heading: the sheet has one `h1` and it is in the head. |
 | Appearing | Opacity and a half-height slide through `--motion-travel`, over `--dur-state`. |
-| Narrow | Under `34rem` the two take a line each rather than sharing one: the trail on top in the label register, the name under it at `--step--1`. Each is kept to its own single line, the trail's steps clipping with an ellipsis. |
+| Narrow | Under `34rem` the two take a line each rather than sharing one: the trail on top in the label register, the name under it at the size it takes on the wide rail. Each is kept to its own single line, the trail's steps clipping with an ellipsis, the subject giving way before the topic. |
 
 **Rule — the rail is fixed, and the head is left alone.** The obvious
 construction is the head itself going sticky and collapsing, and it is the wrong
@@ -1300,6 +1300,15 @@ order they are asked in: *where am I*, then *what am I reading*. The name drops 
 step rather than the band growing into the reading, and neither line is allowed
 to wrap — a rail two lines deep at one topic and three at the next is furniture
 the reader cannot learn the shape of.
+
+**Rule — the name on the rail is the name in the head, set smaller.** Same
+family, same axes, one size step above the reading rather than the four the
+band takes. It was the display face on axes of the rail's own — `SOFT 25`, no
+`opsz` — which is one typeface cut two ways and reads as two, so the reader
+met a new piece of furniture where they should have recognised the title said
+again. The rail's foot is deeper than its head for the same sentence: the rows
+align on their baselines, so the name's descenders hang below the last baseline
+in the band and even padding sat them on the mustard rule.
 
 ---
 
