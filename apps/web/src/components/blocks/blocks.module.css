@@ -359,31 +359,81 @@
 
 /* --- A flow ------------------------------------------------------- */
 
-/* Boxes down the page with a rule between them, and a parting drawn as
-   two lanes side by side that come back together underneath. Drawn in
-   the sheet's own furniture rather than as a picture of a flowchart:
-   the lanes stack on a phone and it still reads as a flow. */
-.flow {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+/* Boxes joined by rules, at positions dagre worked out.
+
+   It used to be a flex column with the rules built out of
+   pseudo-elements on the boxes themselves -- no measuring, no library,
+   and the lanes stacked on a phone so it still read as a flow. The
+   reasoning was good and the drawing was not: a rule drawn on a box
+   cannot find its way to a box in another column whose position it
+   does not know, so the lines stopped short of what they pointed at,
+   gathered at the wrong middle, and where the lanes ran to different
+   depths they left an arrow falling out of a gap at nothing. A
+   flowchart whose lines do not meet its boxes is not a quieter
+   flowchart. See `Flow.tsx` for what replaced it.
+
+   Everything here is positioned off that layout, so the figure has an
+   exact width and height and nothing in it is in normal flow. */
+
+/* A drawn graph has a width below which it is a tangle, so on a narrow
+   sheet it scrolls -- the same answer `chart` gives, for the same
+   reason. It is the one thing on the sheet allowed to do that. */
+.flowWrap {
+  overflow-x: auto;
+  /* Room for the focus ring on a box at the very edge. */
+  padding: 3px;
+  margin: -3px;
 }
 
-.flowPart {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  /* So a lane inside a branch can be measured against its own column
-     rather than against the whole figure. */
-  width: 100%;
+.flow {
+  position: relative;
+  margin: 0 auto;
+}
+
+/* The rules, under the boxes.
+
+   One layer for the whole graph rather than a line per box: an edge
+   belongs to the pair it joins and not to either end of it, and drawn
+   here it can pass behind a box without being clipped by it. */
+.flowLines {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+}
+
+.flowLine {
+  fill: none;
+  stroke: var(--rule-strong);
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition:
+    stroke var(--dur-feedback) var(--ease-settle),
+    opacity var(--dur-feedback) var(--ease-settle);
+}
+
+/* Everything not on the held path stands back rather than disappearing:
+   the shape of the decision is the thing being read, and a flow that
+   drops half its boxes on a press is answering a question nobody asked.
+   The path is drawn in plum, the plate this app wears for a thing the
+   reader has picked out. */
+.flow[data-held] .flowLine {
+  opacity: 0.25;
+}
+
+.flow[data-held] .flowLine[data-lit] {
+  opacity: 1;
+  stroke: var(--plate-plum);
+  stroke-width: 1.5;
 }
 
 .flowBox {
-  /* Shrink to the words rather than ruling to the margin. A flow is
-     read as boxes joined by lines, and a box the width of the figure
-     reads as a paragraph with a rule on it. */
-  width: fit-content;
-  max-width: min(26rem, 100%);
+  position: absolute;
+  /* A button, so it is reachable by keyboard and says what it is; the
+     type is the sheet's, not the browser's. */
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
   padding: var(--space-2) var(--space-3);
   background: var(--paper);
   border: 1px solid var(--rule);
@@ -391,21 +441,53 @@
   border-left: 3px solid var(--plate-green);
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  text-align: left;
+  gap: 3px;
+  transition:
+    border-color var(--dur-feedback) var(--ease-settle),
+    opacity var(--dur-feedback) var(--ease-settle);
 }
 
 /* A step that parts is asking something. Stamped in the catalogue's
    colour for a decision, and cornered off so the shape says "a question
    is being asked here" before a word of it is read -- which is the one
    thing a flow has that prose does not. */
-.flowAsk {
+.flowBox[data-kind='ask'] {
   border-left-color: var(--plate-mustard);
-  border-top-right-radius: 0;
   background:
     linear-gradient(225deg, var(--paper-deep) 0 0.7rem, transparent 0.7rem),
     var(--paper);
-  padding-right: var(--space-4);
+}
+
+/* A branch that leaves the drawing names where it goes rather than
+   dragging a line across the page to get there. It is a destination
+   and not a step, so it is lettered like one. */
+.flowBox[data-kind='goes'] {
+  border-style: dashed;
+  border-left-style: solid;
+  border-left-color: var(--rule);
+  background: none;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.flowBox:hover {
+  border-color: var(--plate-plum);
+}
+
+.flow[data-held] .flowBox {
+  opacity: 0.4;
+}
+
+.flow[data-held] .flowBox[data-lit] {
+  opacity: 1;
+}
+
+/* The one that was pressed, said louder than the path it is on: a
+   reader who has picked a box out wants to see which one they picked. */
+.flowBox[data-held] {
+  border-color: var(--plate-plum);
+  border-left-color: var(--plate-plum);
+  box-shadow: 0 0 0 1px var(--plate-plum);
 }
 
 .flowText {
@@ -420,581 +502,44 @@
   color: var(--ink-soft);
 }
 
-/* The rule from one step to the next, with a head on it. A flow with
-   no arrows is a stack of boxes: the direction is the information. */
-.flowJoin {
-  position: relative;
-  width: 1px;
-  height: var(--space-4);
-  background: var(--rule-strong);
-  flex: none;
-}
-
-.flowJoin::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  width: 0;
-  height: 0;
-  transform: translate(-50%, 1px);
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-top: 5px solid var(--rule-strong);
-}
-
-/* Where the flow parts.
-
-   Three rules rather than one: a stem down out of the question, a
-   spanning rule across the tops of the lanes, and a stem down into each
-   lane. Drawn with borders on the lane boxes themselves, so the corners
-   meet wherever the columns happen to fall -- no measuring, and it
-   survives a lane wrapping to the next line. */
-.flowBranches {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  gap: var(--space-4);
-  width: 100%;
-  margin-top: var(--space-4);
-  position: relative;
-}
-
-/* The stem out of the question, down to the spanning rule. */
-.flowBranches::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  /* Stops on the span rather than crossing it: the 1px is the rule's
-     own thickness, so the stem meets it and goes no further. */
-  top: calc(var(--space-4) * -1);
-  width: 1px;
-  height: calc(var(--space-4) + 1px);
-  background: var(--rule-strong);
-}
-
-.flowBranch {
-  flex: 1 1 0;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  /* The lane's own share of the spanning rule, and the stem down into
-     it. `padding-top` is what the stem is drawn in.
-     `background-image` rather than `border-top`, so the rule can stop
-     at the middle of the outermost lanes instead of running off past
-     them: a line that overhangs the first and last branch is drawn
-     going somewhere it does not go. */
-  background-image: linear-gradient(var(--rule-strong), var(--rule-strong));
-  background-size: 100% 1px;
-  background-position: 0 0;
-  background-repeat: no-repeat;
-  padding-top: var(--space-4);
-  position: relative;
-}
-
-/* The outermost lanes carry only half a rule each -- from their own
-   stem inward -- so the span begins and ends over a branch. */
-.flowBranch:first-child {
-  background-size: 50% 1px;
-  background-position: 100% 0;
-}
-
-.flowBranch:last-child {
-  background-size: 50% 1px;
-  background-position: 0 0;
-}
-
-/* One lane is not a fork: it needs no span at all. */
-.flowBranch:only-child {
-  background-image: none;
-}
-
-/* The stem from the spanning rule down into this lane, with its head. */
-.flowBranch::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 0;
-  width: 1px;
-  height: calc(var(--space-4) - 5px);
-  background: var(--rule-strong);
-}
-
-.flowBranch::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: calc(var(--space-4) - 5px);
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-top: 5px solid var(--rule-strong);
-}
-
+/* The answer that takes you down an edge, set on the rule it belongs
+   to. In the label register, like every other small label here, on a
+   scrap of paper so the rule underneath does not run through the
+   words. */
 .flowLabel {
-  margin: 0 0 var(--space-2);
+  position: absolute;
+  margin: 0;
   font-family: var(--font-text);
   font-size: var(--step--2);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ink-faint);
-  background: var(--paper);
-  padding: 0 var(--space-2);
-}
-
-/* The join back, under a parting.
-
-   The lanes ended wherever their own last box ended, at their own
-   depths; the flow carries on from the middle. So the stem out of the
-   branches is given a rule across the top of it, gathering the lanes
-   before anything descends -- the mirror of the rule they hung from.
-   Without it the arrow appears to fall out of the gap between two
-   columns, pointing at nothing. */
-.flowJoinBack {
-  /* Not the full width of the figure: the rule gathers the lanes, so
-     it reaches to the middle of the outermost ones and stops, the same
-     way the rule they hang from does. The inset is half a lane, which
-     is what `flex: 1 1 0` makes every lane worth. */
-  width: calc(100% - 100% / var(--flow-lanes, 2));
-  height: calc(var(--space-4) * 2);
-  background: none;
-  border-top: 1px solid var(--rule-strong);
-  margin-top: var(--space-4);
-  position: relative;
-}
-
-/* The stem itself, down the middle of that rule. */
-.flowJoinBack::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 0;
-  width: 1px;
-  height: 100%;
-  background: var(--rule-strong);
-}
-
-
-/* A branch that leaves the drawing says where it goes rather than
-   dragging a line across the page to get there. */
-.flowGoes {
-  margin: var(--space-2) 0 0;
-  font-size: var(--step--1);
-  font-style: italic;
-  color: var(--ink-soft);
-}
-
-@media (max-width: 40rem) {
-  /* No side by side on a phone: the lanes stack, each still labelled,
-     which is the same flow read one branch at a time. Everything that
-     drew the fork -- the span, the stems, the arrowheads onto each
-     lane -- is drawing a shape that is no longer on the page, so it
-     goes; each lane keeps a rule above its own label, which is what
-     says a new branch starts here. */
-  .flowBranches {
-    flex-direction: column;
-    gap: var(--space-3);
-    margin-top: var(--space-3);
-  }
-
-  .flowBranches::before {
-    display: none;
-  }
-
-  .flowBranch {
-    /* `background-image` is what draws the span, so it is what has to
-       be taken away -- a `border-top` here would sit under it rather
-       than replace it. */
-    background-image: none;
-    border-top: 1px solid var(--rule);
-    padding-top: var(--space-3);
-  }
-
-  .flowBranch::before,
-  .flowBranch::after {
-    display: none;
-  }
-
-  /* Nothing to gather: the last lane simply runs on into what follows
-     it, down one plain rule with a head on it like any other step. */
-  .flowJoinBack {
-    width: 1px;
-    height: var(--space-4);
-    border-top: none;
-    margin-top: 0;
-    background: var(--rule-strong);
-  }
-
-  .flowJoinBack::before {
-    display: none;
-  }
-
-  .flowBox {
-    width: 100%;
-    max-width: none;
-  }
-}
-
-/* --- A picture ---------------------------------------------------- */
-
-/* Somebody else's picture, on somebody else's server. It is printed on
-   the sheet like a plate: white ground, ruled edge, credit under it. */
-.picture {
-  display: block;
-  width: 100%;
-  height: auto;
-  /* Tall pictures are common and a lesson is not a gallery. */
-  max-height: 60vh;
-  object-fit: contain;
-  background: var(--paper);
-  border: 1px solid var(--paper-edge);
-}
-
-.pictureCaption {
-  margin-top: var(--space-2);
-  font-size: var(--step--1);
-  line-height: 1.5;
-  color: var(--ink-soft);
-}
-
-.pictureCredit {
-  font-size: var(--step--2);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--ink-faint);
-  white-space: nowrap;
-}
-
-.pictureGone {
-  margin: 0;
-  font-size: var(--step--1);
-  line-height: 1.5;
-  font-style: italic;
-  color: var(--ink-faint);
-}
-
-.pictureLink {
-  color: inherit;
-  text-decoration: underline;
-  text-decoration-color: var(--plate-mustard);
-  text-underline-offset: 0.15em;
-}
-
-/* --- Blank ------------------------------------------------------ */
-
-/* The sentence with its load-bearing words taken out. It reads as
-   prose, because it is prose -- the gaps are set into the line rather
-   than lifted out of it, or the reader is filling in a form rather
-   than finishing a sentence. */
-.blankSentence {
-  font-size: var(--step-0);
-  line-height: 2.1;
-  margin: var(--space-3) 0 0;
-}
-
-/* A ruled gap, the way a printed exercise rules one: a line under the
-   space and nothing around it. A boxed input here would read as a
-   search field set into a paragraph. */
-.blankGap {
-  font: inherit;
-  font-family: var(--font-display);
-  color: var(--ink);
-  background: none;
-  border: none;
-  border-bottom: 1.5px solid var(--rule-strong);
-  padding: 0 0.25em;
-  margin: 0 0.15em;
   text-align: center;
-  max-width: 100%;
-}
-
-.blankGap:focus-visible {
-  outline: none;
-  border-bottom-color: var(--plate-mustard);
-  border-bottom-width: 2.5px;
-  background: var(--paper);
-}
-
-.blankGap[data-state='right'] {
-  color: var(--plate-green);
-  border-bottom-color: var(--plate-green);
-}
-
-.blankGap[data-state='wrong'] {
-  color: var(--plate-terracotta);
-  border-bottom-color: var(--plate-terracotta);
-  /* Struck through rather than only recoloured, so the wrong answer
-     reads as wrong without colour being the carrier. */
-  text-decoration: line-through;
-}
-
-.blankAnswers {
-  list-style: none;
-  margin: var(--space-3) 0 0;
-  padding: 0;
-}
-
-.blankAnswer {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  margin-top: var(--space-2);
-}
-
-.blankMark {
-  font-size: var(--step--1);
-  flex: none;
-}
-
-.blankWord {
-  display: block;
-  font-family: var(--font-display);
-  font-size: var(--step-0);
-  font-variation-settings: 'SOFT' 25, 'WONK' 1;
-}
-
-/* The why under a printed answer is already indented by the mark, so
-   it does not take the check block's own indent as well. */
-.blankAnswer .checkWhy {
-  margin-left: 0;
-}
-
-/* --- Sort ------------------------------------------------------- */
-
-.sortItems {
-  list-style: none;
-  margin: var(--space-3) 0 0;
-  padding: 0;
-}
-
-.sortItem {
-  padding: var(--space-3) 0;
-  border-top: 1px solid var(--rule);
-}
-
-.sortItem:first-child {
-  border-top: none;
-}
-
-.sortText {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  font-size: var(--step-0);
-  line-height: 1.4;
-}
-
-.sortText[data-state='right'] {
-  color: var(--plate-green);
-}
-
-.sortText[data-state='wrong'] {
-  color: var(--plate-terracotta);
-}
-
-.sortMark {
-  font-size: var(--step--1);
-  flex: none;
-}
-
-/* The buckets, as a row of stamps under the thing being sorted. They
-   wrap rather than scroll: a group name is words, and on a phone two
-   of them do not fit on one line beside each other. */
-.sortGroups {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-top: var(--space-2);
-}
-
-.sortGroup {
-  font-family: var(--font-text);
-  font-size: var(--step--2);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-  background: none;
-  border: 1px solid var(--rule);
-  padding: 0.3em 0.7em;
-  cursor: pointer;
-  transition:
-    background-color var(--dur-feedback) var(--ease-settle),
-    border-color var(--dur-feedback) var(--ease-settle),
-    color var(--dur-feedback) var(--ease-settle);
-}
-
-.sortGroup:hover:not(:disabled) {
-  border-color: var(--rule-strong);
-  color: var(--ink);
-}
-
-/* What the reader chose: filled, the way a chosen thing is filled
-   everywhere else on the sheet. */
-.sortGroup[data-chosen] {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--paper);
-}
-
-/* Where it actually belonged, marked once the answer is in. Outlined
-   in the ledger's green rather than filled, so it can be told apart
-   from the reader's own choice even when they are the same button. */
-.sortGroup[data-answer] {
-  border-color: var(--plate-green);
-  border-width: 2px;
-  padding: calc(0.3em - 1px) calc(0.7em - 1px);
-}
-
-.sortGroup[data-chosen][data-answer] {
-  background: var(--plate-green);
-  color: var(--paper);
-}
-
-.sortGroup:disabled {
-  cursor: default;
-}
-
-.sortWaiting {
+  line-height: 1.3;
   color: var(--ink-faint);
+  background: var(--paper-deep);
+  padding: 2px 4px;
+  pointer-events: none;
+  transition: color var(--dur-feedback) var(--ease-settle);
 }
 
-/* --- Model ------------------------------------------------------ */
-
-/* The controls sit above the plot, because they are the question and
-   the plot is the answer. Two to a row where there is room, one where
-   there is not: a slider narrower than about ten characters cannot be
-   dragged with any precision. */
-.modelInputs {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  gap: var(--space-3) var(--space-4);
-  margin: var(--space-3) 0 var(--space-4);
+.flow[data-held] .flowLabel {
+  opacity: 0.3;
 }
 
-.modelInput {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+.flow[data-held] .flowLabel[data-lit] {
+  opacity: 1;
+  color: var(--plate-plum);
 }
 
-.modelLabel {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-2);
-  font-family: var(--font-text);
-  font-size: var(--step--2);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-}
-
-/* The figure the slider is standing at, in the display face the sheet
-   prints every other figure in. */
-.modelValue {
-  font-family: var(--font-display);
-  font-size: var(--step-0);
-  font-variation-settings: 'SOFT' 10, 'WONK' 0, 'opsz' 24;
-  font-variant-numeric: tabular-nums lining-nums;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--ink);
-}
-
-/* The rail is the sheet's own rule and the thumb is a plate. Styled on
-   both engines' pseudo-elements rather than left native, or the one
-   control the reader actually drives would be the one thing on the
-   sheet drawn by the operating system. */
-.modelSlider {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 1.5rem;
-  background: none;
-  cursor: pointer;
-}
-
-.modelSlider::-webkit-slider-runnable-track {
-  height: 2px;
-  background: var(--rule-strong);
-}
-
-.modelSlider::-moz-range-track {
-  height: 2px;
-  background: var(--rule-strong);
-}
-
-.modelSlider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 1rem;
-  height: 1rem;
-  margin-top: -0.45rem;
-  border-radius: 50%;
-  background: var(--plate-mustard);
-  border: 1px solid var(--ink);
-}
-
-.modelSlider::-moz-range-thumb {
-  width: 1rem;
-  height: 1rem;
-  border-radius: 50%;
-  background: var(--plate-mustard);
-  border: 1px solid var(--ink);
-}
-
-.modelSlider:focus-visible {
-  outline: 2px solid var(--focus-ink, var(--ink));
-  outline-offset: 4px;
-}
-
-/* The figures the model answers with, printed as the sheet prints any
-   pair of figures: label above, value below, in the display face. */
-.modelReadouts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3) var(--space-5);
-  margin: 0 0 var(--space-4);
-  padding: var(--space-3) 0;
-  border-top: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
-}
-
-.modelReadout {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.modelReadoutLabel {
+/* What the drawing can be asked to do, said once under it rather than
+   discovered. A figure that responds to a press and does not say so is
+   a figure most readers will read as a picture. */
+.flowNote {
+  margin: var(--space-3) 0 0;
   font-family: var(--font-text);
   font-size: var(--step--2);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--ink-faint);
-}
-
-.modelReadoutValue {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--step-2);
-  font-variation-settings: 'SOFT' 10, 'WONK' 0, 'opsz' 32;
-  font-variant-numeric: tabular-nums lining-nums;
-  color: var(--ink);
-}
-
-.modelUnit {
-  font-size: var(--step-0);
-  color: var(--ink-soft);
-}
-
-.modelGap {
-  font-size: var(--step--1);
-  color: var(--plate-terracotta);
-  font-style: italic;
-  margin: var(--space-2) 0 0;
 }

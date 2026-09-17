@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",
+    "@dagrejs/dagre": "^3.1.1",
     "@didactic/api": "*",
     "@didactic/core": "*",
     "@didactic/tokens": "*",

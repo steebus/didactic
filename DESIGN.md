@@ -1059,16 +1059,64 @@ reader, a printer, and anyone who would rather read it than a picture of it.
 
 | Part | Treatment |
 | --- | --- |
-| Flow step | A `--paper` box on a `1px` rule with a `3px` left tab in `--plate-green`, `max-width: 26rem`, centred, joined to the next by a `1px` rule down the middle. |
+| Flow step | A `--paper` box on a `1px` rule with a `3px` left tab in `--plate-green`, at a fixed `210px`, positioned where dagre put it. |
 | A step that parts | The same box with a `--plate-mustard` tab: the catalogue's colour for a decision to be made. |
-| Branch lanes | Side by side under a `1px` rule, each headed by its label in the label register. Stacked below `40rem`. |
+| A step that leaves | A dashed box in `--ink-soft` italics, reading *Go to "…"*, with nothing descending from it. |
+| An edge | A `1px` `--rule-strong` rule with the corners taken off at `7px` and a head at the end; the answer set beside it, `8px` clear, in the label register. |
+| A held path | `--plate-plum` at `1.5px` with its own head, the box ringed in plum; everything off the path to `0.25` (rules) and `0.4` (boxes). |
 | Picture | Printed like a plate: `--paper` ground, `1px solid var(--paper-edge)`, `max-height: 60vh` with `object-fit: contain`. Credit under it in the label register, linked to where it lives. |
 
-**Rule — a flow is drawn in the sheet's furniture, not as a picture of a
-flowchart.** Boxes, rules and lanes, because a lane that stacks on a phone still
-reads as a flow and an SVG of routed arrows does not. A branch that leads
-somewhere else in the flow *says where it goes* rather than dragging a line
-across the drawing to get there.
+**Rule — a flow is a drawn graph, in the sheet's own ink.** It was boxes in a
+flex column with the rules built out of pseudo-elements, on the reasoning that a
+stack of boxes reads as a flow on a phone where routed arrows do not. The
+reasoning was sound; the drawing was not. A rule drawn on a box cannot find its
+way to a box in another column whose position it does not know, so the lines
+stopped short of what they pointed at, gathered at the wrong middle, and where
+two lanes ran to different depths they left an arrow falling out of a gap at
+nothing. A flowchart whose lines do not meet its boxes is not a quieter
+flowchart, it is a wrong one.
+
+Positions now come from dagre — a layered graph layout, and the whole of what it
+is asked for is coordinates. Everything drawn is this app's: boxes in the
+sheet's furniture, edges as printed rules with the corners taken off rather than
+the bezier a graph library would draw, the answers in the label register. A
+flowing curve through a page of straight rules is the one mark on the sheet that
+came from somewhere else.
+
+A branch that leads somewhere else in the flow still *says where it goes* rather
+than dragging a line across the drawing to get there.
+
+**Rule — a flow is laid out on the server, like a chart.** The boxes are given a
+fixed width and a worked-out height rather than a measured one (`flowNodeSize`),
+so the layout is the same arithmetic in both places and there is nothing to
+correct after hydration. A figure that arrives a beat after the prose and shoves
+it down the page is worse than one that is simply there. The fixed width is what
+makes the estimate safe rather than merely approximate: the browser wraps the
+same words in the same box, so the only thing that can be wrong is the line
+count, and the character estimate is pessimistic — a box that is wrong is roomy,
+never overflowing.
+
+Below its own width the flow scrolls inside `overflow-x: auto`, the answer
+`chart` gives and for the same reason. The lanes no longer stack on a phone:
+what stacking bought was a flow that could be read one branch at a time, and
+what it cost was the drawing being wrong at every width.
+
+**Rule — the branches read in the order they were written.** dagre orders each
+rank to minimise crossings, and a parting whose arms rejoin crosses equally
+either way, so it is free to pick — and it picks the reverse, putting *Yes* to
+the right of *No* and the decision backwards. The order is read back off the
+result and the whole drawing mirrored if it came out right to left, rather than
+handing the branches over reversed: a trick that relies on dagre settling a tie
+the same way every time is a trick that works until it does not.
+
+**Rule — pressing a step lights the way in and the way out of it.** Both
+directions, because a reader stopped in the middle of a decision is asking one
+of two questions — *how do I end up here* and *what happens if I do* — and there
+is no telling which. What is off the path stands back rather than disappearing:
+the shape of the decision is the thing being read, and a flow that drops half
+its boxes on a press is answering a question nobody asked. The drawing says it
+can be pressed, in a line underneath; a figure that responds to a press and does
+not say so is a figure most readers will read as a picture.
 
 **Rule — a picture is pointed at, never kept.** Nothing is uploaded, copied,
 cached or optimised: optimising it would mean fetching it through this app,
