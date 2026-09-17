@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { filingClaims, type FilingClaim } from '@didactic/core/filing'
+import type { LooseClaim } from '@didactic/core/shapes'
 
 /**
  * Where the bed says a topic belongs, for topics filed under nothing.
@@ -97,4 +98,56 @@ export async function fileWhatTheBedIsSureOf(
   )
   if (error) throw error
   return rows
+}
+
+/**
+ * The claims a sheet prints, with each subject named.
+ *
+ * A claim carries subject ids, because the rule is about ids; a sheet
+ * needs the titles. Answers empty for a topic that is filed somewhere
+ * already -- a topic with a home is not looking for one, and printing
+ * where it might otherwise have gone would be a sheet second-guessing a
+ * filing nobody asked it about.
+ */
+export async function nearbyFor(
+  db: SupabaseClient,
+  topicId: string,
+  filedUnder: number
+): Promise<LooseClaim[]> {
+  if (filedUnder > 0) return []
+
+  const [claims, { data: subjectRows }] = await Promise.all([
+    claimsFor(db, [topicId]),
+    db.from('subjects').select('id, title'),
+  ])
+
+  const title = new Map((subjectRows ?? []).map(s => [s.id as string, s.title as string]))
+  return nameClaims(claims.get(topicId) ?? [], title)
+}
+
+/**
+ * A claim as a sheet prints it: the subject named, and the share back as
+ * the two counts it came from.
+ *
+ * "0.67 of its neighbours" is a figure nobody can check. "2 of its 3" is
+ * the same claim and is the reasoning itself, which is the only thing
+ * that lets a reader disagree with it.
+ *
+ * A subject the map has no title for is dropped rather than printed as
+ * a claim about nothing.
+ */
+export function nameClaims(
+  claims: FilingClaim[],
+  title: Map<string, string>
+): LooseClaim[] {
+  return claims.flatMap(claim => {
+    const subjectTitle = title.get(claim.subjectId)
+    if (!subjectTitle) return []
+    return [{
+      subjectId: claim.subjectId,
+      subjectTitle,
+      agreeing: claim.agreeing,
+      ofFiled: Math.round(claim.agreeing / claim.share),
+    }]
+  })
 }

@@ -13,6 +13,8 @@ import styles from './GraphCanvas.module.css'
 
 const api = didactic()
 import { Setting } from '@/components/Setting'
+import { WhereItLooks } from '@/components/WhereItLooks'
+import type { LooseClaim } from '@didactic/core/shapes'
 import {
   fade,
   nodeSize,
@@ -819,6 +821,7 @@ export function GraphCanvas({
             setSelected(null)
             setReload(n => n + 1)
           }}
+          onFiled={() => setReload(n => n + 1)}
         />
       )}
     </div>
@@ -830,15 +833,20 @@ function TopicPanel({
   colour,
   onClose,
   onRemoved,
+  onFiled,
 }: {
   topic: GraphTopic
   colour: string
   onClose: () => void
   /** The bed has to be read again: the node and its edges are gone. */
   onRemoved: () => void
+  /** The bed has to be read again: the node has joined a hull and takes
+   *  that subject's ink. */
+  onFiled: () => void
 }) {
   const [asked, setAsked] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [filing, setFiling] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   async function grub() {
@@ -857,6 +865,8 @@ function TopicPanel({
     exposures: Array<{ id: string; reason: string; created_at: string; depth: string }>
     resources: Array<{ relevance: number; resources: { title: string; status: string } }>
     edges: Array<{ from_topic: string; to_topic: string; kind: string }>
+    subjects: Array<{ id: string; title: string }>
+    nearby: LooseClaim[]
     curricula: Array<{
       id: string
       title: string
@@ -879,6 +889,29 @@ function TopicPanel({
 
   const viability = Math.max(0, Math.round(((topic.ability - 1) / 4) * 100))
   const vague = vagueFigure(topic.ability_confidence)
+
+  /**
+   * File it where the bed says, without leaving the bed.
+   *
+   * This panel is the one surface where the fault is actually visible:
+   * an unfiled topic is drawn pale, hanging off a coloured hull it is
+   * joined to five times over, and until now the only thing the panel
+   * could do about that was send you to another sheet. The read is
+   * re-run rather than patched, because filing a topic moves the hull
+   * it is drawn inside and the ink it is drawn in.
+   */
+  async function fileWhereItLooks(claim: LooseClaim) {
+    setFiling(true)
+    setError(null)
+
+    const { ok, error: failed } = await api.subjects.fileTopic(claim.subjectId, topic.id)
+    if (ok) {
+      onFiled()
+    } else {
+      setError(failed ?? `Could not file it under ${claim.subjectTitle}.`)
+      setFiling(false)
+    }
+  }
 
   return (
     <aside className={styles.panel}>
@@ -970,6 +1003,21 @@ function TopicPanel({
               </li>
             ))}
           </ul>
+        </section>
+      )}
+
+      {/* Filed under nothing, and the bed has an opinion about it. The
+          panel is where this is worth saying most: the node in front of
+          the reader is the pale one hanging off the hull. */}
+      {detail && detail.subjects.length === 0 && detail.nearby.length > 0 && (
+        <section className={styles.panelBlock}>
+          <h3 className={styles.panelBlockTitle}>Filed under nothing</h3>
+          <WhereItLooks
+            claims={detail.nearby}
+            onFile={fileWhereItLooks}
+            busy={filing || busy}
+            tone="block"
+          />
         </section>
       )}
 

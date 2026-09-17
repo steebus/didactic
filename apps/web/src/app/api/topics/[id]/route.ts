@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { computeFreshness } from '@didactic/core/scoring'
 import { ownerId } from '@/lib/auth'
+import { nearbyFor } from '@/lib/filing'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
 
@@ -41,6 +42,14 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 
   if (!topic) return NextResponse.json({ error: 'not found' }, { status: 404 })
 
+  // Where the bed says it goes, for a topic filed under nothing. The
+  // graph panel is the one surface where the fault is actually visible
+  // -- a pale node hanging off a coloured hull, joined to it five times
+  // over -- so it is the surface that should be able to say what it is
+  // looking at. Costs nothing for a topic with a home: `nearbyFor`
+  // answers empty without a query.
+  const nearby = await nearbyFor(db, id, (memberships ?? []).length)
+
   // One count query per curriculum would be a round trip each; the
   // lesson rows are small and a topic carries a handful of curricula.
   const curriculumIds = (curricula ?? []).map(c => c.id)
@@ -57,6 +66,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       freshness: computeFreshness(topic.last_exposure_at, Number(topic.ability)),
     },
     subjects: (memberships ?? []).flatMap(m => m.subjects ?? []),
+    nearby,
     exposures: exposures ?? [],
     resources: resources ?? [],
     edges: edges ?? [],

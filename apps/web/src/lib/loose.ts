@@ -1,10 +1,10 @@
 import { cacheLife, cacheTag } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { LooseClaim, LooseTopic } from '@didactic/core/shapes'
+import type { LooseTopic } from '@didactic/core/shapes'
 import { tags } from '@didactic/core/tags'
 import { supabaseAdmin } from './supabase'
 import { EMPTY_EVIDENCE, gatherEvidence } from './evidence'
-import { claimsFor } from './filing'
+import { claimsFor, nameClaims } from './filing'
 
 /**
  * Loose stock: every topic filed under no subject at all.
@@ -63,20 +63,6 @@ export async function readLooseStock(db: SupabaseClient): Promise<LooseTopic[]> 
     (subjectRows ?? []).map(s => [s.id as string, s.title as string])
   )
 
-  const nearbyFor = (topicId: string): LooseClaim[] =>
-    (claims.get(topicId) ?? []).flatMap(claim => {
-      const title = subjectTitle.get(claim.subjectId)
-      if (!title) return []
-      return [{
-        subjectId: claim.subjectId,
-        subjectTitle: title,
-        agreeing: claim.agreeing,
-        // The share back as the two counts it came from. A sheet saying
-        // "0.67 of its neighbours" is a sheet nobody can check; "2 of
-        // its 3" is the same claim and is the reasoning itself.
-        ofFiled: Math.round(claim.agreeing / claim.share),
-      }]
-    })
 
   return loose.map(t => ({
     id: t.id as string,
@@ -85,7 +71,7 @@ export async function readLooseStock(db: SupabaseClient): Promise<LooseTopic[]> 
     ability: Number(t.ability),
     created_at: (t.created_at as string | null) ?? null,
     hasRoute: hasRoute.has(t.id as string),
-    nearby: nearbyFor(t.id as string),
+    nearby: nameClaims(claims.get(t.id as string) ?? [], subjectTitle),
     evidence: evidence.get(t.id as string) ?? EMPTY_EVIDENCE,
   }))
 }

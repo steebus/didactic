@@ -290,6 +290,7 @@ export default async function TopicPage({
               topicTitle={topic.title}
               subjects={subjects.map(s => ({ id: s.id, title: s.title, colour: s.colour }))}
               primarySubjectId={topic.primary_subject_id}
+              nearby={area.nearby}
             />
 
             {/* What level it sits at. Both moves are refused while it

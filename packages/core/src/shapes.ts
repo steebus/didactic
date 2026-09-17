@@ -175,12 +175,18 @@ export interface PendingTopic {
  * Where the bed says a loose topic goes, from the subjects its
  * neighbours sit in.
  *
- * Only claims the bed is *not* sure enough about reach a sheet: one
- * over `config.FILING_SETTLED` files itself when the topic is made, so
- * a topic carrying one is not loose to begin with. What is left is the
- * band worth showing and not worth acting on, which is why the counts
- * are carried rather than a verdict -- "2 of its 3" is the reasoning,
- * and the reader is the one deciding.
+ * Carried for any topic filed under nothing. A claim over
+ * `config.FILING_SETTLED` files itself at the moment a topic is made,
+ * so most of what reaches a sheet is the band under that bar -- but not
+ * all of it: a topic made before the bed was ever asked, or one taken
+ * out of a subject by hand, can be sitting on a settled claim with
+ * nothing having acted on it. Nothing files on their behalf, because
+ * taking a topic out leaves no trace and a sheet cannot tell the two
+ * apart.
+ *
+ * The counts travel rather than a verdict. "2 of its 3" is the whole of
+ * the reasoning and the only thing that lets anyone disagree with it;
+ * the reader is the one deciding.
  */
 export interface LooseClaim {
   subjectId: string
@@ -264,6 +270,10 @@ export interface TopicArea {
   curricula: CurriculumCard[]
   resources: Array<{ relevance: number; resource: Resource }>
   neighbours: TopicNeighbour[]
+  /** Where the bed says it goes, for a topic filed under nothing.
+   *  Empty for a topic that is filed somewhere, and for one the bed has
+   *  nothing to say about. Additive. */
+  nearby: LooseClaim[]
   /** The newest eight exposures. Kept as it was for the builds already
    *  on phones; `record` is the whole account. */
   exposures: Array<{ id: string; reason: string; depth: string; created_at: string }>

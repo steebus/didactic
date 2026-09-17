@@ -5,6 +5,7 @@ import type { HighlightRow } from '@didactic/core/shapes'
 import { computeFreshness } from '@didactic/core/scoring'
 import { curriculumProgress } from '@didactic/core/curriculum'
 import { nearbyTopics } from '@didactic/core/graph'
+import { nearbyFor } from './filing'
 import { figureRecord } from '@didactic/core/figureRecord'
 import type { Resource, Subject } from '@didactic/core/types'
 import { supabaseAdmin } from './supabase'
@@ -146,6 +147,11 @@ export async function readTopicArea(
   const lessonMarks = highlights ?? []
   const titleById = new Map((neighbourTopics ?? []).map(t => [t.id, t.title]))
 
+  // Only asked of a topic filed under nothing, and only then does it
+  // cost anything: `nearbyFor` answers empty on the first line for one
+  // that already has a home, which is nearly every topic.
+  const nearby = await nearbyFor(db, topicId, (memberships ?? []).length)
+
   return {
     topic: {
       ...topic,
@@ -187,6 +193,11 @@ export async function readTopicArea(
       relevance: Number(l.relevance),
       resource: l.resources as unknown as Resource,
     })),
+    // Where the bed says it goes, for a topic that sits on no bed. The
+    // filing block prints it: a topic with five edges into one subject
+    // and no membership in it is the shape this whole reading exists
+    // for, and the topic's own sheet is where someone is looking at it.
+    nearby,
     // One row per topic rather than per edge: a pair can hold several
     // edges, and `related` written from each end is two of them saying
     // the same thing. `nearbyTopics` keeps the most definite claim.

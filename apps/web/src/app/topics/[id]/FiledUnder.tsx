@@ -5,6 +5,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { didactic } from '@didactic/api'
 import type { Subject } from '@didactic/core/types'
+import type { LooseClaim } from '@didactic/core/shapes'
+import { WhereItLooks } from '@/components/WhereItLooks'
 import styles from './page.module.css'
 
 const api = didactic()
@@ -57,6 +59,7 @@ export function FiledUnder({
   topicTitle,
   subjects,
   primarySubjectId,
+  nearby,
 }: {
   topicId: string
   topicTitle: string
@@ -64,6 +67,8 @@ export function FiledUnder({
   /** The topic's home: what the graph colours it by, and what it falls
    *  back to when it is filed nowhere else. */
   primarySubjectId: string | null
+  /** Where the bed says it goes, for a topic sitting on no bed. */
+  nearby: LooseClaim[]
 }) {
   const [open, setOpen] = useState(false)
   const [all, setAll] = useState<Subject[] | null>(null)
@@ -171,6 +176,44 @@ export function FiledUnder({
     setBusy(null)
   }
 
+  /**
+   * File it where the bed says, in one press.
+   *
+   * The same write as choosing that subject from the list below and
+   * pressing *File it here too* — `subjects.fileTopic`, which places it
+   * against what is already in the bed — so the note it leaves is the
+   * same note. The press exists because the reasoning is here: a reader
+   * who has just read "every one of its 5 filed neighbours sits in
+   * Shares and Stocks" should not have to go and find Shares and Stocks
+   * in a dropdown to agree with it.
+   */
+  async function fileWhereItLooks(claim: LooseClaim) {
+    setBusy('file')
+    setError(null)
+    setSettling(rows => [...rows, { id: claim.subjectId, title: claim.subjectTitle }])
+    setNote(`Filing under ${claim.subjectTitle}…`)
+
+    const { ok, body, error: failed } = await api.subjects.fileTopic(claim.subjectId, topicId)
+    if (!ok) {
+      setSettling(rows => rows.filter(r => r.id !== claim.subjectId))
+      setNote(null)
+      setError(failed ?? `Could not file it under ${claim.subjectTitle}.`)
+      setBusy(null)
+      return
+    }
+
+    const placed = body.placed ?? 0
+    setNote(
+      [
+        `Filed under ${claim.subjectTitle}.`,
+        placed > 0 ? `Related to ${placed} ${placed === 1 ? 'topic' : 'topics'} there.` : '',
+        ...(body.warnings ?? []),
+      ].filter(Boolean).join(' ')
+    )
+    startTransition(() => router.refresh())
+    setBusy(null)
+  }
+
   async function takeOut(subject: Filed) {
     setBusy(subject.id)
     setError(null)
@@ -216,10 +259,25 @@ export function FiledUnder({
       <h2 className={styles.blockTitle}>Filed under</h2>
 
       {here.length === 0 ? (
-        <p className={styles.empty}>
-          Loose stock — this topic sits on no bed. It keeps everything filed
-          against it; file it below to put it back on one.
-        </p>
+        <>
+          <p className={styles.empty}>
+            Loose stock — this topic sits on no bed. It keeps everything filed
+            against it; file it below to put it back on one.
+          </p>
+          {/* The bed usually has an opinion, and this block used to send
+              the reader to a select box to supply one it already held.
+              A topic's subjects are settled when it is made and its
+              edges are drawn afterwards, so the evidence that places it
+              arrives too late for anything to read — and this is the
+              sheet where someone is looking straight at the topic that
+              happened to. */}
+          <WhereItLooks
+            claims={nearby}
+            onFile={fileWhereItLooks}
+            busy={busy !== null}
+            tone="block"
+          />
+        </>
       ) : (
         <ul className={styles.filing}>
           {here.map(subject => (

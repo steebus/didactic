@@ -7,8 +7,8 @@ import { didactic } from '@didactic/api'
 import type { LooseClaim, LooseTopic } from '@didactic/core/shapes'
 import { holdings, established } from '@didactic/core/adjudication'
 import { reckon, RECKONING_EMPTY } from '@didactic/core/loose'
-import { claimSentence } from '@didactic/core/filing'
 import { viabilityFigure } from '@didactic/core/scoring'
+import { WhereItLooks } from '@/components/WhereItLooks'
 import styles from './page.module.css'
 
 const api = didactic()
@@ -335,37 +335,14 @@ export function LooseSheet({
               )}
 
               {/* What the bed already knows, which nothing used to ask
-                  it. A topic's subjects are settled when it is made and
-                  its edges are drawn afterwards, so a topic can sit
-                  with several edges into one subject and no membership
-                  in it -- which is what the bed draws as a pale node
-                  hanging off a coloured hull. Above the bar in
-                  `config.FILING_SETTLED` a topic files itself and never
-                  reaches this sheet; what is printed here is the band
-                  below it, with the count rather than a verdict, so the
-                  reasoning is the thing being read. */}
-              {topic.nearby.length > 0 && (
-                <ul className={styles.claims}>
-                  {topic.nearby.map(claim => (
-                    <li key={claim.subjectId} className={styles.claim}>
-                      <span className={styles.claimSays}>
-                        {claimSentence(claim, claim.ofFiled)}{' '}
-                        <Link href={`/subjects/${claim.subjectId}`} className={styles.claimBed}>
-                          {claim.subjectTitle}
-                        </Link>
-                      </span>
-                      <button
-                        type="button"
-                        className={styles.claimAction}
-                        onClick={() => fileWhereItLooks(topic, claim)}
-                        disabled={busy !== null}
-                      >
-                        {busy === topic.id ? 'Filing…' : 'File it there'}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+                  it. Shared with the topic sheet's filing block and the
+                  graph panel, which are the other two places the same
+                  question gets asked. */}
+              <WhereItLooks
+                claims={topic.nearby}
+                onFile={claim => fileWhereItLooks(topic, claim)}
+                busy={busy !== null}
+              />
 
               <div className={styles.rowActions}>
                 {topic.hasRoute ? (

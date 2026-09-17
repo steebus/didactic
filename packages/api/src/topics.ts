@@ -1,6 +1,6 @@
 import type { Api } from './client'
 import type { Curriculum, Exposure, Resource, Subject, Topic } from '@didactic/core/types'
-import type { LooseTopic, PendingTopic, TopicArea } from '@didactic/core/shapes'
+import type { LooseClaim, LooseTopic, PendingTopic, TopicArea } from '@didactic/core/shapes'
 import type { Planting } from './graph'
 
 export interface TopicPatch {
@@ -28,6 +28,9 @@ export type PendingAction = 'confirm' | 'merge' | 'discard'
  */
 export interface TopicDetail {
   topic: Topic & { freshness: number }
+  /** Where the bed says it goes, for a topic filed under nothing.
+   *  Empty for one that already has a home. Additive. */
+  nearby: LooseClaim[]
   subjects: Array<Pick<Subject, 'id' | 'title' | 'colour'>>
   exposures: Exposure[]
   resources: Array<{ relevance: number; resources: Resource }>
