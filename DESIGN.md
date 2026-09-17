@@ -1049,6 +1049,10 @@ rather than taking the lesson with it.
 | Chart axes | `11px` `--font-text`, `--ink-soft` for ticks, `--ink-faint` uppercase for axis labels. |
 | Check accent | `2px` left rule in `--plate-green`, the house weight for an aside (§4). |
 | Right / wrong | `--plate-green` / `--plate-terracotta`, each carrying a mark as well as a colour. |
+| Sort board | Columns divided by the stock table's own `1px var(--rule)` hairline, stretched to the tallest so a rule never stops short. No boxes: boxes on a sheet already ruled into a grid are furniture on furniture. |
+| Holding column | First, no rule of its own, on a `rgba(107,92,69,0.07)` ground — *not dealt with yet*, rather than a category called unplaced. |
+| A card | The only box on the board, because it is the thing that moves: `--paper`, `1px var(--rule)`, with the right/wrong tab on the left once checked. |
+| Its two ways | A `2.25rem` × `2rem` target either side of a `--paper-edge` rule, the glyph drawn by the stylesheet so it can turn with the layout. |
 
 **Rule — every plot ships its figures.** A `<details>` table under each chart
 carries the numbers, tabular and right-aligned, so the data survives a screen
@@ -1065,6 +1069,39 @@ reader, a printer, and anyone who would rather read it than a picture of it.
 | An edge | A `1px` `--rule-strong` rule with the corners taken off at `7px` and a head at the end; the answer set beside it, `8px` clear, in the label register. |
 | A held path | `--plate-plum` at `1.5px` with its own head, the box ringed in plum; everything off the path to `0.25` (rules) and `0.4` (boxes). |
 | Picture | Printed like a plate: `--paper` ground, `1px solid var(--paper-edge)`, `max-height: 60vh` with `object-fit: contain`. Credit under it in the label register, linked to where it lives. |
+
+**Rule — a sort is a board, and the arrangement is the answer.** It was a list
+of rows, each carrying a set of group buttons. Two things were wrong with it.
+The reader could not see their own answer: the groups were the small repeated
+thing and the items were the list, so *which ones did I call cacheable* meant
+reading five rows and remembering. And the shape said nothing — a sort asks
+where things end up, and a list of rows is not a picture of where anything
+ended up. The groups are the columns now and the items are cards in them.
+
+It is drawn as the stock table this catalogue already is: hairlines between the
+columns rather than boxes around them, and a card as a small plate. A holding
+column comes first, carrying everything at the start; it is not one of the
+answers, so it is not drawn as one.
+
+**Rule — a card moves by a button that says where it is going.** Not by
+dragging. A drag is the obvious gesture and the wrong one — awkward on a phone,
+hostile to a keyboard, essentially unusable with a screen reader — and it buys a
+reader choosing between three columns nothing they do not already have. Each
+arrow is an ordinary button named *Move "…" to …*, so what it does survives a
+reader who cannot see the board, and the glyph is drawn by the stylesheet rather
+than written into the markup: stacked on a phone the same button points down the
+page instead of across it, and nothing a screen reader hears changes.
+
+**Rule — a checked board keeps the reader's answer.** A wrong card stays in the
+column it was put in, marked, and says where it belonged and why. It does not
+slide to the right column on its own: the board *is* the answer, and an answer
+that corrects itself is one the reader never gets to see.
+
+**Rule — a board stacks on a phone where a diagram scrolls.** A drawn diagram
+can be scrolled sideways because it is looked at. A board is worked, and a
+reader who moves a card off the right-hand edge of a scrolling board has to go
+and find where it went. Stacked, every column is on the page at once and the
+card lands somewhere the reader is already looking.
 
 **Rule — a flow is a drawn graph, in the sheet's own ink.** It was boxes in a
 flex column with the rules built out of pseudo-elements, on the reasoning that a

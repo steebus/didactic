@@ -357,6 +357,251 @@
   line-height: 1.5;
 }
 
+/* --- A sort, as a board ------------------------------------------- */
+
+/* Columns for the groups, cards for the items, and a holding column on
+   the left that everything starts in.
+   ---------------------------------------------------------------
+
+   It was a list of rows, each carrying a set of group buttons -- and
+   none of the classes it named had ever been written, so it printed as
+   a bulleted list of browser-default buttons in the middle of a
+   catalogue. That is fixed here by the board replacing it, not by
+   styling what was there: the rows were the wrong shape anyway. A sort
+   is a question about where things end up, and a list of rows is not a
+   picture of where anything ended up -- *which ones did I call
+   cacheable* meant reading five rows and remembering.
+
+   Set as the stock table this catalogue already is: the columns are
+   divided by the printed grid's own hairline rather than by boxes, and
+   a card is a small plate on `--paper`. */
+.board {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  gap: 0;
+  /* Stretched, not sized to their contents: the hairline between two
+     columns is the column, and a rule that stops where the last card
+     happens to end draws a shorter column beside a longer one rather
+     than a table with a tall empty cell in it. */
+  align-items: stretch;
+  /* Below its own width the board scrolls rather than crushing the
+     columns to a word apiece -- the answer `chart` and `flow` give. */
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+}
+
+/* A column is divided from the one before it by a rule, not boxed:
+   boxes on a sheet already ruled into a grid are furniture on top of
+   furniture. */
+.boardColumn {
+  min-width: 9.5rem;
+  padding: 0 var(--space-3);
+  border-left: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-height: 7rem;
+}
+
+.boardColumn:first-child {
+  border-left: none;
+  padding-left: 0;
+}
+
+/* The holding column is not an answer, so it is not drawn as one: no
+   rule of its own, and a ground that says *these have not been dealt
+   with yet* rather than *these are in a category called unplaced*. */
+.boardColumn[data-holding] {
+  background: rgba(107, 92, 69, 0.07);
+  border-left: none;
+  padding: 0 var(--space-3);
+}
+
+.boardName {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0;
+  padding-top: var(--space-2);
+  /* The head of a column in a printed table sits over a rule. */
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--rule);
+}
+
+.boardColumn[data-holding] .boardName {
+  color: var(--ink-soft);
+}
+
+.boardStack {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* A card: a small plate, and the only thing on this board that is a
+   box. It is what moves, so it is what is drawn. */
+.boardCard {
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  transition:
+    border-color var(--dur-feedback) var(--ease-settle),
+    background var(--dur-feedback) var(--ease-settle);
+}
+
+.boardCard[data-state='right'] {
+  border-left: 3px solid var(--plate-green);
+}
+
+.boardCard[data-state='wrong'] {
+  border-left: 3px solid var(--plate-terracotta);
+  background: var(--paper-deep);
+}
+
+.boardCardText {
+  font-size: var(--step--1);
+  line-height: 1.4;
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+}
+
+/* The mark is never the only carrier: the card says where it belonged
+   in words underneath. */
+.boardMark {
+  font-weight: 700;
+  flex: none;
+}
+
+.boardCard[data-state='right'] .boardMark {
+  color: var(--plate-green);
+}
+
+.boardCard[data-state='wrong'] .boardMark {
+  color: var(--plate-terracotta);
+}
+
+.boardBelonged {
+  font-size: var(--step--2);
+  line-height: 1.45;
+  color: var(--ink-soft);
+  margin: 0;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--paper-edge);
+}
+
+.boardBelonged strong {
+  color: var(--ink);
+}
+
+/* The two ways off this card. Set apart from the words by a rule, so a
+   card reads as a thing and then what can be done with it. */
+.boardWays {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--paper-edge);
+}
+
+/* The glyph is drawn by the stylesheet rather than written into the
+   markup, so the stacked board below can point its arrows down the page
+   instead of across it. The button's own name says where it is going --
+   "Move X to Y" -- so nothing a screen reader hears depends on which
+   way the drawing happens to point. */
+.boardWay {
+  font: inherit;
+  font-size: var(--step-0);
+  line-height: 1;
+  color: var(--ink-faint);
+  background: none;
+  border: 1px solid var(--paper-edge);
+  /* A target a thumb can hit, which is the whole reason this is not a
+     drag. */
+  min-width: 2.25rem;
+  min-height: 2rem;
+  cursor: pointer;
+  transition:
+    color var(--dur-feedback) var(--ease-settle),
+    border-color var(--dur-feedback) var(--ease-settle);
+}
+
+.boardWay::before {
+  content: '\2039';
+}
+
+.boardWay[data-way='on']::before {
+  content: '\203A';
+}
+
+.boardWay:hover:not(:disabled) {
+  color: var(--plate-green);
+  border-color: var(--plate-green);
+}
+
+.boardWay:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* A column with nothing in it keeps its height, so the board does not
+   jump about as cards are moved out of it. */
+.boardEmpty {
+  min-height: 3.5rem;
+}
+
+/* On a phone the columns stack rather than scroll.
+   ---------------------------------------------------------------
+
+   A drawn diagram can be scrolled sideways because it is looked at. A
+   board is worked, and a reader who moves a card off the right-hand
+   edge of a scrolling board has to go and find where it went. Stacked,
+   every column is on the page at once and the card lands somewhere the
+   reader is already looking.
+
+   The arrows turn with the layout: the same button, pointing up the
+   page and down it. */
+@media (max-width: 40rem) {
+  .board {
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    gap: var(--space-3);
+    overflow-x: visible;
+  }
+
+  .boardColumn {
+    border-left: none;
+    padding: 0;
+    min-height: 0;
+  }
+
+  .boardColumn[data-holding] {
+    padding: 0 var(--space-2) var(--space-2);
+  }
+
+  .boardEmpty {
+    min-height: 0;
+  }
+
+  .boardWay::before {
+    content: '\2191';
+  }
+
+  .boardWay[data-way='on']::before {
+    content: '\2193';
+  }
+}
+
 /* --- A flow ------------------------------------------------------- */
 
 /* Boxes joined by rules, at positions dagre worked out.
