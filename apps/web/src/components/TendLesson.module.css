@@ -13,10 +13,17 @@
    it is a rule, a heading at section size, and one line of standing,
    with everything else folded away until asked for. */
 
+/* The garden at the foot of a lesson.
+   ---------------------------------------------------------------
+
+   It brings its rule and the clearance under it and nothing else. It
+   used to hold itself off the reading with `--space-6` of margin as
+   well, which the lesson body's own grid gap was already providing --
+   a hundred and twenty-eight pixels between the last line of the
+   lesson and the first card written from it. */
 .garden {
-  border-top: 1px solid var(--paper-edge);
-  padding-top: var(--space-5);
-  margin-top: var(--space-6);
+  border-top: 1px solid var(--rule);
+  padding-top: var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-3);

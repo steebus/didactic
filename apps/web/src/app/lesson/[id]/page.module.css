@@ -1,8 +1,21 @@
 /* One lesson. A reading page first, with the honest question at the
    end: not "did you finish" but "how did you actually work it". */
 
+/* How wide a lesson is.
+   ---------------------------------------------------------------
+
+   Declared once for both, because the rail across the top has to be
+   exactly as wide as the sheet it stands in for and is not inside it --
+   it cannot be, since `main` carries a transform and would capture it.
+   Two numbers that must agree, written in two places, are two numbers
+   that will not agree. */
+.sheet,
+.rail {
+  --lesson-max: 62rem;
+}
+
 .sheet {
-  max-width: 62rem;
+  max-width: var(--lesson-max);
   margin: 0 auto;
   padding: 0 0 var(--space-6);
   background-color: var(--paper);
@@ -99,6 +112,24 @@
   margin-bottom: var(--space-5);
 }
 
+/* The body is a grid, and the grid's gap is the only thing that
+   separates one part of the sheet from the next.
+   ---------------------------------------------------------------
+
+   Worth saying because it was not true. Three of the four things at the
+   foot -- the garden, the way on, and the rewrite -- were written as
+   blocks in normal flow, each holding itself off whatever was above it
+   with a `margin-top` of its own. When the body became a grid, the gap
+   did not replace those margins, it was added to them: `--space-5` of
+   gap and then `--space-6` of margin and then the section's own
+   padding, which is a hundred and twenty-eight pixels of nothing
+   between the last line of the lesson and the first card of its
+   garden. Four sections did it in a row, so the last screen of every
+   lesson was mostly rules and air.
+
+   A section at the foot now brings its rule and the clearance under it
+   and nothing else. What holds it off the section above is the gap, the
+   same as everywhere else on the sheet. */
 .body {
   padding: 0 var(--space-5);
   display: grid;
@@ -145,6 +176,107 @@
 
   .figureValue {
     font-size: var(--step-0);
+  }
+}
+
+/* --- The rail across the top ------------------------------------- */
+
+/* Where the head ends. Nothing is drawn; it is a line for the observer
+   to notice the reader crossing. */
+.railMark {
+  height: 1px;
+  margin-bottom: -1px;
+}
+
+/* The head again, as a rule, once the head itself has gone.
+   -----------------------------------------------------------------
+
+   Fixed rather than the head going sticky and collapsing: a sticky head
+   is in normal flow, so shrinking it from a band to a rule pulls the
+   prose up the screen under the reader's eye mid-sentence. This takes
+   no room in the flow at all.
+
+   The same plate as the head it stands in for, so the reader recognises
+   what has thinned rather than meeting a new piece of furniture, and
+   the mustard rule under it is the head's own rule, kept. */
+.rail {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  translate: -50% 0;
+  width: min(var(--lesson-max), 100%);
+  z-index: 20;
+  background: var(--plate-green);
+  color: var(--paper);
+  border-bottom: 3px solid var(--plate-mustard);
+  --focus-ink: var(--paper);
+
+  /* Out of the way until it is wanted, and not in the way of a press
+     while it is out of the way. Travel goes through --motion-travel
+     like every other movement here, so a reader who asked for less
+     motion gets the fade and none of the slide. */
+  opacity: 0;
+  transform: translateY(calc(var(--motion-travel) * -50%));
+  pointer-events: none;
+  transition:
+    opacity var(--dur-state) var(--ease-settle),
+    transform var(--dur-state) var(--ease-settle);
+}
+
+.rail[data-shown] {
+  opacity: 1;
+  transform: none;
+  pointer-events: auto;
+}
+
+.railInner {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-5);
+  min-width: 0;
+}
+
+/* The trail keeps the label register it has above the title, one step
+   quieter than the name it leads to. It is what a reader deep in a
+   lesson is actually checking. */
+.railCrumbs {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(239, 231, 214, 0.75);
+  margin: 0;
+  flex: none;
+}
+
+/* The lesson's name, in the display face but at reading size: it is the
+   same title, said in passing rather than announced. A `p` and not a
+   heading -- the sheet has one h1 and it is in the head. */
+.railTitle {
+  font-family: var(--font-display);
+  font-size: var(--step-0);
+  font-variation-settings: 'SOFT' 25, 'WONK' 1;
+  margin: 0;
+  min-width: 0;
+  /* A long title gives way rather than pushing the trail off the rail:
+     the trail is the part that answers "where am I". */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 48rem) {
+  .railInner {
+    padding: var(--space-2) var(--space-4);
+  }
+}
+
+/* On a phone the trail and the title will not share a line, and the
+   trail is what the rail is for -- the title is on the screen the
+   reader just came from. */
+@media (max-width: 34rem) {
+  .railTitle {
+    display: none;
   }
 }
 
@@ -334,16 +466,26 @@
   cursor: default;
 }
 
-/* Asking for the lesson again. Set apart from the prose by a rule
-   rather than a box: it is an afterthought to the reading, not part
-   of it. */
+/* Asking for the lesson again.
+   ---------------------------------------------------------------
+
+   Maintenance, and it reads as maintenance. It sat under a `--rule`
+   hairline with a section's worth of air above it, which made it the
+   first of four ruled bands at the foot and a peer of *Tend this
+   lesson* -- so the last thing a reader saw after twenty minutes of
+   work was an offer to throw it away and write it again.
+
+   It keeps a hairline, because it is not part of the prose, but in
+   `--paper-edge` rather than `--rule`: the faintest division the
+   catalogue draws, against the three real rules below it. Inside the
+   article, so it belongs to the reading it is about. */
 .rewrite {
   display: grid;
   gap: var(--space-2);
   justify-items: start;
-  margin-top: var(--space-5);
+  margin-top: var(--space-4);
   padding-top: var(--space-3);
-  border-top: 1px solid var(--rule);
+  border-top: 1px solid var(--paper-edge);
 }
 
 .rewriteNote {
@@ -527,7 +669,8 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-3);
-  margin-top: var(--space-6);
+  /* No margin: the body's gap is what holds it off the record above.
+     See `.body`. */
   padding-top: var(--space-4);
   border-top: 1px solid var(--rule);
 }

@@ -1217,6 +1217,65 @@ formula is notation; it is not a way into the page.
 is the one thing here that cannot be made to wrap, and a page that scrolls
 sideways is a broken page (§8). The scroll belongs to the equation.
 
+### The rail across the top of a lesson
+
+A lesson is twenty minutes of scrolling, and the green band naming it is gone
+after the first screen — which is exactly when knowing where you are starts to
+matter. A reader deep in Intersection Observer wants telling that they are still
+inside Web Performance Optimization, and wants the way back up without hunting
+for the top of the page.
+
+| Part | Treatment |
+| --- | --- |
+| The rail | The head's own plate — `--plate-green` on `--paper` — at the width of the sheet, under a `3px` `--plate-mustard` rule, which is the head's rule kept. |
+| What it carries | The trail, then the lesson's name. Nothing else. |
+| The trail | The label register at `--step--2`, `rgba(239,231,214,0.75)`. |
+| The name | `--font-display` at `--step-0` — the same title, said in passing rather than announced. A `p`, not a heading: the sheet has one `h1` and it is in the head. |
+| Appearing | Opacity and a half-height slide through `--motion-travel`, over `--dur-state`. |
+| Narrow | Under `34rem` the name goes and the trail stays. |
+
+**Rule — the rail is fixed, and the head is left alone.** The obvious
+construction is the head itself going sticky and collapsing, and it is the wrong
+one: a sticky head is in normal flow, so shrinking it from a band to a rule
+pulls a hundred and fifty pixels of prose up the screen under the reader's eye,
+mid-sentence. The rail takes no room in the flow at all, so nothing below it
+moves.
+
+**Rule — the rail lives outside `main`.** Not a detail. Every sheet arrives
+through `main { animation: sheetIn }`, and that keyframe moves a transform;
+`animation-fill-mode: both` leaves the final transform applied for the life of
+the page, and an element with a transform is the containing block for anything
+`fixed` inside it. Anything fixed rendered inside a sheet is pinned to the top
+of that sheet and rides off the screen with it.
+
+**Rule — the rail carries only what a reader stopped in the middle needs.** The
+trail and the name. The stage, the length and the state are answered once at the
+top of the lesson and are not questions anyone has again at paragraph forty.
+
+---
+
+### The foot of a lesson
+
+**Rule — the gap between sections is the grid's, and a section does not space
+itself as well.** The lesson body is a grid with a `--space-5` gap. Three of the
+four things at its foot — the garden, the way on, the rewrite — were written as
+blocks in normal flow and each held itself off whatever was above it with a
+`margin-top` of its own. The gap did not replace those margins, it was added to
+them: `--space-5` of gap, then `--space-6` of margin, then the section's own
+padding, which is a hundred and twenty-eight pixels of nothing between the last
+line of a lesson and the first card of its garden. Four sections did it in a
+row, so the last screen of every lesson was mostly rules and air. A foot section
+now brings its rule and the clearance under it and nothing else.
+
+**Rule — maintenance is not a peer of the work.** *Write this lesson again* sat
+under a `--rule` hairline with a section's worth of air above it, which made it
+the first of four ruled bands and a peer of *Tend this lesson* — so the last
+thing a reader saw after twenty minutes of work was an offer to throw it away.
+It keeps a hairline, because it is not prose, but in `--paper-edge`: the
+faintest division the catalogue draws, against the three real rules below it.
+
+---
+
 ### Tended passages, and the card
 
 The sentence a card came out of is drawn back onto its own lesson, by the same

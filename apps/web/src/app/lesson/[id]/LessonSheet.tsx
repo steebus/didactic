@@ -19,6 +19,7 @@ import type { SourceLink } from '@didactic/core/sourceLinks'
 import type { LessonNeighbours } from '@didactic/core/lessonState'
 import { pressedLink } from '@/lib/pressedLink'
 import { useScrollMemory } from '@/lib/useScrollMemory'
+import { useReadingRail } from '@/lib/useReadingRail'
 import { viabilityFigure } from '@didactic/core/scoring'
 import { SheetNav } from '@/components/SheetNav'
 import { Crumbs } from '@/components/Crumbs'
@@ -181,6 +182,10 @@ export default function LessonSheet({
   // A lesson is long enough to leave halfway. Restore once the body is
   // on the page, or the restore lands on a document too short to scroll.
   useScrollMemory(`lesson:${id}`, body !== null)
+
+  // Long enough, too, that the head is off the screen for most of the
+  // reading. The rail puts it back as a rule across the top.
+  const { sentinel: headEnd, past: pastHead } = useReadingRail<HTMLDivElement>()
 
   // A write this sheet joined rather than started -- the topic sheet
   // set it going -- lands on the bench with nothing here listening, so
@@ -486,6 +491,42 @@ export default function LessonSheet({
   const blocking = requires.filter(r => r.completed_at === null)
 
   return (
+    <>
+    {/* The head again, as a rule across the top of the reading.
+        -----------------------------------------------------------------
+
+        A lesson is twenty minutes of scrolling and the head is gone
+        after the first screen of it, which is exactly when knowing
+        where you are starts to matter: a reader deep in Intersection
+        Observer wants telling that they are still inside Web
+        Performance Optimization, and wants the way back up without
+        hunting for the top of the page.
+
+        Fixed rather than the head itself going sticky and shrinking. A
+        sticky head is in normal flow, so collapsing it from a band to a
+        rule pulls a hundred and fifty pixels of prose up the screen
+        under the reader's eye, mid-sentence. This takes no room in the
+        flow at all, so nothing below it moves.
+
+        Outside `main`, which is not a detail. Every sheet in this app
+        arrives through `main { animation: sheetIn }`, and that keyframe
+        moves a transform; `both` leaves the final transform applied for
+        the life of the page, and an element with a transform is the
+        containing block for anything fixed inside it. A rail rendered
+        in there is pinned to the top of the sheet and rides off the
+        screen with it.
+
+        Only what a reader stopped in the middle actually needs: the
+        trail, and the name of the lesson. The stage, the length and the
+        state are answered once at the top and are not questions anyone
+        has again at paragraph forty. */}
+    <div className={styles.rail} data-shown={pastHead || undefined}>
+      <div className={styles.railInner}>
+        <Crumbs className={styles.railCrumbs} trail={crumbs} />
+        <p className={styles.railTitle}>{lesson.title}</p>
+      </div>
+    </div>
+
     <main className={styles.sheet}>
       <header className={styles.head}>
         {/* An entry written while reading is about what the lesson
@@ -525,6 +566,9 @@ export default function LessonSheet({
         </div>
       </header>
       <div className={styles.headRule} />
+
+      {/* Where the head ends, so the rail knows when to appear. */}
+      <div ref={headEnd} className={styles.railMark} aria-hidden="true" />
 
       <div className={styles.body}>
         {!available && blocking.length > 0 && (
@@ -819,5 +863,6 @@ export default function LessonSheet({
         )}
       </div>
     </main>
+    </>
   )
 }
