@@ -78,6 +78,7 @@ export function Highlighter({
   clozes = [],
   onChanged,
   onTended,
+  deskWithin,
   children,
 }: {
   lessonId: string
@@ -92,6 +93,29 @@ export function Highlighter({
   onChanged?: () => void
   /** A cloze was planted, answered, rewritten or pulled up here. */
   onTended?: () => void
+  /**
+   * The box the desk's buttons are laid out in, where that is not this
+   * one.
+   *
+   * The buttons sit on a sticky line, and a sticky line is bounded by
+   * the box it is laid out in: left here, they come to rest where the
+   * prose ends and then sit over its last few lines for the whole of
+   * the rest of the sheet. A caller that has more sheet below the
+   * reading -- the lesson, which has the tally, the rewrite, the
+   * garden, *How did you go?* and the way on under it -- hands over the
+   * element that holds all of it, and the desk is portalled in as its
+   * last child so its travel is the length of the page.
+   *
+   * Given as an element rather than a ref because a ref's `.current` is
+   * not state: it is filled during commit and changing it re-renders
+   * nothing, so the portal would never be told it had somewhere to go.
+   * A caller holds it in state and passes what it has.
+   *
+   * Nothing is lost while it is still null on the first render: the
+   * desk renders here instead, and the two places pin to the same line
+   * at the foot of the window, so what the reader sees does not move.
+   */
+  deskWithin?: HTMLElement | null
   children: React.ReactNode
 }) {
   const holder = useRef<HTMLDivElement>(null)
@@ -819,43 +843,55 @@ export function Highlighter({
   const notes = marks.length - passages
   const unplaced = passages - drawn.length
 
+  /** The buttons that stand at the corner of the reading: the way into
+   *  what is already marked, and the way to write about the lesson
+   *  itself. */
+  const desk = (
+    <div className={styles.desk}>
+      <div className={styles.deskStack}>
+        {marks.length > 0 && (
+          <button
+            type="button"
+            className={`${styles.deskNote} ${styles.deskQuiet}`}
+            onClick={() => showMarks(!open_)}
+            aria-label="What you have marked in this lesson"
+            aria-expanded={open_}
+            title="What you have marked in this lesson"
+          >
+            <MarksIcon />
+            <span className={styles.deskTally}>{marks.length}</span>
+          </button>
+        )}
+        <button
+          type="button"
+          className={styles.deskNote}
+          onClick={noteOnLesson}
+          aria-label="Write a note on this lesson"
+          title="A note on this lesson"
+        >
+          <NoteIcon />
+        </button>
+      </div>
+    </div>
+  )
+
+  /** In the box the caller named, or here while there is not one. */
+  const deskIn = (node: React.ReactNode, host: HTMLElement | null | undefined) =>
+    host ? createPortal(node, host) : node
+
   return (
     <div className={styles.holder} ref={holder}>
       {children}
 
       {/* Writing about the lesson rather than about a passage in it.
           Sticky rather than fixed, so it travels down the sheet's own
-          edge with the reading and leaves when the reading is done --
-          and so it needs no measuring, no scroll listener, and nothing
-          to keep in step with the layout. */}
-      {!pending && !open && !offer && !openCloze && (
-        <div className={styles.desk}>
-          <div className={styles.deskStack}>
-            {marks.length > 0 && (
-              <button
-                type="button"
-                className={`${styles.deskNote} ${styles.deskQuiet}`}
-                onClick={() => showMarks(!open_)}
-                aria-label="What you have marked in this lesson"
-                aria-expanded={open_}
-                title="What you have marked in this lesson"
-              >
-                <MarksIcon />
-                <span className={styles.deskTally}>{marks.length}</span>
-              </button>
-            )}
-            <button
-              type="button"
-              className={styles.deskNote}
-              onClick={noteOnLesson}
-              aria-label="Write a note on this lesson"
-              title="A note on this lesson"
-            >
-              <NoteIcon />
-            </button>
-          </div>
-        </div>
-      )}
+          edge with the reading -- and so it needs no measuring, no
+          scroll listener, and nothing to keep in step with the layout.
+
+          Laid out in `deskWithin` where the caller gave one, because a
+          sticky line stops at the end of the box it is in and the box
+          this component owns is the prose. See the prop. */}
+      {!pending && !open && !offer && !openCloze && deskIn(desk, deskWithin)}
 
       {/* The tally under the reading is also the way into the list:
           it is the sentence a reader looks at when they wonder what

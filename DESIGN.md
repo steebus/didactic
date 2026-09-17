@@ -1269,7 +1269,7 @@ for the top of the page.
 | The trail | The label register at `--step--2`, `rgba(239,231,214,0.75)`. |
 | The name | `--font-display` at `--step-0` — the same title, said in passing rather than announced. A `p`, not a heading: the sheet has one `h1` and it is in the head. |
 | Appearing | Opacity and a half-height slide through `--motion-travel`, over `--dur-state`. |
-| Narrow | Under `34rem` the name goes and the trail stays. |
+| Narrow | Under `34rem` the two take a line each rather than sharing one: the trail on top in the label register, the name under it at `--step--1`. Each is kept to its own single line, the trail's steps clipping with an ellipsis. |
 
 **Rule — the rail is fixed, and the head is left alone.** The obvious
 construction is the head itself going sticky and collapsing, and it is the wrong
@@ -1288,6 +1288,18 @@ of that sheet and rides off the screen with it.
 **Rule — the rail carries only what a reader stopped in the middle needs.** The
 trail and the name. The stage, the length and the state are answered once at the
 top of the lesson and are not questions anyone has again at paragraph forty.
+
+**Rule — the name is not what gives way on a phone.** It used to: under `34rem`
+the name went and the trail stayed, on the reasoning that the trail is what the
+rail is for and the title is on the screen the reader just came from. A phone is
+exactly where that does not hold. The head is one swipe deep, a lesson is twenty
+minutes below it, and a reader opening the app again on the train has the trail
+telling them they are in Web Performance Optimization and nothing telling them
+which of its fourteen lessons they are halfway through. Both, stacked, in the
+order they are asked in: *where am I*, then *what am I reading*. The name drops a
+step rather than the band growing into the reading, and neither line is allowed
+to wrap — a rail two lines deep at one topic and three at the next is furniture
+the reader cannot learn the shape of.
 
 ---
 
@@ -1578,7 +1590,7 @@ where the panel that keeps it stands.
 | Part | Treatment |
 | --- | --- |
 | The offer | `Add mark`, in the label register on `--plate-green`, `min-height: 2.5rem`, `0 4px 14px rgba(36,29,22,0.3)`. Placed below the selection: the phone draws its own callout above one. |
-| The note button | `2.75rem` square on `--plate-green`, hovering to `--plate-terracotta`, riding the sheet's right edge on a zero-height `position: sticky` line at `bottom: var(--space-5)`. |
+| The note button | `2.75rem` square on `--plate-green`, hovering to `--plate-terracotta`, riding the sheet's right edge on a `position: sticky` line at `bottom: var(--space-5)`. The line runs the length of the sheet's body, not the reading's. |
 | The opener | `2rem` square, quiet until hovered, at the head of any panel. Four corners pointing out, or the same four pointing in. |
 
 | Panel state | Where it stands |
@@ -1604,6 +1616,22 @@ therefore rendered into `document.body`. A panel measured against the prose is
 not: it belongs to the sheet it was measured in. The note button is sticky
 rather than fixed for the same reason from the other side — sticky is not caught
 by the transform, and needs no measuring.
+
+**Rule — the desk's travel is the sheet's, not the reading's.** A sticky line
+comes to rest at the end of the box it was laid out in, and the box this
+component owns holds the prose and nothing else. So the buttons stopped where the
+reading stopped and then sat over its last few lines for the whole of the tally,
+the rewrite, the garden, *How did you go?* and the way on — on a phone, several
+screens of page with two buttons parked in the middle of them. The lesson hands
+over the box that holds all of that and the desk is portalled in as its last
+child, so the line runs the length of everything a reader scrolls through and the
+buttons settle in the clear space under the last of it. The line carries the
+buttons' own height for the same reason: where they finally rest is room the
+sheet set aside, not a stack laid over whatever happened to be last on the page.
+It catches nothing — `pointer-events: none` on the line, `auto` on the buttons —
+because it is pinned over the reading for the whole of it, and a reader who loses
+a paragraph of selection to an invisible box has lost the one thing this
+component is for.
 
 **Rule — a maximised note is beside the reading, not over it.** The sheet gives
 up the strip the notes stand in (`body[data-notes='open']` takes

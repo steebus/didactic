@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NO_THINKING } from './thinking'
+import { LESSON_VOICE } from './voice'
 import type { CurriculumShape, LessonStage } from '@didactic/core/types'
 import { blockPromptSection } from '@didactic/core/blocks'
 import { lessonSlug, type LessonLink } from '@didactic/core/lessonLinks'
@@ -327,7 +328,7 @@ ${passagePromptSection(input.passages ?? [])}
 
 Never announce a block or label it in the prose -- no "steps:", no "here is a chart", no "see the table below". Each block prints its own title, so a line introducing one is a line printed twice.
 
-Use markdown headings and prose. Explain the idea, show one worked example, and finish with something concrete to try. No preamble, no "in this lesson we will".
+Markdown, and prose rather than an outline. Explain the idea, show one worked example, and finish with something concrete for the reader to go and do. That last part is content, not a summary: it is the one ending this sheet always wants. The reader's contents list is built from your headings, so a lesson of this length wants a handful of them.
 
 Mathematics is typeset: write TeX between $ for notation inside a sentence and between $$ for an equation on a line of its own. Give a display equation its own line, with a blank line either side -- several $$...$$ run together on one line read as one wall rather than as three steps. Use it where notation is genuinely clearer than words, and not for a number that is only a number: $b^n$ and $\log_b(x) = y$ earn it, "20-40%" does not.
 
@@ -361,6 +362,12 @@ ${blockPromptSection()}`
     model: 'claude-sonnet-5',
     max_tokens: ROUND_TOKENS,
     thinking: NO_THINKING,
+    // How to write, held apart from what to write about. The same on
+    // every round of every lesson, so it sits in front of the cached
+    // prefix rather than inside the request -- and so a round that
+    // carries on from half a lesson is told the voice again, which the
+    // carried prose alone does not reliably say.
+    system: LESSON_VOICE,
     messages,
   })
   const res = await stream.finalMessage()

@@ -1,9 +1,14 @@
 .holder {
   position: relative;
-  /* Room at the foot for the desk to come to rest in. The buttons are
-     sticky inside this box, so where it ends is where they stop -- and
-     without this they stopped on top of the last few lines of the
-     reading, which is the one place in the lesson they must not be. */
+  /* The reading's own foot. It was put here as room for the desk to
+     come to rest in, back when the buttons were sticky inside this box
+     and stopped where it ended; the desk stands in the sheet now and
+     rests below everything (see `.desk`). The clearance stays because
+     the foot of the lesson is built on it -- `page.module.css` says
+     `.rewrite` holds itself off nothing because the reading above
+     already ends in this -- and a reading that ends hard against the
+     tally under it reads as a page that ran out rather than one that
+     finished. */
   padding-bottom: calc(var(--space-5) + 2.75rem);
 }
 
@@ -149,12 +154,31 @@
 
 /* --- Writing about the lesson itself ----------------------------- */
 
-/* A zero-height line that sticks to the foot of the window while the
-   lesson body is in view, so the button on it travels down the sheet's
-   own right edge with the reading and stops when the reading does.
+/* A line that sticks to the foot of the window, so the buttons on it
+   travel down the sheet's own right edge with the reading and come to
+   rest when the sheet does.
+   -----------------------------------------------------------------
+
    Sticky rather than fixed: nothing has to measure the sheet, and the
    transform every sheet arrives under -- which is what a fixed panel
-   would end up fixed to -- does not reach it. */
+   would end up fixed to -- does not reach it.
+
+   Sticky is bounded by the box it is laid out in, and this used to be
+   laid out in `.holder`, which holds the prose and nothing else. So the
+   buttons came to rest at the end of the reading and sat there over the
+   last lines of it for the whole of the rest of the sheet -- the tally,
+   the rewrite, the garden, *How did you go?* and the way on, which on a
+   phone is several screens of page with two buttons parked in the
+   middle of them. They stand in the sheet's body now (`deskWithin` in
+   `Highlighter.tsx`, portalled in as its last child), so the line they
+   are on runs the length of everything a reader scrolls through and
+   they settle in the clear space under the last of it.
+
+   Which is also why they have a height now rather than being a
+   zero-height line with a column hung off it. The height is the
+   buttons' own, so where they finally rest is room the sheet has
+   actually set aside rather than a stack laid over whatever was last on
+   the page. */
 .desk {
   position: sticky;
   /* Clear of the phone's own bar at the foot of the screen, and of any
@@ -163,21 +187,22 @@
      where they always did. */
   bottom: calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
   z-index: 4;
-  height: 0;
+  display: flex;
+  justify-content: flex-end;
+  /* The line is as wide as the reading and is pinned over it for the
+     whole of it, so it must catch nothing at all: a reader who loses a
+     paragraph of selection to an invisible box has lost the one thing
+     this component is for. Only the buttons take a press. */
+  pointer-events: none;
 }
 
-/* Two buttons, stacked up from the corner rather than down from it.
-   The line they hang off has no height, so a column laid out in it
-   grows off the bottom of the window -- which is where the note button
-   went the moment the marks button was added above it. */
+/* Two buttons, stacked at the near corner. */
 .deskStack {
-  position: absolute;
-  right: 0;
-  bottom: 0;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: var(--space-2);
+  pointer-events: auto;
 }
 
 .deskNote {

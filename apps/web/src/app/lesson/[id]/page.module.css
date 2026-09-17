@@ -271,12 +271,64 @@
   }
 }
 
-/* On a phone the trail and the title will not share a line, and the
-   trail is what the rail is for -- the title is on the screen the
-   reader just came from. */
+/* On a phone the trail and the title will not share a line, so they
+   take one each rather than the name being dropped.
+   -----------------------------------------------------------------
+
+   The name used to go, on the reasoning that the trail is what the rail
+   is for and the title is on the screen the reader just came from. A
+   phone is exactly where that does not hold: the head is one swipe of
+   scrolling deep, a lesson is twenty minutes below it, and the reader
+   who opens the app again on the train has the trail telling them they
+   are in Web Performance Optimization and nothing telling them which of
+   its fourteen lessons they are halfway through.
+
+   So both, stacked, in the order they are asked in: where am I, then
+   what am I reading. The trail keeps the label register and the name
+   drops a step from the wide rail's, which is what buys the second line
+   without the band growing into the reading. */
 @media (max-width: 34rem) {
+  .railInner {
+    display: grid;
+    gap: 2px;
+    padding: var(--space-2) var(--space-4);
+  }
+
+  /* One line, whatever the trail measures: a rail two lines tall at one
+     topic and three at the next is furniture the reader cannot learn
+     the shape of. Written against `.railInner` rather than on its own,
+     because the rule it is overriding -- `flex-wrap: wrap` on `.crumbs`
+     -- is a single class in another module, and which of two single
+     classes wins is a question about import order rather than about
+     this sheet.
+
+     The steps themselves carry the clipping: `text-overflow` is a
+     property of the box the text overflows, and the trail is a flex row
+     of boxes rather than one. So a long step gives way with an ellipsis
+     and the trail still reads as a trail. */
+  .railInner .railCrumbs {
+    flex-wrap: nowrap;
+    min-width: 0;
+  }
+
+  .railInner .railCrumbs > * {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* The subject gives way before the topic does. Flex shares a shortage
+     out in proportion to what each item measures, which clipped *Web
+     development* and *Web performance optimization* by the same share
+     and left neither readable. The nearest step is the one that answers
+     the question, so everything above it is weighted to go first. */
+  .railInner .railCrumbs > *:not(:last-child) {
+    flex-shrink: 8;
+  }
+
   .railTitle {
-    display: none;
+    font-size: var(--step--1);
   }
 }
 

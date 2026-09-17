@@ -18,6 +18,7 @@ interface Asked {
   messages: Array<{ role: string; content: string | Array<Record<string, unknown>> }>
   max_tokens: number
   thinking?: { type: string }
+  system?: string
 }
 const mockStream = vi.fn((options: Asked) => {
   void options
@@ -215,5 +216,45 @@ describe('the round ceiling', () => {
     finalMessage.mockResolvedValue(thoughtOnly())
 
     await expect(write()).rejects.toThrow('no text returned')
+  })
+})
+
+/**
+ * How a lesson is written, as against what it is written about.
+ *
+ * The request carries the topic, the shelf and the map; none of that
+ * says anything about the prose, and what came back read like every
+ * other model-written article on the internet. The voice is the fix,
+ * and where it is put is the point: a system prompt is in front of
+ * every round, including the ones that carry on from half a lesson,
+ * where an instruction buried in the opening user turn is furthest
+ * away and least likely to be followed.
+ */
+describe('the voice', () => {
+  it('is the system prompt, not another paragraph of the request', async () => {
+    finalMessage.mockResolvedValue(said('All of it.'))
+    await write()
+
+    const { LESSON_VOICE } = await import('@/lib/llm/voice')
+    expect(request().system).toBe(LESSON_VOICE)
+  })
+
+  it('is in front of a carried round too, which is where it is most needed', async () => {
+    finalMessage.mockResolvedValue(said(' and the rest.'))
+    await write('Half a lesson, ending mid')
+
+    const { LESSON_VOICE } = await import('@/lib/llm/voice')
+    expect(request().system).toBe(LESSON_VOICE)
+  })
+
+  it('names the tells rather than asking for good writing in general', async () => {
+    const { LESSON_VOICE } = await import('@/lib/llm/voice')
+
+    // The rules that do the actual work. A voice that said only "write
+    // well" would pass any test that checked it was sent at all.
+    for (const tell of ['delve', 'tapestry', 'crucial', 'em dashes']) {
+      expect(LESSON_VOICE).toContain(tell)
+    }
+    expect(LESSON_VOICE).toMatch(/No summary paragraph/)
   })
 })

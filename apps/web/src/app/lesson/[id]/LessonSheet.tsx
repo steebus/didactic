@@ -91,6 +91,23 @@ export default function LessonSheet({
   const router = useRouter()
   // The rendered body, so the contents list can read its headings.
   const article = useRef<HTMLElement>(null)
+  /**
+   * The sheet's body, handed to the marking desk to stand its buttons
+   * in.
+   *
+   * The buttons ride a sticky line, and a sticky line comes to rest at
+   * the end of whatever box it was laid out in. Laid out in the
+   * `Highlighter` -- which wraps the prose and nothing else -- they
+   * stopped where the reading stopped and then sat over its last few
+   * lines for the whole of the tally, the rewrite, the garden, *How did
+   * you go?* and the way on. Given this box instead, the line runs the
+   * length of everything the reader scrolls through and the buttons
+   * settle in the clear space under the last of it.
+   *
+   * State rather than a ref, because a ref filled during commit
+   * re-renders nothing and the portal would never be told where to go.
+   */
+  const [sheetBody, setSheetBody] = useState<HTMLElement | null>(null)
   const [data, setData] = useState<LessonData | null>(initial)
   const [body, setBody] = useState<string | null>(initial.lesson.body)
   const [highlights, setHighlights] = useState<Mark[]>(initial.highlights ?? [])
@@ -570,7 +587,7 @@ export default function LessonSheet({
       {/* Where the head ends, so the rail knows when to appear. */}
       <div ref={headEnd} className={styles.railMark} aria-hidden="true" />
 
-      <div className={styles.body}>
+      <div className={styles.body} ref={setSheetBody}>
         {!available && blocking.length > 0 && (
           <section className={styles.gate}>
             <h2 className={styles.gateTitle}>There is ground before this</h2>
@@ -622,6 +639,7 @@ export default function LessonSheet({
                 lessonId={id}
                 existing={highlights}
                 clozes={clozes}
+                deskWithin={sheetBody}
                 onChanged={() => setRevision(r => r + 1)}
                 onTended={() => setGarden(g => g + 1)}
               >

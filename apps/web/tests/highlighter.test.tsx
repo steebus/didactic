@@ -362,3 +362,50 @@ describe('Highlighter, planting a cloze by hand', () => {
     )
   })
 })
+
+/**
+ * Where the desk's buttons are laid out.
+ *
+ * They ride a sticky line, and a sticky line comes to rest at the end
+ * of the box it was laid out in. Laid out in the Highlighter -- which
+ * wraps the prose and nothing else -- they stopped where the reading
+ * stopped and then sat over its last few lines for the whole of the
+ * rest of the sheet. The lesson hands over the box that holds all of
+ * it, so the travel is the length of the page.
+ */
+describe('Highlighter, where the desk stands', () => {
+  const noteButton = () =>
+    Array.from(document.body.querySelectorAll('button')).find(
+      b => b.getAttribute('aria-label') === 'Write a note on this lesson'
+    )
+
+  it('stands in the prose when the caller names nowhere else', () => {
+    render()
+
+    expect(noteButton()).toBeDefined()
+    expect(container.contains(noteButton()!)).toBe(true)
+  })
+
+  it('stands in the box the caller names, as its last child', () => {
+    const sheet = document.createElement('div')
+    document.body.appendChild(sheet)
+
+    act(() => {
+      root.render(
+        <Highlighter lessonId="lesson-1" existing={[]} deskWithin={sheet}>
+          <p>{PROSE}</p>
+        </Highlighter>
+      )
+    })
+
+    const note = noteButton()
+    expect(note).toBeDefined()
+    // Out of the prose entirely, and at the end of the sheet: the line
+    // it is on runs the length of everything below the reading.
+    expect(container.contains(note!)).toBe(false)
+    expect(sheet.contains(note!)).toBe(true)
+    expect(sheet.lastElementChild!.contains(note!)).toBe(true)
+
+    sheet.remove()
+  })
+})
