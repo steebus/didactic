@@ -14,7 +14,6 @@ import styles from './GraphCanvas.module.css'
 const api = didactic()
 import { Setting } from '@/components/Setting'
 import {
-  EDGE_KIND_LABEL,
   fade,
   nodeSize,
   edgeSize,
@@ -1014,5 +1013,3 @@ function TopicPanel({
     </aside>
   )
 }
-
-export { EDGE_KIND_LABEL }

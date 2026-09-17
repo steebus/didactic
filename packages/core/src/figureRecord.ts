@@ -1,4 +1,4 @@
-import { computeAbility, vagueFigure, viabilityFigure } from './scoring'
+import { unroundedAbility, vagueFigure, viabilityPoints } from './scoring'
 import type { Exposure } from './types'
 
 /**
@@ -16,6 +16,14 @@ import type { Exposure } from './types'
  * moves a figure by a dozen points and the tenth by one, and printing
  * that is the only way anyone would know.
  *
+ * The replay asks for the figure before it is rounded to the tenth the
+ * column holds. It has to. A tenth of ability is two and a half points
+ * of viability, which is more than a marked passage or a right answer
+ * is ever worth -- so read off the stored figure, every one of them
+ * came out as a flat nought, and a read came out as whichever of +2 or
+ * +3 the rounding happened to land on rather than as what it did. The
+ * small things are small, not nothing, and the record now says which.
+ *
  * Shared, because the phone prints the same record.
  */
 
@@ -29,9 +37,11 @@ export interface FigureEvent {
   reason: string
   depth: string | null
   created_at: string
-  /** Viability points this moved, as the sheet prints the figure. */
+  /** Viability points this moved, to the hundredth. A marked passage is
+   *  worth a few hundredths; the first close read is worth ten points. */
   delta: number
-  /** The figure after it, as printed. */
+  /** The figure after it, to the hundredth. The band prints this
+   *  rounded, so a sheet reading 77 stands behind 77.43 here. */
   after: number
   /**
    * Whether this changed how sure the figure is. `held` is a figure
@@ -52,6 +62,11 @@ export interface FiledEntry {
 /** How much of an entry the record quotes. */
 const ENTRY_QUOTE = 90
 
+/** Points, to the hundredth. Every figure in the record passes through
+ *  here, so the deltas telescope onto the standings exactly rather than
+ *  drifting apart by a float's worth each line. */
+const points = (ability: number) => Math.round(viabilityPoints(ability) * 100) / 100
+
 type Logged = Pick<Exposure, 'id' | 'reason' | 'depth' | 'created_at'> &
   Partial<Pick<Exposure, 'source' | 'source_id'>>
 
@@ -71,10 +86,10 @@ export function figureRecord(exposures: Logged[], entries: FiledEntry[] = []): F
   )
 
   const events: FigureEvent[] = []
-  let before = computeAbility([])
+  let before = unroundedAbility([])
 
   ordered.forEach((exposure, index) => {
-    const after = computeAbility(ordered.slice(0, index + 1) as Exposure[])
+    const after = unroundedAbility(ordered.slice(0, index + 1) as Exposure[])
     const wasVague = vagueFigure(before.confidence)
     const isVague = vagueFigure(after.confidence)
 
@@ -84,8 +99,8 @@ export function figureRecord(exposures: Logged[], entries: FiledEntry[] = []): F
       reason: exposure.reason,
       depth: exposure.depth,
       created_at: exposure.created_at,
-      delta: viabilityFigure(after.ability) - viabilityFigure(before.ability),
-      after: viabilityFigure(after.ability),
+      delta: Math.round((points(after.ability) - points(before.ability)) * 100) / 100,
+      after: points(after.ability),
       // Before anything is recorded the figure is the floor and not a
       // measurement at all, so the first event cannot "hold" it: it is
       // the first reading, however little it says.
@@ -106,7 +121,7 @@ export function figureRecord(exposures: Logged[], entries: FiledEntry[] = []): F
     if (recorded.has(entry.id)) continue
     const standing = events
       .filter(e => e.created_at <= entry.created_at)
-      .at(-1)?.after ?? viabilityFigure(computeAbility([]).ability)
+      .at(-1)?.after ?? points(unroundedAbility([]).ability)
     events.push({
       id: `entry:${entry.id}`,
       kind: 'entry',
@@ -143,8 +158,26 @@ function quote(note: string): string {
 export function impactLabel(event: Pick<FigureEvent, 'delta' | 'sureness' | 'kind'>): string {
   if (event.kind === 'entry') return 'moved nothing'
   if (event.sureness === 'held' && event.delta === 0) return 'made it a guess'
-  const points = event.delta > 0 ? `+${event.delta}` : event.delta < 0 ? `−${-event.delta}` : '±0'
-  if (event.sureness === 'held') return `${points}, made it a guess`
-  if (event.sureness === 'lifted') return `${points}, no longer a guess`
-  return points
+  const moved = event.delta > 0 ? `+${figure(event.delta)}`
+    : event.delta < 0 ? `−${figure(-event.delta)}`
+      : '±0'
+  if (event.sureness === 'held') return `${moved}, made it a guess`
+  if (event.sureness === 'lifted') return `${moved}, no longer a guess`
+  return moved
+}
+
+/**
+ * A delta at the precision that says what it was.
+ *
+ * Whole points for the things worth whole points, and hundredths for
+ * the things that are not -- a marked passage is worth about four
+ * hundredths of a point late in a log, and rounding that to the nearest
+ * point is how it came to read as nothing. Two decimals is enough for
+ * the smallest thing there is: nothing under a hundredth can be earned,
+ * because past a total weight of ten the curve is at its ceiling and
+ * further reading is worth nought exactly, which is a different claim
+ * and prints as one.
+ */
+function figure(points: number): string {
+  return points >= 1 ? points.toFixed(1) : points.toFixed(2)
 }

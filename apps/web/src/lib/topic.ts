@@ -4,6 +4,7 @@ import { tags } from '@didactic/core/tags'
 import type { HighlightRow } from '@didactic/core/shapes'
 import { computeFreshness } from '@didactic/core/scoring'
 import { curriculumProgress } from '@didactic/core/curriculum'
+import { nearbyTopics } from '@didactic/core/graph'
 import { figureRecord } from '@didactic/core/figureRecord'
 import type { Resource, Subject } from '@didactic/core/types'
 import { supabaseAdmin } from './supabase'
@@ -186,13 +187,18 @@ export async function readTopicArea(
       relevance: Number(l.relevance),
       resource: l.resources as unknown as Resource,
     })),
-    neighbours: (edges ?? []).flatMap(e => {
-      const otherId = e.from_topic === topicId ? e.to_topic : e.from_topic
-      const title = titleById.get(otherId)
-      return title
-        ? [{ id: otherId, title, kind: e.kind, incoming: e.to_topic === topicId }]
-        : []
-    }),
+    // One row per topic rather than per edge: a pair can hold several
+    // edges, and `related` written from each end is two of them saying
+    // the same thing. `nearbyTopics` keeps the most definite claim.
+    neighbours: nearbyTopics(
+      (edges ?? []).flatMap(e => {
+        const otherId = e.from_topic === topicId ? e.to_topic : e.from_topic
+        const title = titleById.get(otherId)
+        return title
+          ? [{ id: otherId, title, kind: e.kind, incoming: e.to_topic === topicId }]
+          : []
+      })
+    ),
     exposures: (exposures ?? []).slice(0, 8).map(e => ({
       id: e.id,
       reason: e.reason,

@@ -4,7 +4,20 @@ import type { Exposure } from './types'
 const FLOOR = 1.0
 const MAX = 5.0
 
-export function computeAbility(exposures: Exposure[]): { ability: number; confidence: number } {
+/**
+ * The figure as the maths makes it, before it is rounded to what the
+ * column can hold.
+ *
+ * `topics.ability` is `numeric(2,1)`, so the stored figure moves in
+ * tenths -- which is two and a half points of viability, and more than
+ * a marked passage or a right answer is ever worth. Anything that has
+ * to say what one event moved has to ask before that rounding, or it
+ * reports every small thing as nothing. `computeAbility` below is this
+ * rounded to the column; the record replays this.
+ */
+export function unroundedAbility(
+  exposures: Exposure[]
+): { ability: number; confidence: number } {
   if (exposures.length === 0) return { ability: FLOOR, confidence: 0 }
 
   // All exposure counts toward the consumption band; applied work counts
@@ -62,6 +75,13 @@ export function computeAbility(exposures: Exposure[]): { ability: number; confid
   // has to go and mark anything resolved.
   if (struggling(exposures)) confidence = Math.min(confidence, config.STRUGGLING_CONFIDENCE)
 
+  return { ability, confidence }
+}
+
+/** The figure as it is stored and printed: rounded to the tenth the
+ *  column holds. This is what writes `topics.ability`. */
+export function computeAbility(exposures: Exposure[]): { ability: number; confidence: number } {
+  const { ability, confidence } = unroundedAbility(exposures)
   return {
     ability: Math.round(ability * 10) / 10,
     confidence: Math.round(confidence * 100) / 100,
@@ -136,7 +156,16 @@ export function subjectAggregate(
  * than printing a negative percentage.
  */
 export function viabilityFigure(ability: number) {
-  return Math.max(0, Math.round(((ability - 1) / 4) * 100))
+  return Math.round(viabilityPoints(ability))
+}
+
+/**
+ * The same scale without the rounding, for the record, which prints
+ * hundredths so that a marked passage reads as the little it is worth
+ * rather than as nothing at all.
+ */
+export function viabilityPoints(ability: number): number {
+  return Math.max(0, ((ability - 1) / 4) * 100)
 }
 
 /**

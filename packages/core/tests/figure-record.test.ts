@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { figureRecord, impactLabel } from '../src/figureRecord'
-import { computeAbility, viabilityFigure } from '../src/scoring'
+import { unroundedAbility, viabilityPoints } from '../src/scoring'
 import type { Exposure } from '../src/types'
 
 let n = 0
@@ -15,8 +15,10 @@ function exposure(over: Partial<Exposure> = {}): Exposure {
 }
 
 describe('figureRecord', () => {
+  const points = (a: number) => Math.round(viabilityPoints(a) * 100) / 100
+
   it('adds up to the figure the topic prints', () => {
-    // The whole claim: every line is computeAbility on a prefix, so the
+    // The whole claim: every line is the figure on a prefix, so the
     // deltas sum to the figure, from the floor, whatever the order.
     const log = [
       exposure({ depth: 'read' }),
@@ -26,11 +28,35 @@ describe('figureRecord', () => {
       exposure({ depth: 'marked' }),
     ]
     const record = figureRecord([...log].reverse())
-    const floor = viabilityFigure(computeAbility([]).ability)
+    const floor = points(unroundedAbility([]).ability)
     const sum = record.reduce((s, e) => s + e.delta, 0)
+    const standing = points(unroundedAbility(log).ability)
 
-    expect(floor + sum).toBe(viabilityFigure(computeAbility(log).ability))
-    expect(record[0].after).toBe(viabilityFigure(computeAbility(log).ability))
+    expect(floor + sum).toBeCloseTo(standing, 10)
+    expect(record[0].after).toBe(standing)
+  })
+
+  it('gives the small things the little they are worth, not a nought', () => {
+    // The bug this replaced: the record read off `topics.ability`,
+    // which the column holds to a tenth -- two and a half points of
+    // viability. Everything lighter than a read came out flat nought,
+    // so a sheet said that marking a passage and answering a question
+    // did nothing, and a reader who did those things all week had a
+    // record of them all worth nothing.
+    const log = [
+      ...Array.from({ length: 6 }, () => exposure({ depth: 'read' })),
+      exposure({ depth: 'marked' }),
+      exposure({ depth: 'answered' }),
+    ]
+    const record = figureRecord(log)
+    const answered = record[0]
+    const marked = record[1]
+
+    expect(marked.depth).toBe('marked')
+    expect(answered.depth).toBe('answered')
+    expect(marked.delta).toBeGreaterThan(0)
+    expect(answered.delta).toBeGreaterThan(marked.delta)
+    expect(impactLabel(marked)).toMatch(/^\+0\.\d\d$/)
   })
 
   it('prints newest first', () => {
@@ -92,8 +118,17 @@ describe('figureRecord', () => {
 
 describe('impactLabel', () => {
   it('signs every figure, nought included', () => {
-    expect(impactLabel({ kind: 'exposure', delta: 6, sureness: null })).toBe('+6')
+    expect(impactLabel({ kind: 'exposure', delta: 6, sureness: null })).toBe('+6.0')
     expect(impactLabel({ kind: 'exposure', delta: 0, sureness: null })).toBe('±0')
-    expect(impactLabel({ kind: 'exposure', delta: 3, sureness: 'lifted' })).toBe('+3, no longer a guess')
+    expect(impactLabel({ kind: 'exposure', delta: 3, sureness: 'lifted' }))
+      .toBe('+3.0, no longer a guess')
+  })
+
+  it('prints hundredths for what is worth less than a point', () => {
+    // A tenth would round a marked passage back to the nought this was
+    // written to stop printing.
+    expect(impactLabel({ kind: 'exposure', delta: 0.04, sureness: null })).toBe('+0.04')
+    expect(impactLabel({ kind: 'exposure', delta: 0.62, sureness: null })).toBe('+0.62')
+    expect(impactLabel({ kind: 'exposure', delta: 10.57, sureness: null })).toBe('+10.6')
   })
 })

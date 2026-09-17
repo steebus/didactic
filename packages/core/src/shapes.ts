@@ -197,7 +197,9 @@ export interface TopicNeighbour {
   id: string
   title: string
   kind: string
-  /** True when this topic comes before the one being viewed. */
+  /** True when the edge points at the topic being viewed, which puts
+   *  this neighbour at the end it was written from -- the earlier of a
+   *  `prereq`, the broader of a `specialises`. */
   incoming: boolean
 }
 

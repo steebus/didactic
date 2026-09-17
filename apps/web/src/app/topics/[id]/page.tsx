@@ -1,4 +1,4 @@
-import { EDGE_KIND_LABEL } from '@didactic/core/graph'
+import { edgeKindLabel } from '@didactic/core/graph'
 import Link from 'next/link'
 import { NoteText } from '@/components/NoteText'
 import { notFound } from 'next/navigation'
@@ -316,10 +316,10 @@ export default async function TopicPage({
                 <h2 className={styles.blockTitle}>Nearby</h2>
                 <ul className={styles.record}>
                   {neighbours.map(n => (
-                    <li key={`${n.id}-${n.kind}-${n.incoming}`} className={styles.recordRow}>
+                    <li key={n.id} className={styles.recordRow}>
                       <Link href={`/topics/${n.id}`}>{n.title}</Link>
                       <span className={styles.recordDate}>
-                        {EDGE_KIND_LABEL[n.kind] ?? n.kind}
+                        {edgeKindLabel(n.kind, n.incoming)}
                       </span>
                     </li>
                   ))}
