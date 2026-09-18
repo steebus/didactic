@@ -822,6 +822,42 @@
     margin-top: 0;
   }
 
+  /* The row's controls go under the name rather than beside it.
+     `.remove` above places a lone button in the second column, but a
+     row in edit mode carries a whole rack -- two nudges, the group
+     select, Take out, Grub out -- and in `auto` that rack took the
+     width it wanted and left the title a column one character wide,
+     which is exactly what it did. On their own line they can wrap, and
+     the name gets the full measure back. */
+  .rowActions,
+  .rowConfirm {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    flex-wrap: wrap;
+    gap: var(--space-2) var(--space-3);
+    align-items: center;
+    margin-top: var(--space-2);
+  }
+
+  /* The select is the widest thing in that rack and the only one that
+     can be told to be narrower without losing its words. */
+  .moveTo {
+    max-width: 11ch;
+  }
+
+  /* The group's own header has the same shape and the same fault: the
+     title, its count and four controls on one line. The controls drop
+     below the title and keep their order. */
+  .bandHead {
+    row-gap: var(--space-2);
+  }
+
+  .bandActions {
+    margin-left: 0;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
   .topicFigures {
     grid-column: 1 / -1;
     grid-row: 2;
