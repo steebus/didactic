@@ -62,24 +62,20 @@ export function bandsOfBed(
   )
   const known = new Map(byPosition.map(g => [g.id, g]))
 
-  // Where each group first appears in the ordered bed, so a box sits
-  // where its contents do rather than where its number says.
-  const firstSeen = new Map<string, number>()
-  ordered.forEach((node, i) => {
-    const id = node.topic.group_id
-    if (id && known.has(id) && !firstSeen.has(id)) firstSeen.set(id, i)
-  })
-
+  // A box sits where its `position` says, not where its contents happen
+  // to fall in the topic order.
+  //
+  // It used to be the other way round -- the band was emitted the first
+  // time one of its topics came up -- which read as reasonable and made
+  // the group nudge do nothing at all: `position` changed, the write
+  // landed, and the band stayed put because the topic that opened it had
+  // not moved. Position is the only thing a reader can address a *group*
+  // by, so it has to be what orders them.
   const bands: BedBand[] = []
-  let loose: TopicTreeNode[] = []
 
-  const flushLoose = () => {
-    if (loose.length > 0) bands.push({ group: null, topics: loose })
-    loose = []
-  }
-
-  const emitted = new Set<string>()
-
+  // Where each group's members sit, gathered once.
+  const membersOf = new Map<string, TopicTreeNode[]>()
+  const loose: TopicTreeNode[] = []
   for (const node of ordered) {
     const id = node.topic.group_id
     // A topic naming a group this bed does not have is loose, not lost.
@@ -87,27 +83,24 @@ export function bandsOfBed(
       loose.push(node)
       continue
     }
-    if (emitted.has(id)) {
-      // Already drawn: its band collected every member when the group
-      // was first met.
-      continue
-    }
-    emitted.add(id)
-    flushLoose()
-    bands.push({
-      group: known.get(id)!,
-      topics: ordered.filter(n => n.topic.group_id === id),
-    })
+    const held = membersOf.get(id)
+    if (held) held.push(node)
+    else membersOf.set(id, [node])
   }
 
-  flushLoose()
-
-  // Groups holding nothing yet, in their own order, after the bands
-  // that have contents. A box made and not yet filled is waiting for
-  // the reader, so it has to be visible to be filled.
+  // Every group in its own order, empty ones included: a box made and
+  // not yet filled is waiting for the reader, so it has to be visible to
+  // be filled.
   for (const group of byPosition) {
-    if (!emitted.has(group.id)) bands.push({ group, topics: [] })
+    bands.push({ group, topics: membersOf.get(group.id) ?? [] })
   }
+
+  // The ungrouped topics, as one band after the boxes. They have no
+  // position of their own to sit at -- `topic_subjects.position` orders
+  // topics within the whole bed, and the boxes are ordered by their own
+  // sequence -- so the honest place for them is the end, where they read
+  // as "everything else" rather than as a group that lost its name.
+  if (loose.length > 0) bands.push({ group: null, topics: loose })
 
   return bands
 }

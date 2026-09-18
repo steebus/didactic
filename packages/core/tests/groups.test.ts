@@ -50,9 +50,17 @@ describe('bandsOfBed', () => {
     expect(bands[1].topics.map(t => t.topic.id)).toEqual(['loop'])
   })
 
-  it('keeps a loose topic the bed put first above the boxes', () => {
-    // The whole of "not everything is grouped": a loose topic holds its
-    // place in the order rather than being swept to the bottom.
+  it('puts the ungrouped topics after the boxes, as one band', () => {
+    /*
+     * Loose topics used to interleave, holding their place in the topic
+     * order among the boxes. That cannot survive a group order the
+     * reader controls: it makes a box's place depend on where its
+     * contents fall, which is precisely why nudging a group did
+     * nothing. Groups sit where their own `position` says, and the
+     * ungrouped -- which have no group position to sit at -- gather at
+     * the end, reading as "everything else" rather than as a group that
+     * lost its name.
+     */
     const bands = bandsOfBed(
       [
         node({ id: 'intro', position: 0 }),
@@ -60,9 +68,22 @@ describe('bandsOfBed', () => {
       ],
       [group('lang', 'Language fundamentals', 0)]
     )
-    expect(bands[0].group).toBeNull()
-    expect(bands[0].topics.map(t => t.topic.id)).toEqual(['intro'])
-    expect(bands[1].group?.id).toBe('lang')
+    expect(bands[0].group?.id).toBe('lang')
+    expect(bands[1].group).toBeNull()
+    expect(bands[1].topics.map(t => t.topic.id)).toEqual(['intro'])
+  })
+
+  it('orders the boxes by their position, whatever their contents say', () => {
+    // The group nudge writes `position` and nothing else, so this is the
+    // whole of whether it works.
+    const bands = bandsOfBed(
+      [
+        node({ id: 'early', position: 0, group_id: 'second' }),
+        node({ id: 'late', position: 9, group_id: 'first' }),
+      ],
+      [group('first', 'First', 0), group('second', 'Second', 1)]
+    )
+    expect(bands.map(b => b.group?.id)).toEqual(['first', 'second'])
   })
 
   it('gathers a group scattered through the order into one box', () => {

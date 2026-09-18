@@ -436,7 +436,14 @@ export function SubjectBed({
     if (!localGroups) return serverGroups
     const known = new Map(serverGroups.map(g => [g.id, g]))
     const moved = localGroups.flatMap(id => (known.has(id) ? [known.get(id)!] : []))
-    return [...moved, ...serverGroups.filter(g => !localGroups.includes(g.id))]
+    // Renumbered, not just resequenced. `bandsOfBed` orders the boxes by
+    // `position`, so handing it the right sequence carrying the server's
+    // old numbers would let it sort the move straight back out again --
+    // which is what made the arrows change state while the group stayed
+    // where it was.
+    return [...moved, ...serverGroups.filter(g => !localGroups.includes(g.id))].map(
+      (group, position) => ({ ...group, position })
+    )
   })()
 
   const outline = orderSubjectOutline(tree)
