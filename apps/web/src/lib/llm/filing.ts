@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NO_THINKING } from './thinking'
+import { toolList } from './toolInput'
 import type { EdgeKind } from '@didactic/core/types'
 
 /**
@@ -183,7 +184,12 @@ ${bed.map(t => `${t.id}: ${t.title}${
     // real. A model relating two existing topics to each other is
     // answering a question nobody asked, and drawing it here would let
     // one hand-added topic quietly reshape the rest of the bed.
-    edges: (Array.isArray(raw.edges) ? raw.edges : []).filter(
+    edges: (toolList(tool.input, 'edges') as Array<{
+      from: string
+      to: string
+      kind: string
+      weight: number
+    }>).filter(
       e =>
         ends.has(e.from) &&
         ends.has(e.to) &&

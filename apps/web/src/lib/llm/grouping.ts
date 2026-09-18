@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NO_THINKING } from './thinking'
+import { toolList } from './toolInput'
 
 /**
  * The bed gathered into named groups by subject matter.
@@ -115,19 +116,15 @@ ${bed.map(t => `${t.id}: ${t.title}${t.summary ? ` — ${t.summary}` : ''}`).joi
   // reads as "these belong nowhere" rather than "the model stopped".
   if (res.stop_reason === 'max_tokens') return []
 
-  const raw = tool.input as {
-    groups?: Array<{ title?: string; topic_ids?: string[] }>
-  }
-
   const taken = new Set<string>()
 
-  return (Array.isArray(raw.groups) ? raw.groups : [])
+  return (toolList(tool.input, 'groups') as Array<{ title?: string; topic_ids?: unknown }>)
     .map(g => ({
       title: typeof g.title === 'string' ? g.title.trim() : '',
       // Every id has to be real, and a topic belongs to one group: the
       // first that claims it keeps it, so a model listing one topic
       // twice cannot make it appear twice in the bed.
-      topicIds: (Array.isArray(g.topic_ids) ? g.topic_ids : []).filter(id => {
+      topicIds: (toolList(g, 'topic_ids') as string[]).filter(id => {
         if (typeof id !== 'string' || !ids.has(id) || taken.has(id)) return false
         taken.add(id)
         return true

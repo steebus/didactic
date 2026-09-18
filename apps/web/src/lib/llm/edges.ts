@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NO_THINKING } from './thinking'
 import type { EdgeKind } from '@didactic/core/types'
+import { toolList } from './toolInput'
 
 let client: Anthropic | null = null
 
@@ -80,10 +81,12 @@ ${neighbours.map(n => `${n.id}: ${n.title}`).join('\n')}`,
   // its own shape -- used to throw here and take the whole sowing with
   // it, which is the same fault the topic list had.
   if (res.stop_reason === 'max_tokens') return []
-  const raw = tool.input as {
-    edges?: Array<{ from: string; to: string; kind: string; weight: number }>
-  }
-  const edges = Array.isArray(raw.edges) ? raw.edges : []
+  const edges = toolList(tool.input, 'edges') as Array<{
+    from: string
+    to: string
+    kind: string
+    weight: number
+  }>
 
   return edges.filter(e =>
     validIds.has(e.from) &&
