@@ -50,27 +50,41 @@ describe('bandsOfBed', () => {
     expect(bands[1].topics.map(t => t.topic.id)).toEqual(['loop'])
   })
 
-  it('puts the ungrouped topics after the boxes, as one band', () => {
-    /*
-     * Loose topics used to interleave, holding their place in the topic
-     * order among the boxes. That cannot survive a group order the
-     * reader controls: it makes a box's place depend on where its
-     * contents fall, which is precisely why nudging a group did
-     * nothing. Groups sit where their own `position` says, and the
-     * ungrouped -- which have no group position to sit at -- gather at
-     * the end, reading as "everything else" rather than as a group that
-     * lost its name.
-     */
+  it('sits a loose topic between two boxes, in the place it was put', () => {
+    // The whole of "not everything is grouped": boxes and loose topics
+    // share one sequence, so an ungrouped topic holds its own place
+    // among them rather than being swept to the end.
     const bands = bandsOfBed(
       [
-        node({ id: 'intro', position: 0 }),
-        node({ id: 'js', position: 1, group_id: 'lang' }),
+        node({ id: 'js', position: 0, group_id: 'lang' }),
+        node({ id: 'alone', position: 1 }),
+        node({ id: 'git', position: 2, group_id: 'tools' }),
       ],
-      [group('lang', 'Language fundamentals', 0)]
+      [group('lang', 'Language', 0), group('tools', 'Tooling', 2)]
+    )
+    expect(bands.map(b => b.group?.id ?? `loose:${b.topics[0].topic.id}`)).toEqual([
+      'lang',
+      'loose:alone',
+      'tools',
+    ])
+  })
+
+  it('gives each loose topic its own band, so each can be moved alone', () => {
+    const bands = bandsOfBed(
+      [node({ id: 'a', position: 0 }), node({ id: 'b', position: 1 })],
+      []
+    )
+    expect(bands).toHaveLength(2)
+    expect(bands.every(b => b.group === null && b.topics.length === 1)).toBe(true)
+  })
+
+  it('puts a topic the bed never placed at the end, not the front', () => {
+    const bands = bandsOfBed(
+      [node({ id: 'unplaced' }), node({ id: 'js', position: 0, group_id: 'lang' })],
+      [group('lang', 'Language', 0)]
     )
     expect(bands[0].group?.id).toBe('lang')
-    expect(bands[1].group).toBeNull()
-    expect(bands[1].topics.map(t => t.topic.id)).toEqual(['intro'])
+    expect(bands[1].topics[0].topic.id).toBe('unplaced')
   })
 
   it('orders the boxes by their position, whatever their contents say', () => {

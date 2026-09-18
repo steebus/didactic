@@ -79,7 +79,7 @@ export function SubjectBed({
    * clears it, so this can never drift away from the truth for longer
    * than one request.
    */
-  const [localGroups, setLocalGroups] = useState<string[] | null>(null)
+  const [localBands, setLocalBands] = useState<string[] | null>(null)
   const [localTopics, setLocalTopics] = useState<string[] | null>(null)
   const [drawing, setDrawing] = useState(false)
   const drawn = useLabour(drawing, DRAWINGS)
@@ -106,10 +106,9 @@ export function SubjectBed({
   /** An order moved but not yet sent. Read by the release effect below,
    *  so it must be declared before it. */
   const pending = useRef<{
-    topicOrder?: string[]
-    groupOrder?: string[]
+    body: { topicOrder?: string[]; bandOrder?: string[] }
     timer?: ReturnType<typeof setTimeout>
-  }>({})
+  }>({ body: {} })
 
   const sent = useRef('')
   const fingerprint = `${groups.map(g => `${g.id}:${g.position}`).join()}|${topicOrderOf(tree).join()}`
@@ -121,7 +120,7 @@ export function SubjectBed({
     // here is what made a nudge spring back: the row went where it was
     // put, the refresh arrived, and the old order won.
     if (pending.current.timer) return
-    setLocalGroups(null)
+    setLocalBands(null)
     setLocalTopics(null)
   }, [fingerprint])
 
@@ -343,7 +342,7 @@ export function SubjectBed({
       // The move did not land, so the local order is a lie. Dropping it
       // puts the bed back to what the server actually holds rather than
       // leaving the reader looking at an arrangement that was refused.
-      setLocalGroups(null)
+      setLocalBands(null)
       setLocalTopics(null)
     }
   }
@@ -378,17 +377,13 @@ export function SubjectBed({
    * needs the component alive to finish is a write that silently did
    * not happen.
    */
-  function commitLater(topicOrder?: string[], groupOrder?: string[]) {
+  function commitLater(part: { topicOrder?: string[]; bandOrder?: string[] }) {
     const held = pending.current
-    if (topicOrder) held.topicOrder = topicOrder
-    if (groupOrder) held.groupOrder = groupOrder
+    held.body = { ...held.body, ...part }
     if (held.timer) clearTimeout(held.timer)
     held.timer = setTimeout(() => {
-      const body = {
-        ...(held.topicOrder ? { topicOrder: held.topicOrder } : {}),
-        ...(held.groupOrder ? { groupOrder: held.groupOrder } : {}),
-      }
-      pending.current = {}
+      const body = held.body
+      pending.current = { body: {} }
       if (Object.keys(body).length > 0) editGroups(body)
     }, 700)
   }
@@ -402,10 +397,18 @@ export function SubjectBed({
    * has twenty-seven nulls in it -- so renumbering is the only move that
    * means the same thing whatever it started from.
    */
-  function nudgeGroup(id: string, direction: 'up' | 'down') {
-    const order = moveWithin(orderedGroups, id, direction)
-    setLocalGroups(order)
-    commitLater(undefined, order)
+  /**
+   * Move a whole band -- a box, or a single loose topic -- one place.
+   *
+   * Keyed rather than plain ids, because the sequence holds two kinds of
+   * thing whose ids live in different tables. `group:<id>` and
+   * `topic:<id>` keep them apart on the way to the server, which writes
+   * both halves of the order from the one list.
+   */
+  function nudgeBand(key: string, direction: 'up' | 'down') {
+    const order = moveWithin(bandKeys.map(id => ({ id })), key, direction)
+    setLocalBands(order)
+    commitLater({ bandOrder: order })
   }
 
   /**
@@ -422,7 +425,7 @@ export function SubjectBed({
   function nudgeTopic(id: string, direction: 'up' | 'down') {
     const order = moveWithin(visibleTopics.map(t => ({ id: t })), id, direction)
     setLocalTopics(order)
-    commitLater(order)
+    commitLater({ topicOrder: order })
   }
 
   const count = countTopics(tree)
@@ -431,20 +434,7 @@ export function SubjectBed({
   // The local order is a list of ids and may be a request behind the
   // bed's membership, so anything it does not name keeps its place at
   // the end rather than disappearing.
-  const serverGroups = [...groups].sort((a, b) => a.position - b.position)
-  const orderedGroups = (() => {
-    if (!localGroups) return serverGroups
-    const known = new Map(serverGroups.map(g => [g.id, g]))
-    const moved = localGroups.flatMap(id => (known.has(id) ? [known.get(id)!] : []))
-    // Renumbered, not just resequenced. `bandsOfBed` orders the boxes by
-    // `position`, so handing it the right sequence carrying the server's
-    // old numbers would let it sort the move straight back out again --
-    // which is what made the arrows change state while the group stayed
-    // where it was.
-    return [...moved, ...serverGroups.filter(g => !localGroups.includes(g.id))].map(
-      (group, position) => ({ ...group, position })
-    )
-  })()
+  const orderedGroups = [...groups].sort((a, b) => a.position - b.position)
 
   const outline = orderSubjectOutline(tree)
   const orderedTopics = (() => {
@@ -478,7 +468,7 @@ export function SubjectBed({
    * A topic the local order does not name keeps its place, so this
    * survives a bed that has changed under it by a row.
    */
-  const bands = !localTopics
+  const withinBands = !localTopics
     ? banded
     : banded.map(band => ({
         ...band,
@@ -490,13 +480,37 @@ export function SubjectBed({
         }),
       }))
 
+  /**
+   * What a band is called in the shared sequence.
+   *
+   * Two kinds of thing whose ids come from different tables, so the kind
+   * rides along: a group and a loose topic could otherwise collide, and
+   * the server needs to know which table to write.
+   */
+  const keyOf = (band: (typeof withinBands)[number]) =>
+    band.group ? `group:${band.group.id}` : `topic:${band.topics[0]?.topic.id ?? ''}`
+
+  // The reader's band order, applied after the banding for the same
+  // reason the topic order is: `bandsOfBed` re-sorts by position, so a
+  // local move has to be laid over its answer rather than fed into it.
+  const bands = !localBands
+    ? withinBands
+    : [...withinBands].sort((a, b) => {
+        const ai = localBands.indexOf(keyOf(a))
+        const bi = localBands.indexOf(keyOf(b))
+        if (ai === -1 || bi === -1) return 0
+        return ai - bi
+      })
+
+  const bandKeys = bands.map(keyOf)
+
   // The sequence the reader actually sees, band by band. This is what a
   // nudge moves within, and what the slide is keyed on: both are about
   // the rows on screen rather than about the sort behind them.
   const visibleTopics = bands.flatMap(b => b.topics.map(n => n.topic.id))
 
   // Rows slide between the order they were in and the order they are in.
-  const slideBand = useSlide(bands.map(b => b.group?.id ?? 'loose'))
+  const slideBand = useSlide(bandKeys)
   const slideTopic = useSlide(visibleTopics)
 
   return (
@@ -642,20 +656,42 @@ export function SubjectBed({
 
               // The loose topics between two boxes. No frame and no
               // name: "the rest" is a claim about the bed nobody made.
+              // A loose topic is its own band, drawn without a frame --
+              // "the rest" is a claim nobody made -- but it moves like
+              // any other band, so its nudges shift it past whole boxes
+              // rather than within one.
               if (!band.group) {
+                const key = keyOf(band)
+                const at = bandKeys.indexOf(key)
                 return (
-                  <ul
-                    key={`loose-${i}`}
-                    className={styles.tree}
-                    ref={slideBand('loose')}
-                  >
-                    {band.topics.map(row)}
+                  <ul key={key} className={styles.tree} ref={slideBand(key)}>
+                    {band.topics.map(node => (
+                        <TreeRow
+                          key={node.topic.id}
+                          node={node}
+                          depth={0}
+                          colour={colour}
+                          editing={editing}
+                          onRemove={remove}
+                          onGrub={grub}
+                          groups={orderedGroups}
+                          slideRef={slideTopic(node.topic.id)}
+                          onMoveTo={
+                            editing
+                              ? id => editGroups({ topicId: node.topic.id, into: id })
+                              : undefined
+                          }
+                          onNudge={editing ? d => nudgeBand(key, d) : undefined}
+                          first={at <= 0}
+                          last={at === -1 || at >= bandKeys.length - 1}
+                        />
+                    ))}
                   </ul>
                 )
               }
 
               const group = band.group
-              const at = orderedGroups.findIndex(g => g.id === group.id)
+              const at = bandKeys.indexOf(`group:${group.id}`)
 
               return (
                 <section
@@ -695,7 +731,7 @@ export function SubjectBed({
                           type="button"
                           className={styles.nudge}
                           disabled={at <= 0}
-                          onClick={() => nudgeGroup(group.id, 'up')}
+                          onClick={() => nudgeBand(`group:${group.id}`, 'up')}
                           aria-label={`Move ${group.title} up`}
                         >
                           ↑
@@ -703,8 +739,8 @@ export function SubjectBed({
                         <button
                           type="button"
                           className={styles.nudge}
-                          disabled={at === -1 || at >= orderedGroups.length - 1}
-                          onClick={() => nudgeGroup(group.id, 'down')}
+                          disabled={at === -1 || at >= bandKeys.length - 1}
+                          onClick={() => nudgeBand(`group:${group.id}`, 'down')}
                           aria-label={`Move ${group.title} down`}
                         >
                           ↓

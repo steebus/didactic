@@ -236,6 +236,11 @@ export const subjects = (api: Api) => ({
       groupId?: string
       title?: string
       groupOrder?: string[]
+      /** The boxes and the loose topics in one sequence, each entry
+       *  `group:<id>` or `topic:<id>`. Writes both tables' positions
+       *  from one list, which is what lets a loose topic sit between two
+       *  boxes rather than after all of them. */
+      bandOrder?: string[]
       topicId?: string
       into?: string | null
       topicOrder?: string[]

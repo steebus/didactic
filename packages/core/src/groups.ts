@@ -62,18 +62,8 @@ export function bandsOfBed(
   )
   const known = new Map(byPosition.map(g => [g.id, g]))
 
-  // A box sits where its `position` says, not where its contents happen
-  // to fall in the topic order.
-  //
-  // It used to be the other way round -- the band was emitted the first
-  // time one of its topics came up -- which read as reasonable and made
-  // the group nudge do nothing at all: `position` changed, the write
-  // landed, and the band stayed put because the topic that opened it had
-  // not moved. Position is the only thing a reader can address a *group*
-  // by, so it has to be what orders them.
-  const bands: BedBand[] = []
-
-  // Where each group's members sit, gathered once.
+  // Where each group's members sit, gathered once, and the loose topics
+  // kept apart.
   const membersOf = new Map<string, TopicTreeNode[]>()
   const loose: TopicTreeNode[] = []
   for (const node of ordered) {
@@ -88,21 +78,49 @@ export function bandsOfBed(
     else membersOf.set(id, [node])
   }
 
-  // Every group in its own order, empty ones included: a box made and
-  // not yet filled is waiting for the reader, so it has to be visible to
-  // be filled.
+  /*
+   * Boxes and loose topics in ONE sequence.
+   *
+   * A group's rank is its `position`; a loose topic's rank is the
+   * position of the topic itself. The two are written from the same
+   * renumbering whenever the reader moves anything, so they are directly
+   * comparable and a loose topic can sit between two boxes rather than
+   * being swept to the end.
+   *
+   * A loose topic is its own band, holding just itself. That is what
+   * lets it be moved and drawn like any other: an unframed row among
+   * the framed ones, in the place the reader put it.
+   *
+   * Where the two ranks tie -- a bed whose groups were numbered before
+   * any of this, so every box says 0, 1, 2 while the topics say 0..26 --
+   * the box goes first. Ties are the old data, and a reader who has
+   * never moved anything is better served by the boxes reading as the
+   * structure than by a loose topic wedged into the middle of them.
+   */
+  type Entry = { at: number; tie: number; band: BedBand }
+  const entries: Entry[] = []
+
   for (const group of byPosition) {
-    bands.push({ group, topics: membersOf.get(group.id) ?? [] })
+    entries.push({
+      at: group.position,
+      tie: 0,
+      band: { group, topics: membersOf.get(group.id) ?? [] },
+    })
   }
 
-  // The ungrouped topics, as one band after the boxes. They have no
-  // position of their own to sit at -- `topic_subjects.position` orders
-  // topics within the whole bed, and the boxes are ordered by their own
-  // sequence -- so the honest place for them is the end, where they read
-  // as "everything else" rather than as a group that lost its name.
-  if (loose.length > 0) bands.push({ group: null, topics: loose })
+  for (const node of loose) {
+    entries.push({
+      // A topic the bed never placed has no rank of its own, so it falls
+      // to the end rather than claiming the front.
+      at: node.topic.position ?? Number.POSITIVE_INFINITY,
+      tie: 1,
+      band: { group: null, topics: [node] },
+    })
+  }
 
-  return bands
+  return entries
+    .sort((a, b) => a.at - b.at || a.tie - b.tie)
+    .map(e => e.band)
 }
 
 /**

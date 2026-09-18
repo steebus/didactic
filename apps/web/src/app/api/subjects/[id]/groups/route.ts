@@ -239,6 +239,33 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
+  /*
+   * Reorder the bands: the boxes and the loose topics, in one sequence.
+   *
+   * A group's rank lives on `topic_groups.position` and a loose topic's
+   * on `topic_subjects.position`, two different tables -- so the shared
+   * sequence is only shared because this writes both halves of it from
+   * one list. Entries arrive as `group:<id>` or `topic:<id>`, and the
+   * index in that list is the number both sides get.
+   *
+   * The grouped topics keep their own sequence within their box, which
+   * `topicOrder` handles; a band move never touches it.
+   */
+  if (Array.isArray(body.bandOrder)) {
+    const entries = body.bandOrder.filter((x: unknown): x is string => typeof x === 'string')
+    for (const [position, entry] of entries.entries()) {
+      const [kind, id] = [entry.slice(0, entry.indexOf(':')), entry.slice(entry.indexOf(':') + 1)]
+      if (!id) continue
+      if (kind === 'group') {
+        await db.from('topic_groups')
+          .update({ position }).eq('id', id).eq('subject_id', subjectId)
+      } else if (kind === 'topic') {
+        await db.from('topic_subjects')
+          .update({ position }).eq('subject_id', subjectId).eq('topic_id', id)
+      }
+    }
+  }
+
   // Reorder the topics themselves, on the membership where the bed's
   // own order has always lived.
   if (Array.isArray(body.topicOrder)) {
