@@ -75,6 +75,139 @@
      goes unread. It is a measurement rather than a token -- the value
      is what the notices happen to be, not a decision about the design. */
   --bench-stack: 0px;
+
+  /* Ink and paper at alpha, as tokens rather than as 130 inlined copies.
+     Every scrim, tooth and reversed-out label was written as a literal
+     rgba() of one of these two, which meant the whole build stated the
+     light theme's ground in 130 places no dark block could reach. */
+  --ink-rgb: 36, 29, 22;
+  --paper-rgb: 239, 231, 214;
+  /* The tooth is mixed from a warmer brown than the ink itself. */
+  --tooth-rgb: 90, 70, 45;
+  /* Text reversed out of a band. The band is a deep plate under either
+     light -- daylight's own green, and a deeper mix of the relit green
+     after dark -- so this is the bone ink both times rather than
+     flipping with the theme. A masthead is the one surface that does
+     not invert: it is ink on a saturated plate, which is what makes it
+     read as printed rather than as a panel. */
+  --on-plate: #efe7d6;
+  /* The accent fill -- a hovered action, a destructive confirm. Unlike
+     the band this one is not deepened after dark: terracotta is the
+     app's one interactive accent and dulling it would cost the signal.
+     Relit it is a light fill, so what reverses out of it is the dark
+     ground rather than paper. */
+  --on-accent: #efe7d6;
+  /* The band behind it: the plate itself in daylight, a deeper mix of
+     it after dark, where the relit plate is far too light to reverse
+     a masthead out of. */
+  --band-fill: var(--plate-green);
+  --band-text: var(--paper);
+
+  /* Two plates that are washed over prose rather than printed flat: the
+     plum a mark is drawn in, and the mustard a cloze is. Both are laid
+     at low alpha over the reading, so they follow the relit plate after
+     dark or the wash disappears into the paper it is meant to sit on. */
+  /* Text reversed out of a band, at alpha. Follows the band's own
+     fill rather than the sheet's paper: a quiet label inside a masthead
+     is the fill's ink faded, and after dark that ink is the dark
+     ground rather than the cream one. */
+  --on-plate-rgb: 239, 231, 214;
+  --plate-plum-rgb: 107, 53, 80;
+  --plate-mustard-rgb: 200, 135, 26;
+  /* The bed's drill grid, ruled the way a planting plan is. */
+  --drill-rgb: 107, 92, 69;
+}
+
+/* --- After dark ---------------------------------------------------
+
+   The catalogue printed for a dark room. Colour is the whole of the
+   difference: the scale, the spacing and the timing above are the same
+   object under either light, so only the inks are restated.
+
+   Three states, not two. An explicit choice stamps `data-theme` on the
+   root; the default setting stamps nothing and is separated only by
+   `prefers-color-scheme`, which is why the media query is guarded
+   against an explicit light rather than left bare.
+
+   `packages/tokens` restates every value here for the phone, and
+   `tests/agreement.test.ts` fails if the two drift. */
+
+:root {
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+
+    --paper: #1c1613;
+    --paper-deep: #261e19;
+    --paper-edge: #322720;
+    --press-bed: #0c0a08;
+
+    --ink: #ece3d1;
+    --ink-soft: #b8aa95;
+    --ink-faint: #8f8270;
+
+    --plate-green: #649069;
+    --plate-terracotta: #d0674a;
+    --plate-mustard: #c8871a;
+    --plate-ultramarine: #6487bc;
+    --plate-plum: #aa7690;
+    --plate-olive: #838b43;
+
+    --rule: #5e4e40;
+    --rule-strong: #8a7660;
+
+    --ink-rgb: 236, 227, 209;
+    --paper-rgb: 28, 22, 19;
+    --tooth-rgb: 255, 238, 205;
+    --on-plate: #ece3d1;
+    --on-accent: #12100d;
+    --band-fill: #23412a;
+    --band-text: #ece3d1;
+
+    --on-plate-rgb: 236, 227, 209;
+    --plate-plum-rgb: 170, 118, 144;
+    --plate-mustard-rgb: 200, 135, 26;
+    --drill-rgb: 206, 188, 154;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --paper: #1c1613;
+  --paper-deep: #261e19;
+  --paper-edge: #322720;
+  --press-bed: #0c0a08;
+
+  --ink: #ece3d1;
+  --ink-soft: #b8aa95;
+  --ink-faint: #8f8270;
+
+  --plate-green: #649069;
+  --plate-terracotta: #d0674a;
+  --plate-mustard: #c8871a;
+  --plate-ultramarine: #6487bc;
+  --plate-plum: #aa7690;
+  --plate-olive: #838b43;
+
+  --rule: #5e4e40;
+  --rule-strong: #8a7660;
+
+  --ink-rgb: 236, 227, 209;
+  --paper-rgb: 28, 22, 19;
+  --tooth-rgb: 255, 238, 205;
+  --on-plate: #ece3d1;
+  --on-accent: #12100d;
+  --band-fill: #23412a;
+  --band-text: #ece3d1;
+
+  --on-plate-rgb: 236, 227, 209;
+  --plate-plum-rgb: 170, 118, 144;
+  --plate-mustard-rgb: 200, 135, 26;
+  --drill-rgb: 206, 188, 154;
 }
 
 *,
@@ -102,12 +235,12 @@ body {
   background-image:
     repeating-linear-gradient(
       90deg,
-      rgba(90, 70, 45, 0.035) 0 1px,
+      rgba(var(--tooth-rgb), 0.035) 0 1px,
       transparent 1px 3px
     ),
     repeating-linear-gradient(
       0deg,
-      rgba(90, 70, 45, 0.025) 0 1px,
+      rgba(var(--tooth-rgb), 0.025) 0 1px,
       transparent 1px 4px
     );
 }

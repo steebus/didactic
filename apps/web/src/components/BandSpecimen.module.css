@@ -108,7 +108,7 @@
    something like 0.14 brings the block back if you want it. */
 .ground .soil,
 .ground rect {
-  fill: rgba(36, 29, 22, var(--specimen-soil, 0)) !important;
+  fill: rgba(var(--ink-rgb), var(--specimen-soil, 0)) !important;
 }
 
 /* The drawing is the ground, so it must not animate itself into view --
@@ -126,7 +126,7 @@
   font-size: var(--step--2);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(239, 231, 214, 0.85);
+  color: rgba(var(--on-plate-rgb), 0.85);
   font-variant-numeric: tabular-nums lining-nums;
 }
 

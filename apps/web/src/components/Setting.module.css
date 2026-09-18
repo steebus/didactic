@@ -106,7 +106,7 @@
    paper-deep is invisible. Light on dark, at the weight the band's own
    type is set in. */
 .slugBand {
-  background: rgba(239, 231, 214, 0.22);
+  background: rgba(var(--on-plate-rgb), 0.22);
 }
 
 /* The ink-up: a soft band crossing each line, staggered down the galley
@@ -118,7 +118,7 @@
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(90, 70, 45, 0.09) 45%,
+    rgba(var(--tooth-rgb), 0.09) 45%,
     transparent 90%
   );
   transform: translateX(-100%);

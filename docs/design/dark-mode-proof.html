@@ -1,0 +1,377 @@
+<meta charset="utf-8">
+<title>Didactic After Dark</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-display: 'Fraunces', Georgia, serif;
+    --font-text: 'Archivo', system-ui, sans-serif;
+    --step--2: 0.6875rem; --step--1: 0.8125rem; --step-0: 0.9375rem;
+    --step-1: 1.25rem; --step-2: 1.75rem; --step-3: 2.5rem;
+    --space-1: .25rem; --space-2: .5rem; --space-3: .875rem;
+    --space-4: 1.375rem; --space-5: 2.25rem; --space-6: 3.5rem;
+  }
+
+  /* ---- LIGHT: the shipped catalogue, unchanged ---- */
+  .light {
+    --paper: #efe7d6; --paper-deep: #e3d8c2; --paper-edge: #d5c8ae;
+    --press-bed: #ddd2ba;
+    --ink: #241d16; --ink-soft: #574a3b; --ink-faint: #6b5c45;
+    --plate-green: #2f5233; --plate-terracotta: #b8482a; --plate-mustard: #c8871a;
+    --plate-ultramarine: #2a4a7c; --plate-plum: #6b3550; --plate-olive: #6b7233;
+    --rule: #b9a988; --rule-strong: #6b5c45;
+    --tooth-a: rgba(90,70,45,.04); --tooth-b: rgba(90,70,45,.03);
+    --reversed: rgba(239,231,214,.85);
+    --reversed-quiet: rgba(239,231,214,.7);
+    --sheet-lift: 0 2px 24px rgba(36,29,22,.16);
+    --band-ink: var(--paper);
+    --band-text: var(--paper);
+    --band-fill: var(--plate-green);
+  }
+
+  /* ---- DARK: the plate relit ---- */
+  .dark {
+    --paper: #1c1613; --paper-deep: #261e19; --paper-edge: #322720;
+    --press-bed: #0c0a08;
+    --ink: #ece3d1; --ink-soft: #b8aa95; --ink-faint: #8f8270;
+    --plate-green: #649069; --plate-terracotta: #d0674a; --plate-mustard: #c8871a;
+    --plate-ultramarine: #6487bc; --plate-plum: #aa7690; --plate-olive: #838b43;
+    --rule: #5e4e40; --rule-strong: #8a7660;
+    --band-fill: #23412a;
+    --tooth-a: rgba(255,238,205,.028); --tooth-b: rgba(255,238,205,.020);
+    --reversed: rgba(18,14,11,.88);
+    --reversed-quiet: rgba(18,14,11,.72);
+    --sheet-lift: 0 0 0 1px #322720, 0 18px 44px rgba(0,0,0,.6);
+    --band-ink: #12100d;
+    --band-text: #ece3d1;
+    --reversed: rgba(236,227,209,.85);
+    --reversed-quiet: rgba(236,227,209,.68);
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--font-text); background: #000; }
+
+  .stage {
+    display: grid; grid-template-columns: 1fr 1fr;
+    min-height: 100vh; align-items: start;
+  }
+  @media (max-width: 62rem) { .stage { grid-template-columns: 1fr; } }
+
+  .bed {
+    background: var(--press-bed); padding: var(--space-5) var(--space-4) var(--space-6);
+    min-height: 100vh;
+    background-image:
+      repeating-linear-gradient(90deg, var(--tooth-a) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(0deg, var(--tooth-b) 0 1px, transparent 1px 4px);
+  }
+  @media (max-width: 62rem) { .bed { min-height: 0; } }
+
+  .tag {
+    font-size: var(--step--2); text-transform: uppercase; letter-spacing: .14em;
+    color: var(--ink-faint); margin: 0 0 var(--space-3); padding-left: 2px;
+  }
+
+  .sheet {
+    background: var(--paper); box-shadow: var(--sheet-lift);
+    background-image:
+      repeating-linear-gradient(90deg, var(--tooth-a) 0 1px, transparent 1px 3px),
+      repeating-linear-gradient(0deg, var(--tooth-b) 0 1px, transparent 1px 4px);
+    color: var(--ink); max-width: 34rem; margin: 0 auto;
+  }
+
+  .band { background: var(--band-fill); padding: var(--space-5) var(--space-4) var(--space-4); }
+  .nav {
+    font-size: var(--step--2); text-transform: uppercase; letter-spacing: .1em;
+    color: var(--reversed-quiet); display: flex; gap: var(--space-3);
+    margin-bottom: var(--space-4); flex-wrap: wrap;
+  }
+  .nav b { font-weight: 600; color: var(--reversed); }
+  .crumb {
+    font-size: var(--step--2); text-transform: uppercase; letter-spacing: .14em;
+    color: var(--reversed-quiet); margin: 0 0 var(--space-2);
+  }
+  .band h1 {
+    font-family: var(--font-display); font-size: var(--step-3); line-height: .95;
+    letter-spacing: -.02em; margin: 0; color: var(--band-text);
+    font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 72;
+  }
+  .headRule { height: 5px; background: var(--plate-mustard); }
+
+  .body { padding: var(--space-5) var(--space-4) var(--space-6); }
+
+  h2.sec {
+    font-family: var(--font-display); font-size: var(--step-2); margin: 0 0 var(--space-3);
+    font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 40; letter-spacing: -.015em;
+  }
+
+  /* stock rows */
+  .row {
+    display: flex; align-items: baseline; gap: var(--space-3);
+    padding: var(--space-3) 0; border-bottom: 1px solid var(--rule);
+  }
+  .row:first-of-type { border-top: 1px solid var(--rule-strong); }
+  .name { font-family: var(--font-display); font-size: var(--step-1);
+          font-variation-settings: 'SOFT' 25, 'WONK' 1, 'opsz' 24; }
+  .leaders { flex: 1; border-bottom: 1px dotted var(--rule); transform: translateY(-3px); }
+  .fig {
+    font-family: var(--font-display); font-size: var(--step-2);
+    font-variation-settings: 'SOFT' 10, 'WONK' 0, 'opsz' 30;
+    font-variant-numeric: tabular-nums lining-nums;
+  }
+  .meta { font-size: var(--step--1); color: var(--ink-soft); margin: var(--space-1) 0 0; }
+  .agate {
+    font-size: var(--step--2); text-transform: uppercase; letter-spacing: .1em;
+    color: var(--ink-faint);
+  }
+
+  /* condition bar */
+  .bar { width: 72px; height: 8px; background: var(--paper-edge); position: relative; }
+  .bar i { position: absolute; inset: 0 auto 0 0; display: block; }
+
+  /* block */
+  .block {
+    background: var(--paper-deep); padding: var(--space-4);
+    border-left: 2px solid var(--plate-mustard); margin: var(--space-5) 0 0;
+  }
+  .block h3 {
+    font-family: var(--font-display); font-size: var(--step-2); margin: 0 0 var(--space-2);
+    font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 40;
+  }
+  .block p { margin: 0; color: var(--ink-soft); font-size: var(--step-0); line-height: 1.55; }
+
+  /* the six plates */
+  .plates { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-4); }
+  .chip {
+    font-size: var(--step--2); text-transform: uppercase; letter-spacing: .08em;
+    padding: var(--space-2) var(--space-3); font-weight: 600;
+  }
+
+  /* grub-out confirm, terracotta edge */
+  .confirm {
+    border-left: 2px solid var(--plate-terracotta); padding-left: var(--space-3);
+    margin-top: var(--space-5);
+  }
+  .confirm p { margin: 0 0 var(--space-2); color: var(--ink-soft); font-size: var(--step--1); }
+  .confirm ul { margin: 0 0 var(--space-3); padding-left: var(--space-4);
+                font-size: var(--step--1); color: var(--ink-soft); }
+  .keeps { color: var(--plate-green) !important; }
+  .acts { display: flex; gap: var(--space-3); }
+  .keep {
+    background: var(--plate-green); color: var(--band-ink); border: 0;
+    padding: var(--space-3) var(--space-5); font-family: var(--font-text);
+    font-size: var(--step--2); text-transform: uppercase; letter-spacing: .08em;
+    font-weight: 600; cursor: pointer;
+  }
+  .go {
+    background: none; color: var(--plate-terracotta);
+    border: 1px solid var(--plate-terracotta); padding: var(--space-3) var(--space-4);
+    font-family: var(--font-text); font-size: var(--step--2);
+    text-transform: uppercase; letter-spacing: .08em; cursor: pointer;
+  }
+
+  /* the bed, drawn */
+  .canvas { margin-top: var(--space-5); background: var(--paper); border: 1px solid var(--rule); }
+  .foot { margin-top: var(--space-5); padding-top: var(--space-3);
+          border-top: 1px solid var(--rule-strong); }
+</style>
+
+<div class="stage">
+  <section class="bed light">
+    <p class="tag">Daylight — as shipped</p>
+    <div class="sheet">
+      <div class="band">
+        <div class="nav"><b>The bed</b><span>Marked</span><span>Tend</span><span>Inbox</span></div>
+        <p class="crumb">Photography › Exposure</p>
+        <h1>Shutter priority</h1>
+      </div>
+      <div class="headRule"></div>
+      <div class="body">
+        <h2 class="sec">Stock</h2>
+
+        <div class="row">
+          <div>
+            <div class="name">Reciprocity failure</div>
+            <p class="meta">3 resources · 1 unread</p>
+          </div>
+          <span class="leaders"></span>
+          <div style="text-align:right">
+            <div class="fig">72%</div>
+            <div class="bar"><i style="width:68%;background:var(--plate-green)"></i></div>
+            <div class="agate">Warm</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <div class="name">Metering modes</div>
+            <p class="meta">2 resources · also in Landscape</p>
+          </div>
+          <span class="leaders"></span>
+          <div style="text-align:right">
+            <div class="fig">41%</div>
+            <div class="bar"><i style="width:34%;background:var(--plate-mustard)"></i></div>
+            <div class="agate">Cooling</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <div class="name">Zone system</div>
+            <p class="meta">1 resource</p>
+          </div>
+          <span class="leaders"></span>
+          <div style="text-align:right">
+            <div class="fig">12%</div>
+            <div class="bar"><i style="width:10%;background:var(--plate-terracotta)"></i></div>
+            <div class="agate">Dormant</div>
+          </div>
+        </div>
+
+        <div class="block">
+          <h3>Worth tending</h3>
+          <p>Zone system has gone dormant. One lesson would bring it back
+             inside the week.</p>
+        </div>
+
+        <div class="plates">
+          <span class="chip" style="background:var(--plate-green);color:var(--band-ink)">Green</span>
+          <span class="chip" style="background:var(--plate-terracotta);color:var(--band-ink)">Terracotta</span>
+          <span class="chip" style="background:var(--plate-mustard);color:var(--band-ink)">Mustard</span>
+          <span class="chip" style="background:var(--plate-ultramarine);color:var(--band-ink)">Ultramarine</span>
+          <span class="chip" style="background:var(--plate-plum);color:var(--band-ink)">Plum</span>
+          <span class="chip" style="background:var(--plate-olive);color:var(--band-ink)">Olive</span>
+        </div>
+
+        <svg class="canvas" viewBox="0 0 420 150" width="100%">
+          <defs><pattern id="dl" width="24" height="24" patternUnits="userSpaceOnUse">
+            <path d="M24 0H0V24" fill="none" stroke="rgba(107,92,69,.06)" stroke-width="1"/>
+          </pattern></defs>
+          <rect width="420" height="150" fill="url(#dl)"/>
+          <path d="M120 75 L210 48" stroke="#b9a988" stroke-width="1.4"/>
+          <path d="M120 75 L205 110" stroke="#b9a988" stroke-width="1.4"/>
+          <path d="M210 48 L305 70" stroke="#b9a988" stroke-width="1.2"/>
+          <circle cx="120" cy="75" r="15" fill="#2f5233"/>
+          <circle cx="210" cy="48" r="11" fill="#7d9a80"/>
+          <circle cx="205" cy="110" r="9" fill="#b8482a"/>
+          <circle cx="305" cy="70" r="8" fill="#c9bda4"/>
+          <text x="120" y="102" font-family="Archivo" font-size="9" fill="#241d16" text-anchor="middle">Exposure</text>
+          <text x="305" y="88" font-family="Archivo" font-size="9" fill="#8a7d68" text-anchor="middle">Dormant</text>
+        </svg>
+
+        <div class="confirm">
+          <p>This cannot be undone. It takes:</p>
+          <ul><li>4 lessons, the route through them, and any cards cut from them</li>
+              <li>9 recorded readings</li></ul>
+          <p>It keeps:</p>
+          <ul class="keeps"><li>3 marked passages — kept on the Marked sheet</li></ul>
+          <div class="acts">
+            <button class="keep">Leave it be</button>
+            <button class="go">Grub it out</button>
+          </div>
+        </div>
+
+        <div class="foot"><span class="agate">Edition of 18 September 2026</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bed dark">
+    <p class="tag">After dark — the plate relit</p>
+    <div class="sheet">
+      <div class="band">
+        <div class="nav"><b>The bed</b><span>Marked</span><span>Tend</span><span>Inbox</span></div>
+        <p class="crumb">Photography › Exposure</p>
+        <h1>Shutter priority</h1>
+      </div>
+      <div class="headRule"></div>
+      <div class="body">
+        <h2 class="sec">Stock</h2>
+
+        <div class="row">
+          <div>
+            <div class="name">Reciprocity failure</div>
+            <p class="meta">3 resources · 1 unread</p>
+          </div>
+          <span class="leaders"></span>
+          <div style="text-align:right">
+            <div class="fig">72%</div>
+            <div class="bar"><i style="width:68%;background:var(--plate-green)"></i></div>
+            <div class="agate">Warm</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <div class="name">Metering modes</div>
+            <p class="meta">2 resources · also in Landscape</p>
+          </div>
+          <span class="leaders"></span>
+          <div style="text-align:right">
+            <div class="fig">41%</div>
+            <div class="bar"><i style="width:34%;background:var(--plate-mustard)"></i></div>
+            <div class="agate">Cooling</div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <div class="name">Zone system</div>
+            <p class="meta">1 resource</p>
+          </div>
+          <span class="leaders"></span>
+          <div style="text-align:right">
+            <div class="fig">12%</div>
+            <div class="bar"><i style="width:10%;background:var(--plate-terracotta)"></i></div>
+            <div class="agate">Dormant</div>
+          </div>
+        </div>
+
+        <div class="block">
+          <h3>Worth tending</h3>
+          <p>Zone system has gone dormant. One lesson would bring it back
+             inside the week.</p>
+        </div>
+
+        <div class="plates">
+          <span class="chip" style="background:var(--plate-green);color:var(--band-ink)">Green</span>
+          <span class="chip" style="background:var(--plate-terracotta);color:var(--band-ink)">Terracotta</span>
+          <span class="chip" style="background:var(--plate-mustard);color:var(--band-ink)">Mustard</span>
+          <span class="chip" style="background:var(--plate-ultramarine);color:var(--band-ink)">Ultramarine</span>
+          <span class="chip" style="background:var(--plate-plum);color:var(--band-ink)">Plum</span>
+          <span class="chip" style="background:var(--plate-olive);color:var(--band-ink)">Olive</span>
+        </div>
+
+        <svg class="canvas" viewBox="0 0 420 150" width="100%">
+          <defs><pattern id="dd" width="24" height="24" patternUnits="userSpaceOnUse">
+            <path d="M24 0H0V24" fill="none" stroke="rgba(255,238,205,.05)" stroke-width="1"/>
+          </pattern></defs>
+          <rect width="420" height="150" fill="url(#dd)"/>
+          <path d="M120 75 L210 48" stroke="#4a3d32" stroke-width="1.4"/>
+          <path d="M120 75 L205 110" stroke="#4a3d32" stroke-width="1.4"/>
+          <path d="M210 48 L305 70" stroke="#4a3d32" stroke-width="1.2"/>
+          <circle cx="120" cy="75" r="15" fill="#649069"/>
+          <circle cx="210" cy="48" r="11" fill="#47654c"/>
+          <circle cx="205" cy="110" r="9" fill="#d0674a"/>
+          <circle cx="305" cy="70" r="8" fill="#332a23"/>
+          <text x="120" y="102" font-family="Archivo" font-size="9" fill="#ece3d1" text-anchor="middle">Exposure</text>
+          <text x="305" y="88" font-family="Archivo" font-size="9" fill="#7d7160" text-anchor="middle">Dormant</text>
+        </svg>
+
+        <div class="confirm">
+          <p>This cannot be undone. It takes:</p>
+          <ul><li>4 lessons, the route through them, and any cards cut from them</li>
+              <li>9 recorded readings</li></ul>
+          <p>It keeps:</p>
+          <ul class="keeps"><li>3 marked passages — kept on the Marked sheet</li></ul>
+          <div class="acts">
+            <button class="keep">Leave it be</button>
+            <button class="go">Grub it out</button>
+          </div>
+        </div>
+
+        <div class="foot"><span class="agate">Edition of 18 September 2026</span></div>
+      </div>
+    </div>
+  </section>
+</div>

@@ -17,6 +17,23 @@ colors:
   plate-olive: "#6b7233"
   rule: "#b9a988"
   rule-strong: "#6b5c45"
+dark:
+  paper: "#1c1613"
+  paper-deep: "#261e19"
+  paper-edge: "#322720"
+  press-bed: "#0c0a08"
+  ink: "#ece3d1"
+  ink-soft: "#b8aa95"
+  ink-faint: "#8f8270"
+  plate-green: "#649069"
+  plate-terracotta: "#d0674a"
+  plate-mustard: "#c8871a"
+  plate-ultramarine: "#6487bc"
+  plate-plum: "#aa7690"
+  plate-olive: "#838b43"
+  rule: "#5e4e40"
+  rule-strong: "#8a7660"
+  band-fill: "#23412a"
 typography:
   display:
     fontFamily: "Fraunces, Georgia, serif"
@@ -102,53 +119,116 @@ Machine-readable tokens: `.impeccable/design-tokens.json`.
 
 ## 1. Ground and Materials
 
-The build is a **printed object read in daylight**. There is no dark mode and no
-`prefers-color-scheme` branch anywhere in the stylesheets. This is the system, not
-a gap: a catalogue sheet has one side and one lighting condition.
+The build is a **printed object, read under one of two lights**. It was daylight
+alone until the sheet had to be legible in a dark room, and the rule that stood
+here — *a catalogue sheet has one side and one lighting condition* — was true of
+the object and false of the reader. The catalogue is not read on a press; it is
+read in the evening, and a cream sheet at full brightness in a dark room is not a
+faithful printed object but a lamp.
+
+So there are two grounds and one system. **Colour is the whole of the
+difference**: the type scale, the spacing, the measures and the timing are the
+same object under either light, and the dark block restates nothing but inks.
+Anything else appearing there would be the sheet claiming to change size in a
+dark room.
+
+Three states, not two. An explicit choice stamps `data-theme` on the root
+element; the default setting stamps nothing and is separated only by
+`prefers-color-scheme`, so the media query is guarded as
+`:root:not([data-theme='light'])` rather than left bare. The choice is offered at
+the foot of the subjects sheet beside the way out — *System · Daylight · After
+dark* — and is stamped by an inline script in the head before the first paint,
+because a correction made after mount is a white flash in a dark room.
+
+**What inverts and what does not.** The grounds and the ink ramp swap, and the
+press bed swaps *order* with the sheet: in daylight the bed is the darker of the
+two, after dark it is nearly black and the sheet sits above it, because what the
+eye follows is the sheet being the lit thing either way. The masthead does not
+invert at all. It stays a deep plate with its text reversed out in paper, under
+both lights, because a band that flipped to a pale fill with dark text would stop
+reading as printed and start reading as a panel.
+
+The ink after dark is **bone, not white**: `#fff` on this ground glares at the
+brightness someone reads a dark sheet at.
+
+**The bed is the exception that proves the rule.** Every colour in the build
+follows a custom property except the graph canvas, which paints to a bitmap no
+stylesheet reaches — so it is handed its inks and, critically, its *ground*.
+`fade()` mixes every seed toward that ground as its topic goes dormant, and a
+dark bed fading toward paper would print the cold topics as the brightest things
+on the map: the one surface whose whole job is saying what has gone cold, saying
+the exact opposite. See §Graph.
 
 ### Grounds
 
-| Token | Value | Role |
-| --- | --- | --- |
-| `--paper` | `#efe7d6` | The sheet. Warm catalogue newsprint, not cream. |
-| `--paper-deep` | `#e3d8c2` | Row hover, one step into the stock. |
-| `--paper-edge` | `#d5c8ae` | Sheet trims and inset edges. |
-| `--press-bed` | `#ddd2ba` | The darker surface the sheet lies on. `body` only. |
+| Token | Daylight | After dark | Role |
+| --- | --- | --- | --- |
+| `--paper` | `#efe7d6` | `#1c1613` | The sheet. Warm newsprint, warm board. |
+| `--paper-deep` | `#e3d8c2` | `#261e19` | Row hover, one step into the stock. |
+| `--paper-edge` | `#d5c8ae` | `#322720` | Sheet trims and inset edges. |
+| `--press-bed` | `#ddd2ba` | `#0c0a08` | The surface the sheet lies on. `body` only. Darker than the sheet after dark, lighter before it — the sheet is the lit thing either way. |
 
 ### Inks
 
-| Token | Value | Role |
-| --- | --- | --- |
-| `--ink` | `#241d16` | Body and headings. Warm near-black, letterpress on absorbent stock. |
-| `--ink-soft` | `#574a3b` | Secondary prose, meta rows, panel captions. |
-| `--ink-faint` | `#6b5c45` | Agate marginalia, figure labels, dates, empty-state notes. |
+| Token | Daylight | After dark | Role |
+| --- | --- | --- | --- |
+| `--ink` | `#241d16` | `#ece3d1` | Body and headings. Warm near-black; bone reversed out. |
+| `--ink-soft` | `#574a3b` | `#b8aa95` | Secondary prose, meta rows, panel captions. |
+| `--ink-faint` | `#6b5c45` | `#8f8270` | Agate marginalia, figure labels, dates, empty-state notes. |
+
+Every one of these clears WCAG AA on its own ground; `--ink-faint`, the quietest,
+measures 4.8:1 after dark.
 
 ### Plate inks
 
 Six saturated chromolithograph plates. They are **subject identity and structural
 ink**, never decoration and never a mood layer.
 
-| Token | Value | Where the build uses it |
-| --- | --- | --- |
-| `--plate-green` | `#2f5233` | Default masthead band; the recommendation block; the graph control strip; primary action fills. |
-| `--plate-terracotta` | `#b8482a` | The single interactive accent: link hover, focus ring, destructive/queued flags. |
-| `--plate-mustard` | `#c8871a` | The head rule; underline on every action link; `::selection`; checkbox accent. |
-| `--plate-ultramarine` | `#2a4a7c` | Curriculum masthead band — the one surface that changes plate. |
-| `--plate-plum` | `#6b3550` | Subject plate assignment. |
-| `--plate-olive` | `#6b7233` | Subject plate assignment. |
+| Token | Daylight | After dark | Where the build uses it |
+| --- | --- | --- | --- |
+| `--plate-green` | `#2f5233` | `#649069` | Default masthead band; the recommendation block; the graph control strip; primary action fills. |
+| `--plate-terracotta` | `#b8482a` | `#d0674a` | The single interactive accent: link hover, focus ring, destructive/queued flags. |
+| `--plate-mustard` | `#c8871a` | `#c8871a` | The head rule; underline on every action link; `::selection`; checkbox accent. **Unchanged** — already lit for a dark ground. |
+| `--plate-ultramarine` | `#2a4a7c` | `#6487bc` | Curriculum masthead band — the one surface that changes plate. |
+| `--plate-plum` | `#6b3550` | `#aa7690` | Subject plate assignment. |
+| `--plate-olive` | `#6b7233` | `#838b43` | Subject plate assignment. |
+
+**Rule — the plates are relit after dark, not inverted.** Five of the six are
+unreadable as text on `#1c1613`, plum worst at 1.9:1. Each is raised in lightness
+and eased in saturation until it clears 4.5:1 with its hue held, so a subject is
+recognisably the same green. It is not *exactly* the same green, and that is the
+real cost of this change: a plate is subject identity, so a bed is a slightly
+different colour in the two lights. The alternative is a bed nobody can read.
+
+**Two surfaces derived from a plate, because they invert differently.** A band
+and an accent fill are both saturated plates with text reversed out, and after
+dark they part company: the band is *deepened* (`--band-fill`, `#23412a`) and
+keeps bone text, while terracotta stays bright — it is the one interactive accent
+and dulling it would cost the signal — so what reverses out of it becomes the
+dark ground instead. Hence `--on-plate` (bone, both lights) and `--on-accent`
+(paper in daylight, `#12100d` after dark). A rule that fills with a plate states
+its ink; it never inherits one.
 
 ### Rules
 
-| Token | Value | Role |
-| --- | --- | --- |
-| `--rule` | `#b9a988` | Standard table rule, leader dots, scrollbar thumb, link underline at rest. |
-| `--rule-strong` | `#6b5c45` | Section-defining rules, sheet foot, panel edges, form field borders. |
+| Token | Daylight | After dark | Role |
+| --- | --- | --- | --- |
+| `--rule` | `#b9a988` | `#5e4e40` | Standard table rule, leader dots, scrollbar thumb, link underline at rest. |
+| `--rule-strong` | `#6b5c45` | `#8a7660` | Section-defining rules, sheet foot, panel edges, form field borders. |
 
-**Palette strategy:** one warm paper ground with a darker bed behind it; a
-three-step warm-black ink ramp; six flat plate inks that carry meaning
-(subject identity, band structure, one interactive accent) and never atmosphere.
-No gradients as colour — the only gradients in the build are the paper-tooth
-threads and the SVG hatch patterns, both of which are texture.
+**Palette strategy:** one warm ground with a bed behind it; a three-step ink ramp
+running warm-black on paper and bone on board; six flat plate inks that carry
+meaning (subject identity, band structure, one interactive accent) and never
+atmosphere. Warm throughout under both lights — never a neutral grey, which would
+read as a different product wearing this one's type. No gradients as colour — the
+only gradients in the build are the paper-tooth threads and the SVG hatch
+patterns, both of which are texture.
+
+**Rule — a colour is a token or it is a bug.** There are no colour literals
+outside the `:root` blocks. Ink and paper at alpha are `--ink-rgb` and
+`--paper-rgb` (and `--on-plate-rgb` for what sits on a band), because 130 scrims
+and tooth threads were written as raw `rgba()` copies of the light theme's
+ground — which stated that ground in 130 places no dark block could reach.
 
 ### Paper tooth
 

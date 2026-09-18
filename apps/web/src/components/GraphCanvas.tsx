@@ -23,7 +23,68 @@ import {
   hullFade,
   labelInk,
   LABEL_INK,
+  LABEL_INK_DARK,
+  PAPER,
+  PAPER_DARK,
 } from '@didactic/core/graph'
+import { useTheme } from './useTheme'
+
+/**
+ * The bed's own inks, per lighting condition.
+ *
+ * Everything else in the build follows a custom property; a canvas
+ * cannot, because it paints to a bitmap where no stylesheet reaches.
+ * So the one surface that has to be told is told here, in one table
+ * rather than as a conditional at each of fourteen paint sites.
+ *
+ * `ground` is the load-bearing one: every seed is mixed toward it as
+ * its topic goes dormant, and fading a dark bed toward paper would
+ * print the cold topics as the brightest things on the map.
+ */
+const INKS = {
+  light: {
+    ground: PAPER,
+    label: LABEL_INK,
+    unfiledSeed: '#7d6f5d',
+    edge: 'rgba(90, 76, 56, 0.62)',
+    membership: 'rgba(90, 76, 56, 0.10)',
+    resourceRead: '#6b5c45',
+    resourceUnread: '#c3b393',
+    covers: 'rgba(107, 92, 69, 0.35)',
+    lessonWorked: '#2f5233',
+    lessonOpen: '#a8b394',
+    teaches: 'rgba(47, 82, 51, 0.3)',
+    markNoted: '#c8871a',
+    markPlain: '#ddc08a',
+    marks: 'rgba(200, 135, 26, 0.28)',
+    marksStrong: 'rgba(200, 135, 26, 0.6)',
+    hover: 'rgba(184, 72, 42, 0.85)',
+    hullEdge: 'rgba(239, 231, 214, 0.9)',
+    routeWorked: '#2f5233',
+    routeLeft: 'rgba(107, 92, 69, 0.45)',
+  },
+  dark: {
+    ground: PAPER_DARK,
+    label: LABEL_INK_DARK,
+    unfiledSeed: '#6d6252',
+    edge: 'rgba(206, 188, 154, 0.38)',
+    membership: 'rgba(206, 188, 154, 0.08)',
+    resourceRead: '#9b8a6f',
+    resourceUnread: '#4a4036',
+    covers: 'rgba(206, 188, 154, 0.22)',
+    lessonWorked: '#649069',
+    lessonOpen: '#46543f',
+    teaches: 'rgba(100, 144, 105, 0.32)',
+    markNoted: '#c8871a',
+    markPlain: '#6b5730',
+    marks: 'rgba(200, 135, 26, 0.26)',
+    marksStrong: 'rgba(200, 135, 26, 0.55)',
+    hover: 'rgba(208, 103, 74, 0.9)',
+    hullEdge: 'rgba(28, 22, 19, 0.9)',
+    routeWorked: '#649069',
+    routeLeft: 'rgba(206, 188, 154, 0.3)',
+  },
+} as const
 
 interface GraphTopic {
   id: string
@@ -141,6 +202,11 @@ export function GraphCanvas({
   // again rather than patched.
   const [reload, setReload] = useState(0)
 
+  // The bed is painted rather than styled, so it has to be told which
+  // light it is being read under. Changing this redraws it.
+  const theme = useTheme()
+  const inks = INKS[theme]
+
   useEffect(() => {
     // One call rather than two: `/api/graph` is this same merge done
     // server-side, and both read `getPlanting`, so they cannot drift.
@@ -152,9 +218,9 @@ export function GraphCanvas({
   const colourFor = useCallback(
     (topic: GraphTopic) => {
       const s = data?.subjects.find(x => x.id === topic.primary_subject_id)
-      return s?.colour ?? '#7d6f5d'
+      return s?.colour ?? inks.unfiledSeed
     },
-    [data]
+    [data, inks.unfiledSeed]
   )
 
   useEffect(() => {
@@ -205,7 +271,7 @@ export function GraphCanvas({
         size: nodeSize(t.ability),
         // Dormancy is mixed into the fill itself. Sigma has no alpha
         // attribute, so a separate opacity key renders as nothing.
-        color: fade(colourFor(t), nodeFade(t.freshness)),
+        color: fade(colourFor(t), nodeFade(t.freshness), inks.ground),
         x: Math.cos(base + jitter * 0.8) * radius,
         y: Math.sin(base + jitter * 0.8) * radius,
         freshness: t.freshness,
@@ -225,7 +291,7 @@ export function GraphCanvas({
         size: edgeSize(e.weight),
         // Printed rules, not hairlines: the earlier value vanished on a
         // sunlit phone screen.
-        color: 'rgba(90, 76, 56, 0.62)',
+        color: inks.edge,
         kind: e.kind,
       })
     })
@@ -247,7 +313,7 @@ export function GraphCanvas({
           size: 4.5,
           // Read material is inked; unread is outlined by being paler,
           // matching the sheet's own unsown/sown distinction.
-          color: r.status === 'consumed' ? '#6b5c45' : '#c3b393',
+          color: r.status === 'consumed' ? inks.resourceRead : inks.resourceUnread,
           x: 0,
           y: 0,
           freshness: 1,
@@ -258,7 +324,7 @@ export function GraphCanvas({
         for (const topicId of attached) {
           graph.addEdge(nodeId, topicId, {
             size: 0.7,
-            color: 'rgba(107, 92, 69, 0.35)',
+            color: inks.covers,
             kind: 'covers',
           })
         }
@@ -273,7 +339,7 @@ export function GraphCanvas({
         graph.addNode(nodeId, {
           label: l.title,
           size: 3.5,
-          color: l.completed_at ? '#2f5233' : '#a8b394',
+          color: l.completed_at ? inks.lessonWorked : inks.lessonOpen,
           x: 0,
           y: 0,
           freshness: 1,
@@ -283,7 +349,7 @@ export function GraphCanvas({
 
         graph.addEdge(nodeId, l.topic_id, {
           size: 0.6,
-          color: 'rgba(47, 82, 51, 0.3)',
+          color: inks.teaches,
           kind: 'teaches',
         })
       }
@@ -321,7 +387,7 @@ export function GraphCanvas({
           // mustard the wash on the prose uses. A mark with nothing
           // written on it is the paler one: the passage was kept, the
           // thought was not.
-          color: m.noted ? '#c8871a' : '#ddc08a',
+          color: m.noted ? inks.markNoted : inks.markPlain,
           x: 0,
           y: 0,
           freshness: 1,
@@ -334,7 +400,7 @@ export function GraphCanvas({
         if (from) {
           graph.addEdge(nodeId, from, {
             size: 0.6,
-            color: 'rgba(200, 135, 26, 0.28)',
+            color: inks.marks,
             kind: 'marked in',
           })
         }
@@ -346,7 +412,7 @@ export function GraphCanvas({
           if (end === from || graph.hasEdge(nodeId, end)) continue
           graph.addEdge(nodeId, end, {
             size: 1,
-            color: 'rgba(200, 135, 26, 0.6)',
+            color: inks.marksStrong,
             kind: 'about',
           })
         }
@@ -370,7 +436,7 @@ export function GraphCanvas({
         const a = members[i]
         const b = members[(i + 1) % members.length]
         if (a === b || graph.hasEdge(a, b)) continue
-        graph.addEdge(a, b, { size: 0.4, color: 'rgba(90, 76, 56, 0.10)', kind: 'membership' })
+        graph.addEdge(a, b, { size: 0.4, color: inks.membership, kind: 'membership' })
       }
     }
 
@@ -402,7 +468,7 @@ export function GraphCanvas({
       labelFont: 'var(--font-text-loaded), sans-serif',
       labelSize: 12,
       labelWeight: '500',
-      labelColor: { color: LABEL_INK },
+      labelColor: { color: inks.label },
       // Sigma hides labels that would collide; a larger grid cell means
       // it hides more of them rather than overprinting into mush.
       labelGridCellSize: 90,
@@ -431,7 +497,7 @@ export function GraphCanvas({
       if (near.has(node)) {
         return node === hovered ? { ...attrs, size: (attrs.size as number) * 1.25 } : attrs
       }
-      return { ...attrs, color: fade(attrs.color as string, 0.22), label: '' }
+      return { ...attrs, color: fade(attrs.color as string, 0.22, inks.ground), label: '' }
     })
 
     renderer.setSetting('edgeReducer', (edge, attrs) => {
@@ -439,9 +505,9 @@ export function GraphCanvas({
       const [from, to] = graph.extremities(edge)
       const near = neighboursOf(hovered)
       if (near.has(from) && near.has(to)) {
-        return { ...attrs, color: 'rgba(184, 72, 42, 0.85)', size: (attrs.size as number) * 1.6 }
+        return { ...attrs, color: inks.hover, size: (attrs.size as number) * 1.6 }
       }
-      return { ...attrs, color: 'rgba(90, 76, 56, 0.10)' }
+      return { ...attrs, color: inks.membership }
     })
 
     renderer.on('enterNode', ({ node }) => {
@@ -502,10 +568,10 @@ export function GraphCanvas({
         const narrow = Math.min(1, width / 900)
         const size = (16 + Math.min(acc.n, 12) * 1.1) * (0.62 + narrow * 0.38)
         context.font = `600 ${size}px Georgia, serif`
-        context.fillStyle = fade(subject.colour, hullFade(strength))
+        context.fillStyle = fade(subject.colour, hullFade(strength), inks.ground)
         // A paper halo so a name over a dense bed stays readable.
         context.lineWidth = size * 0.28
-        context.strokeStyle = 'rgba(239, 231, 214, 0.9)'
+        context.strokeStyle = inks.hullEdge
         context.lineJoin = 'round'
 
         // Sit the name above its bed rather than through the middle of
@@ -560,7 +626,7 @@ export function GraphCanvas({
           const from = -Math.PI / 2 + i * step + step * gap * 0.5
           const to = from + step * (1 - gap)
           context.beginPath()
-          context.strokeStyle = i < worked ? '#2f5233' : 'rgba(107, 92, 69, 0.45)'
+          context.strokeStyle = i < worked ? inks.routeWorked : inks.routeLeft
           context.arc(d.x, d.y, radius, from, to)
           context.stroke()
         }
@@ -682,7 +748,10 @@ export function GraphCanvas({
       renderer.kill()
       sigma.current = null
     }
-  }, [data, query, subject, showDormantOnly, showResources, showLessons, showMarks, colourFor, repel, centre, linkDistance])
+    // `inks` is in the list because the bed is painted rather than
+    // styled: a reader switching to dark gets the whole thing drawn
+    // again, which is the only way a canvas can follow a theme.
+  }, [data, query, subject, showDormantOnly, showResources, showLessons, showMarks, colourFor, repel, centre, linkDistance, inks, theme])
 
   const selectedTopic = data?.topics.find(t => t.id === selected) ?? null
 

@@ -26,6 +26,25 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${fraunces.variable} ${archivo.variable}`}>
+      <head>
+        {/* Stamp the stored choice before the first paint.
+
+            Without this the sheet renders under the system's lighting,
+            then corrects itself once React has mounted -- which is a
+            white flash in a dark room, on every navigation, for the one
+            reader who has explicitly asked for dark. It has to be
+            inline and it has to be in the head: anything deferred is
+            by definition after the paint it exists to beat.
+
+            Wrapped in its own try/catch because a browser with site
+            data blocked throws on `localStorage`, and a sheet that
+            renders is worth more than a remembered preference. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('didactic-theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}`,
+          }}
+        />
+      </head>
       <body>
         {/* Above the router, so work set going on one sheet outlives
             walking off to another. Everything in the catalogue is

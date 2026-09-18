@@ -6,15 +6,15 @@
   padding: 0 0 var(--space-6);
   background-color: var(--paper);
   background-image:
-    repeating-linear-gradient(90deg, rgba(90, 70, 45, 0.04) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(0deg, rgba(90, 70, 45, 0.03) 0 1px, transparent 1px 4px);
+    repeating-linear-gradient(90deg, rgba(var(--tooth-rgb), 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(var(--tooth-rgb), 0.03) 0 1px, transparent 1px 4px);
   min-height: 100dvh;
-  box-shadow: 0 2px 24px rgba(36, 29, 22, 0.16);
+  box-shadow: 0 2px 24px rgba(var(--ink-rgb), 0.16);
 }
 
 .head {
-  background: var(--plate-green);
-  color: var(--paper);
+  background: var(--band-fill);
+  color: var(--on-plate);
   padding: var(--space-5);
   /* The band is a saturated plate, so the terracotta focus ring
      disappears into it. Controls in here state their own. */
@@ -41,9 +41,9 @@
   font-size: var(--step--2);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(239, 231, 214, 0.85);
+  color: rgba(var(--on-plate-rgb), 0.85);
   text-decoration: none;
-  border-bottom: 1px solid rgba(239, 231, 214, 0.4);
+  border-bottom: 1px solid rgba(var(--on-plate-rgb), 0.4);
   padding-bottom: 2px;
 }
 
@@ -168,8 +168,8 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--paper);
-  background: var(--plate-green);
+  color: var(--on-plate);
+  background: var(--band-fill);
   border: none;
   border-radius: 0;
   padding: var(--space-3) var(--space-5);
@@ -183,6 +183,7 @@
 
 .submit:hover:not(:disabled) {
   background: var(--plate-terracotta);
+  color: var(--on-accent);
 }
 
 .submit:disabled {
@@ -357,15 +358,15 @@
 }
 
 .chipOn {
-  background: var(--plate-green);
+  background: var(--band-fill);
   border-color: var(--plate-green);
-  color: var(--paper);
+  color: var(--on-plate);
 }
 
 .chipOn:hover {
   background: var(--plate-terracotta);
   border-color: var(--plate-terracotta);
-  color: var(--paper);
+  color: var(--on-accent);
 }
 
 /* --- Proof of roots ---------------------------------------------- */
@@ -559,8 +560,8 @@
   font-size: var(--step--2);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--paper);
-  background: var(--plate-green);
+  color: var(--on-plate);
+  background: var(--band-fill);
   border: none;
   border-radius: 0;
   padding: var(--space-2) var(--space-3);
@@ -578,8 +579,8 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--paper);
-  background: var(--plate-green);
+  color: var(--on-plate);
+  background: var(--band-fill);
   border: none;
   border-radius: 0;
   padding: var(--space-2) var(--space-4);
@@ -588,6 +589,7 @@
 
 .proofSubmit:hover:not(:disabled) {
   background: var(--plate-terracotta);
+  color: var(--on-accent);
 }
 
 .proofSubmit:disabled {
@@ -633,7 +635,7 @@
   overscroll-behavior: contain;
   background: var(--paper);
   border: 1px solid var(--rule-strong);
-  box-shadow: 0 3px 16px rgba(36, 29, 22, 0.22);
+  box-shadow: 0 3px 16px rgba(var(--ink-rgb), 0.22);
 }
 
 .match {
@@ -742,8 +744,8 @@
   font-size: var(--step-1);
   font-variation-settings: 'SOFT' 10, 'WONK' 0, 'opsz' 24;
   font-variant-numeric: tabular-nums lining-nums;
-  color: var(--paper);
-  background: var(--plate-green);
+  color: var(--on-plate);
+  background: var(--band-fill);
   width: 1.75rem;
   height: 1.75rem;
   display: grid;

@@ -30,8 +30,8 @@
   font-size: var(--step--2);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(239, 231, 214, 0.6);
-  text-decoration: underline dotted rgba(239, 231, 214, 0.45);
+  color: rgba(var(--on-plate-rgb), 0.6);
+  text-decoration: underline dotted rgba(var(--on-plate-rgb), 0.45);
   text-underline-offset: 3px;
   transition:
     color var(--dur-feedback) var(--ease-settle),
@@ -70,14 +70,14 @@
   padding: var(--space-3) var(--space-4) var(--space-4);
   background-color: var(--paper);
   background-image:
-    repeating-linear-gradient(90deg, rgba(90, 70, 45, 0.04) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(0deg, rgba(90, 70, 45, 0.03) 0 1px, transparent 1px 4px);
+    repeating-linear-gradient(90deg, rgba(var(--tooth-rgb), 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(var(--tooth-rgb), 0.03) 0 1px, transparent 1px 4px);
   /* The margin block's own head rule, and ruled off at the foot. */
   border-top: 2px solid var(--rule-strong);
   border-bottom: 1px solid var(--rule-strong);
   /* The soft drop that lifts every sheet off the press bed, as the
      composer wears it. */
-  box-shadow: 0 2px 24px rgba(36, 29, 22, 0.16);
+  box-shadow: 0 2px 24px rgba(var(--ink-rgb), 0.16);
   animation: unroll var(--dur-settle) var(--ease-settle) both;
 }
 

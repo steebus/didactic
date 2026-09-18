@@ -27,11 +27,11 @@
 }
 
 .soil {
-  fill: rgba(36, 29, 22, 0.22);
+  fill: rgba(var(--ink-rgb), 0.22);
 }
 
 .stratum {
-  stroke: rgba(239, 231, 214, 0.22);
+  stroke: rgba(var(--on-plate-rgb), 0.22);
   stroke-width: 1;
 }
 
@@ -58,7 +58,7 @@
 /* Roots are underground, so they are printed a shade back from the
    shoot — the same ink, less of it. */
 .root {
-  stroke: rgba(239, 231, 214, 0.82);
+  stroke: rgba(var(--on-plate-rgb), 0.82);
 }
 
 .leaf {

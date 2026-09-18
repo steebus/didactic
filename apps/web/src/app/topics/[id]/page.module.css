@@ -7,10 +7,10 @@
   padding: 0 0 var(--space-6);
   background-color: var(--paper);
   background-image:
-    repeating-linear-gradient(90deg, rgba(90, 70, 45, 0.04) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(0deg, rgba(90, 70, 45, 0.03) 0 1px, transparent 1px 4px);
+    repeating-linear-gradient(90deg, rgba(var(--tooth-rgb), 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(var(--tooth-rgb), 0.03) 0 1px, transparent 1px 4px);
   min-height: 100dvh;
-  box-shadow: 0 2px 24px rgba(36, 29, 22, 0.16);
+  box-shadow: 0 2px 24px rgba(var(--ink-rgb), 0.16);
 }
 
 .head {
@@ -42,7 +42,7 @@
   font-size: var(--step--2);
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(239, 231, 214, 0.7);
+  color: rgba(var(--on-plate-rgb), 0.7);
   margin: 0 0 var(--space-2);
 }
 
@@ -61,9 +61,9 @@
   font-size: var(--step--2);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(239, 231, 214, 0.85);
+  color: rgba(var(--on-plate-rgb), 0.85);
   text-decoration: none;
-  border-bottom: 1px solid rgba(239, 231, 214, 0.4);
+  border-bottom: 1px solid rgba(var(--on-plate-rgb), 0.4);
   padding-bottom: 2px;
   white-space: nowrap;
 }
@@ -78,7 +78,7 @@
   margin: var(--space-3) 0 0;
   max-width: 60ch;
   font-size: var(--step-0);
-  color: rgba(239, 231, 214, 0.85);
+  color: rgba(var(--on-plate-rgb), 0.85);
 }
 
 .figures {
@@ -102,7 +102,7 @@
   font-size: var(--step--2);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(239, 231, 214, 0.6);
+  color: rgba(var(--on-plate-rgb), 0.6);
 }
 
 .figureValue {
@@ -336,6 +336,7 @@
 
 .action:hover {
   background: var(--plate-terracotta);
+  color: var(--on-accent);
   text-decoration: none;
 }
 
@@ -640,9 +641,9 @@
 }
 
 .filingAction:hover:not(:disabled) {
-  background: var(--plate-green);
+  background: var(--band-fill);
   border-color: var(--plate-green);
-  color: var(--paper);
+  color: var(--on-plate);
 }
 
 .filingAction:disabled {
@@ -703,8 +704,8 @@
 }
 
 .suggestion:hover {
-  background: var(--plate-green);
-  color: var(--paper);
+  background: var(--band-fill);
+  color: var(--on-plate);
 }
 
 /* What a demote would move, before it is pressed. A fold cannot be
@@ -934,8 +935,8 @@
 
 /* Filled, loud: work has happened here. */
 .lessonStamp[data-lesson='worked'] {
-  background: var(--plate-green);
-  color: var(--paper);
+  background: var(--band-fill);
+  color: var(--on-plate);
 }
 
 .lessonStamp[data-lesson='started'] {
@@ -1191,8 +1192,8 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--paper);
-  background: var(--plate-green);
+  color: var(--on-plate);
+  background: var(--band-fill);
   border: none;
   padding: var(--space-3) var(--space-5);
   cursor: pointer;
@@ -1212,7 +1213,7 @@
 
 .grubGo:hover:not(:disabled) {
   background: var(--plate-terracotta);
-  color: var(--paper);
+  color: var(--on-accent);
 }
 
 .grubGo:disabled {

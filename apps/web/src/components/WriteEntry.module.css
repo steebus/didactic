@@ -13,10 +13,10 @@
   /* 0.82 rather than 0.7: measured on the green band, 0.7 falls a hair
      under the 4.5 floor, which is why every link in this head carries
      0.82. */
-  color: rgba(239, 231, 214, 0.82);
+  color: rgba(var(--on-plate-rgb), 0.82);
   background: none;
   border: none;
-  border-left: 1px solid rgba(239, 231, 214, 0.35);
+  border-left: 1px solid rgba(var(--on-plate-rgb), 0.35);
   border-radius: 0;
   padding: var(--space-2) 0 var(--space-2) var(--space-4);
   cursor: pointer;
@@ -79,8 +79,8 @@
   /* The sheet's own tooth, because this is the sheet: a panel on flat
      paper beside a toothed one reads as a different material. */
   background-image:
-    repeating-linear-gradient(90deg, rgba(90, 70, 45, 0.04) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(0deg, rgba(90, 70, 45, 0.03) 0 1px, transparent 1px 4px);
+    repeating-linear-gradient(90deg, rgba(var(--tooth-rgb), 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(var(--tooth-rgb), 0.03) 0 1px, transparent 1px 4px);
   /* A rule at the foot, as everything in this world is ruled off. The
      mustard belongs to the band's own rule, which is directly above
      this panel; a second mustard rule a few pixels under the first
@@ -88,7 +88,7 @@
   border-bottom: 1px solid var(--rule-strong);
   /* The same soft drop that lifts every sheet off the press bed. Not an
      offset block shadow; this world does not use one. */
-  box-shadow: 0 2px 24px rgba(36, 29, 22, 0.16);
+  box-shadow: 0 2px 24px rgba(var(--ink-rgb), 0.16);
   /* The one authored moment on this surface: the paper unrolls from
      under the band it is fixed to.
 
@@ -210,8 +210,8 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   font-weight: 600;
-  color: var(--paper);
-  background: var(--plate-green);
+  color: var(--on-plate);
+  background: var(--band-fill);
   border: none;
   border-radius: 0;
   padding: var(--space-3) var(--space-5);
@@ -221,6 +221,7 @@
 
 .keep:hover:not(:disabled) {
   background: var(--plate-terracotta);
+  color: var(--on-accent);
 }
 
 .keep:disabled {
@@ -263,7 +264,7 @@
      right so it stands under the run it belongs beside. */
   .open {
     border-left: none;
-    border-top: 1px solid rgba(239, 231, 214, 0.35);
+    border-top: 1px solid rgba(var(--on-plate-rgb), 0.35);
     padding: var(--space-2) 0 var(--space-1);
     align-self: flex-end;
     margin-top: var(--space-1);

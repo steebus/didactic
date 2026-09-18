@@ -57,8 +57,8 @@
 /* A mark the cursor is standing in is pressed, in the ink of the sheet
    rather than a colour of its own. */
 .on {
-  color: var(--paper);
-  background: var(--plate-green);
+  color: var(--on-plate);
+  background: var(--band-fill);
   border-color: var(--plate-green);
 }
 
@@ -204,7 +204,7 @@
   background: var(--paper);
   border: 1px solid var(--rule-strong);
   /* Printed rather than floated: one hard shadow, no blur halo. */
-  box-shadow: 3px 3px 0 rgba(36, 29, 22, 0.12);
+  box-shadow: 3px 3px 0 rgba(var(--ink-rgb), 0.12);
 }
 
 /* The list scrolls; the line saying what is being typed does not, so it
@@ -290,8 +290,8 @@
    the formatting controls use when they are on, so one idea of
    "chosen" runs through the box. */
 .chosen {
-  background: var(--plate-green);
-  color: var(--paper);
+  background: var(--band-fill);
+  color: var(--on-plate);
 }
 
 .mentionTitle {

@@ -18,8 +18,8 @@
   transition: inset var(--dur-state) var(--ease-settle);
   /* Bed markings: a faint drill grid, the way a planting plan is ruled. */
   background-image:
-    repeating-linear-gradient(0deg, rgba(107, 92, 69, 0.06) 0 1px, transparent 1px 48px),
-    repeating-linear-gradient(90deg, rgba(107, 92, 69, 0.06) 0 1px, transparent 1px 48px);
+    repeating-linear-gradient(0deg, rgba(var(--drill-rgb), 0.06) 0 1px, transparent 1px 48px),
+    repeating-linear-gradient(90deg, rgba(var(--drill-rgb), 0.06) 0 1px, transparent 1px 48px);
 }
 
 /* --- Controls: a printed header strip, not a floating toolbar ---- */
@@ -36,7 +36,7 @@
   align-items: center;
   flex-wrap: wrap;
   padding: var(--space-3) var(--space-4);
-  background: var(--plate-green);
+  background: var(--band-fill);
   border-bottom: 4px solid var(--plate-mustard);
 }
 
@@ -75,7 +75,7 @@
   font-size: var(--step--2);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(239, 231, 214, 0.9);
+  color: rgba(var(--on-plate-rgb), 0.9);
   cursor: pointer;
 }
 
@@ -127,7 +127,7 @@
   display: grid;
   gap: var(--space-4);
   align-content: start;
-  box-shadow: -4px 0 20px rgba(36, 29, 22, 0.12);
+  box-shadow: -4px 0 20px rgba(var(--ink-rgb), 0.12);
 }
 
 @media (max-width: 40rem) {
@@ -140,7 +140,7 @@
     max-height: 72dvh;
     border-left: none;
     border-top: 2px solid var(--rule-strong);
-    box-shadow: 0 -4px 20px rgba(36, 29, 22, 0.16);
+    box-shadow: 0 -4px 20px rgba(var(--ink-rgb), 0.16);
   }
 }
 
@@ -265,14 +265,15 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--paper);
-  background: var(--plate-green);
+  color: var(--on-plate);
+  background: var(--band-fill);
   padding: var(--space-2) var(--space-4);
   text-decoration: none;
 }
 
 .tend:hover {
   background: var(--plate-terracotta);
+  color: var(--on-accent);
   text-decoration: none;
 }
 
@@ -284,9 +285,9 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(239, 231, 214, 0.9);
+  color: rgba(var(--on-plate-rgb), 0.9);
   background: none;
-  border: 1px solid rgba(239, 231, 214, 0.4);
+  border: 1px solid rgba(var(--on-plate-rgb), 0.4);
   border-radius: 0;
   padding: var(--space-2) var(--space-3);
   cursor: pointer;
@@ -309,7 +310,7 @@
   flex-wrap: wrap;
   padding-top: var(--space-3);
   margin-top: var(--space-2);
-  border-top: 1px solid rgba(239, 231, 214, 0.2);
+  border-top: 1px solid rgba(var(--on-plate-rgb), 0.2);
   animation: forcesIn var(--dur-state) var(--ease-settle) both;
 }
 
@@ -330,7 +331,7 @@
   font-size: var(--step--2);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(239, 231, 214, 0.75);
+  color: rgba(var(--on-plate-rgb), 0.75);
   white-space: nowrap;
 }
 
@@ -368,7 +369,7 @@
   padding: var(--space-4) var(--space-5);
   background: var(--paper);
   border: 1px solid var(--paper-edge);
-  box-shadow: 0 2px 24px rgba(36, 29, 22, 0.16);
+  box-shadow: 0 2px 24px rgba(var(--ink-rgb), 0.16);
 }
 
 /* --- Grubbing a topic out from the bed --------------------------- */
@@ -426,8 +427,8 @@
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--paper);
-  background: var(--plate-green);
+  color: var(--on-plate);
+  background: var(--band-fill);
   border: none;
   padding: var(--space-2) var(--space-4);
   cursor: pointer;
@@ -448,7 +449,7 @@
 
 .grubGo:hover:not(:disabled) {
   background: var(--plate-terracotta);
-  color: var(--paper);
+  color: var(--on-accent);
 }
 
 .grubGo:disabled,

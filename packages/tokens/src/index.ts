@@ -12,9 +12,23 @@
  * custom properties that the web's font loader sets, which is a
  * rendering concern rather than a token. The faces themselves are named
  * in `guides/styling-on-mobile.md`.
+ *
+ * **Two lighting conditions.** The catalogue was printed for daylight
+ * alone until the sheet had to be readable in a dark room, and what
+ * changes between them is colour and nothing else: the scale, the
+ * spacing and the timing are the same object under either light. So the
+ * colours are stated per theme and everything else once. `theme.light`
+ * is what `:root` says; `theme.dark` is what the dark block restates,
+ * and the agreement test holds the stylesheet to exactly these two.
  */
 
-/** Ground, ink and rules: everything that is not a plate. */
+/**
+ * Ground, ink and rules in daylight: everything that is not a plate.
+ *
+ * Kept as `colour` rather than `theme.light.colour` because it is what
+ * every caller already reads and the light sheet is still the one the
+ * app prints by default.
+ */
 export const colour = {
   paper: '#efe7d6',
   paperDeep: '#e3d8c2',
@@ -25,6 +39,31 @@ export const colour = {
   inkFaint: '#6b5c45',
   rule: '#b9a988',
   ruleStrong: '#6b5c45',
+} as const
+
+/**
+ * The same grounds after dark.
+ *
+ * Warm throughout, never neutral: this is ink-stained board rather than
+ * slate, and a grey ramp here would read as a different product wearing
+ * the catalogue's type. The press bed goes nearly black so the sheet
+ * still reads as a lit object lying on top of it -- inverting the light
+ * theme's order, where the bed is the darker of the two, because what
+ * the eye follows is the sheet being the brighter thing either way.
+ *
+ * `ink` is bone rather than white: #fff on this ground glares at the
+ * brightness someone reads a dark sheet at.
+ */
+export const colourDark = {
+  paper: '#1c1613',
+  paperDeep: '#261e19',
+  paperEdge: '#322720',
+  pressBed: '#0c0a08',
+  ink: '#ece3d1',
+  inkSoft: '#b8aa95',
+  inkFaint: '#8f8270',
+  rule: '#5e4e40',
+  ruleStrong: '#8a7660',
 } as const
 
 /**
@@ -50,6 +89,39 @@ export const plate = {
   ultramarine: '#2a4a7c',
   plum: '#6b3550',
   olive: '#6b7233',
+} as const
+
+/**
+ * The six plates relit for a dark ground.
+ *
+ * Five of the six are unreadable as text on #1c1613 -- plum worst at
+ * 1.9:1 -- so each is raised in lightness and eased in saturation until
+ * it clears 4.5:1, with its hue held. Mustard is unchanged: it was
+ * already lit for a dark ground and moving it would only break the one
+ * plate that agrees across both.
+ *
+ * A subject's plate is its identity, so this does mean a bed is a
+ * slightly different green after dark. That is the cost of the bed
+ * being legible at all, and it is paid once here rather than guessed
+ * at per surface.
+ */
+export const platesDark = [
+  '#649069', // green
+  '#d0674a', // terracotta
+  '#c8871a', // mustard, unchanged
+  '#6487bc', // ultramarine
+  '#aa7690', // plum
+  '#838b43', // olive
+] as const
+
+/** The relit six by name. */
+export const plateDark = {
+  green: '#649069',
+  terracotta: '#d0674a',
+  mustard: '#c8871a',
+  ultramarine: '#6487bc',
+  plum: '#aa7690',
+  olive: '#838b43',
 } as const
 
 /**
@@ -118,6 +190,26 @@ export const graph = {
   membershipEdge: 'rgba(90, 76, 56, 0.10)',
   label: '#241d16',
   labelDormant: '#8a7d68',
+  /** What every fade mixes toward: the ground the bed is drawn on. */
+  ground: [239, 231, 214],
+} as const
+
+/**
+ * The same inks after dark.
+ *
+ * `ground` is the one that matters and the one a canvas cannot read off
+ * a stylesheet. Every seed is mixed toward it as the topic goes
+ * dormant, so a bed drawn on a dark ground while fading toward paper
+ * would make a cold topic *brighter* than a warm one -- the map saying
+ * the exact opposite of what it means.
+ */
+export const graphDark = {
+  unfiledSeed: '#6d6252',
+  edge: 'rgba(206, 188, 154, 0.38)',
+  membershipEdge: 'rgba(206, 188, 154, 0.08)',
+  label: '#ece3d1',
+  labelDormant: '#7d7160',
+  ground: [28, 22, 19],
 } as const
 
 /** Measures that are a single value rather than a surface's own business. */

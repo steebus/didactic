@@ -7,10 +7,10 @@
   padding: 0 0 var(--space-6);
   background-color: var(--paper);
   background-image:
-    repeating-linear-gradient(90deg, rgba(90, 70, 45, 0.04) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(0deg, rgba(90, 70, 45, 0.03) 0 1px, transparent 1px 4px);
+    repeating-linear-gradient(90deg, rgba(var(--tooth-rgb), 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(var(--tooth-rgb), 0.03) 0 1px, transparent 1px 4px);
   min-height: 100dvh;
-  box-shadow: 0 2px 24px rgba(36, 29, 22, 0.16);
+  box-shadow: 0 2px 24px rgba(var(--ink-rgb), 0.16);
 }
 
 .head {
@@ -30,7 +30,7 @@
   font-family: var(--font-display);
   font-size: var(--step-1);
   font-variation-settings: 'SOFT' 20, 'WONK' 0;
-  color: rgba(239, 231, 214, 0.85);
+  color: rgba(var(--on-plate-rgb), 0.85);
   margin: var(--space-3) 0 0;
   max-width: 54ch;
   line-height: 1.35;
@@ -226,8 +226,8 @@
   font-size: var(--step-1);
   font-variation-settings: 'SOFT' 10, 'WONK' 0, 'opsz' 24;
   font-variant-numeric: tabular-nums lining-nums;
-  color: var(--paper);
-  background: var(--plate-green);
+  color: var(--on-plate);
+  background: var(--band-fill);
   width: 1.75rem;
   height: 1.75rem;
   display: grid;

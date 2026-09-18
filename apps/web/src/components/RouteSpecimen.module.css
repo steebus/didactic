@@ -17,14 +17,14 @@
    edge — an inset window rather than a card floated on the plate. */
 .window {
   width: 100%;
-  border: 1px solid rgba(239, 231, 214, 0.28);
+  border: 1px solid rgba(var(--on-plate-rgb), 0.28);
 }
 
 .caption {
   font-size: var(--step--2);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(239, 231, 214, 0.85);
+  color: rgba(var(--on-plate-rgb), 0.85);
   font-variant-numeric: tabular-nums lining-nums;
   text-align: center;
   line-height: 1.3;

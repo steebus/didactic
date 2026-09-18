@@ -169,7 +169,7 @@
 .answer {
   color: var(--plate-plum);
   font-weight: 700;
-  box-shadow: inset 0 -0.35em 0 rgba(107, 53, 80, 0.16);
+  box-shadow: inset 0 -0.35em 0 rgba(var(--plate-plum-rgb), 0.16);
 }
 
 .hint {

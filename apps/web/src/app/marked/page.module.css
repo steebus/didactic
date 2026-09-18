@@ -7,14 +7,14 @@
   padding: 0 0 var(--space-6);
   background-color: var(--paper);
   background-image:
-    repeating-linear-gradient(90deg, rgba(90, 70, 45, 0.04) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(0deg, rgba(90, 70, 45, 0.03) 0 1px, transparent 1px 4px);
+    repeating-linear-gradient(90deg, rgba(var(--tooth-rgb), 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(var(--tooth-rgb), 0.03) 0 1px, transparent 1px 4px);
   min-height: 100dvh;
 }
 
 .head {
-  background: var(--plate-green);
-  color: var(--paper);
+  background: var(--band-fill);
+  color: var(--on-plate);
   padding: var(--space-5);
   /* The band is a saturated plate, so the terracotta focus ring
      disappears into it. Controls in here state their own. */
@@ -81,8 +81,8 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--paper);
-  background: var(--plate-green);
+  color: var(--on-plate);
+  background: var(--band-fill);
   border: none;
   padding: var(--space-3) var(--space-4);
   cursor: pointer;
@@ -505,8 +505,8 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--paper);
-  background: var(--plate-green);
+  color: var(--on-plate);
+  background: var(--band-fill);
   border: none;
   padding: var(--space-2) var(--space-4);
   cursor: pointer;

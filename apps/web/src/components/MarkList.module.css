@@ -12,7 +12,7 @@
   flex-direction: column;
   background: var(--paper);
   border-left: 1px solid var(--rule-strong);
-  box-shadow: -6px 0 24px rgba(36, 29, 22, 0.16);
+  box-shadow: -6px 0 24px rgba(var(--ink-rgb), 0.16);
   /* The list scrolls; the head it sits under does not. */
   overflow: hidden;
   animation: slideIn var(--dur-state) var(--ease-settle) both;
@@ -185,8 +185,8 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--paper);
-  background: var(--plate-green);
+  color: var(--on-plate);
+  background: var(--band-fill);
   border: none;
   padding: var(--space-2) var(--space-4);
   min-height: 2.25rem;
@@ -243,7 +243,7 @@
 @media (max-width: 40rem) {
   .list {
     width: min(22rem, 86vw);
-    box-shadow: -8px 0 28px rgba(36, 29, 22, 0.28);
+    box-shadow: -8px 0 28px rgba(var(--ink-rgb), 0.28);
   }
 
   @keyframes slideIn {

@@ -10,14 +10,14 @@
   padding: 0 0 var(--space-6);
   background-color: var(--paper);
   background-image:
-    repeating-linear-gradient(90deg, rgba(90, 70, 45, 0.04) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(0deg, rgba(90, 70, 45, 0.03) 0 1px, transparent 1px 4px);
+    repeating-linear-gradient(90deg, rgba(var(--tooth-rgb), 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(var(--tooth-rgb), 0.03) 0 1px, transparent 1px 4px);
   min-height: 100dvh;
 }
 
 .head {
   background: var(--plate-terracotta);
-  color: var(--paper);
+  color: var(--on-accent);
   padding: var(--space-5);
   /* A saturated plate: controls in here state their own focus ink. */
   --focus-ink: var(--paper);
@@ -178,9 +178,9 @@
 }
 
 .bulkAction:hover:not(:disabled) {
-  background: var(--plate-green);
+  background: var(--band-fill);
   border-color: var(--plate-green);
-  color: var(--paper);
+  color: var(--on-plate);
 }
 
 .bulkAction:disabled {
@@ -197,6 +197,7 @@
 
 .destructive:hover:not(:disabled) {
   background: var(--plate-terracotta);
+  color: var(--on-accent);
   border-color: var(--plate-terracotta);
 }
 
@@ -410,9 +411,9 @@
 }
 
 .rowAction:hover:not(:disabled) {
-  background: var(--plate-green);
+  background: var(--band-fill);
   border-color: var(--plate-green);
-  color: var(--paper);
+  color: var(--on-plate);
 }
 
 .rowAction:disabled {

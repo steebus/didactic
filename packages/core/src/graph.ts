@@ -8,8 +8,27 @@
  * topic goes dormant.
  */
 
-/** The paper the bed sits on; every fade mixes toward it. */
-export const PAPER: readonly [number, number, number] = [239, 231, 214]
+/** The ground a bed is drawn on: what every fade mixes toward. */
+export type Ground = readonly [number, number, number]
+
+/** The paper the bed sits on in daylight. */
+export const PAPER: Ground = [239, 231, 214]
+
+/**
+ * The same bed after dark.
+ *
+ * This is the whole of why `fade` takes a ground at all. A seed is
+ * mixed toward the paper as its topic goes dormant, so a dark bed
+ * fading toward cream would print a cold topic *brighter* than a warm
+ * one -- the map stating the exact opposite of what it means, on the
+ * one surface whose entire job is saying what has gone cold.
+ *
+ * A canvas cannot read a custom property, so unlike every other colour
+ * in the build this one cannot follow the stylesheet: it is passed in.
+ * `packages/tokens` holds both values and its agreement test checks
+ * each against the paper of the theme it belongs to.
+ */
+export const PAPER_DARK: Ground = [28, 22, 19]
 
 /** A seed's radius from how well the topic is held. */
 export function nodeSize(ability: number): number {
@@ -35,12 +54,16 @@ export function hullFade(strength: number): number {
 }
 
 /**
- * Mix a colour toward the paper by the given amount.
+ * Mix a colour toward the ground by the given amount.
  *
  * Accepts hex or the `rgb()` strings it returns, since a hover fades a
  * colour that freshness has already faded.
+ *
+ * The ground defaults to daylight, so every existing caller is
+ * unchanged and a caller that has not been taught about the dark bed
+ * keeps drawing the bed it always drew.
  */
-export function fade(colour: string, amount: number): string {
+export function fade(colour: string, amount: number, ground: Ground = PAPER): string {
   const rgb = colour.startsWith('#')
     ? [
         (parseInt(colour.slice(1), 16) >> 16) & 255,
@@ -49,7 +72,7 @@ export function fade(colour: string, amount: number): string {
       ]
     : (colour.match(/\d+/g) ?? ['0', '0', '0']).slice(0, 3).map(Number)
 
-  const mixed = rgb.map((c, i) => Math.round(PAPER[i] + (c - PAPER[i]) * amount))
+  const mixed = rgb.map((c, i) => Math.round(ground[i] + (c - ground[i]) * amount))
   return `rgb(${mixed.join(',')})`
 }
 
@@ -57,7 +80,12 @@ export function fade(colour: string, amount: number): string {
 export const LABEL_INK = '#241d16'
 export const LABEL_INK_DORMANT = '#8a7d68'
 
-export function labelInk(freshness: number): string {
+/** The same two after dark, reversed out of the bed. */
+export const LABEL_INK_DARK = '#ece3d1'
+export const LABEL_INK_DORMANT_DARK = '#7d7160'
+
+export function labelInk(freshness: number, dark = false): string {
+  if (dark) return freshness < 0.25 ? LABEL_INK_DORMANT_DARK : LABEL_INK_DARK
   return freshness < 0.25 ? LABEL_INK_DORMANT : LABEL_INK
 }
 

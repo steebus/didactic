@@ -36,7 +36,7 @@
 .sheet {
   /* 0.7 measured 4.45:1 on the green band -- under the 4.5 floor by a
      hair. Every link in the running head failed it. */
-  color: rgba(239, 231, 214, 0.82);
+  color: rgba(var(--on-plate-rgb), 0.82);
   text-decoration: none;
   /* The underline is drawn rather than switched on, so the set does not
      shift by a pixel when one of them is pointed at. */
@@ -107,10 +107,10 @@
   font-size: var(--step--2);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(239, 231, 214, 0.82);
+  color: rgba(var(--on-plate-rgb), 0.82);
   background: none;
   border: none;
-  border-left: 1px solid rgba(239, 231, 214, 0.35);
+  border-left: 1px solid rgba(var(--on-plate-rgb), 0.35);
   border-radius: 0;
   padding: var(--space-2) 0 var(--space-2) var(--space-4);
   cursor: pointer;
@@ -128,9 +128,9 @@
 /* The way back. Set as a phrase rather than a button, with the arrow
    held clear of the label so it does not read as punctuation. */
 .back {
-  color: rgba(239, 231, 214, 0.9);
+  color: rgba(var(--on-plate-rgb), 0.9);
   text-decoration: none;
-  border-bottom: 1px solid rgba(239, 231, 214, 0.4);
+  border-bottom: 1px solid rgba(var(--on-plate-rgb), 0.4);
   padding-bottom: 2px;
   font-weight: 600;
   display: inline-flex;

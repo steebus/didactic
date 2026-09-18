@@ -12,5 +12,5 @@
   padding: var(--space-4) var(--space-5);
   background: var(--paper);
   border: 1px solid var(--paper-edge);
-  box-shadow: 0 2px 24px rgba(36, 29, 22, 0.16);
+  box-shadow: 0 2px 24px rgba(var(--ink-rgb), 0.16);
 }
