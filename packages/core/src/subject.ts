@@ -56,6 +56,31 @@ interface EdgeRow {
 const NESTING_KINDS = ['specialises', 'prereq']
 
 /**
+ * The order a bed prints in: simplest first.
+ *
+ * `position` is what the sowing said -- introductory ground before
+ * advanced -- written onto the membership because a topic is
+ * introductory in one subject and advanced in another. It was recorded
+ * from the start and the outline sorted by title anyway, so a bed that
+ * knew where to start printed "Aperture, Composition, Zone System".
+ *
+ * Null sorts last rather than as nought: it means the bed never stated
+ * where this one falls -- a topic added by hand, or one sown before the
+ * order existed -- and guessing it is introductory would put it above
+ * topics the bed actually placed. Title breaks the tie, so the same
+ * data prints the same way twice.
+ */
+function bySimplestFirst(
+  a: { title: string; position?: number | null },
+  b: { title: string; position?: number | null }
+): number {
+  const left = a.position ?? Infinity
+  const right = b.position ?? Infinity
+  if (left !== right) return left - right
+  return a.title.localeCompare(b.title)
+}
+
+/**
  * Arrange a subject's topics into one fixed tree.
  *
  * Fixed means deterministic, which is the whole point of it: the graph
@@ -69,12 +94,14 @@ const NESTING_KINDS = ['specialises', 'prereq']
  * a root, which means an unconnected subject prints as a flat list
  * rather than as nothing.
  */
-export function buildTopicTree<T extends { id: string; title: string }>(
+export function buildTopicTree<
+  T extends { id: string; title: string; position?: number | null },
+>(
   topics: T[],
   edges: EdgeRow[]
 ): Array<{ topic: T; children: Array<{ topic: T; children: unknown[] }> }> {
   const byId = new Map(topics.map(t => [t.id, t]))
-  const ordered = [...topics].sort((a, b) => a.title.localeCompare(b.title))
+  const ordered = [...topics].sort(bySimplestFirst)
 
   // Only edges wholly inside this subject nest anything. A prerequisite
   // that lives in another subject is real, but it cannot be drawn in an

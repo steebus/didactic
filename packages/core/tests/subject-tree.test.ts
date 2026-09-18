@@ -1,7 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { buildTopicTree } from '../src/subject'
 
-const topic = (id: string, title = id) => ({ id, title })
+const topic = (id: string, title = id, position: number | null = null) => ({
+  id,
+  title,
+  position,
+})
 
 const edge = (from: string, to: string, kind = 'specialises', weight = 0.5) => ({
   from_topic: from,
@@ -109,11 +113,39 @@ describe('buildTopicTree', () => {
     expect(printed).toEqual(['a', 'b', 'c', 'd', 'e'])
   })
 
-  it('sorts siblings by title at every depth', () => {
+  it('sorts siblings by title at every depth where the bed said nothing', () => {
     const tree = buildTopicTree(
       [topic('root'), topic('z', 'Zinnia'), topic('a', 'Aster'), topic('m', 'Marigold')],
       [edge('root', 'z'), edge('root', 'a'), edge('root', 'm')]
     )
     expect(tree[0].children.map(c => c.topic.id)).toEqual(['a', 'm', 'z'])
+  })
+
+  it('prints the bed simplest first rather than alphabetically', () => {
+    // What the sowing said: introductory ground before advanced. The
+    // alphabet would have printed exactly the other way round.
+    const tree = buildTopicTree(
+      [topic('zone', 'Zone System', 2), topic('ap', 'Aperture', 1), topic('in', 'Intro', 0)],
+      []
+    )
+    expect(tree.map(n => n.topic.id)).toEqual(['in', 'ap', 'zone'])
+  })
+
+  it('sorts siblings simplest first too, not only roots', () => {
+    const tree = buildTopicTree(
+      [topic('root', 'Root', 0), topic('adv', 'Advanced', 2), topic('bas', 'Basic', 1)],
+      [edge('root', 'adv'), edge('root', 'bas')]
+    )
+    expect(tree[0].children.map(c => c.topic.id)).toEqual(['bas', 'adv'])
+  })
+
+  it('puts a topic the bed never placed last, not first', () => {
+    // Null is not nought: a topic added by hand has no claim to sit
+    // above the introductory ground the bed actually chose.
+    const tree = buildTopicTree(
+      [topic('added', 'Added by hand'), topic('first', 'Zzz introductory', 0)],
+      []
+    )
+    expect(tree.map(n => n.topic.id)).toEqual(['first', 'added'])
   })
 })
