@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { didactic } from '@didactic/api'
@@ -11,6 +11,7 @@ import { useOpenBed } from '@/components/useOpenBed'
 import { routeProgress, ROUTE_LABEL } from '@didactic/core/progress'
 import { orderSubjectOutline } from '@didactic/core/outline'
 import { bandsOfBed, moveWithin, type TopicGroup } from '@didactic/core/groups'
+import { useSlide } from '@/components/useSlide'
 import { grubbingOut } from '@didactic/core/adjudication'
 import type { SubjectTopicRow, TopicTreeNode } from '@didactic/core/subject'
 import styles from './page.module.css'
@@ -68,6 +69,18 @@ export function SubjectBed({
   const [renaming, setRenaming] = useState<{ id: string; title: string } | null>(null)
   const [naming, setNaming] = useState(false)
   const [newGroup, setNewGroup] = useState('')
+  /**
+   * The order as the reader has just left it, before the server has
+   * caught up.
+   *
+   * A nudge that waits on a round trip does not read as a nudge, so the
+   * move happens here first and the write follows. Null means "no local
+   * opinion" -- what the server sent is the order -- and every refresh
+   * clears it, so this can never drift away from the truth for longer
+   * than one request.
+   */
+  const [localGroups, setLocalGroups] = useState<string[] | null>(null)
+  const [localTopics, setLocalTopics] = useState<string[] | null>(null)
   const [drawing, setDrawing] = useState(false)
   const drawn = useLabour(drawing, DRAWINGS)
   // The flag is read rather than discarded. `router.refresh()` inside a
@@ -80,6 +93,24 @@ export function SubjectBed({
   const [settling, startTransition] = useTransition()
   const openBed = useOpenBed()
   const router = useRouter()
+
+  /**
+   * Let go of the local order once the server has caught up.
+   *
+   * The optimistic list exists only to cover the round trip. Holding it
+   * after the refresh would make this component the authority on the
+   * bed's order, which it is not -- and would quietly shadow a change
+   * made anywhere else. Keyed on what the server actually sent, so it
+   * releases when the data changes rather than on a timer.
+   */
+  const sent = useRef('')
+  const fingerprint = `${groups.map(g => `${g.id}:${g.position}`).join()}|${topicOrderOf(tree).join()}`
+  useEffect(() => {
+    if (sent.current === fingerprint) return
+    sent.current = fingerprint
+    setLocalGroups(null)
+    setLocalTopics(null)
+  }, [fingerprint])
 
   /**
    * Lay out a bed that was sown but never planted.
@@ -296,6 +327,11 @@ export function SubjectBed({
       startTransition(() => router.refresh())
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.')
+      // The move did not land, so the local order is a lie. Dropping it
+      // puts the bed back to what the server actually holds rather than
+      // leaving the reader looking at an arrangement that was refused.
+      setLocalGroups(null)
+      setLocalTopics(null)
     }
   }
 
@@ -312,11 +348,73 @@ export function SubjectBed({
     }
   }
 
+  /**
+   * Move a group, or a topic, and show it moved at once.
+   *
+   * The local order is set first so the rows slide immediately, then the
+   * whole order is sent. It is the whole order rather than a swap
+   * because positions have never been guaranteed distinct -- this bed
+   * has twenty-seven nulls in it -- so renumbering is the only move that
+   * means the same thing whatever it started from.
+   */
+  function nudgeGroup(id: string, direction: 'up' | 'down') {
+    const order = moveWithin(orderedGroups, id, direction)
+    setLocalGroups(order)
+    editGroups({ groupOrder: order })
+  }
+
+  function nudgeTopic(id: string, direction: 'up' | 'down') {
+    // Ordered against the whole bed, not the group: `position` is one
+    // sequence over the subject, and a topic moved within its box still
+    // has to land between its neighbours in that sequence.
+    const order = moveWithin(
+      orderedTopics.map(t => ({ id: t })),
+      id,
+      direction
+    )
+    setLocalTopics(order)
+    editGroups({ topicOrder: order })
+  }
+
   const count = countTopics(tree)
+
+  // What the server sent, then whatever the reader has since done to it.
+  // The local order is a list of ids and may be a request behind the
+  // bed's membership, so anything it does not name keeps its place at
+  // the end rather than disappearing.
+  const serverGroups = [...groups].sort((a, b) => a.position - b.position)
+  const orderedGroups = (() => {
+    if (!localGroups) return serverGroups
+    const known = new Map(serverGroups.map(g => [g.id, g]))
+    const moved = localGroups.flatMap(id => (known.has(id) ? [known.get(id)!] : []))
+    return [...moved, ...serverGroups.filter(g => !localGroups.includes(g.id))]
+  })()
+
+  const outline = orderSubjectOutline(tree)
+  const orderedTopics = (() => {
+    const ids = outline.map(n => n.topic.id)
+    if (!localTopics) return ids
+    const present = new Set(ids)
+    const moved = localTopics.filter(id => present.has(id))
+    return [...moved, ...ids.filter(id => !localTopics.includes(id))]
+  })()
+
   // The bed as bands: boxes with their topics, and the loose ones
   // between them. Grouping is the outline's reading -- condition asks a
   // flat question of the whole bed and a box would only get in its way.
-  const bands = bandsOfBed(tree, groups)
+  //
+  // Built from the reader's order rather than the server's, so a nudge
+  // is on screen before the write has landed.
+  const bands = bandsOfBed(
+    [...outline].sort(
+      (a, b) => orderedTopics.indexOf(a.topic.id) - orderedTopics.indexOf(b.topic.id)
+    ),
+    orderedGroups
+  )
+
+  // Rows slide between the order they were in and the order they are in.
+  const slideBand = useSlide(bands.map(b => b.group?.id ?? 'loose'))
+  const slideTopic = useSlide(orderedTopics)
 
   return (
     <section>
@@ -434,39 +532,54 @@ export function SubjectBed({
         ) : (
           <div className={styles.bands}>
             {bands.map((band, i) => {
-              const row = (node: TopicTreeNode) => (
-                <TreeRow
-                  key={node.topic.id}
-                  node={node}
-                  depth={0}
-                  colour={colour}
-                  editing={editing}
-                  onRemove={remove}
-                  onGrub={grub}
-                  groups={groups}
-                  onMoveTo={
-                    editing
-                      ? id => editGroups({ topicId: node.topic.id, into: id })
-                      : undefined
-                  }
-                />
-              )
+              const row = (node: TopicTreeNode) => {
+                const at = orderedTopics.indexOf(node.topic.id)
+                return (
+                  <TreeRow
+                    key={node.topic.id}
+                    node={node}
+                    depth={0}
+                    colour={colour}
+                    editing={editing}
+                    onRemove={remove}
+                    onGrub={grub}
+                    groups={orderedGroups}
+                    slideRef={slideTopic(node.topic.id)}
+                    onMoveTo={
+                      editing
+                        ? id => editGroups({ topicId: node.topic.id, into: id })
+                        : undefined
+                    }
+                    onNudge={editing ? d => nudgeTopic(node.topic.id, d) : undefined}
+                    first={at <= 0}
+                    last={at === -1 || at >= orderedTopics.length - 1}
+                  />
+                )
+              }
 
               // The loose topics between two boxes. No frame and no
               // name: "the rest" is a claim about the bed nobody made.
               if (!band.group) {
                 return (
-                  <ul key={`loose-${i}`} className={styles.tree}>
+                  <ul
+                    key={`loose-${i}`}
+                    className={styles.tree}
+                    ref={slideBand('loose')}
+                  >
                     {band.topics.map(row)}
                   </ul>
                 )
               }
 
               const group = band.group
-              const at = groups.findIndex(g => g.id === group.id)
+              const at = orderedGroups.findIndex(g => g.id === group.id)
 
               return (
-                <section key={group.id} className={styles.band}>
+                <section
+                  key={group.id}
+                  className={styles.band}
+                  ref={slideBand(group.id)}
+                >
                   <div className={styles.bandHead}>
                     {renaming?.id === group.id ? (
                       <input
@@ -499,9 +612,7 @@ export function SubjectBed({
                           type="button"
                           className={styles.nudge}
                           disabled={at <= 0}
-                          onClick={() =>
-                            editGroups({ groupOrder: moveWithin(groups, group.id, 'up') })
-                          }
+                          onClick={() => nudgeGroup(group.id, 'up')}
                           aria-label={`Move ${group.title} up`}
                         >
                           ↑
@@ -509,10 +620,8 @@ export function SubjectBed({
                         <button
                           type="button"
                           className={styles.nudge}
-                          disabled={at === -1 || at >= groups.length - 1}
-                          onClick={() =>
-                            editGroups({ groupOrder: moveWithin(groups, group.id, 'down') })
-                          }
+                          disabled={at === -1 || at >= orderedGroups.length - 1}
+                          onClick={() => nudgeGroup(group.id, 'down')}
                           aria-label={`Move ${group.title} down`}
                         >
                           ↓
@@ -653,6 +762,13 @@ export function SubjectBed({
   )
 }
 
+/** The bed's own order as ids, for noticing that the server's answer
+ *  has changed. Position and group both ride on the membership, so the
+ *  ordered ids are the whole of what a reorder moves. */
+function topicOrderOf(tree: TopicTreeNode[]): string[] {
+  return orderSubjectOutline(tree).map(n => `${n.topic.id}:${n.topic.group_id ?? ''}`)
+}
+
 function countTopics(nodes: TopicTreeNode[]): number {
   return nodes.reduce((sum, n) => sum + 1 + countTopics(n.children), 0)
 }
@@ -697,6 +813,10 @@ function TreeRow({
   onGrub,
   groups = [],
   onMoveTo,
+  onNudge,
+  slideRef,
+  first = false,
+  last = false,
 }: {
   node: TopicTreeNode
   depth: number
@@ -710,6 +830,16 @@ function TreeRow({
   /** Undefined where moving is not on offer, which is what keeps the
    *  control out of the condition sort and out of the read-only bed. */
   onMoveTo?: (groupId: string | null) => void
+  /** Move this topic one place in the bed's order. Undefined outside
+   *  edit mode, for the same reason as `onMoveTo`. */
+  onNudge?: (direction: 'up' | 'down') => void
+  /** Measured for the slide, so a reordered row travels from where it
+   *  was rather than appearing where it now is. */
+  slideRef?: (node: HTMLElement | null) => void
+  /** Whether this is an end of the bed, so its nudge can say so rather
+   *  than offering a move that would do nothing. */
+  first?: boolean
+  last?: boolean
 }) {
   // Asked per row rather than per sheet: the second press has to be
   // next to the name it destroys, or it is a confirmation of nothing in
@@ -727,7 +857,11 @@ function TreeRow({
   const route = routeProgress(topic.curricula)
 
   return (
-    <li className={styles.branch} style={{ '--depth': depth } as React.CSSProperties}>
+    <li
+      className={styles.branch}
+      style={{ '--depth': depth } as React.CSSProperties}
+      ref={slideRef}
+    >
       <div className={styles.topicRow}>
         <div className={styles.topicBody}>
           <Link href={`/topics/${topic.id}`} className={styles.topicName}>
@@ -797,6 +931,28 @@ function TreeRow({
                 and it works from a keyboard and a phone without being
                 made to. "Ungrouped" is one of the options because
                 leaving a box is as ordinary as joining one. */}
+            {onNudge && (
+              <>
+                <button
+                  type="button"
+                  className={styles.nudge}
+                  disabled={first}
+                  onClick={() => onNudge('up')}
+                  aria-label={`Move ${topic.title} up`}
+                >
+                  ↑
+                </button>
+                <button
+                  type="button"
+                  className={styles.nudge}
+                  disabled={last}
+                  onClick={() => onNudge('down')}
+                  aria-label={`Move ${topic.title} down`}
+                >
+                  ↓
+                </button>
+              </>
+            )}
             {onMoveTo && groups.length > 0 && (
               <select
                 className={styles.moveTo}

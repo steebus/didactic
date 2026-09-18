@@ -207,14 +207,33 @@ describe('orderSubjectOutline', () => {
     expect(ordered.map(n => n.topic.id)).toEqual(['easy', 'hard'])
   })
 
-  it('keeps what is being worked above what the bed called introductory', () => {
-    // Attention is still the first reading: a route mid-work is where
-    // the reader actually is, whatever the bed said about complexity.
+  it('keeps the order the bed was put in above what is being worked', () => {
+    // The reader can order the bed by hand, so the order has to hold. A
+    // list that reshuffles itself the moment a lesson is opened is not
+    // an order anybody can keep, and the nudge would read as broken.
     const ordered = orderSubjectOutline([
       node({ id: 'first-in-the-bed', position: 0 }),
       node({ id: 'in-hand', position: 7, curricula: activeRoute }),
     ])
-    expect(ordered.map(n => n.topic.id)).toEqual(['in-hand', 'first-in-the-bed'])
+    expect(ordered.map(n => n.topic.id)).toEqual(['first-in-the-bed', 'in-hand'])
+  })
+
+  it('still floats what is being worked among topics the bed never placed', () => {
+    // Attention keeps deciding where the bed said nothing, which is
+    // where it was doing the real work all along.
+    const ordered = orderSubjectOutline([
+      node({ id: 'cold' }),
+      node({ id: 'in-hand', curricula: activeRoute }),
+    ])
+    expect(ordered.map(n => n.topic.id)).toEqual(['in-hand', 'cold'])
+  })
+
+  it('places a topic the bed ordered above one it never placed', () => {
+    const ordered = orderSubjectOutline([
+      node({ id: 'unplaced', curricula: activeRoute }),
+      node({ id: 'placed', position: 3 }),
+    ])
+    expect(ordered.map(n => n.topic.id)).toEqual(['placed', 'unplaced'])
   })
 
   it('is a pure function of the data, so the same bed prints the same way twice', () => {

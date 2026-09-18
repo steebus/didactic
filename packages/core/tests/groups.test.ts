@@ -112,6 +112,41 @@ describe('bandsOfBed', () => {
   })
 })
 
+describe('the bed reordered by hand', () => {
+  /**
+   * A nudge writes one sequence over the whole subject, not one per
+   * box, so moving a topic past a group boundary has to land it in the
+   * next box rather than shuffling it inside its own.
+   */
+  it('moves a topic into the next group when it passes the boundary', () => {
+    const order = ['a', 'b', 'c', 'd']
+    const moved = moveWithin(order.map(id => ({ id })), 'b', 'down')
+    expect(moved).toEqual(['a', 'c', 'b', 'd'])
+
+    // Positions follow the new order, and `bandsOfBed` gathers by group
+    // rather than by adjacency, so the bands stay whole.
+    const bands = bandsOfBed(
+      [
+        node({ id: 'a', position: 0, group_id: 'x' }),
+        node({ id: 'c', position: 1, group_id: 'y' }),
+        node({ id: 'b', position: 2, group_id: 'x' }),
+        node({ id: 'd', position: 3, group_id: 'y' }),
+      ],
+      [group('x', 'X', 0), group('y', 'Y', 1)]
+    )
+    expect(bands).toHaveLength(2)
+    expect(bands[0].topics.map(t => t.topic.id)).toEqual(['a', 'b'])
+    expect(bands[1].topics.map(t => t.topic.id)).toEqual(['c', 'd'])
+  })
+
+  it('keeps the reader order when every position is null', () => {
+    // The state this bed is actually in: twenty-seven nulls. The order
+    // the nudge writes is the first order it has ever had.
+    const order = ['x', 'y', 'z']
+    expect(moveWithin(order.map(id => ({ id })), 'z', 'up')).toEqual(['x', 'z', 'y'])
+  })
+})
+
 describe('moveWithin', () => {
   const items = [{ id: 'a' }, { id: 'b' }, { id: 'c' }]
 

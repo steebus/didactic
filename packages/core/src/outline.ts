@@ -94,14 +94,21 @@ export function orderSubjectOutline(tree: TopicTreeNode[]): TopicTreeNode[] {
   walk(tree)
 
   return flat.sort((a, b) => {
+    // Where the bed puts it comes first, ahead of attention.
+    //
+    // It used to come second, and that was defensible while `position`
+    // only ever came from a sowing -- a guess about complexity, worth
+    // less than knowing what the reader is working on now. It is not
+    // defensible once the reader can order the bed by hand: a list that
+    // reshuffles itself the moment a lesson is opened is not an order
+    // anybody can keep, and the nudge would read as broken.
+    //
+    // Attention still decides between topics the bed never placed,
+    // which is where it was doing the real work anyway.
+    const sown = sownRank(a.topic) - sownRank(b.topic)
+    if (sown !== 0 && !Number.isNaN(sown)) return sown
     const activity = activityRank(a.topic) - activityRank(b.topic)
     if (activity !== 0) return activity
-    const sown = sownRank(a.topic) - sownRank(b.topic)
-    // Two unplaced topics subtract to NaN rather than to nought, and a
-    // NaN comparator silently leaves the list in whatever order it
-    // arrived. Asked as a question instead, so unplaced topics fall
-    // through to the readings below rather than to chance.
-    if (sown !== 0 && !Number.isNaN(sown)) return sown
     const complexity = complexityRank(a.topic) - complexityRank(b.topic)
     if (complexity !== 0) return complexity
     return a.topic.title.localeCompare(b.topic.title)

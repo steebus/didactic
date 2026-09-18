@@ -1215,3 +1215,11 @@
   color: var(--ink);
   border-color: var(--plate-mustard);
 }
+
+/* The row's own nudges. Same control as a group's, so the two read as
+   one gesture at two scales; `align-items: baseline` on .rowActions
+   would leave the arrows floating, so they are centred against the
+   words beside them. */
+.rowActions .nudge {
+  align-self: center;
+}
