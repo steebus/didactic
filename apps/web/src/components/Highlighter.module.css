@@ -257,6 +257,44 @@
   background: var(--plate-mustard);
 }
 
+/* Back to the head of the sheet.
+
+   Square like everything else -- `DESIGN.md` is absolute about that,
+   and a round button here would be one control inventing a shape the
+   catalogue does not have. What sets it apart from the two above is
+   that it is quieter still: the list's own outline, and no fill until
+   it is reached for.
+
+   It appears and goes, so it fades in rather than arriving -- the two
+   above it are always there and must not appear to move when this one
+   joins them, which is why it is last in the column. */
+.deskTop {
+  animation: deskTopIn var(--dur-state) var(--ease-settle) both;
+  /* No shadow standing it off the page until it is reached for: it is
+     the one button here about the sheet rather than about the lesson. */
+  box-shadow: none;
+  opacity: 0.82;
+  transition:
+    opacity var(--dur-feedback) var(--ease-settle),
+    box-shadow var(--dur-feedback) var(--ease-settle);
+}
+
+.deskTop:hover {
+  opacity: 1;
+  box-shadow: 0 4px 14px rgba(var(--ink-rgb), 0.18);
+}
+
+@keyframes deskTopIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-travel) * 3px));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .deskNote:focus-visible {
   outline: 2px solid var(--plate-terracotta);
   outline-offset: 3px;

@@ -16,6 +16,7 @@ import { ClozeMaker } from './ClozeMaker'
 import { NoteEditor } from './NoteEditor'
 import { NoteIcon } from './NoteIcon'
 import { MarksIcon } from './MarksIcon'
+import { TopIcon } from './TopIcon'
 import { MarkList } from './MarkList'
 import { UNSAVED, isUnsaved, inReadingOrder } from '@didactic/core/marks'
 import { ExpandIcon } from './ExpandIcon'
@@ -143,6 +144,9 @@ export function Highlighter({
    *  finished going: a panel that vanishes has not closed, it has been
    *  taken away. */
   const [leaving, setLeaving] = useState(false)
+
+  /** Whether the reader has left the head of the sheet. */
+  const [awayFromTop, setAwayFromTop] = useState(false)
 
   const narrow = useNarrow()
   const [big, setBig] = useState(remembered)
@@ -322,6 +326,45 @@ export function Highlighter({
     if (pending || open || openCloze) return
     setOffer(readSelection())
   }, [pending, open, openCloze, readSelection])
+
+  /**
+   * Whether the reader has left the head of the sheet.
+   *
+   * A screen's worth rather than a pixel: the button exists to save a
+   * long journey back, and offering it to someone who has nudged the
+   * page by a line is offering to undo the nudge. The threshold is also
+   * what stops it flickering in and out around the top of the page.
+   *
+   * `passive`, because this listener must never be a reason a scroll
+   * stutters -- it reads one number and sets one boolean.
+   */
+  useEffect(() => {
+    const away = () => setAwayFromTop(window.scrollY > window.innerHeight * 0.75)
+
+    away()
+    window.addEventListener('scroll', away, { passive: true })
+    // A sheet that grows under the reader -- a lesson finishing its
+    // rounds, the garden arriving -- can put the top out of reach
+    // without a scroll of their own.
+    window.addEventListener('resize', away, { passive: true })
+
+    return () => {
+      window.removeEventListener('scroll', away)
+      window.removeEventListener('resize', away)
+    }
+  }, [])
+
+  /**
+   * Back to the head of the sheet.
+   *
+   * Smooth unless the reader has asked for less motion, which is the
+   * app's rule everywhere else and matters more here than most: this is
+   * the longest travel any control in the catalogue performs.
+   */
+  const toTop = useCallback(() => {
+    const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.scrollTo({ top: 0, behavior: still ? 'auto' : 'smooth' })
+  }, [])
 
   useEffect(() => {
     // When the reader has finished choosing, by whichever of the ways
@@ -871,6 +914,29 @@ export function Highlighter({
         >
           <NoteIcon />
         </button>
+
+        {/* The way back to the head of the sheet, under the two that
+            write. A lesson is the longest reading in the app and its
+            own title, its trail and the way on are all at the top, so
+            the return journey was a scroll the length of everything
+            just read.
+
+            Below the others because it is the one that does nothing to
+            the lesson: the two above put something down, this only
+            moves the page. It is also the one that appears and goes,
+            so it takes the end of the stack where the two that are
+            always there cannot move under the reader's thumb. */}
+        {awayFromTop && (
+          <button
+            type="button"
+            className={`${styles.deskNote} ${styles.deskQuiet} ${styles.deskTop}`}
+            onClick={toTop}
+            aria-label="Back to the top of the lesson"
+            title="Back to the top"
+          >
+            <TopIcon />
+          </button>
+        )}
       </div>
     </div>
   )

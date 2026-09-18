@@ -1680,6 +1680,7 @@ where the panel that keeps it stands.
 | --- | --- |
 | The offer | `Add mark`, in the label register on `--plate-green`, `min-height: 2.5rem`, `0 4px 14px rgba(36,29,22,0.3)`. Placed below the selection: the phone draws its own callout above one. |
 | The note button | `2.75rem` square on `--plate-green`, hovering to `--plate-terracotta`, riding the sheet's right edge on a `position: sticky` line at `bottom: var(--space-5)`. The line runs the length of the sheet's body, not the reading's. |
+| The way back to the top | `2.75rem` square, last in the desk's column, shown only past `0.75 * innerHeight`. Quieter than the list above it: the same outline, no shadow and `opacity: 0.82` until reached for. It fades up over `--dur-state` when it appears, so the two buttons above it never move under a thumb already reaching for them, and the scroll it performs is smooth unless the reader has asked for less motion. |
 | The opener | `2rem` square, quiet until hovered, at the head of any panel. Four corners pointing out, or the same four pointing in. |
 
 | Panel state | Where it stands |
