@@ -53,7 +53,10 @@ describe('cache invalidation', () => {
     expect(source).toContain('revalidateTag')
     // Defined and called: a helper nobody invokes is the exact shape of
     // this bug.
-    const calls = source.split('dropCache()').length - 1
+    // Counted with or without an argument: a route whose drop is
+    // specific to the row it touched passes that row's id in, and what
+    // matters here is that the helper is called at all.
+    const calls = source.split('dropCache(').length - 1
     expect(calls).toBeGreaterThan(1)
   })
 })

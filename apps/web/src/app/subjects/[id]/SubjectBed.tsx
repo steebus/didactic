@@ -70,7 +70,14 @@ export function SubjectBed({
   const [newGroup, setNewGroup] = useState('')
   const [drawing, setDrawing] = useState(false)
   const drawn = useLabour(drawing, DRAWINGS)
-  const [, startTransition] = useTransition()
+  // The flag is read rather than discarded. `router.refresh()` inside a
+  // transition is not finished when it returns -- it is finished when
+  // the new server data has arrived and re-rendered -- so a handler that
+  // cleared its own busy state on the next line put the control back
+  // before the bed it had just rewritten was on screen. Grouping made
+  // that visible because it is the one write here that changes the whole
+  // shape of the list rather than one row of it.
+  const [settling, startTransition] = useTransition()
   const openBed = useOpenBed()
   const router = useRouter()
 
@@ -263,10 +270,13 @@ export function SubjectBed({
         body.note ??
           `Grouped into ${body.groups.length} ${body.groups.length === 1 ? 'group' : 'groups'}. Rename or rearrange any of it under Edit.`
       )
+      // Not in a `finally`: the refresh is still in flight there, and
+      // dropping out of the labour state at that point is what made a
+      // finished grouping look like nothing had happened.
       startTransition(() => router.refresh())
+      setGrouping(false)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong.')
-    } finally {
       setGrouping(false)
     }
   }
@@ -365,9 +375,13 @@ export function SubjectBed({
                     type="button"
                     className={styles.editToggle}
                     onClick={proposeGroups}
-                    disabled={grouping}
+                    disabled={grouping || settling}
                   >
-                    {grouping ? grouped : groups.length > 0 ? 'Group again' : 'Group these'}
+                    {grouping || settling
+                      ? grouped
+                      : groups.length > 0
+                        ? 'Group again'
+                        : 'Group these'}
                   </button>
                 </>
               )}

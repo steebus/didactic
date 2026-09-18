@@ -22,10 +22,20 @@ import { tags } from '@didactic/core/tags'
  * minute; renaming a box must never wait on either.
  */
 
-/** Drop what a write here changed. The bed's shape lives on the subject
- *  sheet and in the phone's copy of it. */
-function dropCache() {
-  for (const tag of [tags.subjects, tags.topics]) revalidateTag(tag, 'max')
+/**
+ * Drop what a write here changed.
+ *
+ * The bed's own tag as well as the wide ones. `getSubjectArea` tags
+ * itself `subject:<id>` and nothing in the app had ever dropped it --
+ * every write got away with it because the same read also carries
+ * `subjects`, and evicting either tag evicts the entry. That is a
+ * coincidence to rely on rather than a rule, so the specific tag goes
+ * in here where it is cheapest to be right.
+ */
+function dropCache(subjectId: string) {
+  for (const tag of [tags.subject(subjectId), tags.subjects, tags.topics]) {
+    revalidateTag(tag, 'max')
+  }
 }
 
 /** One model call over the whole bed, the same ceiling relating one
@@ -149,7 +159,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (!error) grouped += group.topicIds.length
   }
 
-  dropCache()
+  dropCache(subjectId)
 
   return NextResponse.json({
     groups: await readGroups(db, subjectId),
@@ -239,7 +249,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
   }
 
-  dropCache()
+  dropCache(subjectId)
   return NextResponse.json({ groups: await readGroups(db, subjectId) })
 }
 
@@ -266,6 +276,6 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     .delete().eq('id', groupId).eq('subject_id', subjectId)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  dropCache()
+  dropCache(subjectId)
   return NextResponse.json({ groups: await readGroups(db, subjectId) })
 }
