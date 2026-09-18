@@ -103,11 +103,24 @@ export function SubjectBed({
    * made anywhere else. Keyed on what the server actually sent, so it
    * releases when the data changes rather than on a timer.
    */
+  /** An order moved but not yet sent. Read by the release effect below,
+   *  so it must be declared before it. */
+  const pending = useRef<{
+    topicOrder?: string[]
+    groupOrder?: string[]
+    timer?: ReturnType<typeof setTimeout>
+  }>({})
+
   const sent = useRef('')
   const fingerprint = `${groups.map(g => `${g.id}:${g.position}`).join()}|${topicOrderOf(tree).join()}`
   useEffect(() => {
     if (sent.current === fingerprint) return
     sent.current = fingerprint
+    // Not while a move is still waiting to be sent. The server's answer
+    // is about the bed as it was before that move, so letting it through
+    // here is what made a nudge spring back: the row went where it was
+    // put, the refresh arrived, and the old order won.
+    if (pending.current.timer) return
     setLocalGroups(null)
     setLocalTopics(null)
   }, [fingerprint])
@@ -349,6 +362,38 @@ export function SubjectBed({
   }
 
   /**
+   * Send the order once the reader has stopped moving things.
+   *
+   * A nudge is rarely one nudge -- moving a topic three places is three
+   * presses in a second, and committing each one is three writes, three
+   * revalidations and three refreshes racing each other back. The last
+   * one to land wins, which is not necessarily the last one pressed.
+   *
+   * So the order is held and sent when the pressing stops. The reader
+   * sees every step immediately because the local order is what draws
+   * the bed; the database hears one sentence instead of an argument.
+   *
+   * Deliberately not on unmount: a reader who nudges and navigates away
+   * within the second has told us what they want, and a write that
+   * needs the component alive to finish is a write that silently did
+   * not happen.
+   */
+  function commitLater(topicOrder?: string[], groupOrder?: string[]) {
+    const held = pending.current
+    if (topicOrder) held.topicOrder = topicOrder
+    if (groupOrder) held.groupOrder = groupOrder
+    if (held.timer) clearTimeout(held.timer)
+    held.timer = setTimeout(() => {
+      const body = {
+        ...(held.topicOrder ? { topicOrder: held.topicOrder } : {}),
+        ...(held.groupOrder ? { groupOrder: held.groupOrder } : {}),
+      }
+      pending.current = {}
+      if (Object.keys(body).length > 0) editGroups(body)
+    }, 700)
+  }
+
+  /**
    * Move a group, or a topic, and show it moved at once.
    *
    * The local order is set first so the rows slide immediately, then the
@@ -360,20 +405,24 @@ export function SubjectBed({
   function nudgeGroup(id: string, direction: 'up' | 'down') {
     const order = moveWithin(orderedGroups, id, direction)
     setLocalGroups(order)
-    editGroups({ groupOrder: order })
+    commitLater(undefined, order)
   }
 
+  /**
+   * Move a topic one place, against the order the reader can see.
+   *
+   * Not against `orderSubjectOutline`'s order, which was the bug: that
+   * is the whole bed in sort order, and the bands regroup it, so a
+   * topic's neighbour on screen is usually not its neighbour in that
+   * list. Swapping with the sort neighbour moved the row past something
+   * in another group -- a real write, a real reorder, and nothing to
+   * see. What the reader is pointing at is the rendered sequence, so
+   * that is what the nudge moves within.
+   */
   function nudgeTopic(id: string, direction: 'up' | 'down') {
-    // Ordered against the whole bed, not the group: `position` is one
-    // sequence over the subject, and a topic moved within its box still
-    // has to land between its neighbours in that sequence.
-    const order = moveWithin(
-      orderedTopics.map(t => ({ id: t })),
-      id,
-      direction
-    )
+    const order = moveWithin(visibleTopics.map(t => ({ id: t })), id, direction)
     setLocalTopics(order)
-    editGroups({ topicOrder: order })
+    commitLater(order)
   }
 
   const count = countTopics(tree)
@@ -402,19 +451,46 @@ export function SubjectBed({
   // The bed as bands: boxes with their topics, and the loose ones
   // between them. Grouping is the outline's reading -- condition asks a
   // flat question of the whole bed and a box would only get in its way.
-  //
-  // Built from the reader's order rather than the server's, so a nudge
-  // is on screen before the write has landed.
-  const bands = bandsOfBed(
+  const banded = bandsOfBed(
     [...outline].sort(
       (a, b) => orderedTopics.indexOf(a.topic.id) - orderedTopics.indexOf(b.topic.id)
     ),
     orderedGroups
   )
 
+  /**
+   * The reader's order applied to the bands themselves.
+   *
+   * `bandsOfBed` gathers each group's members together, which is the
+   * whole point of it -- and it means a local order cannot be expressed
+   * by sorting the flat list before it: whatever order goes in, the
+   * bands come out grouped, and a nudge inside one box was undone on the
+   * way through. So the local order is applied *after* the banding, to
+   * the sequence the reader is actually looking at.
+   *
+   * A topic the local order does not name keeps its place, so this
+   * survives a bed that has changed under it by a row.
+   */
+  const bands = !localTopics
+    ? banded
+    : banded.map(band => ({
+        ...band,
+        topics: [...band.topics].sort((a, b) => {
+          const ai = localTopics.indexOf(a.topic.id)
+          const bi = localTopics.indexOf(b.topic.id)
+          if (ai === -1 || bi === -1) return 0
+          return ai - bi
+        }),
+      }))
+
+  // The sequence the reader actually sees, band by band. This is what a
+  // nudge moves within, and what the slide is keyed on: both are about
+  // the rows on screen rather than about the sort behind them.
+  const visibleTopics = bands.flatMap(b => b.topics.map(n => n.topic.id))
+
   // Rows slide between the order they were in and the order they are in.
   const slideBand = useSlide(bands.map(b => b.group?.id ?? 'loose'))
-  const slideTopic = useSlide(orderedTopics)
+  const slideTopic = useSlide(visibleTopics)
 
   return (
     <section>
@@ -533,7 +609,7 @@ export function SubjectBed({
           <div className={styles.bands}>
             {bands.map((band, i) => {
               const row = (node: TopicTreeNode) => {
-                const at = orderedTopics.indexOf(node.topic.id)
+                const at = visibleTopics.indexOf(node.topic.id)
                 return (
                   <TreeRow
                     key={node.topic.id}
@@ -552,7 +628,7 @@ export function SubjectBed({
                     }
                     onNudge={editing ? d => nudgeTopic(node.topic.id, d) : undefined}
                     first={at <= 0}
-                    last={at === -1 || at >= orderedTopics.length - 1}
+                    last={at === -1 || at >= visibleTopics.length - 1}
                   />
                 )
               }
