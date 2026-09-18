@@ -1085,3 +1085,133 @@
   background: var(--plate-terracotta);
   color: var(--on-accent);
 }
+
+/* --- The bed in bands -------------------------------------------------
+
+   Grouping is the bed's second axis: subject matter across, complexity
+   down. A box is drawn as a box because that is the whole of what it
+   claims -- these belong together -- and the space between boxes is what
+   makes the claim readable at a glance rather than something you have
+   to read to find.
+
+   Loose topics between the boxes are deliberately unframed. They are not
+   a group called "the rest": the bed simply says nothing about where
+   they belong, and a frame around them would be the sheet inventing a
+   claim the reader never made. */
+
+.bands {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.band {
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: var(--space-3) var(--space-4) var(--space-2);
+  /* A shade off the page so the box reads as a gathering rather than as
+     a panel sitting on top of the sheet. */
+  background: color-mix(in srgb, var(--ink) 2%, transparent);
+}
+
+.bandHead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--rule);
+}
+
+.bandTitle {
+  font-family: var(--font-display);
+  font-size: var(--step-0);
+  font-weight: 600;
+  margin: 0;
+  color: var(--ink);
+}
+
+.bandCount {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.bandActions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  margin-left: auto;
+}
+
+/* The nudges. Small, quiet and adjacent, because moving a box one place
+   is an adjustment rather than a decision. */
+.nudge {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  line-height: 1;
+  color: var(--ink-faint);
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0.15em 0.4em;
+  cursor: pointer;
+}
+
+.nudge:hover:not(:disabled) {
+  color: var(--plate-terracotta);
+  border-color: var(--plate-terracotta);
+}
+
+.nudge:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.bandRename {
+  font-family: var(--font-display);
+  font-size: var(--step-0);
+  font-weight: 600;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--plate-mustard);
+  border-radius: 2px;
+  padding: 0.1em 0.3em;
+  min-width: 14ch;
+}
+
+.bandEmpty {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  font-style: italic;
+  color: var(--ink-faint);
+  margin: var(--space-3) 0 var(--space-2);
+}
+
+.newGroup {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+}
+
+/* Where a topic sits among the boxes. A select rather than a drag: it
+   reaches every group however long the bed, and it is keyboard- and
+   touch-workable without being made so. */
+.moveTo {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  padding: 0.1em 0.2em;
+  max-width: 18ch;
+  cursor: pointer;
+}
+
+.moveTo:hover {
+  color: var(--ink);
+  border-color: var(--plate-mustard);
+}

@@ -22,6 +22,7 @@ import type {
   Topic,
 } from './types'
 import type { SubjectTopicRow, TopicTreeNode } from './subject'
+import type { TopicGroup } from './groups'
 
 /* ---------------------------------------------------------------- home */
 
@@ -314,6 +315,9 @@ export interface SubjectArea {
   subject: Subject
   tree: TopicTreeNode[]
   topics: SubjectTopicRow[]
+  /** The boxes this bed is read in, simplest first. Empty is ordinary:
+   *  a bed nobody has grouped yet prints as one flat list. */
+  groups: TopicGroup[]
   /** Resources filed against the subject as a whole rather than any one
    *  topic — sow-time evidence, mainly. Named here so the reader can see
    *  what a subject stands on and file it onto topics by hand. */

@@ -10,6 +10,7 @@ import { useLabour, DRAWINGS } from '@/components/useLabour'
 import { useOpenBed } from '@/components/useOpenBed'
 import { routeProgress, ROUTE_LABEL } from '@didactic/core/progress'
 import { orderSubjectOutline } from '@didactic/core/outline'
+import { bandsOfBed, moveWithin, type TopicGroup } from '@didactic/core/groups'
 import { grubbingOut } from '@didactic/core/adjudication'
 import type { SubjectTopicRow, TopicTreeNode } from '@didactic/core/subject'
 import styles from './page.module.css'
@@ -30,12 +31,16 @@ const api = didactic()
 export function SubjectBed({
   subjectId,
   tree,
+  groups,
   colour,
   sown,
   related,
 }: {
   subjectId: string
   tree: TopicTreeNode[]
+  /** The boxes this bed is read in. Empty is ordinary: a bed nobody has
+   *  grouped yet prints as one flat list. */
+  groups: TopicGroup[]
   colour: string
   /** Whether there is a sowing record to lay the bed out from again.
    *  Without one the offer still stands, but it rests on the subject's
@@ -56,6 +61,13 @@ export function SubjectBed({
   const [error, setError] = useState<string | null>(null)
   const [laying, setLaying] = useState(false)
   const labour = useLabour(laying)
+  const [grouping, setGrouping] = useState(false)
+  const grouped = useLabour(grouping)
+  // The name being typed into a box, so a rename can be abandoned by
+  // pressing Escape rather than only by putting the old name back.
+  const [renaming, setRenaming] = useState<{ id: string; title: string } | null>(null)
+  const [naming, setNaming] = useState(false)
+  const [newGroup, setNewGroup] = useState('')
   const [drawing, setDrawing] = useState(false)
   const drawn = useLabour(drawing, DRAWINGS)
   const [, startTransition] = useTransition()
@@ -228,7 +240,73 @@ export function SubjectBed({
     }
   }
 
+  /**
+   * Ask the model to divide the bed by subject matter.
+   *
+   * It replaces whatever boxes are there, which is why it asks first
+   * where there is something to lose: a proposal is a starting point,
+   * and quietly throwing away groups the reader arranged by hand would
+   * make pressing this a gamble.
+   */
+  async function proposeGroups() {
+    if (groups.length > 0 &&
+        !confirm('This replaces the groups already here. The topics themselves are untouched.')) {
+      return
+    }
+    setError(null)
+    setNote(null)
+    setGrouping(true)
+    try {
+      const { ok, body, error: failed } = await api.subjects.groupBed(subjectId)
+      if (!ok) throw new Error(failed ?? 'Could not group the bed.')
+      setNote(
+        body.note ??
+          `Grouped into ${body.groups.length} ${body.groups.length === 1 ? 'group' : 'groups'}. Rename or rearrange any of it under Edit.`
+      )
+      startTransition(() => router.refresh())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong.')
+    } finally {
+      setGrouping(false)
+    }
+  }
+
+  /** Every hand edit to the boxes goes through here: the call is the
+   *  same shape each time and only the body differs. */
+  async function editGroups(
+    body: Parameters<typeof api.subjects.editGroups>[1],
+    said?: string
+  ) {
+    setError(null)
+    setNote(null)
+    try {
+      const { ok, error: failed } = await api.subjects.editGroups(subjectId, body)
+      if (!ok) throw new Error(failed ?? 'Could not change that.')
+      if (said) setNote(said)
+      startTransition(() => router.refresh())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong.')
+    }
+  }
+
+  async function removeGroup(group: TopicGroup) {
+    setError(null)
+    setNote(null)
+    try {
+      const { ok, error: failed } = await api.subjects.removeGroup(subjectId, group.id)
+      if (!ok) throw new Error(failed ?? 'Could not remove that group.')
+      setNote(`"${group.title}" is gone. The topics in it are still in the bed.`)
+      startTransition(() => router.refresh())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Something went wrong.')
+    }
+  }
+
   const count = countTopics(tree)
+  // The bed as bands: boxes with their topics, and the loose ones
+  // between them. Grouping is the outline's reading -- condition asks a
+  // flat question of the whole bed and a box would only get in its way.
+  const bands = bandsOfBed(tree, groups)
 
   return (
     <section>
@@ -274,6 +352,24 @@ export function SubjectBed({
               >
                 {editing ? 'Done' : 'Edit'}
               </button>
+              {/* Grouping is the outline's second axis, so it is offered
+                  beside that reading and only where there is enough bed
+                  to have a shape. Under Edit the reader arranges the
+                  boxes by hand; this is the one call that proposes
+                  them. */}
+              {sort === 'outline' && count >= 3 && (
+                <>
+                  {'  ·  '}
+                  <button
+                    type="button"
+                    className={styles.editToggle}
+                    onClick={proposeGroups}
+                    disabled={grouping}
+                  >
+                    {grouping ? grouped : groups.length > 0 ? 'Group again' : 'Group these'}
+                  </button>
+                </>
+              )}
             </>
           )}
         </span>
@@ -306,8 +402,9 @@ export function SubjectBed({
           {error && <p className={styles.sowProblem}>{error}</p>}
         </div>
       ) : (
+        sort === 'condition' ? (
         <ul className={styles.tree}>
-          {(sort === 'outline' ? orderSubjectOutline(tree) : byCondition(tree)).map(node => (
+          {byCondition(tree).map(node => (
             <TreeRow
               key={node.topic.id}
               node={node}
@@ -319,6 +416,173 @@ export function SubjectBed({
             />
           ))}
         </ul>
+        ) : (
+          <div className={styles.bands}>
+            {bands.map((band, i) => {
+              const row = (node: TopicTreeNode) => (
+                <TreeRow
+                  key={node.topic.id}
+                  node={node}
+                  depth={0}
+                  colour={colour}
+                  editing={editing}
+                  onRemove={remove}
+                  onGrub={grub}
+                  groups={groups}
+                  onMoveTo={
+                    editing
+                      ? id => editGroups({ topicId: node.topic.id, into: id })
+                      : undefined
+                  }
+                />
+              )
+
+              // The loose topics between two boxes. No frame and no
+              // name: "the rest" is a claim about the bed nobody made.
+              if (!band.group) {
+                return (
+                  <ul key={`loose-${i}`} className={styles.tree}>
+                    {band.topics.map(row)}
+                  </ul>
+                )
+              }
+
+              const group = band.group
+              const at = groups.findIndex(g => g.id === group.id)
+
+              return (
+                <section key={group.id} className={styles.band}>
+                  <div className={styles.bandHead}>
+                    {renaming?.id === group.id ? (
+                      <input
+                        className={styles.bandRename}
+                        value={renaming.title}
+                        autoFocus
+                        onChange={e => setRenaming({ id: group.id, title: e.target.value })}
+                        onKeyDown={e => {
+                          if (e.key === 'Escape') setRenaming(null)
+                          if (e.key === 'Enter' && renaming.title.trim()) {
+                            const title = renaming.title.trim()
+                            setRenaming(null)
+                            editGroups({ groupId: group.id, title })
+                          }
+                        }}
+                        onBlur={() => setRenaming(null)}
+                        aria-label={`Rename ${group.title}`}
+                      />
+                    ) : (
+                      <h3 className={styles.bandTitle}>{group.title}</h3>
+                    )}
+                    <span className={styles.bandCount}>
+                      {band.topics.length}{' '}
+                      {band.topics.length === 1 ? 'topic' : 'topics'}
+                    </span>
+
+                    {editing && (
+                      <span className={styles.bandActions}>
+                        <button
+                          type="button"
+                          className={styles.nudge}
+                          disabled={at <= 0}
+                          onClick={() =>
+                            editGroups({ groupOrder: moveWithin(groups, group.id, 'up') })
+                          }
+                          aria-label={`Move ${group.title} up`}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.nudge}
+                          disabled={at === -1 || at >= groups.length - 1}
+                          onClick={() =>
+                            editGroups({ groupOrder: moveWithin(groups, group.id, 'down') })
+                          }
+                          aria-label={`Move ${group.title} down`}
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.remove}
+                          onClick={() => setRenaming({ id: group.id, title: group.title })}
+                        >
+                          Rename
+                        </button>
+                        {/* Deleting a box is not deleting anything in
+                            it, so this never asks twice the way grubbing
+                            a topic out does. */}
+                        <button
+                          type="button"
+                          className={styles.remove}
+                          onClick={() => removeGroup(group)}
+                          aria-label={`Remove the group ${group.title}`}
+                        >
+                          Remove group
+                        </button>
+                      </span>
+                    )}
+                  </div>
+
+                  {band.topics.length === 0 ? (
+                    <p className={styles.bandEmpty}>
+                      Nothing in here yet — move a topic in with its “Move to”.
+                    </p>
+                  ) : (
+                    <ul className={styles.tree}>{band.topics.map(row)}</ul>
+                  )}
+                </section>
+              )
+            })}
+
+            {editing && (
+              <div className={styles.newGroup}>
+                {naming ? (
+                  <>
+                    <input
+                      className={styles.bandRename}
+                      value={newGroup}
+                      autoFocus
+                      placeholder="What is this group about?"
+                      onChange={e => setNewGroup(e.target.value)}
+                      onKeyDown={e => {
+                        if (e.key === 'Escape') {
+                          setNaming(false)
+                          setNewGroup('')
+                        }
+                        if (e.key === 'Enter' && newGroup.trim()) {
+                          const title = newGroup.trim()
+                          setNaming(false)
+                          setNewGroup('')
+                          editGroups({ create: title }, `"${title}" is ready for topics.`)
+                        }
+                      }}
+                      aria-label="Name the new group"
+                    />
+                    <button
+                      type="button"
+                      className={styles.remove}
+                      onClick={() => {
+                        setNaming(false)
+                        setNewGroup('')
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className={styles.remove}
+                    onClick={() => setNaming(true)}
+                  >
+                    New group
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )
       )}
 
       {count > 1 && (
@@ -416,6 +680,8 @@ function TreeRow({
   editing,
   onRemove,
   onGrub,
+  groups = [],
+  onMoveTo,
 }: {
   node: TopicTreeNode
   depth: number
@@ -423,6 +689,12 @@ function TreeRow({
   editing: boolean
   onRemove: (topic: SubjectTopicRow) => void
   onGrub: (topic: SubjectTopicRow) => void
+  /** The boxes this topic could be moved into. Empty under the
+   *  condition sort, which has no boxes to move between. */
+  groups?: TopicGroup[]
+  /** Undefined where moving is not on offer, which is what keeps the
+   *  control out of the condition sort and out of the read-only bed. */
+  onMoveTo?: (groupId: string | null) => void
 }) {
   // Asked per row rather than per sheet: the second press has to be
   // next to the name it destroys, or it is a confirmation of nothing in
@@ -505,6 +777,26 @@ function TreeRow({
             destroying one asks twice. */}
         {editing && !asked && (
           <span className={styles.rowActions}>
+            {/* Where this topic sits among the boxes. A select rather
+                than a drag: it reaches every group at any length of bed,
+                and it works from a keyboard and a phone without being
+                made to. "Ungrouped" is one of the options because
+                leaving a box is as ordinary as joining one. */}
+            {onMoveTo && groups.length > 0 && (
+              <select
+                className={styles.moveTo}
+                value={topic.group_id ?? ''}
+                onChange={e => onMoveTo(e.target.value || null)}
+                aria-label={`Move ${topic.title} to a group`}
+              >
+                <option value="">Ungrouped</option>
+                {groups.map(g => (
+                  <option key={g.id} value={g.id}>
+                    {g.title}
+                  </option>
+                ))}
+              </select>
+            )}
             <button
               type="button"
               className={styles.remove}

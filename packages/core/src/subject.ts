@@ -24,6 +24,12 @@ export interface SubjectTopicRow {
    * hand afterwards, or a bed sown before the sowing recorded an order.
    */
   position: number | null
+  /**
+   * Which group this topic sits in within this bed, or null where it
+   * sits loose between the boxes. Ungrouped is ordinary: a topic that
+   * belongs with nothing else here is not a topic filed wrongly.
+   */
+  group_id: string | null
   /** Subjects other than this one that the topic is also filed under. */
   alsoIn: Array<{ id: string; title: string }>
   resources: Array<Pick<Resource, 'id' | 'title' | 'kind' | 'status' | 'url'>>

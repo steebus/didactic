@@ -74,6 +74,9 @@ export const ENDPOINTS = {
   'subjects.fileTopic': { name: 'subjects.fileTopic', method: 'POST', path: '/api/subjects/[id]/topics', invalidates: BED },
   'subjects.fileTopics': { name: 'subjects.fileTopics', method: 'POST', path: '/api/subjects/[id]/topics', invalidates: BED },
   'subjects.removeTopic': { name: 'subjects.removeTopic', method: 'DELETE', path: '/api/subjects/[id]/topics', invalidates: BED },
+  'subjects.groupBed': { name: 'subjects.groupBed', method: 'POST', path: '/api/subjects/[id]/groups', invalidates: [tags.subjects, tags.topics] },
+  'subjects.editGroups': { name: 'subjects.editGroups', method: 'PATCH', path: '/api/subjects/[id]/groups', invalidates: [tags.subjects, tags.topics] },
+  'subjects.removeGroup': { name: 'subjects.removeGroup', method: 'DELETE', path: '/api/subjects/[id]/groups', invalidates: [tags.subjects, tags.topics] },
   'subjects.relate': { name: 'subjects.relate', method: 'POST', path: '/api/subjects/[id]/relate', invalidates: [tags.subjects, tags.topics] },
   'subjects.resow': { name: 'subjects.resow', method: 'POST', path: '/api/subjects/[id]/resow', invalidates: BED },
 

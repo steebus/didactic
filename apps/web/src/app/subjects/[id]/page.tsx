@@ -32,7 +32,7 @@ export default async function SubjectPage({
   const [, area] = await Promise.all([requireOwner(), getSubjectArea(id)])
   if (!area) notFound()
 
-  const { subject, tree, topics, counts, sowing, resources } = area
+  const { subject, tree, groups, topics, counts, sowing, resources } = area
   const state = stockState(area.freshness, area.lastExposureAt)
   const vague = vagueFigure(area.confidence)
   // The bed's routes folded into one figure, so the band's plant grows
@@ -106,6 +106,7 @@ export default async function SubjectPage({
             <SubjectBed
               subjectId={subject.id}
               tree={tree}
+              groups={groups}
               colour={subject.colour}
               sown={sowing !== null}
               related={counts.edges}

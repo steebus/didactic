@@ -103,6 +103,7 @@ function topicRow(over: Partial<SubjectTopicRow> & { id: string }): SubjectTopic
     last_exposure_at: null,
     state: 'active',
     position: null,
+    group_id: null,
     alsoIn: [],
     resources: [],
     curricula: [],

@@ -74,11 +74,17 @@ export async function readSubjectArea(
   // for; letting the read fail would cost the whole bed, which prints as
   // a subject with nothing in it.
   const asked = await db
-    .from('topic_subjects').select('topic_id, position').eq('subject_id', subjectId)
+    .from('topic_subjects').select('topic_id, position, group_id').eq('subject_id', subjectId)
   const memberships = asked.error
     ? (await db.from('topic_subjects').select('topic_id').eq('subject_id', subjectId)).data
     : asked.data
   const topicIds = (memberships ?? []).map(m => m.topic_id)
+  const groupOf = new Map(
+    (memberships ?? []).map(m => [
+      m.topic_id as string,
+      ((m as { group_id?: string | null }).group_id ?? null) as string | null,
+    ])
+  )
   const sownAt = new Map(
     (memberships ?? []).map(m => {
       const held = (m as { position?: number | null }).position
@@ -91,6 +97,7 @@ export async function readSubjectArea(
       subject,
       tree: [],
       topics: [],
+      groups: [],
       resources: subjectResources,
       ability: 0,
       freshness: 0,
@@ -107,6 +114,7 @@ export async function readSubjectArea(
     { data: links },
     { data: curricula },
     { data: alsoIn },
+    { data: groups },
   ] = await Promise.all([
     db.from('topics')
       .select('id, title, summary, ability, ability_confidence, last_exposure_at, state')
@@ -122,6 +130,12 @@ export async function readSubjectArea(
       .in('topic_id', topicIds).order('created_at', { ascending: false }),
     db.from('topic_subjects').select('topic_id, subjects(id, title)')
       .in('topic_id', topicIds).neq('subject_id', subjectId),
+    // The boxes the bed is read in. Asked for separately from the
+    // memberships because a group with nothing in it yet has no
+    // membership to be found through, and a box made and not filled is
+    // how every one of them starts.
+    db.from('topic_groups').select('id, title, position')
+      .eq('subject_id', subjectId).order('position'),
   ])
 
   const curriculumIds = (curricula ?? []).map(c => c.id)
@@ -163,6 +177,7 @@ export async function readSubjectArea(
       last_exposure_at: t.last_exposure_at,
       state: t.state,
       position: sownAt.get(t.id) ?? null,
+      group_id: groupOf.get(t.id) ?? null,
       alsoIn: alsoFor.get(t.id) ?? [],
       resources: (resourcesFor.get(t.id) ?? []).sort((a, b) => a.title.localeCompare(b.title)),
       curricula: own.map(c => {
@@ -200,6 +215,11 @@ export async function readSubjectArea(
     subject,
     tree: buildTopicTree(rows, edges ?? []) as unknown as TopicTreeNode[],
     topics: rows,
+    groups: (groups ?? []).map(g => ({
+      id: g.id as string,
+      title: g.title as string,
+      position: Number(g.position),
+    })),
     resources: subjectResources,
     confidence: active.length
       ? active.reduce((sum, r) => sum + r.ability_confidence, 0) / active.length

@@ -1,6 +1,7 @@
 import type { Api } from './client'
 import type { Subject } from '@didactic/core/types'
 import type { SubjectArea, Sowing } from '@didactic/core/shapes'
+import type { TopicGroup } from '@didactic/core/groups'
 import type { Fidelity } from '@didactic/core/documents'
 
 /**
@@ -44,6 +45,21 @@ export interface Sown {
    */
   first?: FirstOfBed | null
   warnings: string[]
+}
+
+/**
+ * What grouping a bed answers with.
+ *
+ * `grouped` counts the topics that landed in a box, which is never the
+ * whole bed: leaving a topic out is a real answer, and the difference
+ * between it and the bed's size is what sits loose between the boxes.
+ * `note` carries the one case worth a sentence -- a bed that does not
+ * divide into anything meaningful is left as one list and says so.
+ */
+export interface Grouped {
+  groups: TopicGroup[]
+  grouped: number
+  note: string | null
 }
 
 /** What laying a bed out again answers with. No id: the bed already exists. */
@@ -196,6 +212,40 @@ export const subjects = (api: Api) => ({
     api.post<TopicsFiled>(`/api/subjects/${id}/topics`, { topicIds }),
   removeTopic: (id: string, topicId: string) =>
     api.del<TopicUnfiled>(`/api/subjects/${id}/topics`, { topicId }),
+  /**
+   * Propose the bed's groups with one model call, and write them.
+   *
+   * Replaces every group the subject has: proposing is laying the bed
+   * out again, not adding a second set of boxes. Takes about as long as
+   * relating a bed, so expect the same 504 sentences.
+   */
+  groupBed: (id: string) => api.post<Grouped>(`/api/subjects/${id}/groups`),
+
+  /**
+   * Every hand edit to the boxes, in one call.
+   *
+   * The fields stack and are applied in a fixed order, so one call can
+   * make a group and put a topic into it. `into: null` is a real
+   * destination -- it is how a topic is taken out of a group and left
+   * loose in the bed -- so it is sent rather than omitted.
+   */
+  editGroups: (
+    id: string,
+    body: {
+      create?: string
+      groupId?: string
+      title?: string
+      groupOrder?: string[]
+      topicId?: string
+      into?: string | null
+      topicOrder?: string[]
+    }
+  ) => api.patch<{ groups: TopicGroup[] }>(`/api/subjects/${id}/groups`, body),
+
+  /** Take a box away. Its topics stay in the bed and become loose. */
+  removeGroup: (id: string, groupId: string) =>
+    api.del<{ groups: TopicGroup[] }>(`/api/subjects/${id}/groups`, { groupId }),
+
   relate: (id: string) => api.post<Drawn>(`/api/subjects/${id}/relate`),
   resow: (id: string) => api.post<Resown>(`/api/subjects/${id}/resow`),
 })
