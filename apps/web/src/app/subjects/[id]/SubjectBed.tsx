@@ -354,10 +354,11 @@ export function SubjectBed({
               </button>
               {/* Grouping is the outline's second axis, so it is offered
                   beside that reading and only where there is enough bed
-                  to have a shape. Under Edit the reader arranges the
-                  boxes by hand; this is the one call that proposes
-                  them. */}
-              {sort === 'outline' && count >= 3 && (
+                  to have a shape. Kept inside Edit with the rest of the
+                  arranging: it rewrites the boxes, which is not
+                  something to have within reach of a reader who came to
+                  read the bed rather than to change it. */}
+              {editing && sort === 'outline' && count >= 3 && (
                 <>
                   {'  ·  '}
                   <button
