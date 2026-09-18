@@ -60,31 +60,50 @@ function activityRank(topic: SubjectTopicRow): number {
 }
 
 /**
- * Reorder a subject's fixed outline so what is being worked rises to the
- * top and siblings run simpler-first.
+ * The bed as one flat list, ordered by what is being worked and then by
+ * where the bed put it.
  *
- * The nesting is left exactly as `buildTopicTree` drew it — only the
- * order of siblings at each depth changes, and a branch keeps its
- * subtree when it floats. The result is still a pure function of the
- * data: activity, then where the bed put it, then what its lessons say,
- * then title as the final tie-break, so the same bed prints the same way
- * twice. This is the subject sheet's own reading; the generic tree stays
- * title-sorted for every other caller.
+ * It used to keep `buildTopicTree`'s nesting and sort only within each
+ * depth. The nesting is gone because it could not be trusted to mean
+ * anything: it is inferred from whichever `specialises` or `prereq` edge
+ * happened to be strongest, nothing checks that the general topic is the
+ * parent, and a subject's topics are not a hierarchy in the first place
+ * — TypeScript came out holding JavaScript underneath it. An outline
+ * also admits one parent where the graph has several, so the depth a
+ * reader saw was one arbitrary reading of the edges presented as the
+ * shape of the subject.
+ *
+ * The edges are untouched and still say everything they said: `/graph`
+ * draws them all, and `promote_topic_to_subject` still walks them to
+ * decide what comes up with a topic. This is only the sheet declining to
+ * draw one of them as a tree.
+ *
+ * Flat, the order carries the whole meaning: activity, then where the
+ * bed put it, then what its lessons say, then title as the final
+ * tie-break — a pure function of the data, so the same bed prints the
+ * same way twice.
  */
 export function orderSubjectOutline(tree: TopicTreeNode[]): TopicTreeNode[] {
-  return [...tree]
-    .sort((a, b) => {
-      const activity = activityRank(a.topic) - activityRank(b.topic)
-      if (activity !== 0) return activity
-      const sown = sownRank(a.topic) - sownRank(b.topic)
-      // Two unplaced topics subtract to NaN rather than to nought, and a
-      // NaN comparator silently leaves the list in whatever order it
-      // arrived. Asked as a question instead, so unplaced siblings fall
-      // through to the readings below rather than to chance.
-      if (sown !== 0 && !Number.isNaN(sown)) return sown
-      const complexity = complexityRank(a.topic) - complexityRank(b.topic)
-      if (complexity !== 0) return complexity
-      return a.topic.title.localeCompare(b.topic.title)
-    })
-    .map(node => ({ ...node, children: orderSubjectOutline(node.children) }))
+  const flat: TopicTreeNode[] = []
+  const walk = (nodes: TopicTreeNode[]) => {
+    for (const node of nodes) {
+      flat.push({ ...node, children: [] })
+      walk(node.children)
+    }
+  }
+  walk(tree)
+
+  return flat.sort((a, b) => {
+    const activity = activityRank(a.topic) - activityRank(b.topic)
+    if (activity !== 0) return activity
+    const sown = sownRank(a.topic) - sownRank(b.topic)
+    // Two unplaced topics subtract to NaN rather than to nought, and a
+    // NaN comparator silently leaves the list in whatever order it
+    // arrived. Asked as a question instead, so unplaced topics fall
+    // through to the readings below rather than to chance.
+    if (sown !== 0 && !Number.isNaN(sown)) return sown
+    const complexity = complexityRank(a.topic) - complexityRank(b.topic)
+    if (complexity !== 0) return complexity
+    return a.topic.title.localeCompare(b.topic.title)
+  })
 }

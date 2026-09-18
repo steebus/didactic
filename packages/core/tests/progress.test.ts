@@ -154,14 +154,28 @@ describe('orderSubjectOutline', () => {
     expect(ordered.map(n => n.topic.id)).toEqual(['easy', 'hard'])
   })
 
-  it('reorders siblings at every depth and keeps the subtree with its branch', () => {
+  it('flattens the nesting away and ranks a child against its own parent', () => {
+    // The inferred tree had TypeScript holding JavaScript under it. Flat,
+    // a child is ranked on its own merits: the warm one leads whether it
+    // was drawn as a root or as a leaf.
     const ordered = orderSubjectOutline([
       node({ id: 'root' }, [
         node({ id: 'child-cold' }),
         node({ id: 'child-warm', curricula: activeRoute }),
       ]),
     ])
-    expect(ordered[0].children.map(n => n.topic.id)).toEqual(['child-warm', 'child-cold'])
+    // The two cold ones tie on every reading but title, which is the
+    // last tie-break, so 'child-cold' precedes 'root'.
+    expect(ordered.map(n => n.topic.id)).toEqual(['child-warm', 'child-cold', 'root'])
+    expect(ordered.every(n => n.children.length === 0)).toBe(true)
+  })
+
+  it('keeps every topic exactly once, however deep it was drawn', () => {
+    const ordered = orderSubjectOutline([
+      node({ id: 'a' }, [node({ id: 'b' }, [node({ id: 'c' })])]),
+      node({ id: 'd' }),
+    ])
+    expect(ordered.map(n => n.topic.id).sort()).toEqual(['a', 'b', 'c', 'd'])
   })
 
   it('runs a freshly sown bed in the order it was laid out, simplest first', () => {

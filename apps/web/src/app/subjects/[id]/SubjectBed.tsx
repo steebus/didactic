@@ -241,11 +241,10 @@ export function SubjectBed({
             <>
               {count} {count === 1 ? 'topic' : 'topics'}
               {' · '}
-              {/* Two readings of one bed. The outline is the fixed one --
-                  same topic in the same place every time, nested under
-                  what it follows. Condition throws the nesting away on
-                  purpose: what needs tending is a flat question, and a
-                  parent is not more urgent than its child. */}
+              {/* Two readings of one bed, both flat. The outline is the
+                  fixed one -- same topic in the same place every time,
+                  simplest first. Condition asks the other question:
+                  what needs tending, worst first. */}
               <button
                 type="button"
                 className={styles.sortButton}
