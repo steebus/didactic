@@ -56,6 +56,7 @@ the phone's query cache.
 
 | Method | Path | Query / body | Returns | Notes |
 | --- | --- | --- | --- | --- |
+| GET | `/api/lessons/audio` | ids (comma-separated) | `{ lessons: { [id]: { state, done, total } } }` | Where several lessons stand as recordings, for a sheet printing a route: sixteen rows asking one question is one request rather than sixteen. Signs nothing -- this answers whether a lesson can be heard and how much of it exists, not how to play it; pressing play goes through the single-lesson route, which signs. A lesson whose body is unwritten is left out entirely, so the sheet can tell "no recording" from "nothing to record". |
 | GET | `/api/lessons/[id]/audio` | — | `{ state, total, chunks[] }` | How far the reading has got, and the pieces that exist now, each with a signed URL good for an hour. Polled by the player while the lesson is still being made, which is the point: playback starts on the first piece and the rest arrive behind it. Only audio made from the body as it stands is returned — the voicing carries the hash it was made from, so a rewritten lesson reads as `none` rather than playing a recording of prose nobody can see. |
 | GET | `/api/home` | — | `HomeData` | The stock list's own `getHomeData`, so the read shares its cache tags. |
 | GET | `/api/graph` | — | `{ topics, edges, resources, lessons, subjects }` | The whole bed in one call, and what the web's canvas reads. It asked `/api/topics` and `/api/subjects` separately and merged them itself until 2.7; both read `getPlanting`, so they cannot drift. |
