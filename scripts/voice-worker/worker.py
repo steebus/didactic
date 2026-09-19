@@ -210,20 +210,47 @@ def to_mp3(pcm: np.ndarray, rate: int) -> bytes:
 
 
 def put(path: str, data: bytes) -> None:
-    """Push one file to the bucket, replacing anything already there."""
-    res = session.post(
-        f"{STORAGE}/object/{BUCKET}/{path}",
-        data=data,
-        headers={
-            "Content-Type": "audio/mpeg",
-            # A resumed lesson may re-make a chunk whose row never
-            # landed; upsert makes that harmless rather than a conflict.
-            "x-upsert": "true",
-        },
-        timeout=120,
-    )
-    if res.status_code >= 400:
-        raise RuntimeError(f"storage {res.status_code}: {res.text[:200]}")
+    """Push one file to the bucket, replacing anything already there.
+
+    Retried, because the thing being protected is expensive and the
+    failure is cheap and common. Storage sits behind a CDN that returns
+    the occasional 520 or 503 with nothing wrong at either end, and
+    without this a blip on chunk five throws away the four minutes of
+    audio already made and tells the reader the lesson failed. Three
+    goes with a widening gap covers what these are: momentary.
+
+    Only the transient statuses. A 400 or a 403 is a real answer -- the
+    path is wrong, the key is wrong -- and trying it twice more just
+    delays finding that out.
+    """
+    for attempt in range(3):
+        try:
+            res = session.post(
+                f"{STORAGE}/object/{BUCKET}/{path}",
+                data=data,
+                headers={
+                    "Content-Type": "audio/mpeg",
+                    # A resumed lesson may re-make a chunk whose row
+                    # never landed; upsert makes that harmless rather
+                    # than a conflict.
+                    "x-upsert": "true",
+                },
+                timeout=120,
+            )
+            if res.status_code < 400:
+                return
+            if res.status_code not in (429, 500, 502, 503, 504, 520, 522, 524):
+                raise RuntimeError(f"storage {res.status_code}: {res.text[:200]}")
+            trouble = f"storage {res.status_code}"
+        except requests.RequestException as e:
+            # A dropped connection is the same kind of momentary as a
+            # 520, and reads as one here.
+            trouble = f"storage {type(e).__name__}"
+
+        if attempt == 2:
+            raise RuntimeError(f"{trouble}, three times")
+        log(f"  {trouble}, going again")
+        time.sleep(2 * (attempt + 1))
 
 
 def finish(audio_id: str, state: str, reason: str | None = None) -> None:

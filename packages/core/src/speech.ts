@@ -118,6 +118,59 @@ function stripFences(markdown: string): string {
 }
 
 /**
+ * Say a formula, or say nothing.
+ *
+ * Maths is set with KaTeX on the sheet, and a lesson on logarithms has
+ * thirty-eight of them. Read as written, `$$b^n = \underbrace{b \times
+ * b}$$` is a voice dictating backslashes -- and because the model takes
+ * about fifty tokens at a time, a formula that long also pushes the
+ * words around it out of the chunk entirely.
+ *
+ * So the two kinds are treated as what they are. **Display maths**
+ * (`$$…$$`) is a figure: it stands on its own line, the sentence around
+ * it is already complete without it, and a figure is something to look
+ * at. It goes, the same way a chart does.
+ *
+ * **Inline maths** (`$…$`) is a word in a sentence -- "once $b^n$ reads
+ * instantly" is not a sentence without it. The simple cases are the
+ * common ones and are said the way anyone reading aloud would say
+ * them: `3^2` is "3 to the power 2", `\times` is "times", `\le` is "at
+ * most". What is left after that is notation with no spoken form, and
+ * rather than dictate punctuation it is dropped -- the reader has the
+ * lesson in front of them, where it is set properly.
+ */
+function saySums(text: string): string {
+  // Display first: `$$…$$` would otherwise be seen as two empty inline
+  // spans with the formula loose between them.
+  text = text.replace(/\$\$[\s\S]*?\$\$/g, '')
+
+  return text.replace(/\$([^$\n]+)\$/g, (_, formula: string) => {
+    const said = formula
+      .replace(/\\text\{([^}]*)\}/g, '$1')
+      .replace(/\\times/g, ' times ')
+      .replace(/\\div/g, ' divided by ')
+      .replace(/\\cdot/g, ' times ')
+      .replace(/\\le(?:q)?\b/g, ' at most ')
+      .replace(/\\ge(?:q)?\b/g, ' at least ')
+      .replace(/\\implies/g, ' implies ')
+      .replace(/\\approx/g, ' about ')
+      .replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, '$1 over $2')
+      .replace(/\\sqrt\{([^{}]+)\}/g, 'the square root of $1')
+      // `b^n`, `3^{10}`: the commonest notation in these lessons.
+      .replace(/\^\{([^{}]+)\}/g, ' to the power $1')
+      .replace(/\^(\w+)/g, ' to the power $1')
+      .replace(/_\{([^{}]+)\}/g, ' sub $1')
+      .replace(/_(\w+)/g, ' sub $1')
+      .replace(/\s+/g, ' ')
+      .trim()
+
+    // Anything still carrying a backslash or a brace is notation this
+    // does not know how to say. Dropped rather than dictated.
+    return /[\\{}]/.test(said) ? '' : said
+  })
+}
+
+/**
  * Markdown to what a person would say.
  *
  * Inline syntax is unwrapped rather than deleted, because the words
@@ -127,7 +180,9 @@ function stripFences(markdown: string): string {
  * hashes of a heading, the bullet of a list item.
  */
 export function speakable(markdown: string): string {
-  let text = markdown
+  // Before anything else: a formula holds `*`, `_` and `\` that the
+  // inline rules below would read as emphasis and mangle.
+  let text = saySums(markdown)
 
   // Images first: they are links with a bang, and unwrapping links
   // first would leave the alt text stranded as a sentence.
@@ -147,12 +202,25 @@ export function speakable(markdown: string): string {
   text = text.replace(/(^|\s)_([^_]+)_(?=\s|$)/g, '$1$2')
   // Strikethrough: said, because it is still in the sentence.
   text = text.replace(/~~([^~]+)~~/g, '$1')
-  // A heading is said as its words. The hashes are not words.
-  text = text.replace(/^#{1,6}\s+/gm, '')
+  // A heading is said as its words, and then stopped on.
+  //
+  // The full stop is doing real work: a heading has no terminal
+  // punctuation of its own, so joined to the paragraph it names it
+  // becomes one enormous sentence -- and the model takes about fifty
+  // tokens at a time, splitting on sentence ends, so a sentence with no
+  // end in it is where words start getting skipped. It is also simply
+  // how anyone reads a heading aloud: they stop afterwards.
+  text = text.replace(/^#{1,6}\s+(.*?)\s*$/gm, (_, words: string) =>
+    /[.!?:]$/.test(words) ? words : `${words}.`
+  )
   // Bullets and numbers: the marker is punctuation the voice supplies
-  // by pausing, and "hyphen" said aloud is noise.
-  text = text.replace(/^\s*[-*+]\s+/gm, '')
-  text = text.replace(/^\s*\d+\.\s+/gm, '')
+  // by pausing, and "hyphen" said aloud is noise. Each item is stopped
+  // on for the reason a heading is -- seven bullets with no terminator
+  // between them are one sentence a hundred words long, which is where
+  // the model starts dropping words.
+  text = text.replace(/^\s*(?:[-*+]|\d+\.)\s+(.*?)\s*$/gm, (_, item: string) =>
+    /[.!?:,;]$/.test(item) ? item : `${item}.`
+  )
   // Blockquote markers.
   text = text.replace(/^\s*>\s?/gm, '')
   // A horizontal rule is a pause, not a word.

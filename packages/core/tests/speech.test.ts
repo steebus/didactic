@@ -24,16 +24,45 @@ describe('speakable', () => {
     expect(speakable('Set body_finished on the row.')).toBe('Set body_finished on the row.')
   })
 
-  it('says a heading as its words', () => {
-    expect(speakable('## Two ways to be an owner')).toBe('Two ways to be an owner')
+  it('says a heading as its words, and stops on it', () => {
+    // The full stop is what keeps a heading from running into the
+    // paragraph below it as one sentence a hundred words long.
+    expect(speakable('## Two ways to be an owner')).toBe('Two ways to be an owner.')
   })
 
-  it('drops list markers, keeping the items', () => {
-    expect(speakable('- first thing\n- second thing')).toBe('first thing\nsecond thing')
+  it('does not double the stop on a heading that has one', () => {
+    expect(speakable('## Why now?')).toBe('Why now?')
+  })
+
+  it('drops list markers, keeping the items, each stopped on', () => {
+    // Stopped on for the reason a heading is: seven bullets with no
+    // terminator between them are one sentence a hundred words long.
+    expect(speakable('- first thing\n- second thing')).toBe('first thing.\nsecond thing.')
   })
 
   it('drops an image entirely, having nothing to say', () => {
     expect(speakable('Before ![a chart of returns](/chart.png) after')).toBe('Before after')
+  })
+
+  it('says inline maths the way a person reads it', () => {
+    expect(speakable('Once $b^n$ reads instantly, the rest follows.')).toBe(
+      'Once b to the power n reads instantly, the rest follows.'
+    )
+    expect(speakable('So $2^4$ is not $2 \\times 4$.')).toBe(
+      'So 2 to the power 4 is not 2 times 4.'
+    )
+  })
+
+  it('says nothing about display maths, which is a figure', () => {
+    // It stands on its own line and the sentence is complete without
+    // it, the same as a chart.
+    const body = ['Which gives:', '', '$$b^n = \\underbrace{b \\times b}_{n}$$'].join('\n')
+    expect(speakable(body)).toBe('Which gives:')
+  })
+
+  it('drops inline notation it has no way to say', () => {
+    // Better silence than a voice dictating backslashes.
+    expect(speakable('The bound $\\sum_{i=0}^{n} \\alpha_i$ holds.')).toBe('The bound holds.')
   })
 
   it('keeps the blank line that separates paragraphs', () => {
@@ -138,7 +167,7 @@ describe('speechChunks', () => {
     const chunks = speechChunks(body)
     expect(chunks).toHaveLength(1)
     expect(chunks[0].text).toBe(
-      'Two ways to be an owner Direct registration means your name sits on the company books, kept by its transfer agent, and you are the shareholder of record for every purpose that matters.'
+      'Two ways to be an owner. Direct registration means your name sits on the company books, kept by its transfer agent, and you are the shareholder of record for every purpose that matters.'
     )
   })
 

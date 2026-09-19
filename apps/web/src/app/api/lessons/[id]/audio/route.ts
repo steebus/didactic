@@ -106,6 +106,20 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  // A voicing that failed part way is put back in the queue rather than
+  // started again. The chunks it finished are already in the bucket and
+  // the worker skips what it finds, so pressing Listen after a dropped
+  // connection costs the pieces that are missing and not the lesson.
+  // Scoped to this body's hash, so it can never revive a recording of
+  // prose that has since been rewritten.
+  await db
+    .from('lesson_audio')
+    .update({ state: 'queued', reason: null, claimed_at: null, heartbeat_at: null })
+    .eq('lesson_id', id)
+    .eq('voice', VOICE)
+    .eq('body_hash', hash)
+    .eq('state', 'failed')
+
   return NextResponse.json({
     ok: true,
     chunks: chunks.length,
