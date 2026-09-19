@@ -198,6 +198,20 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       idx: c.idx,
       seconds: c.seconds,
       text: c.text,
+      /**
+       * Where the file sits, which is the same string every time.
+       *
+       * The player needs a name for "the piece I am playing" that does
+       * not change, and the signed URL is not one: the signature
+       * carries the moment it was issued, so signing the same object
+       * twice a second apart gives two different strings. Keyed on the
+       * URL, a player polling for the pieces still to come was handed a
+       * new name for the piece already playing every four seconds, and
+       * reloaded it -- three seconds of audio, on a loop, for the whole
+       * of the generation. The path is not a secret; the bucket is
+       * private and the signature is what opens it.
+       */
+      path: c.path,
       url: urls[i]?.signedUrl ?? null,
     })),
   })

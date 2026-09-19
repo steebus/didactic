@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { lessonStandings, LESSON_LABEL, LESSON_NOTE } from '@didactic/core/lessonState'
 import type { LessonRow } from '@didactic/core/shapes'
 import { useBench } from '@/components/Bench'
+import { usePlayer } from '@/components/Player'
+import { ListenButton } from '@/components/ListenButton'
+import { useVoicings } from '@/components/useVoicings'
 import { useWriteLesson } from '@/components/useWriteLesson'
 import styles from './page.module.css'
 
@@ -47,6 +50,14 @@ export function LessonList({
   const [confirming, setConfirming] = useState<string | null>(null)
   const bench = useBench()
   const writeLesson = useWriteLesson()
+  const player = usePlayer()
+
+  // Only the written ones can be read aloud, and asking about the rest
+  // would be asking the server about lessons that have no prose in
+  // them yet.
+  const { standing, voice } = useVoicings(
+    lessons.filter(l => l.has_body).map(l => l.id)
+  )
 
   const standings = lessonStandings(lessons)
 
@@ -83,6 +94,11 @@ export function LessonList({
 
           return (
             <li key={lesson.id} className={styles.lessonItem}>
+              {/* The row is the link and the play control side by side,
+                  not one inside the other: a button inside an anchor is
+                  not something a browser or a screen reader can make
+                  sense of, and pressing play must not also navigate. */}
+              <div className={styles.lessonRow}>
               <Link
                 href={`/lesson/${lesson.id}`}
                 className={styles.lesson}
@@ -124,6 +140,29 @@ export function LessonList({
                   </span>
                 </span>
               </Link>
+
+              {/* Only against a lesson there is prose to read. An
+                  unwritten one has nothing to say, and the control
+                  would be offering something that cannot happen. */}
+              {lesson.has_body && (
+                <ListenButton
+                  state={standing[lesson.id]?.state ?? 'none'}
+                  done={standing[lesson.id]?.done ?? 0}
+                  total={standing[lesson.id]?.total ?? null}
+                  playing={player.lessonId === lesson.id && player.playing}
+                  title={lesson.title}
+                  onPress={() => {
+                    const here = standing[lesson.id]
+                    // Made already: this is a press on the player.
+                    if (here?.state === 'ready' || player.lessonId === lesson.id) {
+                      void player.listen({ id: lesson.id, title: lesson.title })
+                      return
+                    }
+                    void voice(lesson.id)
+                  }}
+                />
+              )}
+              </div>
 
               {/* Offered under the row rather than inside the link:
                   a button inside an anchor is not a thing a browser

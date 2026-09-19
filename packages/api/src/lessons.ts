@@ -160,6 +160,9 @@ export interface SpokenChunk {
   idx: number
   seconds: number
   text: string
+  /** Where the file sits. The one name for this piece that does not
+   *  change between reads -- a signed URL does. */
+  path: string
   /** Signed, and good for an hour. Null if signing failed. */
   url: string | null
 }
@@ -174,6 +177,15 @@ export interface Voicing {
   total: number | null
   /** The pieces that exist now, in order. Grows while it runs. */
   chunks: SpokenChunk[]
+}
+
+/** Where one lesson stands as a recording, in a list of them. */
+export interface VoicingStanding {
+  state: 'none' | 'queued' | 'voicing' | 'ready' | 'failed'
+  /** Pieces made so far. */
+  done: number
+  /** Pieces there will be. Null until the worker has been told. */
+  total: number | null
 }
 
 /** What queueing a lesson answers with. */
@@ -280,6 +292,19 @@ export const lessons = (api: Api) => {
 
     /** How far the reading has got, and what can be played now. */
     voicing: (id: string) => api.get<Voicing>(`/api/lessons/${id}/audio`),
+
+    /**
+     * Where each of several lessons stands as a recording.
+     *
+     * For a sheet printing a route: sixteen rows, each wanting to know
+     * whether it can be heard, is one request rather than sixteen. It
+     * signs nothing -- pressing play goes through `voicing`, which
+     * does.
+     */
+    voicings: (ids: string[]) =>
+      api.get<{ lessons: Record<string, VoicingStanding> }>('/api/lessons/audio', {
+        ids: ids.join(','),
+      }),
 
     /**
      * Answer one of the lesson's questions. `key` is `questionKey` of the

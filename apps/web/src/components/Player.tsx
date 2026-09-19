@@ -57,12 +57,27 @@ interface Controls {
   /** Which lesson is loaded, if any. */
   lessonId: string | null
   playing: boolean
+  /**
+   * What is being said right now, for a sheet that wants to follow
+   * along. Null when nothing is playing.
+   *
+   * The text rather than an index, because the sheet showing the lesson
+   * and the recording of it agree on words and on nothing else: the
+   * audio is cut into pieces by `core/speech` and the page is laid out
+   * in paragraphs and blocks, and the two need not line up one to one.
+   * Words are the only thing both have.
+   */
+  saying: string | null
+  /** Jump the recording to the piece that says this, if there is one. */
+  sayThis: (text: string) => void
 }
 
 const Channel = createContext<Controls>({
   listen: async () => {},
   lessonId: null,
   playing: false,
+  saying: null,
+  sayThis: () => {},
 })
 
 export function usePlayer(): Controls {
@@ -75,6 +90,21 @@ export function Player({ children }: { children: React.ReactNode }) {
   const [playing, setPlaying] = useState(false)
   const [elapsed, setElapsed] = useState(0)
   const audio = useRef<HTMLAudioElement | null>(null)
+  /**
+   * Whether the reader means to be listening.
+   *
+   * Not the same as `playing`, which is whether a file is running right
+   * now. Between two chunks the element pauses, ends, loads the next
+   * and starts again -- for a moment `playing` is false while the
+   * reader has done nothing and is still listening. Reading that state
+   * to decide whether to start the next piece is what made the player
+   * stop at the end of every paragraph and wait to be pressed.
+   *
+   * A ref rather than state because it is read from `onEnded` and from
+   * an effect that must not re-run when it changes: what matters is its
+   * value at the moment it is read, not a render in response to it.
+   */
+  const wants = useRef(false)
   const { start } = useBench()
 
   /**
@@ -116,8 +146,13 @@ export function Player({ children }: { children: React.ReactNode }) {
       if (now?.lessonId === lesson.id) {
         const el = audio.current
         if (!el) return
-        if (el.paused) void el.play()
-        else el.pause()
+        if (el.paused) {
+          wants.current = true
+          void el.play()
+        } else {
+          wants.current = false
+          el.pause()
+        }
         return
       }
 
@@ -141,6 +176,9 @@ export function Player({ children }: { children: React.ReactNode }) {
               throw new Error(got.reason ?? 'The reading failed.')
             }
             if (got?.chunks.length) {
+              // They pressed Listen and walked off; the first piece
+              // arriving is what they were waiting for.
+              wants.current = true
               setNow({
                 lessonId: lesson.id,
                 title: got.title ?? lesson.title,
@@ -158,6 +196,7 @@ export function Player({ children }: { children: React.ReactNode }) {
       }
 
       // Something is already made: play it now.
+      wants.current = true
       setNow({
         lessonId: lesson.id,
         title: first.title ?? lesson.title,
@@ -176,30 +215,51 @@ export function Player({ children }: { children: React.ReactNode }) {
    * Stops as soon as it is ready, so a lesson playing from storage
    * polls nothing at all.
    */
+  // Depends on the lesson and its state, never on `now` itself: the
+  // interval's own `setNow` makes a new object every poll, and an
+  // effect that watched `now` would tear its own interval down and
+  // build another one four times a minute -- and again on every tick of
+  // `elapsed`, which is four times a second while the audio runs.
+  const lessonId = now?.lessonId ?? null
+  const settled = now ? now.state === 'ready' || now.state === 'failed' : true
+
   useEffect(() => {
-    if (!now || now.state === 'ready' || now.state === 'failed') return
+    if (!lessonId || settled) return
     const tick = setInterval(async () => {
-      const got = await refresh(now.lessonId)
+      const got = await refresh(lessonId)
       if (!got) return
       setNow(current =>
-        current && current.lessonId === now.lessonId
+        current && current.lessonId === lessonId
           ? { ...current, chunks: got.chunks, total: got.total, state: got.state }
           : current
       )
     }, POLL_MS)
     return () => clearInterval(tick)
-  }, [now, refresh])
+  }, [lessonId, settled, refresh])
 
-  /** Feed the element the piece it should be playing. */
+  /**
+   * Feed the element the piece it should be playing.
+   *
+   * Keyed on the chunk's path rather than its URL. A signed URL carries
+   * the moment it was signed, so the poll that fetches the pieces still
+   * to come hands back a different string for the piece already
+   * playing -- and reloading the source on that restarts it. That was
+   * three seconds of audio on a loop for as long as the lesson was
+   * still being made, and playing correctly the moment it finished,
+   * which is exactly the shape of a bug that only exists while polling.
+   */
   useEffect(() => {
     const el = audio.current
     const chunk = now?.chunks[at]
     if (!el || !chunk?.url) return
-    if (el.dataset.src === chunk.url) return
-    el.dataset.src = chunk.url
+    if (el.dataset.path === chunk.path) return
+    el.dataset.path = chunk.path
     el.src = chunk.url
-    if (playing) void el.play().catch(() => {})
-  }, [now, at, playing])
+    // `wants` rather than `playing`: at the moment a chunk ends the
+    // element is paused, so the state says false while the reader is
+    // very much still listening.
+    if (wants.current) void el.play().catch(() => {})
+  }, [now, at])
 
   /**
    * The lockscreen.
@@ -221,8 +281,14 @@ export function Player({ children }: { children: React.ReactNode }) {
 
     const el = () => audio.current
 
-    navigator.mediaSession.setActionHandler('play', () => void el()?.play())
-    navigator.mediaSession.setActionHandler('pause', () => el()?.pause())
+    navigator.mediaSession.setActionHandler('play', () => {
+      wants.current = true
+      void el()?.play()
+    })
+    navigator.mediaSession.setActionHandler('pause', () => {
+      wants.current = false
+      el()?.pause()
+    })
     // Skip moves a piece at a time, which is roughly a paragraph: the
     // unit the lesson was cut on is also the unit worth skipping by.
     navigator.mediaSession.setActionHandler('previoustrack', () => setAt(n => Math.max(0, n - 1)))
@@ -280,24 +346,59 @@ export function Player({ children }: { children: React.ReactNode }) {
     const next = at + 1
     // The end of what exists, but not the end of the lesson: the worker
     // has not caught up. Hold here -- the poll will bring the next piece
-    // and the effect above will start it.
+    // and the effect above will start it, because `wants` is still set.
     if (next >= now.chunks.length) {
-      if (now.state === 'ready') setPlaying(false)
+      // Only the true end of the lesson stops the listening.
+      if (now.state === 'ready') wants.current = false
       return
     }
     setAt(next)
   }, [now, at])
 
   const close = useCallback(() => {
+    wants.current = false
     audio.current?.pause()
     setNow(null)
     setPlaying(false)
     setAt(0)
   }, [])
 
+  /**
+   * Jump to the piece that says a given passage.
+   *
+   * Matched on the opening words rather than the whole text: the sheet
+   * asks with a paragraph and the recording holds a chunk, and a chunk
+   * is sometimes a heading and the paragraph under it, or half of a
+   * paragraph too long to say in one go. The opening is the part the
+   * two always share.
+   */
+  const sayThis = useCallback(
+    (text: string) => {
+      if (!now) return
+      const opening = norm(text).slice(0, 40)
+      if (!opening) return
+      const found = now.chunks.findIndex(c => norm(c.text).includes(opening))
+      if (found < 0) return
+      wants.current = true
+      setAt(found)
+      // The same piece, so nothing reloads: seek back to its start.
+      if (found === at && audio.current) {
+        audio.current.currentTime = 0
+        void audio.current.play().catch(() => {})
+      }
+    },
+    [now, at]
+  )
+
   const controls = useMemo(
-    () => ({ listen, lessonId: now?.lessonId ?? null, playing }),
-    [listen, now, playing]
+    () => ({
+      listen,
+      lessonId: now?.lessonId ?? null,
+      playing,
+      saying: playing ? (now?.chunks[at]?.text ?? null) : null,
+      sayThis,
+    }),
+    [listen, now, playing, at, sayThis]
   )
 
   // Waiting for the piece after the one that just finished.
@@ -352,8 +453,13 @@ export function Player({ children }: { children: React.ReactNode }) {
               onClick={() => {
                 const el = audio.current
                 if (!el) return
-                if (el.paused) void el.play()
-                else el.pause()
+                if (el.paused) {
+                  wants.current = true
+                  void el.play()
+                } else {
+                  wants.current = false
+                  el.pause()
+                }
               }}
               aria-label={playing ? 'Pause' : 'Play'}
             >
@@ -396,6 +502,23 @@ export function Player({ children }: { children: React.ReactNode }) {
       )}
     </Channel.Provider>
   )
+}
+
+/**
+ * A passage reduced to the words in it.
+ *
+ * The sheet's text and the recording's come from the same body but not
+ * by the same route: one is rendered markdown read back off the page,
+ * the other is `core/speech` output with the markup taken out. They
+ * agree on words and disagree on spacing, case and punctuation, so this
+ * is what they are compared through.
+ */
+function norm(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 /** Seconds as a clock, the way any player prints them. */

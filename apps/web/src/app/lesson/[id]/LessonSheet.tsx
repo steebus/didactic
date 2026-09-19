@@ -21,6 +21,7 @@ import type { LessonNeighbours } from '@didactic/core/lessonState'
 import { pressedLink } from '@/lib/pressedLink'
 import { useScrollMemory } from '@/lib/useScrollMemory'
 import { useReadingRail } from '@/lib/useReadingRail'
+import { useFollowAlong } from '@/lib/useFollowAlong'
 import { viabilityFigure } from '@didactic/core/scoring'
 import { SheetNav } from '@/components/SheetNav'
 import { Crumbs } from '@/components/Crumbs'
@@ -161,6 +162,11 @@ export default function LessonSheet({
   const said = useRef(false)
   const bench = useBench()
   const player = usePlayer()
+
+  // Follow the voice down the page, but only when it is this lesson
+  // being read: the player outlives the sheet, so it may well be
+  // saying something from somewhere else entirely.
+  useFollowAlong(sheetBody, player.lessonId === initial.lesson.id ? player.saying : null)
   const job = bench.jobFor('writing', id)
   const writing = job?.state === 'running'
   /**

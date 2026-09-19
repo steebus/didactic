@@ -1,0 +1,100 @@
+/* Play a lesson, from a list of them.
+
+   Sized to sit against a title without pushing the line around: the
+   circle is 22px and the control is the 44px a thumb needs, with the
+   difference taken as padding rather than as a bigger mark. */
+.listen {
+  flex: none;
+  display: grid;
+  place-items: center;
+  /* Both children in the one cell, so the glyph sits on the ring's
+     centre rather than beside it. */
+  grid-template-areas: 'mark';
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+
+  transition: color var(--dur-state) var(--ease-settle);
+}
+
+.listen > * {
+  grid-area: mark;
+}
+
+.listen:hover {
+  color: var(--ink);
+}
+
+.listen:focus-visible {
+  outline: 2px solid var(--plate-ultramarine);
+  outline-offset: -4px;
+  border-radius: 50%;
+}
+
+/* A lesson already recorded is the one worth pressing, so it is the one
+   drawn in full ink rather than in the soft grey of an offer. */
+.listen[data-state='ready'] {
+  color: var(--ink);
+}
+
+.listen[data-playing] {
+  color: var(--plate-green);
+}
+
+.listen[data-state='failed'] {
+  color: var(--plate-terracotta);
+}
+
+.rim {
+  stroke: currentColor;
+  opacity: 0.25;
+}
+
+/* How much of the recording exists. Green because it is the same thing
+   the player's own progress line reports, and it should read as the
+   same fact in both places. */
+.made {
+  stroke: var(--plate-green);
+  /* The ring fills a piece at a time, and a piece is half a minute:
+     without this it jumps, which reads as a glitch rather than as
+     progress. */
+  transition: stroke-dashoffset var(--dur-settle) var(--ease-settle);
+}
+
+.waiting {
+  stroke: var(--plate-mustard);
+  transform-origin: center;
+  animation: turning 1.4s linear infinite;
+}
+
+@keyframes turning {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .waiting {
+    animation: none;
+    /* Still says "something is happening", without the motion: a
+       quarter of the ring in the working ink, held still. */
+    opacity: 0.6;
+  }
+
+  .made {
+    transition: none;
+  }
+}
+
+.glyph {
+  display: grid;
+  place-items: center;
+  fill: currentColor;
+  /* The mark is the button's; the ring around it has its own colours. */
+  pointer-events: none;
+}

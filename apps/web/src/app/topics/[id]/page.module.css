@@ -976,6 +976,23 @@
   list-style: none;
 }
 
+/* The row: the lesson, and the control that plays it.
+
+   Side by side rather than nested, because the link and the button are
+   two different actions on one line and a button inside an anchor is
+   neither. The link takes the room that is left, so the play control
+   sits at the end of every row at the same distance from the edge
+   whatever the lesson is called. */
+.lessonRow {
+  display: flex;
+  align-items: center;
+}
+
+.lessonRow > a {
+  flex: 1;
+  min-width: 0;
+}
+
 /* Asking for a lesson that has not been written. Set under the row and
    indented to the title, so it reads as belonging to that lesson rather
    than to the list. */

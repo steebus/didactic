@@ -106,6 +106,63 @@
   color: var(--paper);
 }
 
+/* The passage being read aloud.
+
+   A rule down the near edge and the faintest wash behind it, rather
+   than a highlighter: the reader is reading this paragraph while it is
+   said, and a strong fill is the one thing that would make it harder to
+   read rather than easier. It is the mustard the bench uses for work in
+   hand, which is what this is.
+
+   The wash is on a pseudo-element so it cannot disturb the text's own
+   background, and the padding is on the element with the rule sitting
+   inside it -- so a paragraph does not move when the voice reaches it.
+   Nothing here changes the page's layout: the sheet must not reflow
+   twelve times while somebody listens to it. */
+.body [data-saying] {
+  position: relative;
+  /* Room for the rule, taken whether or not it is there. */
+  padding-left: var(--space-3);
+  margin-left: calc(var(--space-3) * -1);
+}
+
+.body [data-saying]::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--plate-mustard);
+}
+
+.body [data-saying]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  left: 2px;
+  background: rgba(var(--plate-mustard-rgb), 0.07);
+  pointer-events: none;
+  /* Behind the words, never over them. */
+  z-index: -1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .body [data-saying]::before,
+  .body [data-saying]::after {
+    animation: saying var(--dur-state) var(--ease-settle) both;
+  }
+}
+
+@keyframes saying {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* Listen, in the figures row.
 
    Styled as the figure it stands in rather than as a button anywhere
