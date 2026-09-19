@@ -1,0 +1,44 @@
+# The voice worker, kept running.
+#
+# A user unit, not a system one: it needs no root, and installing it
+# per-user is what lets the whole thing be set up over ssh without a
+# password. Enable it with
+#
+#   systemctl --user enable --now voice-worker
+#   loginctl enable-linger $USER      # so it survives logout
+#
+# The environment file holds the Supabase URL and the service role key.
+# It is not in the repository and never should be: the service role
+# bypasses row level security, which is exactly why this process runs on
+# a machine the reader owns.
+
+[Unit]
+Description=Didactic: read lessons aloud
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=%h/.config/didactic/voice-worker.env
+ExecStart=%h/tts-venv/bin/python %h/didactic-voice/worker.py
+
+# Restart into the same wall is pointless, so back off between goes.
+# The worker already survives Supabase being unreachable on its own;
+# this is for the cases it cannot catch, like being killed.
+Restart=always
+RestartSec=15
+
+# Two cores, and the model is happiest with both -- but a lesson being
+# voiced should never make the machine unusable for anything else.
+Nice=10
+
+# The model and the ffmpeg it shells out to are the memory here. 3GB
+# total on this box, so a runaway is a reboot; this turns it into a
+# restart instead.
+MemoryMax=2G
+
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

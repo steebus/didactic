@@ -8,6 +8,7 @@ import { Highlighter } from '@/components/Highlighter'
 import { Contents } from '@/components/Contents'
 import { Answering } from '@/components/blocks/answering'
 import { useBench } from '@/components/Bench'
+import { usePlayer } from '@/components/Player'
 import { useWriteLesson } from '@/components/useWriteLesson'
 import { useTendLesson } from '@/components/useTendLesson'
 import { TendLesson } from '@/components/TendLesson'
@@ -159,6 +160,7 @@ export default function LessonSheet({
    */
   const said = useRef(false)
   const bench = useBench()
+  const player = usePlayer()
   const job = bench.jobFor('writing', id)
   const writing = job?.state === 'running'
   /**
@@ -572,6 +574,25 @@ export default function LessonSheet({
             <span className={styles.figure}>
               <span className={styles.figureLabel}>Length</span>
               <span className={styles.figureValue}>about {lesson.estimated_minutes} min</span>
+            </span>
+          )}
+          {/* Only once there is a whole lesson to say. Half a body read
+              aloud stops mid-sentence, and the reader cannot see that
+              coming the way they can on the page. */}
+          {body && data?.lesson.body_finished && (
+            <span className={styles.figure}>
+              <span className={styles.figureLabel}>Aloud</span>
+              <button
+                type="button"
+                className={styles.listen}
+                onClick={() => void player.listen({ id: lesson.id, title: lesson.title })}
+              >
+                {player.lessonId === lesson.id
+                  ? player.playing
+                    ? 'Pause'
+                    : 'Resume'
+                  : 'Listen'}
+              </button>
             </span>
           )}
           <span className={styles.figure}>

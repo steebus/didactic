@@ -31,8 +31,16 @@ const MUTATES = /export async function (POST|PATCH|PUT|DELETE)\b/
  * upload-url mints a signed URL and writes no row at all -- the shelf
  * changes when the bytes land and `/resources/uploaded` says so, and
  * that route does drop its tags.
+ *
+ * `audio` queues a lesson to be read aloud. It writes one row in
+ * `lesson_audio`, which is a queue for a worker on another machine and
+ * is read by the player over its own polling route -- no cached reader
+ * is built from it, and nothing about the lesson, the topic or the map
+ * changes because somebody pressed Listen. The exposure a lesson writes
+ * still comes from working it, through the route that already drops its
+ * tags.
  */
-const NO_CACHED_READS = ['auth', 'qualify', 'upload-url']
+const NO_CACHED_READS = ['auth', 'qualify', 'upload-url', 'audio']
 
 describe('cache invalidation', () => {
   // From this file, not the working directory: vitest runs from the

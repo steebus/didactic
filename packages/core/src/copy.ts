@@ -158,6 +158,23 @@ export const TENDINGS = [
 ]
 
 /**
+ * What the bench says while a lesson is being read aloud.
+ *
+ * Shorter than the others and deliberately so: voicing is the one job
+ * the reader does not wait out. The first piece is ready in about
+ * twenty seconds and the player starts then, with the rest arriving
+ * behind it -- so these are read once or twice, not held on for
+ * minutes, and the last of them is true for the whole of the listening
+ * rather than being a stall.
+ */
+export const VOICINGS = [
+  'Taking out what cannot be said aloud…',
+  'Cutting it into pieces…',
+  'Finding the voice…',
+  'Reading it aloud…',
+]
+
+/**
  * What a sheet says while a freshly sown bed is being started.
  *
  * A different job again: a route is laid through the first topic and

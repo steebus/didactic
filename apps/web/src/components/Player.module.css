@@ -1,0 +1,152 @@
+/* The player: a lesson being read aloud, from the foot of every sheet.
+
+   Docked at the foot and full width, unlike the bench's notices, which
+   take a corner. The difference is what each one is: a notice reports
+   on work and puts itself away, while this is a thing the reader is
+   using and keeps using while they walk around the catalogue. It is
+   furniture, not news, so it takes the whole edge and stays there. */
+.bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  /* The phone's own chin, so the controls are not under the home bar. */
+  padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+
+  background: var(--paper);
+  /* A rule along the top rather than a shadow: this is part of the
+     page's furniture, not a slip of paper laid over it. */
+  border-top: 1px solid var(--rule-strong);
+
+  animation: docked var(--dur-state) var(--ease-settle) both;
+}
+
+@keyframes docked {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bar {
+    animation: none;
+  }
+}
+
+/* What is playing. Takes the room that is left once the controls have
+   what they need, and gives it up first when there is none. */
+.what {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--step-0);
+  color: var(--ink);
+  text-decoration: none;
+  /* One line, whatever the lesson is called. A title that wrapped would
+     change the height of the bar, and the bench is standing on it. */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.title:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.where {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+.buttons {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.button,
+.play {
+  display: grid;
+  place-items: center;
+  /* Forty-four, which is the smallest thing a thumb hits reliably. The
+     player is the one surface in the catalogue used without looking at
+     it. */
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  color: var(--ink);
+  font-size: var(--step-0);
+  line-height: 1;
+  cursor: pointer;
+
+  transition: background var(--dur-state) var(--ease-settle);
+}
+
+.play {
+  border-color: var(--rule-strong);
+}
+
+.button:hover:not(:disabled),
+.play:hover {
+  background: rgba(var(--ink-rgb), 0.08);
+}
+
+.button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.button:focus-visible,
+.play:focus-visible {
+  outline: 2px solid var(--plate-ultramarine);
+  outline-offset: 2px;
+}
+
+/* How far in, along the very top edge of the bar.
+
+   Absolute rather than in the flow so that it cannot change the bar's
+   height: the bench stands on this bar, and a progress line that made
+   it a pixel taller would move every notice in the corner. */
+.track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -1px;
+  height: 2px;
+  background: rgba(var(--ink-rgb), 0.12);
+}
+
+.track::after {
+  content: '';
+  display: block;
+  height: 100%;
+  width: var(--played, 0%);
+  background: var(--plate-green);
+  transition: width 1s linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .track::after {
+    transition: none;
+  }
+}

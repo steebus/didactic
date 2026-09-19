@@ -154,6 +154,36 @@ export interface WrittenWhole {
   warnings: string[]
 }
 
+
+/** One piece of a lesson, said. */
+export interface SpokenChunk {
+  idx: number
+  seconds: number
+  text: string
+  /** Signed, and good for an hour. Null if signing failed. */
+  url: string | null
+}
+
+/** Where a lesson's voicing has got to. */
+export interface Voicing {
+  /** `none` means nobody has asked for this lesson to be read aloud. */
+  state: 'none' | 'queued' | 'voicing' | 'ready' | 'failed'
+  reason?: string | null
+  title?: string
+  /** How many pieces there will be. Null until the worker has decided. */
+  total: number | null
+  /** The pieces that exist now, in order. Grows while it runs. */
+  chunks: SpokenChunk[]
+}
+
+/** What queueing a lesson answers with. */
+export interface Queued {
+  ok: true
+  chunks: number
+  minutes: number
+  title: string
+}
+
 export const lessons = (api: Api) => {
   const writeBody = (id: string, regenerate = false) =>
     api.post<Written>(`/api/lessons/${id}/body`, { regenerate })
@@ -237,6 +267,19 @@ export const lessons = (api: Api) => {
 
     /** Every round of it, reporting as it goes. */
     writeWhole,
+
+
+    /**
+     * Ask for this lesson to be read aloud.
+     *
+     * Cheap and safe to call twice: the server dedupes on the lesson,
+     * the voice and the body it was written from, so a second press
+     * joins the first run rather than starting another.
+     */
+    listen: (id: string) => api.post<Queued>(`/api/lessons/${id}/audio`, {}),
+
+    /** How far the reading has got, and what can be played now. */
+    voicing: (id: string) => api.get<Voicing>(`/api/lessons/${id}/audio`),
 
     /**
      * Answer one of the lesson's questions. `key` is `questionKey` of the

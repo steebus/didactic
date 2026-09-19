@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { Fraunces, Archivo } from 'next/font/google'
 import './globals.css'
 import { Bench } from '@/components/Bench'
+import { Player } from '@/components/Player'
 import { TendNotice } from '@/components/TendNotice'
 
 const fraunces = Fraunces({
@@ -66,7 +67,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Suspense fallback={null}>
             <TendNotice />
           </Suspense>
-          {children}
+          {/* Inside the bench, because queueing a reading is a bench
+              job like any other; above the router, because that is the
+              whole point of it. A player mounted under a route would
+              stop the moment the reader opened the map, which is
+              exactly when they want it still running. The <audio>
+              element it owns is never re-parented, so navigation does
+              not interrupt a word. */}
+          <Player>{children}</Player>
         </Bench>
       </body>
     </html>

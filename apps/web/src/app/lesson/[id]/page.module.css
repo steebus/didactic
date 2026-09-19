@@ -106,6 +106,37 @@
   color: var(--paper);
 }
 
+/* Listen, in the figures row.
+
+   Styled as the figure it stands in rather than as a button anywhere
+   else in the catalogue: the row is a line of facts about the lesson --
+   its stage, its length, its state -- and this is the one that can be
+   pressed. A filled control here would read as the sheet's primary
+   action, which it is not; reading the lesson is. So it takes the plate
+   ink the values take, with a rule under it to say it is a control. */
+.listen {
+  padding: 0;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(var(--on-plate-rgb), 0.45);
+
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  color: var(--paper);
+  cursor: pointer;
+
+  transition: border-color var(--dur-state) var(--ease-settle);
+}
+
+.listen:hover {
+  border-bottom-color: var(--paper);
+}
+
+.listen:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 3px;
+}
+
 .headRule {
   height: 5px;
   background: var(--plate-mustard);

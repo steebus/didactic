@@ -32,11 +32,11 @@
  * the lesson -- the steps inside it are not separate news.
  */
 
-import { FILINGS, LABOURS, OPENINGS, TENDINGS, WRITINGS } from './copy'
+import { FILINGS, LABOURS, OPENINGS, TENDINGS, VOICINGS, WRITINGS } from './copy'
 
 export type JobState = 'running' | 'done' | 'failed'
 
-export type JobKind = 'sowing' | 'writing' | 'opening' | 'tending' | 'filing'
+export type JobKind = 'sowing' | 'writing' | 'opening' | 'tending' | 'filing' | 'voicing'
 
 export interface JobLike {
   kind: JobKind
@@ -80,7 +80,9 @@ export function jobTitle(job: JobLike): string {
             ? `Reading ${job.name} back`
             : job.kind === 'filing'
               ? 'Reading your entry back'
-              : `Writing ${job.name}`
+              : job.kind === 'voicing'
+                ? `Reading ${job.name} aloud`
+                : `Writing ${job.name}`
     case 'done':
       return job.kind === 'sowing'
         ? `${job.name} is sown`
@@ -90,7 +92,9 @@ export function jobTitle(job: JobLike): string {
             ? `${job.name} is in the garden`
             : job.kind === 'filing'
               ? 'Your entry is filed'
-              : `${job.name} is written`
+              : job.kind === 'voicing'
+                ? `${job.name} is ready to hear`
+                : `${job.name} is written`
     case 'failed':
       return job.kind === 'sowing'
         ? `${job.name} could not be sown`
@@ -100,7 +104,9 @@ export function jobTitle(job: JobLike): string {
             ? `${job.name} could not be read back`
             : job.kind === 'filing'
               ? 'Your entry was kept, but could not be read back'
-              : `${job.name} could not be written`
+              : job.kind === 'voicing'
+                ? `${job.name} could not be read aloud`
+                : `${job.name} could not be written`
   }
 }
 
@@ -129,6 +135,13 @@ export function jobNote(job: JobLike): string | null {
       // worked and the reader is on their way somewhere else. So the
       // note says what it is for rather than how long it takes.
       return 'Finding the two or three things worth keeping. Nothing to wait for.'
+    case 'voicing':
+      // The only job whose wait has a shape worth naming: the first
+      // piece arrives in about twenty seconds and the player starts
+      // there, so what is being waited for is the beginning, not the
+      // lesson. Saying that is what stops a reader sitting through
+      // eight minutes of silence they never had to wait for.
+      return 'The first piece in a few seconds. It starts playing as soon as there is something to hear, and keeps making the rest behind it.'
     case 'filing':
       // The entry is already saved by the time this starts, and saying
       // so is the whole job of this line: what is running is a reading
@@ -168,6 +181,8 @@ export function jobPhrases(kind: JobKind): string[] {
       return TENDINGS
     case 'filing':
       return FILINGS
+    case 'voicing':
+      return VOICINGS
   }
 }
 
@@ -200,6 +215,10 @@ export function jobWay(job: JobLike): string | null {
   // the reading wrote is printed and where any of it can be taken
   // back. That is the one thing worth looking at afterwards.
   if (job.kind === 'filing') return 'See what it filed'
+  // Voicing finishes into the player, which has been on screen and
+  // playing since the first piece landed. There is nowhere to send
+  // anyone: they are already listening to it.
+  if (job.kind === 'voicing') return null
   return 'Read it'
 }
 
