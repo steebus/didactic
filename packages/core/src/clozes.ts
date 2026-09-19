@@ -54,10 +54,13 @@ import { AGAIN, EASY, GOOD, HARD } from './fsrs'
  * A concept a lesson taught, and the tracker opened against it.
  *
  * Two to four per worked lesson. The concept is the unit the reader
- * thinks in -- "ability is separate from exposure" -- and the clozes
- * under it are two or more different ways of asking whether they still
- * hold it, so a concept is not passed on the strength of having
- * memorised one sentence's phrasing.
+ * thinks in -- "ability is separate from exposure" -- and the cards
+ * under it are one or two ways of asking whether they still hold it.
+ * It was two to four ways, and that made a lesson come back with a
+ * dozen cards or more: a backlog rather than an evening's tending, and
+ * a queue nobody can face is a queue nobody answers. A second card
+ * still earns its place where the concept has two different things to
+ * ask; a third was the same question in another shape.
  */
 export interface ClozeConcept {
   id: string

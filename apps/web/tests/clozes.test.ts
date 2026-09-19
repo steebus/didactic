@@ -154,8 +154,8 @@ describe('verifying what the model proposed', () => {
   })
 
   /* The concept's name is printed above every card under it, before the
-     reader answers — and the model chose that one name for two to four
-     different answers, which is exactly the mistake it cannot see. */
+     reader answers — and the model chose that one name for every card
+     under it, which is exactly the mistake it cannot see. */
   it('drops a card whose answer is sitting in its concept name', () => {
     const named: ProposedCard = {
       kind: 'qa',
@@ -170,13 +170,34 @@ describe('verifying what the model proposed', () => {
     expect(kept[0].cards.every(c => c.answer !== 'An honest record')).toBe(true)
   })
 
-  /* The name leaking is the concept's problem, not one card's: a name
-     that gives away most of what is under it takes the concept with it,
-     which is the same rule as a concept that cannot be asked two ways. */
-  it('drops the concept when its name gives away nearly all of it', () => {
+  /* A name that gives away every card under it takes the concept with
+     it — not as a rule of its own, but because a concept whose cards
+     have all gone has nothing left to plant. */
+  it('drops the concept when its name gives away every card under it', () => {
+    const second: ProposedCard = {
+      kind: 'qa',
+      question: 'What is the lightest exposure there is?',
+      answer: 'A mark',
+    }
     expect(
-      verify([concept({ name: 'Consuming a resource, not saving it' })], BODY)
+      verify(
+        [concept({ name: 'A mark, and consuming rather than saving', cards: [CLOZE, second] })],
+        BODY
+      )
     ).toEqual([])
+  })
+
+  /* The other half of the same rule, now the minimum is one: a name
+     that gives away one card of two costs that card and leaves the
+     concept standing on the other. */
+  it('keeps the concept on the card its name does not give away', () => {
+    const kept = verify(
+      [concept({ name: 'Consuming a resource, not saving it' })],
+      BODY
+    )
+    expect(kept).toHaveLength(1)
+    expect(kept[0].cards).toHaveLength(1)
+    expect(kept[0].cards[0].kind).toBe('qa')
   })
 
   /* A nudge that answers is not a nudge. It goes on its own, though:
@@ -209,8 +230,22 @@ describe('verifying what the model proposed', () => {
     expect(kept[0].cards[0].kind).toBe('truefalse')
   })
 
-  it('drops a concept left with fewer than two answerable cards', () => {
-    expect(verify([concept({ cards: [CLOZE] })], BODY)).toEqual([])
+  /* One card is enough to plant a concept: the maximum is two now, and
+     a floor of two would drop every concept whose second card happened
+     to fail a rule. */
+  it('keeps a concept carrying a single answerable card', () => {
+    const kept = verify([concept({ cards: [CLOZE] })], BODY)
+    expect(kept).toHaveLength(1)
+    expect(kept[0].cards).toHaveLength(1)
+  })
+
+  it('drops a concept left with no answerable cards at all', () => {
+    const wordy: ProposedCard = {
+      kind: 'cloze',
+      text: 'A request from Sydney pays for the physical length of that path every time.',
+      blank: 'the physical length of that path',
+    }
+    expect(verify([concept({ cards: [wordy] })], BODY)).toEqual([])
   })
 
   it('asks one question once, however it is punctuated', () => {
@@ -225,7 +260,10 @@ describe('verifying what the model proposed', () => {
      already standing are handed in, and anything matching one of them
      is dropped however the model was asked not to write it. */
   it('never asks again what the lesson already asks', () => {
-    const standing = ['Saving a resource is intent; only ———— it counts.']
+    const standing = [
+      'Saving a resource is intent; only ———— it counts.',
+      QA.question!,
+    ]
     expect(verify([concept()], BODY, standing)).toEqual([])
   })
 
@@ -262,13 +300,13 @@ describe('verifying what the model proposed', () => {
     expect(verify(many, BODY).length).toBeLessThanOrEqual(4)
   })
 
-  it('keeps at most four cards under one concept', () => {
+  it('keeps at most two cards under one concept', () => {
     const six = Array.from({ length: 6 }, (_, i) => ({
       kind: 'qa' as const,
       question: `Question number ${i} about exposure?`,
       answer: `Answer ${i}`,
     }))
-    expect(verify([concept({ cards: six })], BODY)[0].cards).toHaveLength(4)
+    expect(verify([concept({ cards: six })], BODY)[0].cards).toHaveLength(2)
   })
 
   it('drops a passage too long to answer in one go', () => {

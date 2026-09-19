@@ -98,9 +98,10 @@ function deferred<T>() {
 
    The gist was printed above the question, so that an answer was
    recalled from something rather than guessed from nothing. But a gist
-   belongs to the *concept*, and a concept carries two to four cards —
-   one sentence cannot be written to avoid all of their answers, so
-   sooner or later it hands one over. It did: "Jank is a stutter that
+   belongs to the *concept* and is written about the concept rather
+   than about any one card under it — one sentence cannot be written to
+   avoid the answers of every card it sits over, so sooner or later it
+   hands one over. It did: "Jank is a stutter that
    happens when the work needed to produce a frame overruns the ~16.7ms
    budget", printed above a card asking what the frame budget is. */
 describe('what a card shows before it is turned over', () => {

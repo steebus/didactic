@@ -15,10 +15,20 @@ import {
 /**
  * Reading a worked lesson for what is worth keeping.
  *
- * Two to four concepts, and two or more cards under each. The second
- * number is the one that matters: a concept asked one way is a phrasing
- * memorised, not a thing held, and the whole claim of this feature is
- * that it can tell those apart a month later.
+ * Two to four concepts, and one or two cards under each. The second
+ * number was two to four and it made too many cards: a lesson came back
+ * with a dozen or more, which is a backlog rather than an evening's
+ * tending, and a reader who cannot face the queue answers none of it.
+ * Asking a concept a second way is still worth having where the
+ * material genuinely affords one -- it is the difference between a
+ * phrasing memorised and a thing held -- so two is allowed and one is
+ * enough. What is no longer allowed is a concept asked four ways, which
+ * is where the padding was: the third and fourth cards were the same
+ * question in a different shape.
+ *
+ * A concept is no longer dropped for carrying only one card. That rule
+ * was the tighter minimum's other half, and keeping it against a
+ * maximum of two would throw away half of what the model writes.
  *
  * Until 046 the hard constraint was that a card quoted the lesson
  * **verbatim** — every passage was checked against the body and one
@@ -46,7 +56,7 @@ import {
  * the nudge, and the concept's name, which is printed above every card
  * under it. The concept's `gist` is the one thing exempt, because 047
  * moved it to the back of the card -- it belongs to a concept carrying
- * two to four cards, and no one sentence can be written to avoid all of
+ * one or two cards, and no one sentence can be written to avoid all of
  * their answers.
  *
  * Generation is **additive**. A lesson that already has cards is read
@@ -75,8 +85,8 @@ const MAX_CHARS = 60_000
  *  enough to be worth the two minutes, little enough to be done. */
 export const CONCEPTS_MIN = 2
 export const CONCEPTS_MAX = 4
-export const CARDS_PER_CONCEPT_MIN = 2
-export const CARDS_PER_CONCEPT_MAX = 4
+export const CARDS_PER_CONCEPT_MIN = 1
+export const CARDS_PER_CONCEPT_MAX = 2
 
 /** How many fronts already standing are shown to the model. Enough to
  *  cover a lesson tended three or four times over; past that the list
@@ -163,7 +173,7 @@ export function readingNote(report: VerifyReport): string | null {
   const starved = report.starved.length
     ? ` ${report.starved.length} ${
         report.starved.length === 1 ? 'concept' : 'concepts'
-      } went with them, for want of a second way to ask.`
+      } went with them, for want of a single answerable card.`
     : ''
 
   return `The model wrote ${report.wrote} ${
@@ -198,7 +208,7 @@ const TOOL = {
             },
             cards: {
               type: 'array',
-              description: `${CARDS_PER_CONCEPT_MIN} to ${CARDS_PER_CONCEPT_MAX} different ways of asking whether the reader still holds this concept. Pick whichever shape suits the material.`,
+              description: `${CARDS_PER_CONCEPT_MIN} or ${CARDS_PER_CONCEPT_MAX} ways of asking whether the reader still holds this concept — one unless the concept has a genuinely second thing to ask. Pick whichever shape suits the material.`,
               items: {
                 type: 'object',
                 properties: {
@@ -258,7 +268,7 @@ const BRIEF = `You are preparing spaced-repetition cards from a lesson the reade
 
 Find the ${CONCEPTS_MIN} to ${CONCEPTS_MAX} concepts that the lesson exists to teach — the things whose loss would mean the lesson had not stuck. Ignore scaffolding, orientation, and anything the lesson only mentions in passing.
 
-For each concept, write ${CARDS_PER_CONCEPT_MIN} to ${CARDS_PER_CONCEPT_MAX} cards. Choose the shape that fits the material rather than filling a quota of each: a definition wants a term-and-definition card, a named quantity or a direction of effect wants a cloze, a claim the reader is likely to have half-absorbed wants a true-or-false.
+For each concept, write ${CARDS_PER_CONCEPT_MIN} or ${CARDS_PER_CONCEPT_MAX} cards — one is the normal case, and a second only where the concept genuinely has two different things to ask rather than one thing asked twice. Choose the shape that fits the material rather than filling a quota of each: a definition wants a term-and-definition card, a named quantity or a direction of effect wants a cloze, a claim the reader is likely to have half-absorbed wants a true-or-false.
 
 **What a card is about.** Almost always a piece of key terminology and what it means — the term for the meaning, or the meaning for the term. The reader should finish the card able to use the word, not able to recognise a sentence.
 
@@ -282,7 +292,7 @@ The concept's \`gist\` is the exception and is shown on the back, after the answ
 
 **Mathematics** between $ or $$ is typeset when the card is shown. A cloze blank may take a whole formula, delimiters included, or stay clear of one — never part of one. "The equation $2^x = 100$ has no ordinary answer" may blank "$2^x = 100$" or "ordinary", never "100".
 
-Skip a concept rather than inventing cards for it. Fewer, answerable cards beat four concepts and two cards that cannot be answered.`
+Skip a concept rather than inventing cards for it, and write one card rather than a second that only rephrases the first. Fewer, answerable cards beat a lesson nobody can face tending.`
 
 /**
  * Read a lesson and propose what to tend.
@@ -406,8 +416,8 @@ export function verify(
       // *Easy*, honestly, and the scheduler files the card away for
       // four months on the strength of a reading. The concept's name
       // counts, because it is printed above every card under it -- and
-      // the model chose that name once for two to four different
-      // answers, which is exactly the shape of mistake it cannot see.
+      // the model chose that name once for every card under it, which
+      // is exactly the shape of mistake it cannot see.
       // A `truefalse` is exempt: its back is one of two words and a
       // statement containing *true* has revealed nothing.
       if (card.kind !== 'truefalse') {
@@ -451,9 +461,11 @@ export function verify(
       if (cards.length >= CARDS_PER_CONCEPT_MAX) break
     }
 
-    // A concept with one card is a phrasing memorised. Either it can be
-    // asked more than one way or it is not a concept this lesson taught
-    // well enough to test.
+    // A concept with nothing answerable under it is not a concept the
+    // reading can plant. It used to take two, on the reasoning that a
+    // concept asked one way is a phrasing memorised -- but the maximum
+    // is two now, so that floor would have dropped every concept whose
+    // second card failed a rule, which is most of what was starving.
     if (cards.length < CARDS_PER_CONCEPT_MIN) {
       // Counted apart from the cards themselves: this is the rule that
       // turns a handful of rejected cards into a whole concept lost,

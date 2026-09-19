@@ -167,8 +167,8 @@ export function cardColumns(card: WritableCard, body = ''): {
  * fired by marking a lesson worked, and a lesson is marked worked,
  * un-marked and marked again. Finding concepts already standing, it
  * says so and asks the model nothing -- otherwise every second press
- * would be another model call and another four cards over the same
- * material, and the garden would fill with duplicates faster than
+ * would be another model call and another handful of cards over the
+ * same material, and the garden would fill with duplicates faster than
  * anyone could tend it.
  *
  * `more` is the reader pressing *Write some more* under a lesson, and
@@ -185,7 +185,7 @@ export function cardColumns(card: WritableCard, body = ''): {
  * A concept the model names that is already standing is reused rather
  * than written twice, matched on its name with the case and spacing
  * taken off. The alternative is two "Latency" rows under one lesson
- * with two cards each, which reads to the reader as the app having
+ * under one lesson, which reads to the reader as the app having
  * forgotten what it did last week.
  */
 export async function sowClozes(

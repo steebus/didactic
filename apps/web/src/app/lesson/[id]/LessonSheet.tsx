@@ -473,7 +473,7 @@ export default function LessonSheet({
     }
 
     // A lesson marked read or worked is read back for the two to four
-    // concepts it taught, and a cloze or three under each. Skimming is
+    // concepts it taught, and a card or two under each. Skimming is
     // not: it is by definition not an exposure worth asking about, and
     // planting cards off a lesson nobody read would fill the garden
     // with sentences the reader has never met.

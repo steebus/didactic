@@ -52,10 +52,10 @@ const api = didactic()
  * for, and everything face-down here is arranged around that. The blank
  * is a rule of the right length rather than the word greyed out. A
  * true-or-false prints no verdict until it is turned over. The
- * concept's gist is on the **back** (047) -- it belongs to a concept
- * carrying two to four cards, so no one sentence can be written to
- * avoid all their answers, and it handed one over often enough to be a
- * bug rather than an accident. None of the back is in the DOM until the
+ * concept's gist is on the **back** (047) -- it is written about the
+ * concept rather than about any one card under it, so no one sentence
+ * can be written to avoid all their answers, and it handed one over
+ * often enough to be a bug rather than an accident. None of the back is in the DOM until the
  * reader asks for it.
  */
 export function ClozeCard({
@@ -236,9 +236,10 @@ export function ClozeCard({
           the correction 047 makes. It was printed face up, on the
           reasoning that an answer should be recalled from something
           rather than guessed from nothing -- but a gist belongs to the
-          *concept*, and a concept carries two to four cards. One
-          sentence cannot be written to avoid the answer to all of them,
-          so sooner or later it hands one over: "Jank is a stutter that
+          *concept*, and is written about the concept rather than about
+          any one of the cards under it. One sentence cannot be written
+          to avoid the answer to all of them, so sooner or later it
+          hands one over: "Jank is a stutter that
           happens when the work needed to produce a frame overruns the
           ~16.7ms budget", above a card asking what the frame budget is.
 

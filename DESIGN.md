@@ -1549,9 +1549,10 @@ The answer is not in the document at all until *Show it* is pressed.
 
 **Rule — the concept's gist is on the back, always.** It was above the question,
 on the reasoning that an answer should be recalled from something rather than
-guessed from nothing. But a gist belongs to the *concept*, and a concept carries
-two to four cards: one sentence cannot be written to avoid all of their answers,
-so sooner or later it hands one over — *"Jank is a stutter that happens when the
+guessed from nothing. But a gist belongs to the *concept* and is
+written about the concept rather than about any one card under it: one sentence
+cannot be written to avoid the answers of every card it sits over, so sooner or
+later it hands one over — *"Jank is a stutter that happens when the
 work needed to produce a frame overruns the ~16.7ms budget"*, above a card asking
 what the frame budget is. Printing it only when it happens not to leak would be
 worse, because absence is information: a reader who notices it missing has been
