@@ -122,11 +122,14 @@
   outline-offset: 2px;
 }
 
-/* How far in, along the very top edge of the bar.
+/* How far in, along the very top edge of the bar -- and the way to
+   change it.
 
    Absolute rather than in the flow so that it cannot change the bar's
    height: the bench stands on this bar, and a progress line that made
-   it a pixel taller would move every notice in the corner. */
+   it a pixel taller would move every notice in the corner. That is also
+   what lets the grab area be twenty times the line's height without
+   costing the bar a pixel. */
 .track {
   position: absolute;
   left: 0;
@@ -134,6 +137,83 @@
   top: -1px;
   height: 2px;
   background: rgba(var(--ink-rgb), 0.12);
+
+  transition: background var(--dur-state) var(--ease-settle);
+}
+
+/* The groove darkens under the pointer. The whole invitation, on a
+   surface whose resting state is a hairline: a line that got thicker
+   would have to move to do it, and this one is pinned to an edge. */
+.track:hover,
+.track[data-scrubbing] {
+  background: rgba(var(--ink-rgb), 0.22);
+}
+
+/* The scrubber itself, which paints nothing.
+
+   Everything visible is drawn from `--played` by the rules below; this
+   is here for the press, the drag, the arrow keys and the value a
+   screen reader reads. Laid over the line and far taller than it,
+   because a two-pixel target is not one -- the band reaches above the
+   bar's top edge, which is where a thumb aiming at a scrubber lands. */
+.seek {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 1.25rem;
+  margin: 0;
+  padding: 0;
+  transform: translateY(-50%);
+
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* Each engine names the track and the thumb differently, and each of
+   them has its own default appearance to take off. A rule missing here
+   is a grey slider sitting across the foot of the catalogue. */
+.seek::-webkit-slider-runnable-track {
+  height: 100%;
+  background: none;
+  border: none;
+}
+
+.seek::-moz-range-track {
+  height: 100%;
+  background: none;
+  border: none;
+}
+
+.seek::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  background: none;
+  border: none;
+}
+
+.seek::-moz-range-thumb {
+  width: 1.25rem;
+  height: 1.25rem;
+  background: none;
+  border: none;
+}
+
+.seek:focus {
+  outline: none;
+}
+
+/* Reached by keyboard, the control has to say so, and the bead alone is
+   too small to carry it. */
+.seek:focus-visible {
+  outline: 2px solid var(--plate-ultramarine);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 /* Scaled rather than widened.
@@ -154,8 +234,75 @@
   transition: transform 1s linear;
 }
 
+/* Where the reader is, as a bead on the line.
+
+   Translated rather than positioned: a percentage translate is of the
+   element's own width, and this element is the width of the track -- so
+   the bead lands at exactly the played fraction without `left` and
+   without layout. Its own mark is the child's, because the box doing
+   the travelling has to stay full width for that sum to hold. */
+.bead {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 0;
+  transform: translateX(calc(var(--played, 0) * 100%));
+  /* The same second as the line, so the two travel together. */
+  transition: transform 1s linear;
+  pointer-events: none;
+}
+
+.bead::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0.625rem;
+  height: 0.625rem;
+  margin: -0.3125rem 0 0 -0.3125rem;
+  border-radius: 50%;
+  background: var(--plate-green);
+  /* Against the paper rather than a border, so the bead reads on the
+     played line and the unplayed groove alike. */
+  box-shadow: 0 0 0 2px var(--paper);
+
+  /* Absent until it is wanted. At rest this is furniture reporting a
+     position, and a handle sitting on it all day would be the bar
+     asking to be touched every time the reader walked past it. */
+  opacity: 0;
+  transform: scale(0.6);
+  transition:
+    opacity var(--dur-state) var(--ease-settle),
+    transform var(--dur-state) var(--ease-settle);
+}
+
+.track:hover .bead::after,
+.track[data-scrubbing] .bead::after,
+.seek:focus-visible ~ .bead::after {
+  opacity: 1;
+  transform: none;
+}
+
+/* Under the thumb, both drop their glide.
+
+   The second of easing that makes a playing line advance smoothly is a
+   second of the line trailing behind the bead the reader is dragging,
+   which reads as the control not keeping up. While it is being dragged
+   the line is not advancing, it is being placed. */
+.track[data-scrubbing]::after,
+.track[data-scrubbing] .bead {
+  transition: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .track::after {
+  .track::after,
+  .bead {
     transition: none;
+  }
+
+  .bead::after {
+    transition: none;
+    transform: none;
   }
 }

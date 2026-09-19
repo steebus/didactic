@@ -166,3 +166,93 @@ export const LISTEN_NOTE: Record<ListenOffer, string> = {
   pause: 'Playing now',
   again: 'The reading failed — press to try again',
 }
+
+/* ---------------------------------------------------------------- */
+/* Position in a recording                                           */
+/* ---------------------------------------------------------------- */
+
+/**
+ * A piece of a recording, as far as *position* is concerned.
+ *
+ * Deliberately only the length. The player's chunks carry a path, a
+ * signed URL and the words that were said, and none of that has any
+ * bearing on where a given second falls -- so the seeking maths takes
+ * the one field it actually reads, and can be tested with a list of
+ * numbers.
+ */
+export interface SpokenSpan {
+  /** How long this piece plays, in seconds. */
+  seconds: number
+}
+
+/** Where a position in the whole lesson falls among its pieces. */
+export interface SpokenPlace {
+  /** Which piece is playing at that moment. */
+  index: number
+  /** How far into that piece, in seconds. */
+  offset: number
+}
+
+/**
+ * How long the whole recording runs.
+ *
+ * Only honest once every piece exists: while a lesson is still being
+ * made this is the length of what has been made so far, which is why
+ * the bar draws nothing until the recording is whole.
+ */
+export function spokenLength(pieces: SpokenSpan[]): number {
+  return pieces.reduce((n, p) => n + Math.max(0, p.seconds), 0)
+}
+
+/** How much of the lesson comes before a given piece. */
+export function secondsBefore(pieces: SpokenSpan[], index: number): number {
+  return spokenLength(pieces.slice(0, Math.max(0, index)))
+}
+
+/**
+ * Which piece holds a given second of the lesson, and where in it.
+ *
+ * The reader drags a bar that represents one recording; the recording
+ * is a dozen files. This is the whole of the translation between the
+ * two, and it is here rather than in the player because the phone's
+ * player is a different player over the same pieces.
+ *
+ * Both ends are clamped, and the last piece takes everything past the
+ * end. That is not defensiveness for its own sake: chunk lengths are
+ * stored rounded, so the sum of them is not exactly what plays, and a
+ * bar dragged to its own right-hand end can ask for a second that is
+ * fractionally past the last piece's stored length.
+ */
+export function placeAt(pieces: SpokenSpan[], seconds: number): SpokenPlace {
+  if (!pieces.length) return { index: 0, offset: 0 }
+
+  const want = Math.max(0, seconds)
+  let passed = 0
+
+  for (let i = 0; i < pieces.length; i++) {
+    const length = Math.max(0, pieces[i].seconds)
+    // The last piece is the end of the line: anything still unplaced by
+    // the time we reach it belongs to it, however the lengths round.
+    if (want < passed + length || i === pieces.length - 1) {
+      return { index: i, offset: Math.min(Math.max(0, want - passed), length) }
+    }
+    passed += length
+  }
+
+  // Unreachable: the loop returns on its last turn.
+  return { index: pieces.length - 1, offset: 0 }
+}
+
+/**
+ * Seconds as a clock, the way any player prints them.
+ *
+ * In core because both players print it, and because a position read
+ * aloud by a screen reader as "three hundred and forty-two" is a
+ * position nobody can use.
+ */
+export function spokenClock(seconds: number): string {
+  const whole = Math.max(0, Math.floor(seconds))
+  const mins = Math.floor(whole / 60)
+  const secs = whole % 60
+  return `${mins}:${secs.toString().padStart(2, '0')}`
+}

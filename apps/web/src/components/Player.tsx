@@ -12,6 +12,7 @@ import {
 import Link from 'next/link'
 import { didactic } from '@didactic/api'
 import type { SpokenChunk, Voicing } from '@didactic/api/lessons'
+import { placeAt, secondsBefore, spokenClock, spokenLength } from '@didactic/core/voicing'
 import { useBench } from './Bench'
 import styles from './Player.module.css'
 
@@ -89,6 +90,18 @@ export function Player({ children }: { children: React.ReactNode }) {
   const [at, setAt] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [elapsed, setElapsed] = useState(0)
+  /**
+   * Where the thumb is while the reader is dragging it. Null the rest
+   * of the time, when the bar simply reports where the audio is.
+   *
+   * Held apart from the seek itself so the drag is not the seek. A bar
+   * that sought on every pixel would load a new file each time the
+   * thumb crossed a piece -- a dozen of them across one drag -- and the
+   * reader would hear the lesson hopping about while they were still
+   * deciding where to put it. The thumb moves freely; letting go is
+   * what asks for anything.
+   */
+  const [scrub, setScrub] = useState<number | null>(null)
   const audio = useRef<HTMLAudioElement | null>(null)
   /**
    * Whether the reader means to be listening.
@@ -105,6 +118,27 @@ export function Player({ children }: { children: React.ReactNode }) {
    * value at the moment it is read, not a render in response to it.
    */
   const wants = useRef(false)
+  /**
+   * Where in the *next* piece to start, when the reader has arrived at
+   * it by dragging rather than by playing into it.
+   *
+   * A ref and not state because it is written by the seek and read by
+   * the effect that loads the file, and nothing renders from it. It
+   * cannot be applied at the moment of the seek either: the element has
+   * no duration until the new file's metadata has landed, and a
+   * `currentTime` written before then is discarded.
+   */
+  const landing = useRef<number | null>(null)
+  /**
+   * The same drag, for the handlers that end it to read.
+   *
+   * The state above is what the bar renders from; this is what letting
+   * go reads, because deciding what to seek to inside a state updater
+   * would be a side effect in a setter, which React is free to run
+   * twice -- and twice here is two seeks, the second from a value the
+   * first has already thrown away.
+   */
+  const dragging = useRef<number | null>(null)
   const { start } = useBench()
 
   /**
@@ -114,10 +148,7 @@ export function Player({ children }: { children: React.ReactNode }) {
    * knows about the piece it is playing. The reader is listening to a
    * lesson, not to file seven of twelve.
    */
-  const before = useMemo(
-    () => (now ? now.chunks.slice(0, at).reduce((n, c) => n + c.seconds, 0) : 0),
-    [now, at]
-  )
+  const before = useMemo(() => (now ? secondsBefore(now.chunks, at) : 0), [now, at])
 
   /**
    * How long the whole thing runs.
@@ -129,7 +160,7 @@ export function Player({ children }: { children: React.ReactNode }) {
    */
   const total = useMemo(() => {
     if (!now || now.state !== 'ready') return null
-    return now.chunks.reduce((n, c) => n + c.seconds, 0)
+    return spokenLength(now.chunks)
   }, [now])
 
   /** Ask what else has been made. */
@@ -255,11 +286,82 @@ export function Player({ children }: { children: React.ReactNode }) {
     if (el.dataset.path === chunk.path) return
     el.dataset.path = chunk.path
     el.src = chunk.url
+
+    // Where in this piece to start. Set by a seek that crossed into it;
+    // null when the reader simply played their way here, which starts
+    // at the beginning as it always did.
+    const offset = landing.current
+    landing.current = null
+
+    // Only once the file has a duration. `currentTime` written against
+    // an element that has not loaded its metadata is thrown away, which
+    // is a seek that silently starts the piece from the top.
+    let land: (() => void) | null = null
+    if (offset) {
+      land = () => {
+        el.currentTime = offset
+      }
+      el.addEventListener('loadedmetadata', land, { once: true })
+    }
+
     // `wants` rather than `playing`: at the moment a chunk ends the
     // element is paused, so the state says false while the reader is
     // very much still listening.
     if (wants.current) void el.play().catch(() => {})
+
+    // A source replaced before its metadata arrived would otherwise
+    // leave a listener that seeks the *next* piece to the offset meant
+    // for this one.
+    return () => {
+      if (land) el.removeEventListener('loadedmetadata', land)
+    }
   }, [now, at])
+
+  /**
+   * Put the recording at a given second of the lesson.
+   *
+   * The reader is dragging one bar across one lesson; the lesson is a
+   * dozen files. `placeAt` is the whole of the translation between the
+   * two, and it lives in core because the phone's player is a different
+   * player over the same pieces.
+   *
+   * Two cases, and they are not the same cost. Inside the piece already
+   * loaded, this is one write to `currentTime` and the audio moves
+   * immediately. Into another piece, the file has to be fetched, so the
+   * offset is left for the loader to apply once the metadata lands.
+   *
+   * `elapsed` is set here rather than waited for. The bar reads
+   * `before + elapsed`, and `before` moves the instant `at` does -- so
+   * leaving `elapsed` to the next `timeupdate` shows the new piece's
+   * position added to the old piece's offset for a frame, which is a
+   * thumb that jumps somewhere wrong before it settles somewhere right.
+   */
+  const seekTo = useCallback(
+    (seconds: number) => {
+      if (!now) return
+      const place = placeAt(now.chunks, seconds)
+      setElapsed(place.offset)
+
+      if (place.index === at) {
+        const el = audio.current
+        if (el) el.currentTime = place.offset
+        return
+      }
+
+      landing.current = place.offset
+      setAt(place.index)
+    },
+    [now, at]
+  )
+
+  /** Let go of the bar: the drag becomes a seek, or nothing if there
+   *  was no drag. */
+  const release = useCallback(() => {
+    const to = dragging.current
+    dragging.current = null
+    if (to !== null) seekTo(to)
+    setScrub(null)
+  }, [seekTo])
 
   /**
    * The lockscreen.
@@ -303,6 +405,14 @@ export function Player({ children }: { children: React.ReactNode }) {
       const a = el()
       if (a) a.currentTime += 15
     })
+    // The notification's own scrubber. It reports a second of the whole
+    // lesson, which is exactly what `seekTo` takes -- the lockscreen and
+    // the bar at the foot of the sheet are the same control in two
+    // places, and they had better agree about what a position is.
+    navigator.mediaSession.setActionHandler('seekto', details => {
+      if (typeof details.seekTime !== 'number') return
+      seekTo(details.seekTime)
+    })
 
     return () => {
       for (const action of [
@@ -312,6 +422,7 @@ export function Player({ children }: { children: React.ReactNode }) {
         'nexttrack',
         'seekbackward',
         'seekforward',
+        'seekto',
       ] as const) {
         try {
           navigator.mediaSession.setActionHandler(action, null)
@@ -320,12 +431,43 @@ export function Player({ children }: { children: React.ReactNode }) {
         }
       }
     }
-  }, [now])
+  }, [now, seekTo])
 
   useEffect(() => {
     if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return
     navigator.mediaSession.playbackState = playing ? 'playing' : 'paused'
   }, [playing])
+
+  /**
+   * Where the lockscreen's own bar sits.
+   *
+   * Without this the notification reads the element, which knows only
+   * about the piece it is playing -- so a twelve-minute lesson showed as
+   * forty seconds, twelve times over. The whole lesson is the honest
+   * duration, and only once every piece of it exists.
+   *
+   * Clamped, and not for tidiness: `setPositionState` throws when the
+   * position is past the duration, and chunk lengths are stored rounded,
+   * so the sum of them is a little under what actually plays.
+   */
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return
+    if (!navigator.mediaSession.setPositionState) return
+    if (total === null || total <= 0) {
+      navigator.mediaSession.setPositionState()
+      return
+    }
+    try {
+      navigator.mediaSession.setPositionState({
+        duration: total,
+        position: Math.min(Math.max(0, before + elapsed), total),
+        playbackRate: audio.current?.playbackRate || 1,
+      })
+    } catch {
+      // A browser that has the method and refuses the figures. The bar
+      // in the sheet is the one that matters; this is the courtesy copy.
+    }
+  }, [total, before, elapsed])
 
   /**
    * How much room the player takes, so the bench's notices stand on it
@@ -401,6 +543,15 @@ export function Player({ children }: { children: React.ReactNode }) {
     [listen, now, playing, at, sayThis]
   )
 
+  /**
+   * The position the bar is printing: the drag while there is one, and
+   * where the audio actually is the rest of the time.
+   *
+   * The clock beside the title reads from this too, so the figure and
+   * the thumb can never disagree about where the reader is putting it.
+   */
+  const shown = scrub ?? before + elapsed
+
   // Waiting for the piece after the one that just finished.
   const starved = Boolean(
     now && !playing && now.state !== 'ready' && at >= now.chunks.length - 1
@@ -432,8 +583,8 @@ export function Player({ children }: { children: React.ReactNode }) {
               {starved
                 ? 'Making the next piece…'
                 : total
-                  ? `${clock(before + elapsed)} of ${clock(total)}`
-                  : `${clock(before + elapsed)} · still being read`}
+                  ? `${spokenClock(shown)} of ${spokenClock(total)}`
+                  : `${spokenClock(shown)} · still being read`}
             </p>
           </div>
 
@@ -484,19 +635,64 @@ export function Player({ children }: { children: React.ReactNode }) {
             </button>
           </div>
 
-          {/* Position without a total while the lesson is still being
-              made: a bar that fills as the recording grows would run
-              backwards, which is worse than no bar. */}
+          {/* Position, and the way to change it.
+
+              Nothing at all while the lesson is still being made: a bar
+              that fills as the recording grows would run backwards, and
+              one you could drag would be offering to seek into minutes
+              that do not exist yet. The reader gets the clock and the
+              skip buttons until it is whole, which is what they had.
+
+              The line and the bead are drawn from `--played` and the
+              input paints nothing: it is there for the press, the drag,
+              the arrow keys and the label a screen reader reads. Native
+              rather than a div with handlers for the same reason the
+              topic sheet's fold is a `details` -- the element already
+              carries all of that, and a hand-rolled one has to be given
+              it a piece at a time. */}
           {total !== null && (
             <div
               className={styles.track}
-              // A factor rather than a percentage: the bar is scaled
-              // rather than widened, so it does not put the page
+              data-scrubbing={scrub !== null || undefined}
+              // A factor rather than a percentage: the line is scaled
+              // and the bead translated, so neither puts the page
               // through layout on every tick of a twelve-minute lesson.
               style={{
-                ['--played' as string]: Math.min(1, (before + elapsed) / total).toFixed(4),
+                ['--played' as string]: (total > 0
+                  ? Math.min(1, Math.max(0, shown / total))
+                  : 0
+                ).toFixed(4),
               }}
-            />
+            >
+              <input
+                type="range"
+                className={styles.seek}
+                min={0}
+                max={Math.max(1, Math.round(total))}
+                step={1}
+                value={Math.min(Math.round(shown), Math.max(1, Math.round(total)))}
+                onChange={e => {
+                  const to = Number(e.target.value)
+                  dragging.current = to
+                  setScrub(to)
+                }}
+                // Every way a drag ends. The pointer ones cover mouse
+                // and touch, `keyup` covers the arrows -- held down they
+                // repeat, and one seek at the end of the run beats forty
+                // on the way through it -- and `blur` covers being
+                // tabbed away from mid-drag.
+                onPointerUp={release}
+                onPointerCancel={release}
+                onKeyUp={release}
+                onBlur={release}
+                aria-label="Position in this lesson"
+                // Otherwise this is announced as its number: a reader
+                // hearing "four hundred and twelve" has been told the
+                // truth and nothing useful.
+                aria-valuetext={`${spokenClock(shown)} of ${spokenClock(total)}`}
+              />
+              <span className={styles.bead} aria-hidden="true" />
+            </div>
           )}
         </div>
       )}
@@ -521,10 +717,3 @@ function norm(text: string): string {
     .trim()
 }
 
-/** Seconds as a clock, the way any player prints them. */
-function clock(seconds: number): string {
-  const whole = Math.max(0, Math.floor(seconds))
-  const mins = Math.floor(whole / 60)
-  const secs = whole % 60
-  return `${mins}:${secs.toString().padStart(2, '0')}`
-}

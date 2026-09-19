@@ -3,6 +3,10 @@ import {
   canPlay,
   listenLabel,
   listenOffer,
+  placeAt,
+  secondsBefore,
+  spokenClock,
+  spokenLength,
   voicingProgress,
   NOT_VOICED,
   type VoicingStanding,
@@ -128,5 +132,98 @@ describe('listenLabel', () => {
 
   it('reads as an offer where there is no recording', () => {
     expect(listenLabel('make', 'Field Data', undefined)).toBe('Read Field Data aloud')
+  })
+})
+
+describe('placeAt', () => {
+  const pieces = [{ seconds: 30 }, { seconds: 45 }, { seconds: 20 }]
+
+  it('places the start of the lesson at the start of its first piece', () => {
+    expect(placeAt(pieces, 0)).toEqual({ index: 0, offset: 0 })
+  })
+
+  it('places a second inside the piece that holds it', () => {
+    expect(placeAt(pieces, 50)).toEqual({ index: 1, offset: 20 })
+  })
+
+  it('places a boundary at the start of the next piece, not the end of the last', () => {
+    // A bar dragged to exactly 30 seconds means "the second piece from
+    // its beginning", not "the first piece, finished".
+    expect(placeAt(pieces, 30)).toEqual({ index: 1, offset: 0 })
+    expect(placeAt(pieces, 75)).toEqual({ index: 2, offset: 0 })
+  })
+
+  it('clamps a position before the beginning', () => {
+    expect(placeAt(pieces, -20)).toEqual({ index: 0, offset: 0 })
+  })
+
+  it('gives the last piece everything past the end', () => {
+    // Chunk lengths are stored rounded, so a bar dragged to its own
+    // right-hand end can ask for a second past the last piece.
+    expect(placeAt(pieces, 95)).toEqual({ index: 2, offset: 20 })
+    expect(placeAt(pieces, 400)).toEqual({ index: 2, offset: 20 })
+  })
+
+  it('has somewhere to put a position in a recording with no pieces', () => {
+    expect(placeAt([], 12)).toEqual({ index: 0, offset: 0 })
+  })
+
+  it('steps over a piece of no length rather than landing on it', () => {
+    expect(placeAt([{ seconds: 10 }, { seconds: 0 }, { seconds: 10 }], 10)).toEqual({
+      index: 2,
+      offset: 0,
+    })
+  })
+
+  it('never hands back an offset longer than the piece it is in', () => {
+    for (const second of [0, 1, 29.9, 30, 74.99, 75, 94.9, 95]) {
+      const place = placeAt(pieces, second)
+      expect(place.offset).toBeLessThanOrEqual(pieces[place.index].seconds)
+      expect(place.offset).toBeGreaterThanOrEqual(0)
+    }
+  })
+
+  it('round-trips against the seconds before its own piece', () => {
+    // What the bar does: a position in, a place out, and the position
+    // read back off the place has to be the one that went in.
+    for (const second of [0, 7, 30, 44, 75, 90]) {
+      const place = placeAt(pieces, second)
+      expect(secondsBefore(pieces, place.index) + place.offset).toBeCloseTo(second, 5)
+    }
+  })
+})
+
+describe('spokenLength and secondsBefore', () => {
+  const pieces = [{ seconds: 30 }, { seconds: 45 }, { seconds: 20 }]
+
+  it('sums the whole recording', () => {
+    expect(spokenLength(pieces)).toBe(95)
+    expect(spokenLength([])).toBe(0)
+  })
+
+  it('sums what comes before a piece', () => {
+    expect(secondsBefore(pieces, 0)).toBe(0)
+    expect(secondsBefore(pieces, 2)).toBe(75)
+  })
+
+  it('treats an index past the end as the whole recording', () => {
+    expect(secondsBefore(pieces, 9)).toBe(95)
+  })
+})
+
+describe('spokenClock', () => {
+  it('prints minutes and padded seconds', () => {
+    expect(spokenClock(0)).toBe('0:00')
+    expect(spokenClock(9)).toBe('0:09')
+    expect(spokenClock(75)).toBe('1:15')
+    expect(spokenClock(600)).toBe('10:00')
+  })
+
+  it('floors rather than rounds, so a clock never reads past its own end', () => {
+    expect(spokenClock(59.9)).toBe('0:59')
+  })
+
+  it('never prints a negative clock', () => {
+    expect(spokenClock(-4)).toBe('0:00')
   })
 })

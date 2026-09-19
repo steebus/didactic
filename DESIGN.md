@@ -1053,6 +1053,52 @@ before it is finished, so *making* is a playable state, not a wait. A control
 that is visibly working and does nothing when pressed is the worst kind, and
 that is what the sheet did: the press fell through to the queueing path, which
 refuses a lesson already underway, and so did nothing at all.
+
+### Position in a recording → a line you can take hold of
+
+The player is docked at the foot of every sheet and its position ran along the
+top edge as a `2px` line: honest, and unreachable. A twelve-minute lesson with
+no way back to something said four minutes ago is a lesson you restart.
+
+| Part | Treatment |
+| --- | --- |
+| The groove | The full width at `rgba(var(--ink-rgb), 0.12)`, rising to `0.22` under the pointer and while dragging. |
+| The played line | `--plate-green`, `scaleX(var(--played))` from the left, `1s linear`. |
+| The bead | `0.625rem` of `--plate-green` ringed in `2px` of `--paper`, carried by `translateX(calc(var(--played) * 100%))` on a full-width box. Absent at rest; it fades and grows in on hover, focus and drag. |
+| The grab | A `1.25rem` `input[type=range]` centred on the line, painting nothing — track and thumb are stripped in all three engines. |
+
+**Rule — the resting state is a report, not a handle.** A bead sitting on the
+bar all day is the furniture asking to be touched every time the reader walks
+past it. The groove darkening is the whole invitation: the line is pinned to an
+edge, so it cannot get thicker without moving, and a control that moves when
+you approach it is harder to hit, not easier.
+
+**Rule — the target is twenty times the mark.** Two pixels is not a target. The
+band reaches above the bar's top edge, which is where a thumb aiming at a
+scrubber lands, and it costs the bar no height because the whole assembly is
+out of the flow — the bench stands on this bar, and a pixel here moves every
+notice in the corner.
+
+**Rule — a drag is not a seek.** The thumb moves freely and letting go is what
+asks for anything. The recording is a dozen files; a bar that sought as it went
+would fetch a new one each time the thumb crossed a piece, and the reader would
+hear the lesson hopping about while they were still deciding where to put it.
+Both the line and the bead drop their `1s` glide while dragging, for the
+opposite reason they have it: easing that makes a playing line advance smoothly
+is a line trailing a second behind the thumb.
+
+**Rule — nothing to take hold of until the recording is whole.** The bar draws
+no line at all while a lesson is still being made, and it draws no scrubber
+either: a handle over minutes that do not exist yet is an offer that cannot be
+met. The clock and the skip buttons carry it until then.
+
+**Rule — the position is a clock wherever it is read.** `aria-valuetext` carries
+`4:12 of 11:38`; without it the control announces its own number, and a reader
+told "two hundred and fifty-two" has been told the truth and nothing useful.
+The lockscreen gets the same figure through `setPositionState`, which is the
+whole lesson rather than the piece playing — without it the notification reads
+the element, and a twelve-minute lesson shows as forty seconds, twelve times
+over.
 ---
 
 ## 6. The Graph
