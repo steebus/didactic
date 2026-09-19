@@ -136,13 +136,22 @@
   background: rgba(var(--ink-rgb), 0.12);
 }
 
+/* Scaled rather than widened.
+
+   The bar advances every second for the length of a lesson, and `width`
+   is a layout property: animating it puts the page through layout on
+   every frame of every tick, for twelve minutes. `transform` is composited
+   instead, so the same line costs nothing to move. Scaled from the left
+   so it grows the way a progress bar grows. */
 .track::after {
   content: '';
   display: block;
   height: 100%;
-  width: var(--played, 0%);
+  width: 100%;
+  transform: scaleX(var(--played, 0));
+  transform-origin: left;
   background: var(--plate-green);
-  transition: width 1s linear;
+  transition: transform 1s linear;
 }
 
 @media (prefers-reduced-motion: reduce) {

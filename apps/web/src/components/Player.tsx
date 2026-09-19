@@ -384,7 +384,12 @@ export function Player({ children }: { children: React.ReactNode }) {
           {total !== null && (
             <div
               className={styles.track}
-              style={{ ['--played' as string]: `${((before + elapsed) / total) * 100}%` }}
+              // A factor rather than a percentage: the bar is scaled
+              // rather than widened, so it does not put the page
+              // through layout on every tick of a twelve-minute lesson.
+              style={{
+                ['--played' as string]: Math.min(1, (before + elapsed) / total).toFixed(4),
+              }}
             />
           )}
         </div>
