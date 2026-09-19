@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { lessonStandings, LESSON_LABEL, LESSON_NOTE } from '@didactic/core/lessonState'
 import type { LessonRow } from '@didactic/core/shapes'
+import { canPlay } from '@didactic/core/voicing'
 import { useBench } from '@/components/Bench'
 import { usePlayer } from '@/components/Player'
 import { ListenButton } from '@/components/ListenButton'
@@ -146,15 +147,20 @@ export function LessonList({
                   would be offering something that cannot happen. */}
               {lesson.has_body && (
                 <ListenButton
-                  state={standing[lesson.id]?.state ?? 'none'}
-                  done={standing[lesson.id]?.done ?? 0}
-                  total={standing[lesson.id]?.total ?? null}
+                  standing={standing[lesson.id]}
                   playing={player.lessonId === lesson.id && player.playing}
                   title={lesson.title}
                   onPress={() => {
-                    const here = standing[lesson.id]
-                    // Made already: this is a press on the player.
-                    if (here?.state === 'ready' || player.lessonId === lesson.id) {
+                    // Anything to play, or already loaded in the bar:
+                    // this is a press on the player. `canPlay` is true
+                    // on the first piece rather than the last, so a
+                    // lesson three pieces into an eight-minute reading
+                    // starts now -- which is the whole reason the
+                    // recording is made in pieces. It used to fall
+                    // through to `voice`, which refuses a lesson
+                    // already underway, and the press did nothing at
+                    // all against a control that was visibly working.
+                    if (canPlay(standing[lesson.id]) || player.lessonId === lesson.id) {
                       void player.listen({ id: lesson.id, title: lesson.title })
                       return
                     }

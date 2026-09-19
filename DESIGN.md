@@ -630,6 +630,29 @@ is two presses, and the second is only offered once the sheet can state what
 the first would move — the same shape the bed's own grubbing-out uses, in the
 same terracotta.
 
+### What was marked, folded shut
+
+*Marked* is the last section of a topic sheet and the longest: a topic worked
+through for a month carries fifty passages, each of them several lines, and
+they stood open by default between the route above them and the resources
+below. It is a `<details>` closed on load, its summary taking the section head
+the sheet's other sections take — the title, the rule, and the count at the
+right in the label register — with a `10×7` chevron beside the count that turns
+on the open.
+
+**Rule — a shut section still prints what it holds.** The count stays in the
+head whether it is open or not, because the figure is what the reader wants
+most of the time and a fold that hides it is a fold you have to open to read.
+
+**Rule — the gap under a head belongs to the open section.** A closed fold
+carrying a section's worth of space beneath it reads as a section that failed
+to load.
+
+**Rule — a fold is the browser's element, not a button and a boolean.** The
+topic sheet is rendered on the server, and `<details>` already carries the
+keyboard, the ARIA and find-in-page that a hand-rolled fold would have to be
+given one at a time. The same reasoning as the inbox's errand.
+
 ### Loose stock
 
 The one sheet in the catalogue that is not organised by subject, because it is
@@ -987,6 +1010,49 @@ Two presses, the same as a rewrite, because it is a minute of compute that
 cannot be taken back. The control sits under the row rather than inside it: a
 button inside an anchor is not a thing a browser or a screen reader can make
 sense of.
+
+### A recording's standing → a ring that closes
+
+Beside each written lesson on a topic sheet is a circle, and it is one control
+doing three jobs: offer the recording, say how far through the making it is,
+and play it. Those are the same question asked at three moments — *can I hear
+this yet* — so they are one mark rather than three.
+
+Six states, drawn at `22px` inside the `2.75rem` a thumb needs
+(`listenOffer`, `packages/core/src/voicing.ts`):
+
+| State | Treatment |
+| --- | --- |
+| **make** | A *broken* rim, `2.5 3` dashes in `currentColor` at `0.4` — an outline of a thing, not a thing. The glyph is `--ink-soft`. |
+| **waiting** | A quarter of the rim in `--plate-mustard`, turning once every `1.4s`, over a rim held at `0.2`. Glyph `--ink-faint`. |
+| **making** | The rim filling in `--plate-green`, clockwise from noon, against the same faint rim. Glyph `--ink`, because it can be pressed. |
+| **play** | The rim *closed*, `--plate-green` at full strength. Glyph `--ink`. |
+| **pause** | The same closed green ring, with the pause bars in it. |
+| **again** | The rim closed in `--plate-terracotta`, with a reopened circle as the glyph rather than a play triangle. |
+
+**Rule — a broken rim is an offer, a closed one is a recording.** This is the
+one distinction that has to survive being glanced at down a route of sixteen,
+and it is carried by the ring's *geometry* before its colour. The states were
+previously told apart by `--ink-soft` against `--ink` alone, which is not a
+difference anybody reads at arm's length: a topic whose lessons were all
+recorded and one where none were printed the same sixteen grey circles, and the
+only way to find out which was to press one.
+
+**Rule — the ring is the making, not the playing.** Position belongs to the bar
+at the foot of the sheet, which is the same everywhere. This circle answers *is
+it made yet* and stops changing the moment it is full.
+
+**Rule — the arc is drawn only from a figure that is known.** A lesson queued
+before the worker has counted its pieces knows neither the total nor the made,
+so it turns rather than filling: a ring drawn from a guess runs backwards when
+the real figure lands, which reads as a fault. Nothing is ever drawn past full.
+
+**Rule — the first piece is enough to press.** Generation outruns playback by
+design and the recording is made in pieces precisely so listening can start
+before it is finished, so *making* is a playable state, not a wait. A control
+that is visibly working and does nothing when pressed is the worst kind, and
+that is what the sheet did: the press fell through to the queueing path, which
+refuses a lesson already underway, and so did nothing at all.
 ---
 
 ## 6. The Graph

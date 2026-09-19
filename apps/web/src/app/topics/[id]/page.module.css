@@ -1092,6 +1092,77 @@
 
 /* --- Marked passages -------------------------------------------- */
 
+/* The section folds shut, and opens on a press. It is the last and the
+   longest thing on the sheet, and a month of a topic is fifty passages
+   between the route and the resources under them. */
+.fold {
+  /* The head keeps the rule every other section head carries, whether
+     the fold is open or shut, so a closed section still reads as a
+     section rather than as a stray line. */
+  margin: 0;
+}
+
+.foldHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  border-bottom: 2px solid var(--rule-strong);
+  padding-bottom: var(--space-2);
+  cursor: pointer;
+  /* Both of these: the second is Safari's, and without it the sheet
+     gets the browser's own triangle beside ours. */
+  list-style: none;
+}
+
+.foldHead::-webkit-details-marker {
+  display: none;
+}
+
+.foldHead:hover .sectionNote,
+.foldHead:hover .foldMark {
+  color: var(--ink);
+}
+
+.foldHead:focus-visible {
+  outline: 2px solid var(--plate-ultramarine);
+  outline-offset: 3px;
+}
+
+/* The count and the mark travel together at the end of the rule: the
+   figure is what the reader wants most of the time the section is shut,
+   and the mark is only how to see the rest of it. */
+.foldNote {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.foldMark {
+  flex: none;
+  color: var(--ink-faint);
+  transition:
+    transform var(--dur-state) var(--ease-settle),
+    color var(--dur-state) var(--ease-settle);
+}
+
+.fold[open] .foldMark {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .foldMark {
+    transition: none;
+  }
+}
+
+/* The gap under the head belongs to the open section, not to the shut
+   one: a closed fold with a section's worth of space under it reads as
+   a section that failed to load. */
+.fold[open] .marks {
+  margin-top: var(--space-4);
+}
+
 .marks {
   list-style: none;
   margin: 0;

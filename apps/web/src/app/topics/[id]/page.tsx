@@ -184,36 +184,76 @@ export default async function TopicPage({
                 happened to contain it. */}
             {highlights.length > 0 && (
               <section>
-                <div className={styles.sectionHead}>
-                  <h2 className={styles.sectionTitle}>Marked</h2>
-                  <span className={styles.sectionNote}>
-                    {highlights.length} {highlights.length === 1 ? 'mark' : 'marks'}
-                  </span>
-                </div>
-                <ul className={styles.marks}>
-                  {highlights.map(h => (
-                    <li key={h.id} className={styles.mark}>
-                      {/* A mark with no passage is a note on the
-                          lesson as a whole, and says so rather than
-                          printing an empty rule. */}
-                      {h.quote ? (
-                        <blockquote className={styles.markQuote}>{h.quote}</blockquote>
-                      ) : (
-                        <p className={styles.markAbout}>A note on this lesson</p>
-                      )}
-                      {h.note && (
-                        <NoteText markdown={h.note} className={styles.markNote} />
-                      )}
-                      {h.lesson && (
-                        <p className={styles.markFrom}>
-                          <Link href={`/lesson/${h.lesson.id}`} className={styles.inlineLink}>
-                            {h.lesson.title}
-                          </Link>
-                        </p>
-                      )}
-                    </li>
-                  ))}
-                </ul>
+                {/* Folded shut, and it opens on a press.
+
+                    This is the last thing on the sheet and the longest:
+                    a topic worked through for a month carries fifty
+                    passages, each of them several lines, and they sat
+                    open under the route by default — so the way to the
+                    resources below them was a screen of quotations the
+                    reader had already read once. The count in the head
+                    is what they are actually looking for most of the
+                    time, and it is printed whether it is open or not.
+
+                    A `details` rather than a state and a button: the
+                    sheet is a server component, the fold wants no
+                    JavaScript to work, and the browser's own element
+                    already carries the keyboard, the ARIA and the
+                    find-in-page that a hand-rolled one would have to be
+                    given. */}
+                <details className={styles.fold}>
+                  <summary className={styles.foldHead}>
+                    <h2 className={styles.sectionTitle}>Marked</h2>
+                    <span className={styles.foldNote}>
+                      <span className={styles.sectionNote}>
+                        {highlights.length} {highlights.length === 1 ? 'mark' : 'marks'}
+                      </span>
+                      {/* Drawn rather than typed, so it turns on the
+                          open rather than being swapped for another
+                          character. */}
+                      <svg
+                        className={styles.foldMark}
+                        width="10"
+                        height="7"
+                        viewBox="0 0 10 7"
+                        aria-hidden="true"
+                      >
+                        <path
+                          d="M1 1.4 L5 5.4 L9 1.4"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    </span>
+                  </summary>
+                  <ul className={styles.marks}>
+                    {highlights.map(h => (
+                      <li key={h.id} className={styles.mark}>
+                        {/* A mark with no passage is a note on the
+                            lesson as a whole, and says so rather than
+                            printing an empty rule. */}
+                        {h.quote ? (
+                          <blockquote className={styles.markQuote}>{h.quote}</blockquote>
+                        ) : (
+                          <p className={styles.markAbout}>A note on this lesson</p>
+                        )}
+                        {h.note && (
+                          <NoteText markdown={h.note} className={styles.markNote} />
+                        )}
+                        {h.lesson && (
+                          <p className={styles.markFrom}>
+                            <Link href={`/lesson/${h.lesson.id}`} className={styles.inlineLink}>
+                              {h.lesson.title}
+                            </Link>
+                          </p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               </section>
             )}
 

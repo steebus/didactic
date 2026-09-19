@@ -36,28 +36,91 @@
   border-radius: 50%;
 }
 
-/* A lesson already recorded is the one worth pressing, so it is the one
-   drawn in full ink rather than in the soft grey of an offer. */
-.listen[data-state='ready'] {
-  color: var(--ink);
-}
+/* --- The rim ----------------------------------------------------
 
-.listen[data-playing] {
-  color: var(--plate-green);
-}
-
-.listen[data-state='failed'] {
-  color: var(--plate-terracotta);
-}
+   The first thing about the control that can be read, and the one that
+   matters: a *broken* rim is an offer to make a recording, a *closed*
+   one is a recording that exists. That distinction survives being
+   glanced at down a list of sixteen, where a shift from soft grey to
+   ink does not — which is what a route of identical circles looked
+   like before, whether or not any of them had audio behind it. */
 
 .rim {
   stroke: currentColor;
   opacity: 0.25;
+  transition:
+    stroke var(--dur-state) var(--ease-settle),
+    opacity var(--dur-state) var(--ease-settle);
 }
 
-/* How much of the recording exists. Green because it is the same thing
-   the player's own progress line reports, and it should read as the
-   same fact in both places. */
+/* Nothing recorded: an outline of a thing rather than a thing. The
+   dashes are wide enough to count at this size — a finer dash reads as
+   a solid ring that has been drawn badly. */
+.listen[data-offer='make'] .rim {
+  stroke-dasharray: 2.5 3;
+  opacity: 0.4;
+}
+
+/* Recorded. The ring closes and takes the green the player's own
+   progress line carries, so "there is audio here" is the same colour
+   fact in the list and at the foot of the sheet. */
+.listen[data-offer='play'] .rim,
+.listen[data-offer='pause'] .rim {
+  stroke: var(--plate-green);
+  opacity: 1;
+}
+
+/* Failed. Closed, because an attempt was made, and in the ink the
+   catalogue uses for everything that went wrong. */
+.listen[data-offer='again'] .rim {
+  stroke: var(--plate-terracotta);
+  opacity: 1;
+}
+
+/* Underway: the rim is the ground the arc fills against, so it stays
+   faint and whole rather than dashed — the dashes are what "nothing
+   here" means, and this is not that. */
+.listen[data-offer='making'] .rim,
+.listen[data-offer='waiting'] .rim {
+  opacity: 0.2;
+}
+
+/* --- The glyph, and the ink of the whole control ----------------- */
+
+/* A lesson already recorded is the one worth pressing, so it is the one
+   drawn in full ink rather than in the soft grey of an offer. */
+.listen[data-offer='play'] {
+  color: var(--ink);
+}
+
+/* Something to play, and still growing. Full ink for the same reason —
+   it can be pressed, and pressing it starts the listening. */
+.listen[data-offer='making'] {
+  color: var(--ink);
+}
+
+.listen[data-offer='pause'] {
+  color: var(--plate-green);
+}
+
+.listen[data-offer='again'] {
+  color: var(--plate-terracotta);
+}
+
+/* Asked for, with nothing to play yet. The mark recedes so the turning
+   ring is what the eye takes: the state is the waiting, not the
+   triangle. */
+.listen[data-offer='waiting'] {
+  color: var(--ink-faint);
+  /* The press is not refused — pressing again is harmless and the
+     server dedupes it — but nothing about it is an invitation. */
+  cursor: default;
+}
+
+/* --- What has been made ------------------------------------------
+
+   Green because it is the same thing the player's own progress line
+   reports, and it should read as the same fact in both places. */
 .made {
   stroke: var(--plate-green);
   /* The ring fills a piece at a time, and a piece is half a minute:
@@ -97,4 +160,10 @@
   fill: currentColor;
   /* The mark is the button's; the ring around it has its own colours. */
   pointer-events: none;
+}
+
+/* The retry mark is drawn as strokes rather than filled, so it needs
+   the ink on the stroke and nothing on the fill. */
+.listen[data-offer='again'] .glyph {
+  fill: none;
 }

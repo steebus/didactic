@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { didactic } from '@didactic/api'
-import type { VoicingStanding } from '@didactic/api/lessons'
+import type { VoicingStanding } from '@didactic/core/voicing'
 
 const api = didactic()
 
@@ -53,6 +53,24 @@ export function useVoicings(lessonIds: string[]) {
    */
   const line = useRef<string[]>([])
 
+  /**
+   * Whether there is anything left to watch.
+   *
+   * The comment above says the poll stops when nothing is being made,
+   * and it did not: the interval was set on mount and cleared on
+   * unmount, so a topic whose lessons were all recorded -- or none of
+   * them -- asked the server the same question every five seconds for
+   * as long as the sheet was open. A sheet left open on a second tab is
+   * a long day of that.
+   *
+   * A ref checked inside the tick rather than a dependency of the
+   * effect: an interval torn down and rebuilt on each settle would fire
+   * a fresh round each time, which is the request this is here to
+   * avoid. The tick keeps running and costs nothing when there is
+   * nothing to ask about.
+   */
+  const quiet = useRef(false)
+
   const ask = useCallback(async (ids: string) => {
     if (!ids) return null
     const got = await api.lessons.voicings(ids.split(','))
@@ -76,6 +94,12 @@ export function useVoicings(lessonIds: string[]) {
       const busy = Object.values(lessons).some(
         l => l.state === 'queued' || l.state === 'voicing'
       )
+
+      // Nothing being made and nothing of ours waiting to be sent:
+      // there is no answer left that could change, so stop asking until
+      // the reader presses something.
+      quiet.current = !busy && line.current.length === 0
+
       // Nothing being made and something waiting: send the next one.
       //
       // Read from the ordinary closure and removed with a plain
@@ -93,7 +117,10 @@ export function useVoicings(lessonIds: string[]) {
 
     void round()
 
-    const tick = setInterval(() => void round(), POLL_MS)
+    const tick = setInterval(() => {
+      if (quiet.current) return
+      void round()
+    }, POLL_MS)
     return () => {
       live = false
       clearInterval(tick)
@@ -116,6 +143,10 @@ export function useVoicings(lessonIds: string[]) {
       const busy = Object.values(standing).some(
         l => l.state === 'queued' || l.state === 'voicing'
       )
+
+      // Something is about to be underway either way, so the poll has
+      // work again.
+      quiet.current = false
 
       if (busy) {
         if (!line.current.includes(lessonId)) line.current = [...line.current, lessonId]

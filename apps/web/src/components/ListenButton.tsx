@@ -1,20 +1,41 @@
 'use client'
 
+import {
+  listenLabel,
+  listenOffer,
+  voicingProgress,
+  LISTEN_NOTE,
+  type VoicingStanding,
+} from '@didactic/core/voicing'
 import styles from './ListenButton.module.css'
 
 /**
  * Play a lesson, and say how much of it there is to play.
  *
- * One control doing two jobs, because they are the same question asked
- * a moment apart: can I hear this, and how much of it can I hear yet.
- * A lesson takes minutes to voice and the reader who pressed it is
- * standing in front of a list of sixteen, so a control that only said
- * "queued" would leave them refreshing to find out.
+ * One control doing three jobs, because they are the same question
+ * asked at three moments: can I hear this, is it coming, how much of it
+ * is here yet. A lesson takes minutes to voice and the reader who
+ * pressed it is standing in front of a list of sixteen, so a control
+ * that only said "queued" would leave them refreshing to find out.
+ *
+ * What it is offering at any moment is decided in `core/voicing` rather
+ * than here, so the phone's route can draw the same circle from the
+ * same rule. This file is the drawing and nothing else.
  *
  * The ring is the generation, not the playback. Playback is the bar at
  * the foot of the sheet, which is the same everywhere and is where
  * position belongs; this circle answers "is it made yet" and stops
- * being interesting the moment it is full.
+ * changing the moment it is full.
+ *
+ * The states have to be told apart across a room, because the whole
+ * point is reading a route of sixteen at a glance:
+ *
+ *   make     a broken rim, faint -- an outline of a thing, not a thing
+ *   waiting  a quarter of the rim in mustard, turning
+ *   making   the rim filling in green, clockwise from noon
+ *   play     the rim closed, in green, at full strength
+ *   pause    the same closed ring, with the pause bars in it
+ *   again    the rim closed in terracotta
  *
  * Drawn as an SVG ring rather than a conic gradient so it has one
  * appearance in every browser and so the stroke can be the sheet's own
@@ -28,49 +49,47 @@ const R = (SIZE - STROKE) / 2
 const CIRCUMFERENCE = 2 * Math.PI * R
 
 export function ListenButton({
-  state,
-  done,
-  total,
+  standing,
   playing,
   onPress,
   title,
 }: {
-  state: 'none' | 'queued' | 'voicing' | 'ready' | 'failed'
-  /** Pieces made so far. */
-  done: number
-  /** Pieces there will be. Null before the worker has been told. */
-  total: number | null
+  /** Where this lesson stands as a recording. Absent for a lesson
+   *  nobody has asked about yet, which reads as no recording. */
+  standing: VoicingStanding | undefined
   /** Whether this lesson is the one playing right now. */
   playing: boolean
   onPress: () => void
   /** The lesson's name, for the label a screen reader reads. */
   title: string
 }) {
-  const made = total ? Math.min(1, done / total) : 0
-  const working = state === 'queued' || state === 'voicing'
+  const offer = listenOffer(standing, playing)
+  const made = voicingProgress(standing)
+  const label = listenLabel(offer, title, standing)
 
-  const label = playing
-    ? `Pause ${title}`
-    : state === 'ready'
-      ? `Listen to ${title}`
-      : working
-        ? `${title} is being read aloud${total ? `, ${done} of ${total} pieces` : ''}`
-        : state === 'failed'
-          ? `Try reading ${title} aloud again`
-          : `Read ${title} aloud`
+  // Still being made: either of the two states where the recording is
+  // coming but is not all here.
+  const underway = offer === 'making' || offer === 'waiting'
+  // The arc is drawn where there is a figure worth drawing. Once the
+  // ring is closed -- ready, playing, failed -- the rim carries the
+  // state in its own colour, and a second full circle over it would
+  // only fight with it.
+  const arc = underway && made !== null && made > 0
 
   return (
     <button
       type="button"
       className={styles.listen}
-      data-state={state}
-      data-playing={playing || undefined}
+      data-offer={offer}
       onClick={onPress}
       aria-label={label}
-      title={label}
+      title={`${label}\n${LISTEN_NOTE[offer]}`}
     >
       <svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`} aria-hidden="true">
-        {/* The rim: the circle the control always has. */}
+        {/* The rim: the circle the control always has. Whether it is
+            drawn broken or whole is the first thing about it that can
+            be read, and it is the one that matters -- a broken rim is
+            an offer, a closed one is a recording. */}
         <circle
           className={styles.rim}
           cx={SIZE / 2}
@@ -81,9 +100,8 @@ export function ListenButton({
         />
         {/* What has been made of it. Starts at twelve o'clock and goes
             round clockwise, which is the direction anything filling
-            goes. Hidden until there is something to say, so a lesson
-            nobody has asked for is a plain circle. */}
-        {working && total !== null && (
+            goes. */}
+        {arc && (
           <circle
             className={styles.made}
             cx={SIZE / 2}
@@ -97,10 +115,12 @@ export function ListenButton({
             transform={`rotate(-90 ${SIZE / 2} ${SIZE / 2})`}
           />
         )}
-        {/* Queued, with nothing made and nothing known: the ring turns
-            rather than sitting empty, because "waiting" and "broken"
-            look the same standing still. */}
-        {working && total === null && (
+        {/* Underway, with nothing to draw yet: either nothing has been
+            said, or the worker has not counted the pieces, so there is
+            no share to fill. The ring turns rather than sitting empty,
+            because "waiting" and "broken" look the same standing
+            still. */}
+        {underway && !arc && (
           <circle
             className={styles.waiting}
             cx={SIZE / 2}
@@ -122,6 +142,18 @@ export function ListenButton({
           <svg width="8" height="9" viewBox="0 0 8 9">
             <rect x="0" y="0" width="2.5" height="9" rx="0.5" />
             <rect x="5.5" y="0" width="2.5" height="9" rx="0.5" />
+          </svg>
+        ) : offer === 'again' ? (
+          // A failure is not an offer to play: pressing it asks for the
+          // reading again, and the mark says so rather than leaving a
+          // play triangle that would play nothing.
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor">
+            <path
+              d="M8.4 5a3.4 3.4 0 1 1-1-2.4"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            />
+            <path d="M8.6 0.9 V3.2 H6.3" strokeWidth="1.6" strokeLinejoin="round" />
           </svg>
         ) : (
           <svg width="8" height="9" viewBox="0 0 8 9">

@@ -3,6 +3,7 @@ import { roundPhrase } from '@didactic/core/copy'
 import type { LessonLink } from '@didactic/core/lessonLinks'
 import type { SourceLink } from '@didactic/core/sourceLinks'
 import type { LessonNeighbours } from '@didactic/core/lessonState'
+import type { VoicingStanding, VoicingState } from '@didactic/core/voicing'
 import type {
   Curriculum,
   ExposureDepth,
@@ -170,7 +171,7 @@ export interface SpokenChunk {
 /** Where a lesson's voicing has got to. */
 export interface Voicing {
   /** `none` means nobody has asked for this lesson to be read aloud. */
-  state: 'none' | 'queued' | 'voicing' | 'ready' | 'failed'
+  state: VoicingState
   reason?: string | null
   title?: string
   /** How many pieces there will be. Null until the worker has decided. */
@@ -179,14 +180,16 @@ export interface Voicing {
   chunks: SpokenChunk[]
 }
 
-/** Where one lesson stands as a recording, in a list of them. */
-export interface VoicingStanding {
-  state: 'none' | 'queued' | 'voicing' | 'ready' | 'failed'
-  /** Pieces made so far. */
-  done: number
-  /** Pieces there will be. Null until the worker has been told. */
-  total: number | null
-}
+/**
+ * Where one lesson stands as a recording, in a list of them.
+ *
+ * Re-exported rather than declared here. The shape is the wire's, but
+ * what it *means* -- whether there is anything to play, how far through
+ * the making it is -- is decided in `core/voicing`, and a second copy
+ * of the type would be a second place for the states to be listed and
+ * one of them to be forgotten.
+ */
+export type { VoicingState, VoicingStanding }
 
 /** What queueing a lesson answers with. */
 export interface Queued {
