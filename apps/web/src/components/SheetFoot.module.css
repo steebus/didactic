@@ -7,12 +7,27 @@
   max-width: var(--sheet-max);
   margin: 0 auto;
   padding: var(--space-4) var(--space-5);
-  /* The bench is fixed to the foot of the window and publishes how much
-     room its notices take. Anything that would otherwise sit under one
-     stands on it — the same contract the lesson reader's buttons use —
-     so the three glyphs are never covered by a notice about a job. */
-  padding-bottom: calc(
-    var(--space-4) + var(--bench-stack, 0px) + env(safe-area-inset-bottom, 0px)
+  /* Clear of any notice standing at the foot, and of the player when
+     it is open. Both are fixed to the bottom edge of the window and
+     both publish their own height; this is the last thing in the
+     document, so anything lying over the bottom edge covers it with
+     nothing left to scroll past — the player's 4.5rem would put the
+     three glyphs under the bar for as long as a recording ran.
+
+     A `max()` rather than a sum, and the same two arms the marking
+     desk reads. The player's height already carries the phone's chin
+     inside it, so adding the two would lift the foot a home indicator
+     too high. When there is no bar the second arm is nought plus a
+     gap, which never wins, so nothing moves at all.
+
+     The rule that the page is not arranged around the player holds:
+     what grows here is the padding *below* the glyphs, at the very end
+     of the page. Nothing already on the sheet moves, and no control
+     shifts out from under a thumb reaching for it — which is the cost
+     that rule exists to refuse. */
+  padding-bottom: max(
+    calc(var(--space-4) + var(--bench-stack, 0px) + env(safe-area-inset-bottom, 0px)),
+    calc(var(--player-bar, 0px) + var(--space-2))
   );
   display: flex;
   justify-content: flex-end;
