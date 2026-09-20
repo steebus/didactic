@@ -1,0 +1,29 @@
+/* The press bed below the trim of the sheet. Not a bar and not docked:
+   it is the end of the document, reached by reading to the end of it.
+   Nothing here is paper — the sheet's own background stops above this,
+   and what shows through is the bed the whole catalogue lies on. */
+
+.foot {
+  max-width: var(--sheet-max);
+  margin: 0 auto;
+  padding: var(--space-4) var(--space-5);
+  /* The bench is fixed to the foot of the window and publishes how much
+     room its notices take. Anything that would otherwise sit under one
+     stands on it — the same contract the lesson reader's buttons use —
+     so the three glyphs are never covered by a notice about a job. */
+  padding-bottom: calc(
+    var(--space-4) + var(--bench-stack, 0px) + env(safe-area-inset-bottom, 0px)
+  );
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 48rem) {
+  .foot {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+    /* On a phone the three sit under the middle of the sheet above
+       them rather than off in a corner the thumb has to reach for. */
+    justify-content: center;
+  }
+}

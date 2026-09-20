@@ -135,10 +135,37 @@ dark room.
 Three states, not two. An explicit choice stamps `data-theme` on the root
 element; the default setting stamps nothing and is separated only by
 `prefers-color-scheme`, so the media query is guarded as
-`:root:not([data-theme='light'])` rather than left bare. The choice is offered at
-the foot of the subjects sheet beside the way out — *System · Daylight · After
-dark* — and is stamped by an inline script in the head before the first paint,
-because a correction made after mount is a white flash in a dark room.
+`:root:not([data-theme='light'])` rather than left bare. It is stamped by an
+inline script in the head before the first paint, because a correction made
+after mount is a white flash in a dark room.
+
+**Rule — the lighting is chosen on the bed, at the foot of every sheet, and it
+is drawn rather than written.** It was three words — *System · Daylight · After
+dark* — at the foot of the subjects sheet beside the way out, which put a
+setting about the *room* on the paper, and put it on one sheet out of sixteen:
+the one nobody is standing on at the hour it matters, because the room goes
+dark while you are in a lesson or in the garden. It now stands on the strip of
+press bed below the trim of every sheet, which is the one surface the whole
+catalogue shares, rendered from `layout.tsx` outside `main` like everything
+else at the foot. Three glyphs take the room the line of prose took: a disc
+with rays, a disc bitten to a crescent, and a disc half lit for *ask the room*
+— one disc under three conditions rather than three unrelated pictures, and the
+half-lit one drawn at the crescent's radius rather than the sun's, since the
+sun carries rays the other two do not and matching on the circle alone left a
+row of three different sizes. The geometry is `core/lighting`, not markup, for
+the reason every drawn thing here keeps its geometry in `core`: the phone draws
+the same three off the same paths. The one in use is inked and sits in a struck
+disc — a fill rather than the underline the words wore, because there is no
+baseline under a drawing for a rule to belong to. Each glyph carries the
+sentence it used to say in words as its accessible name, since a control whose
+whole face is a drawing has no visible text to fall back on.
+
+**Rule — the bed map has no foot.** Every other route is a sheet: paper that
+ends, on a bed that carries the lighting underneath it. `/graph` is a canvas
+the exact height of the window, panned by dragging, and a strip added below it
+makes a page that scrolls — so a reader who overshoots a drag scrolls the
+catalogue instead of moving the map. The setting is reached by walking off the
+map, which is the one place in the catalogue where that is the cheaper cost.
 
 **What inverts and what does not.** The grounds and the ink ramp swap, and the
 press bed swaps *order* with the sheet: in daylight the bed is the darker of the

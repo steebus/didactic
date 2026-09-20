@@ -5,6 +5,7 @@ import './globals.css'
 import { Bench } from '@/components/Bench'
 import { Player } from '@/components/Player'
 import { TendNotice } from '@/components/TendNotice'
+import { SheetFoot } from '@/components/SheetFoot'
 
 const fraunces = Fraunces({
   subsets: ['latin'],
@@ -73,8 +74,29 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               stop the moment the reader opened the map, which is
               exactly when they want it still running. The <audio>
               element it owns is never re-parented, so navigation does
-              not interrupt a word. */}
-          <Player>{children}</Player>
+              not interrupt a word.
+
+              The sheet, then the strip of press bed under it. The foot
+              is the player's second child rather than its sibling
+              because the player renders what it is given first and its
+              own furniture after, so this lands at the end of the
+              document where a foot belongs -- and outside `main`,
+              which is the contract everything at the foot already
+              keeps.
+
+              Behind a boundary for the same reason the notice above
+              is: it reads the address it is standing at, to leave the
+              bed map alone, and a client hook that reads URL data in
+              the root layout blocks the static shell of every route in
+              the catalogue. No fallback, because a foot that streams
+              in a moment after the sheet is a foot arriving where it
+              was always going to be. */}
+          <Player>
+            {children}
+            <Suspense fallback={null}>
+              <SheetFoot />
+            </Suspense>
+          </Player>
         </Bench>
       </body>
     </html>

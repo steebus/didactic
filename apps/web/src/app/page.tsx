@@ -6,7 +6,6 @@ import { Emblem, slugify } from '@/components/Emblem'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
 import { SheetNav } from '@/components/SheetNav'
 import { LeaveLine } from '@/components/LeaveLine'
-import { LightingLine } from '@/components/LightingLine'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
 import { plate } from '@didactic/tokens'
@@ -341,10 +340,12 @@ export default async function Home() {
             ? `${data.pendingCount} awaiting your decision`
             : 'Nothing awaiting decision'}
         </span>
-        {/* Which light the sheet is printed under, and the way out of
-            the catalogue: both at the foot of the one sheet everything
-            starts from, both pressed about once a year. */}
-        <LightingLine />
+        {/* The way out of the catalogue, at the foot of the one sheet
+            everything starts from, pressed about once a year. The
+            lighting used to stand beside it and no longer does: it is
+            printed on the bed under every sheet now, because the room
+            goes dark while you are in a lesson or in the garden and
+            not on the catalogue front. */}
         <LeaveLine />
       </footer>
       </div>
