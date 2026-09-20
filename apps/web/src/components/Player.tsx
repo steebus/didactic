@@ -71,6 +71,21 @@ interface Controls {
   saying: string | null
   /** Jump the recording to the piece that says this, if there is one. */
   sayThis: (text: string) => void
+  /**
+   * Ask the bar to stand aside while something else needs the foot of
+   * the sheet -- the mark composer, which docks across it.
+   *
+   * The player gives way rather than the composer, and it gives way by
+   * folding rather than by moving: it is the background thing, and a
+   * reader writing a note about a passage is doing the foreground one.
+   * What it leaves behind is the same disc a reader gets by folding it
+   * themselves, standing on the panel.
+   *
+   * Says nothing about the reader's own fold, which survives it: a
+   * composer that opened and closed must not hand back a bar they had
+   * already put away.
+   */
+  standAside: (yes: boolean) => void
 }
 
 const Channel = createContext<Controls>({
@@ -79,6 +94,7 @@ const Channel = createContext<Controls>({
   playing: false,
   saying: null,
   sayThis: () => {},
+  standAside: () => {},
 })
 
 export function usePlayer(): Controls {
@@ -113,7 +129,19 @@ export function Player({ children }: { children: React.ReactNode }) {
    * player exists not to cause.
    */
   const [folded, setFolded] = useState(false)
+  /**
+   * Something else has the foot of the sheet, so the bar is down to its
+   * disc until that thing is done.
+   *
+   * Apart from `folded` because the two are different facts: one is the
+   * reader putting the player away, the other is the player giving way.
+   * Collapsed into one they would be indistinguishable on the way back
+   * up -- a composer closing would hand back a bar the reader had
+   * already folded, every time.
+   */
+  const [aside, setAside] = useState(false)
   const audio = useRef<HTMLAudioElement | null>(null)
+  const bar = useRef<HTMLDivElement | null>(null)
   /**
    * Whether the reader means to be listening.
    *
@@ -191,8 +219,9 @@ export function Player({ children }: { children: React.ReactNode }) {
         // Folded away, the press is about the lesson rather than about
         // the transport: show the bar again and leave it playing, since
         // a pause the reader cannot see is a player that has broken.
-        if (folded) {
+        if (folded || aside) {
           setFolded(false)
+          setAside(false)
           return
         }
         if (el.paused) {
@@ -259,7 +288,7 @@ export function Player({ children }: { children: React.ReactNode }) {
       })
       setAt(0)
     },
-    [now, folded, refresh, start]
+    [now, folded, aside, refresh, start]
   )
 
   /**
@@ -563,6 +592,55 @@ export function Player({ children }: { children: React.ReactNode }) {
     [now, at]
   )
 
+  const standAside = useCallback((yes: boolean) => setAside(yes), [])
+
+  /** Whether the bar itself is showing, as against the disc or nothing. */
+  const barUp = Boolean(now) && !folded && !aside
+
+  /**
+   * How tall the bar is, for the marking desk to clear.
+   *
+   * Measured rather than written down: it is a row of 44px controls in
+   * padding plus the phone's own chin, and a number copied into a
+   * stylesheet is a number that goes wrong the first time any of those
+   * changes. The bench measures itself the same way.
+   *
+   * This is *not* `--foot-bar`, and deliberately so. That is the
+   * contract for standing on something docked, and everything reading
+   * it moved when a recording started. Only the desk reads this one,
+   * through a `max()` that leaves it exactly where it was whenever
+   * there is no bar -- two buttons lifting clear, rather than the foot
+   * of every sheet in the catalogue re-laying itself.
+   */
+  useEffect(() => {
+    const node = bar.current
+    const root = document.documentElement
+    if (!node || !barUp) {
+      root.style.removeProperty('--player-bar')
+      return
+    }
+
+    const measure = () => {
+      root.style.setProperty('--player-bar', `${node.getBoundingClientRect().height}px`)
+    }
+    measure()
+
+    if (typeof ResizeObserver === 'undefined') {
+      // The one measurement stands. A bar whose height changes is a bar
+      // whose title wrapped, and it is built not to.
+      return () => {
+        root.style.removeProperty('--player-bar')
+      }
+    }
+
+    const observer = new ResizeObserver(measure)
+    observer.observe(node)
+    return () => {
+      observer.disconnect()
+      root.style.removeProperty('--player-bar')
+    }
+  }, [barUp])
+
   const controls = useMemo(
     () => ({
       listen,
@@ -570,8 +648,9 @@ export function Player({ children }: { children: React.ReactNode }) {
       playing,
       saying: playing ? (now?.chunks[at]?.text ?? null) : null,
       sayThis,
+      standAside,
     }),
-    [listen, now, playing, at, sayThis]
+    [listen, now, playing, at, sayThis, standAside]
   )
 
   /**
@@ -604,7 +683,7 @@ export function Player({ children }: { children: React.ReactNode }) {
         preload="auto"
       />
 
-      {now && folded && (
+      {now && (folded || aside) && (
         /* Folded: a disc in the corner, still reporting.
 
            It stands on the bench rather than over it -- the bench
@@ -615,7 +694,13 @@ export function Player({ children }: { children: React.ReactNode }) {
         <button
           type="button"
           className={styles.folded}
-          onClick={() => setFolded(false)}
+          // Clears both reasons the bar is down. Pressed while a
+          // composer has the foot, the reader is asking for the player
+          // over it, which is their call to make.
+          onClick={() => {
+            setFolded(false)
+            setAside(false)
+          }}
           aria-label={`Show the player — ${now.title}`}
           title={`${now.title} — ${playing ? 'playing' : 'paused'}`}
           style={{
@@ -659,8 +744,33 @@ export function Player({ children }: { children: React.ReactNode }) {
         </button>
       )}
 
-      {now && !folded && (
-        <div className={styles.bar} role="region" aria-label="Lesson audio">
+      {barUp && now && (
+        <div className={styles.bar} ref={bar} role="region" aria-label="Lesson audio">
+          {/* First on the bar, before the lesson's name.
+
+              It is the one control here that is about the bar rather
+              than about the recording, so it stands apart from the
+              transport rather than at the end of it -- where it sat
+              next to ✕, which is the press that cannot be taken back,
+              at the corner a thumb reaches for without looking. */}
+          <button
+            type="button"
+            className={styles.fold}
+            onClick={() => setFolded(true)}
+            aria-label="Fold the player away"
+            title="Fold the player away — it keeps playing"
+          >
+            <svg width="12" height="8" viewBox="0 0 12 8" aria-hidden="true" fill="none">
+              <path
+                d="M1 1.5 L6 6.5 L11 1.5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+
           <div className={styles.what}>
             <Link href={`/lesson/${now.lessonId}`} className={styles.title}>
               {now.title}
@@ -710,23 +820,6 @@ export function Player({ children }: { children: React.ReactNode }) {
               aria-label="On a piece"
             >
               ⏭
-            </button>
-            <button
-              type="button"
-              className={styles.button}
-              onClick={() => setFolded(true)}
-              aria-label="Fold the player away"
-              title="Fold the player away — it keeps playing"
-            >
-              <svg width="12" height="8" viewBox="0 0 12 8" aria-hidden="true" fill="none">
-                <path
-                  d="M1 1.5 L6 6.5 L11 1.5"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
             </button>
             <button
               type="button"

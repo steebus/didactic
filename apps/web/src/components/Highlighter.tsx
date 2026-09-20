@@ -9,6 +9,7 @@ import type { Highlight as Mark } from '@didactic/core/types'
 import { paintMarks } from '@/lib/paintMarks'
 import { paintClozes } from '@/lib/paintClozes'
 import { panelSpot, pinSpot, type Spot } from '@didactic/core/markAnchor'
+import { usePlayer } from '@/components/Player'
 import type { ClozeCard as Card } from '@didactic/core/clozes'
 import { cardAnchor } from '@didactic/core/clozes'
 import { ClozeCard } from './ClozeCard'
@@ -644,6 +645,84 @@ export function Highlighter({
     `${styles.composer}${big ? ` ${styles.big}` : docked(spot) ? ` ${styles.docked}` : ''}`
 
   /**
+   * Whether a panel is standing across the foot of the screen.
+   *
+   * Which is the one case that collides with the player: a docked panel
+   * takes the bottom edge, full width on a phone and the near corner on
+   * anything wider, and the bar is already there. Opened out (`big`) is
+   * not that -- those take the side of the window, like the mark list,
+   * and the foot is left alone.
+   */
+  const overTheFoot =
+    !big &&
+    Boolean(
+      (pending && docked(at)) ||
+        (openCloze && docked(openCloze.at)) ||
+        (open && docked(open.at))
+    )
+
+  /**
+   * The docked panel itself, so its height can be published.
+   *
+   * State rather than a ref: three different panels render through this
+   * and swapping one for another has to re-run the measuring, which a
+   * ref quietly would not -- it would leave the observer watching a
+   * node that is no longer on the page.
+   */
+  const [footPanel, setFootPanel] = useState<HTMLDivElement | null>(null)
+
+  const player = usePlayer()
+  const { standAside } = player
+
+  /**
+   * Writing about a passage is the foreground job; a recording running
+   * in the background is not. So the player gives way to this rather
+   * than the other way round, and it gives way by folding to its disc
+   * rather than by anything moving.
+   */
+  useEffect(() => {
+    standAside(overTheFoot)
+    return () => standAside(false)
+  }, [overTheFoot, standAside])
+
+  /**
+   * How much of the foot the panel has taken, for the player's disc to
+   * stand on -- the same arrangement the bench and the marking desk
+   * already have between them.
+   *
+   * Measured, because a panel is as tall as the passage it is quoting
+   * and the note being written into it, and it grows as the reader
+   * types.
+   */
+  useEffect(() => {
+    if (!footPanel || !overTheFoot) {
+      document.body.style.removeProperty('--mark-panel')
+      return
+    }
+
+    const measure = () => {
+      document.body.style.setProperty(
+        '--mark-panel',
+        `${footPanel.getBoundingClientRect().height}px`
+      )
+    }
+    measure()
+
+    if (typeof ResizeObserver === 'undefined') {
+      return () => {
+        document.body.style.removeProperty('--mark-panel')
+      }
+    }
+
+    const observer = new ResizeObserver(measure)
+    observer.observe(footPanel)
+    return () => {
+      observer.disconnect()
+      document.body.style.removeProperty('--mark-panel')
+    }
+  }, [footPanel, overTheFoot])
+
+  /**
    * Anything measured against the window is hung off the body rather
    * than left in the prose.
    *
@@ -1047,7 +1126,7 @@ export function Highlighter({
 
       {pending &&
         stand(
-          <div className={panelClass(at)} style={placed(at)} role="dialog">
+          <div ref={setFootPanel} className={panelClass(at)} style={placed(at)} role="dialog">
             <div className={styles.panelHead}>
               {pending.quote ? (
                 <blockquote className={styles.quote}>{pending.quote}</blockquote>
@@ -1132,7 +1211,12 @@ export function Highlighter({
           survive. */}
       {openCloze &&
         stand(
-          <div className={panelClass(openCloze.at)} style={placed(openCloze.at)} role="dialog">
+          <div
+            ref={setFootPanel}
+            className={panelClass(openCloze.at)}
+            style={placed(openCloze.at)}
+            role="dialog"
+          >
             <div className={styles.panelHead}>
               <p className={styles.about}>Tended here</p>
               <button
@@ -1172,7 +1256,12 @@ export function Highlighter({
 
       {open &&
         stand(
-          <div className={panelClass(open.at)} style={placed(open.at)} role="dialog">
+          <div
+            ref={setFootPanel}
+            className={panelClass(open.at)}
+            style={placed(open.at)}
+            role="dialog"
+          >
             {editing ? (
               <>
                 <div className={styles.panelHead}>

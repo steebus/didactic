@@ -1116,7 +1116,7 @@ over the foot instead. `--foot-bar` is left in place rather than deleted: it is
 still the right contract for anything genuinely docked, which this is not.
 
 **Rule — what lies over the page can be got out of the way, by a press.** A
-minimise control beside *stop*, wearing a chevron down, folds the bar to a
+minimise control wearing a chevron down folds the bar to a
 `2.75rem` disc at the near corner — `--paper`, lifted on a shadow, the played
 fraction drawn round its rim in `--plate-green`, a chevron up in the middle.
 The recording keeps running: the `audio` element is never unmounted and never
@@ -1133,6 +1133,36 @@ nobody.
 **Rule — a fold is about the recording in hand, not a setting.** Starting
 another lesson opens as a bar, and so does stopping and starting again. A
 reader who folded one lesson away has said nothing about the next.
+
+**Rule — the control that changes the furniture stands apart from the ones
+that change the recording.** The fold is first on the bar, before the lesson's
+name, with the transport and *stop* at the other end. It sat beside ✕ — the one
+press here that cannot be taken back — in the corner a thumb reaches for
+without looking.
+
+**Rule — the player gives way to the mark composer, and gives way by
+folding.** A composer docked across the foot is the foreground job; a recording
+running behind it is not. So the bar stands aside of its own accord
+(`standAside`, on the player's own channel) and leaves the disc, which stands
+on the panel through a published `--mark-panel` the way it stands on the bench
+through `--bench-stack`. Nothing of the composer's moves and nothing of it is
+covered. Pressing the disc still brings the bar back over the panel: the reader
+asked for it.
+
+**Rule — standing aside and being folded are two facts, not one.** The reader
+putting the player away and the player giving way have to be told apart, or a
+composer that opened and closed hands back a bar that had already been folded,
+every time.
+
+**Rule — the marking desk is the one thing that lifts for the bar.** Its two
+buttons sit `--space-5` up, inside the bar's `4.5rem`, so they have always
+stood over the player's own controls. They read `--player-bar` — the bar's
+measured height, published only while it is showing — through a `max()`, so
+they are exactly where they were whenever there is no bar and lift clear when
+there is. `--player-bar` is not `--foot-bar`: the point of a second variable is
+that two buttons move rather than the foot of every sheet, and the bar's height
+already carries the phone's chin inside it, so a sum would put them a home
+indicator too high.
 
 ### Whether a lesson has been recorded, in its own head
 

@@ -122,6 +122,47 @@
   outline-offset: 2px;
 }
 
+/* Folding the bar away: first on it, before the lesson's name.
+
+   The one control on the bar that is about the bar rather than about
+   the recording, so it stands at the other end from the transport
+   rather than at the end of it -- it sat beside ✕, which is the press
+   that cannot be taken back, in the corner a thumb reaches for without
+   looking. Same size and same manners as the transport buttons, in the
+   quieter ink of something that is furniture about furniture. */
+.fold {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  /* The bar's own padding on the left would put this a full gutter in
+     from the edge; it is a corner control, so it takes the gutter back
+     and keeps its 44px of target. */
+  margin-left: calc(var(--space-4) * -1 + var(--space-1));
+
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  color: var(--ink-soft);
+  cursor: pointer;
+
+  transition:
+    background var(--dur-state) var(--ease-settle),
+    color var(--dur-state) var(--ease-settle);
+}
+
+.fold:hover {
+  color: var(--ink);
+  background: rgba(var(--ink-rgb), 0.08);
+}
+
+.fold:focus-visible {
+  outline: 2px solid var(--plate-ultramarine);
+  outline-offset: 2px;
+}
+
 /* How far in, along the very top edge of the bar -- and the way to
    change it.
 
@@ -325,8 +366,14 @@
 .folded {
   position: fixed;
   left: var(--space-4);
-  bottom: calc(
-    var(--bench-stack, 0px) + env(safe-area-inset-bottom, 0px) + var(--space-4)
+  /* Standing on whichever of the two has the foot: a notice, or a mark
+     composer docked across it. Both publish their own height, and the
+     disc takes the taller -- a sum would stack it on things that are
+     not both there, since on a phone the composer covers the corner the
+     bench is in. */
+  bottom: max(
+    calc(var(--bench-stack, 0px) + env(safe-area-inset-bottom, 0px) + var(--space-4)),
+    calc(var(--mark-panel, 0px) + var(--space-2))
   );
   z-index: 50;
 

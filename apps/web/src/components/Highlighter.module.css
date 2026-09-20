@@ -181,11 +181,26 @@
    the page. */
 .desk {
   position: sticky;
-  /* Clear of the phone's own bar at the foot of the screen, and of any
-     notice standing at the foot. On a wide screen the bench takes the
-     other corner and `--bench-stack` is not applied, so the buttons sit
-     where they always did. */
-  bottom: calc(var(--space-5) + env(safe-area-inset-bottom, 0px));
+  /* Clear of the phone's own bar at the foot of the screen, of any
+     notice standing at the foot, and of the player when it is open. On
+     a wide screen the bench takes the other corner and `--bench-stack`
+     is not applied, so the buttons sit where they always did.
+
+     A `max()` rather than a sum, and `--player-bar` rather than
+     `--foot-bar`. The player's height already carries the phone's chin
+     inside it, so adding the two would put these two buttons a home
+     indicator too high -- and the whole point of the second variable is
+     that only these two read it. When there is no bar the second arm is
+     nought plus a gap, which never wins, so nothing moves at all.
+
+     They do move when a recording starts, which is the one place that
+     trade is worth making: they sat inside the bar's 4.5rem and always
+     have, so the alternative is two buttons permanently over the
+     player's own controls. */
+  bottom: max(
+    calc(var(--space-5) + env(safe-area-inset-bottom, 0px)),
+    calc(var(--player-bar, 0px) + var(--space-2))
+  );
   z-index: 4;
   display: flex;
   justify-content: flex-end;
@@ -607,8 +622,9 @@
    with nothing to report the desk sits where it otherwise would. */
 @media (max-width: 40rem) {
   .desk {
-    bottom: calc(
-      var(--space-5) + env(safe-area-inset-bottom, 0px) + var(--bench-stack, 0px)
+    bottom: max(
+      calc(var(--space-5) + env(safe-area-inset-bottom, 0px) + var(--bench-stack, 0px)),
+      calc(var(--player-bar, 0px) + var(--space-2))
     );
   }
 }

@@ -64,8 +64,9 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-/** Mount the bar with a lesson loaded and playing from its first piece. */
-async function open() {
+/** Mount the bar with a lesson loaded and playing from its first piece,
+ *  handing back the controls a sheet inside it would have. */
+async function open(): Promise<Handle> {
   let held: Handle | null = null
   function Probe() {
     held = usePlayer()
@@ -83,6 +84,7 @@ async function open() {
   await act(async () => {
     await player.listen({ id: 'lesson-1', title: 'Field Data' })
   })
+  return player
 }
 
 const seek = () => container.querySelector<HTMLInputElement>('input[type="range"]')!
@@ -279,6 +281,64 @@ describe('folding the player away', () => {
     await act(async () => {
       await player.listen({ id: 'lesson-2', title: 'Rendering Paths' })
     })
+    expect(bar()).not.toBeNull()
+  })
+})
+
+describe('standing aside for the mark composer', () => {
+  it('folds itself when something else takes the foot of the sheet', async () => {
+    const player = await open()
+    expect(bar()).not.toBeNull()
+
+    // What the Highlighter calls while a panel is docked across the
+    // bottom edge: writing about a passage is the foreground job.
+    act(() => player.standAside(true))
+    expect(bar()).toBeNull()
+    expect(disc()).not.toBeNull()
+  })
+
+  it('comes back on its own when the composer is done', async () => {
+    const player = await open()
+    act(() => player.standAside(true))
+    act(() => player.standAside(false))
+    expect(bar()).not.toBeNull()
+    expect(disc()).toBeNull()
+  })
+
+  it('does not hand back a bar the reader had already folded', async () => {
+    const player = await open()
+    press(foldAway()!)
+
+    // A composer opening and closing over a player the reader had put
+    // away must leave it put away. The two reasons the bar is down are
+    // different facts, and collapsing them loses this one.
+    act(() => player.standAside(true))
+    act(() => player.standAside(false))
+    expect(bar()).toBeNull()
+    expect(disc()).not.toBeNull()
+  })
+
+  it('keeps the recording running while it stands aside', async () => {
+    const player = await open()
+    const before = media()
+    act(() => player.standAside(true))
+    expect(media()).toBe(before)
+    expect(media().getAttribute('src')).toBe('blob:0')
+  })
+
+  it('publishes no height while it is out of the way', async () => {
+    const player = await open()
+    // The marking desk reads this to lift clear of the bar. With no bar
+    // there is nothing to lift clear of, so the desk stays put.
+    act(() => player.standAside(true))
+    expect(document.documentElement.style.getPropertyValue('--player-bar')).toBe('')
+  })
+
+  it('gives the bar back if the reader presses the disc anyway', async () => {
+    const player = await open()
+    act(() => player.standAside(true))
+    press(disc()!)
+    // Their call to make: they asked for the player over the composer.
     expect(bar()).not.toBeNull()
   })
 })
