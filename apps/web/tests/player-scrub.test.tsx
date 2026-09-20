@@ -86,6 +86,15 @@ async function open() {
 }
 
 const seek = () => container.querySelector<HTMLInputElement>('input[type="range"]')!
+const bar = () => container.querySelector('[aria-label="Lesson audio"]')
+const foldAway = () =>
+  container.querySelector<HTMLButtonElement>('[aria-label="Fold the player away"]')
+const disc = () =>
+  container.querySelector<HTMLButtonElement>('[aria-label^="Show the player"]')
+const press = (el: HTMLElement) =>
+  act(() => {
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  })
 const where = () => container.querySelector('p')!.textContent
 const media = () => container.querySelector('audio')!
 
@@ -188,5 +197,88 @@ describe('the bar at the foot of the sheet', () => {
       media().dispatchEvent(new Event('loadedmetadata'))
     })
     expect(media().currentTime).toBe(20)
+  })
+})
+
+describe('folding the player away', () => {
+  it('sets no --foot-bar, so nothing at the foot of the sheet moves for it', async () => {
+    await open()
+    // The bench climbed on this, and the marking desk climbed on the
+    // bench -- so pressing Listen re-laid the foot of every sheet, and
+    // stopping re-laid it back.
+    expect(document.documentElement.style.getPropertyValue('--foot-bar')).toBe('')
+    expect(bar()).not.toBeNull()
+  })
+
+  it('leaves a disc in the corner in place of the bar', async () => {
+    await open()
+    press(foldAway()!)
+    expect(bar()).toBeNull()
+    expect(disc()).not.toBeNull()
+  })
+
+  it('keeps the recording running while it is folded', async () => {
+    await open()
+    const before = media()
+    press(foldAway()!)
+
+    // The very same element, not an equivalent one. Re-parenting an
+    // `audio` stops it, which on a phone reads as the app cutting out,
+    // so folding has to leave it exactly where it was -- which it does
+    // by being about the furniture and not about the recording.
+    expect(media()).toBe(before)
+    expect(media().getAttribute('src')).toBe('blob:0')
+    // (jsdom has no media pipeline, so `paused` is not a fact here.)
+  })
+
+  it('still reports where it is, around the disc', async () => {
+    await open()
+    drag(19)
+    release()
+    press(foldAway()!)
+    // 19 of 95 seconds, as a factor for the ring around the disc.
+    expect(disc()!.style.getPropertyValue('--played')).toBe('0.2000')
+  })
+
+  it('comes back on a press', async () => {
+    await open()
+    press(foldAway()!)
+    press(disc()!)
+    expect(bar()).not.toBeNull()
+    expect(disc()).toBeNull()
+  })
+
+  it('names the lesson it has folded away, for a reader who cannot see it', async () => {
+    await open()
+    press(foldAway()!)
+    expect(disc()!.getAttribute('aria-label')).toBe('Show the player — Field Data')
+  })
+
+  it('opens as a bar again for the next lesson', async () => {
+    let held: Handle | null = null
+    function Probe() {
+      held = usePlayer()
+      return null
+    }
+    await act(async () => {
+      root.render(
+        <Player>
+          <Probe />
+        </Player>
+      )
+    })
+    const player = held! as Handle
+    await act(async () => {
+      await player.listen({ id: 'lesson-1', title: 'Field Data' })
+    })
+    press(foldAway()!)
+    expect(bar()).toBeNull()
+
+    // A fold is about the recording in hand, not a setting the reader
+    // has expressed for every lesson after it.
+    await act(async () => {
+      await player.listen({ id: 'lesson-2', title: 'Rendering Paths' })
+    })
+    expect(bar()).not.toBeNull()
   })
 })

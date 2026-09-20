@@ -9,6 +9,7 @@ import { Contents } from '@/components/Contents'
 import { Answering } from '@/components/blocks/answering'
 import { useBench } from '@/components/Bench'
 import { usePlayer } from '@/components/Player'
+import { useVoicings } from '@/components/useVoicings'
 import { useWriteLesson } from '@/components/useWriteLesson'
 import { useTendLesson } from '@/components/useTendLesson'
 import { TendLesson } from '@/components/TendLesson'
@@ -23,6 +24,12 @@ import { useScrollMemory } from '@/lib/useScrollMemory'
 import { useReadingRail } from '@/lib/useReadingRail'
 import { useFollowAlong } from '@/lib/useFollowAlong'
 import { viabilityFigure } from '@didactic/core/scoring'
+import {
+  canPlay,
+  listenOffer,
+  LISTEN_NOTE,
+  LISTEN_WORD,
+} from '@didactic/core/voicing'
 import { SheetNav } from '@/components/SheetNav'
 import { Crumbs } from '@/components/Crumbs'
 import styles from './page.module.css'
@@ -162,6 +169,24 @@ export default function LessonSheet({
   const said = useRef(false)
   const bench = useBench()
   const player = usePlayer()
+
+  /**
+   * Whether this lesson has been recorded, and how far along if not.
+   *
+   * The same hook the topic sheet's route uses, asked about one lesson.
+   * It reads the list route rather than this lesson's own, which signs
+   * every chunk's URL: the head is asking *whether* it can be heard,
+   * not asking to play it, and pressing is what signs.
+   *
+   * Asked for nothing at all until there is a finished body, since a
+   * lesson still being written has nothing to record and the control is
+   * not printed.
+   */
+  const { standing, voice } = useVoicings(
+    body && data?.lesson.body_finished ? [id] : []
+  )
+  const voicing = standing[id]
+  const aloud = listenOffer(voicing, player.lessonId === id && player.playing)
 
   // Follow the voice down the page, but only when it is this lesson
   // being read: the player outlives the sheet, so it may well be
@@ -588,16 +613,34 @@ export default function LessonSheet({
           {body && data?.lesson.body_finished && (
             <span className={styles.figure}>
               <span className={styles.figureLabel}>Aloud</span>
+              {/* Whether there is a recording, in the word rather than
+                  only in what happens after the press. This read
+                  *Listen* either way, so the one press in the catalogue
+                  that might cost eight minutes of somebody's machine
+                  looked exactly like the one that costs nothing -- and
+                  a reader who pressed it and walked off had no way to
+                  tell, on coming back, whether it had been made. */}
               <button
                 type="button"
                 className={styles.listen}
-                onClick={() => void player.listen({ id: lesson.id, title: lesson.title })}
+                data-offer={aloud}
+                onClick={() => {
+                  if (canPlay(voicing) || player.lessonId === id) {
+                    void player.listen({ id, title: lesson.title })
+                    return
+                  }
+                  void voice(id)
+                }}
+                title={LISTEN_NOTE[aloud]}
               >
-                {player.lessonId === lesson.id
-                  ? player.playing
-                    ? 'Pause'
-                    : 'Resume'
-                  : 'Listen'}
+                <span className={styles.listenMark} aria-hidden="true" />
+                {LISTEN_WORD[aloud]}
+                {/* How far through, where there is a figure for it. The
+                    ring on the topic sheet draws this; in a row of
+                    words it has to be said. */}
+                {aloud === 'making' && voicing?.total
+                  ? ` · ${voicing.done}/${voicing.total}`
+                  : ''}
               </button>
             </span>
           )}

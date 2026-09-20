@@ -1099,6 +1099,74 @@ The lockscreen gets the same figure through `setPositionState`, which is the
 whole lesson rather than the piece playing — without it the notification reads
 the element, and a twelve-minute lesson shows as forty seconds, twelve times
 over.
+
+### The player lies over the foot, and folds away
+
+Everything else docked at the foot of a sheet stands on `--foot-bar`: the bench
+reads it, and the marking desk stands on the bench through `--bench-stack`. The
+player set it, so pressing *Listen* re-laid the foot of every sheet in the
+catalogue and pressing stop re-laid it back.
+
+**Rule — furniture the reader turns on and off is not something the page is
+arranged around.** The player sets no `--foot-bar`. It is the one piece of
+furniture here that comes and goes at will, and buttons that move out from
+under a thumb already reaching for them — in the middle of reading, because a
+recording started somewhere else — cost more than the overlap does. It lies
+over the foot instead. `--foot-bar` is left in place rather than deleted: it is
+still the right contract for anything genuinely docked, which this is not.
+
+**Rule — what lies over the page can be got out of the way, by a press.** A
+minimise control beside *stop*, wearing a chevron down, folds the bar to a
+`2.75rem` disc at the near corner — `--paper`, lifted on a shadow, the played
+fraction drawn round its rim in `--plate-green`, a chevron up in the middle.
+The recording keeps running: the `audio` element is never unmounted and never
+re-parented, because re-parenting one stops it, which on a phone reads as the
+app cutting out. Folding is about the furniture and not about the recording,
+and it is a press the reader chose rather than a reflow they did not.
+
+**Rule — the disc stands on the bench, not over it.** The bench publishes its
+own height and the marking desk already reads it, so the folded player reads
+the same `--bench-stack` rather than inventing a second arrangement. That is
+the player moving for something else, which is the direction that surprises
+nobody.
+
+**Rule — a fold is about the recording in hand, not a setting.** Starting
+another lesson opens as a bar, and so does stopping and starting again. A
+reader who folded one lesson away has said nothing about the next.
+
+### Whether a lesson has been recorded, in its own head
+
+The lesson's head prints its figures as label and value — *stage*, *length*,
+*state* — and the listening sits in that row. It said **Listen** whether a
+recording existed or not, so the one press in the catalogue that might cost
+eight minutes of somebody's machine looked exactly like the one that costs
+nothing, and a reader who asked for a reading and walked off had no way, coming
+back, to tell whether it had been made.
+
+| Offer | Word | Mark |
+| --- | --- | --- |
+| make | *Read it aloud* | A dashed ring, `--on-plate` at `0.85`. |
+| waiting | *Being read…* | Half filled, `--plate-mustard`. |
+| making | *Listen · 4/12* | Filled, `--plate-mustard`. |
+| play | *Listen* | Filled, `--on-plate`. |
+| pause | *Pause* | Filled, `--on-plate`. |
+| again | *Try again* | A dotted ring in `--plate-mustard`. |
+
+**Rule — the word says what the press does, not what the reader wants.** *Read
+it aloud* makes the recording; *Listen* plays one that exists. `LISTEN_WORD` in
+`core/voicing` holds both, beside the `listenOffer` the topic sheet's ring is
+drawn from, so the two surfaces cannot come to different conclusions about the
+same lesson.
+
+**Rule — the mark is the ring language, brought down to a row of words.** A
+*broken* ring means no recording and a *closed* one means there is, exactly as
+on the topic sheet. The word is the carrier; the mark only makes it quicker,
+the same order the lesson standing stamps use.
+
+**Rule — how far through is said, because here it cannot be drawn.** A ring
+fills; a word cannot, so *making* prints `· 4/12` beside it. Nothing is printed
+where the worker has not yet counted the pieces, for the same reason the ring
+turns rather than filling.
 ---
 
 ## 6. The Graph

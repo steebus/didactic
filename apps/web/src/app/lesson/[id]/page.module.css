@@ -171,7 +171,24 @@
    pressed. A filled control here would read as the sheet's primary
    action, which it is not; reading the lesson is. So it takes the plate
    ink the values take, with a rule under it to say it is a control. */
+/* Whether this lesson has been recorded, as one of the head's figures.
+
+   It said *Listen* whether there was a recording or not, so the press
+   that might cost eight minutes of somebody's machine looked exactly
+   like the press that costs nothing -- and a reader who asked for one
+   and walked off had no way, coming back, to tell whether it had been
+   made. The word carries it (`LISTEN_WORD`, `core/voicing`) and the
+   mark repeats it, the same order as the lesson standing stamps.
+
+   The marks are the topic sheet's ring language brought down to a row
+   of words: a *broken* ring means no recording, a *closed* one means
+   there is. Reversed out of the band, so all of it is stated in
+   `--on-plate` rather than in the sheet's inks. */
 .listen {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+
   padding: 0;
   background: none;
   border: none;
@@ -182,7 +199,9 @@
   color: var(--paper);
   cursor: pointer;
 
-  transition: border-color var(--dur-state) var(--ease-settle);
+  transition:
+    border-color var(--dur-state) var(--ease-settle),
+    color var(--dur-state) var(--ease-settle);
 }
 
 .listen:hover {
@@ -192,6 +211,64 @@
 .listen:focus-visible {
   outline: 2px solid var(--paper);
   outline-offset: 3px;
+}
+
+/* The mark: a disc the size of the type it stands beside. Drawn with a
+   border rather than as a glyph so the broken and closed states are the
+   same circle in two conditions, which is the distinction doing the
+   work. */
+.listenMark {
+  flex: none;
+  align-self: center;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  /* `border-style` is not animatable, and does not pretend to be: the
+     broken-to-closed step is a change of fact, not a movement. */
+  transition: background var(--dur-state) var(--ease-settle);
+}
+
+/* No recording: an outline of a thing, and dashed, exactly as the ring
+   on the topic sheet is. */
+.listen[data-offer='make'] {
+  color: rgba(var(--on-plate-rgb), 0.85);
+}
+
+.listen[data-offer='make'] .listenMark {
+  border-style: dashed;
+}
+
+/* Recorded, and ready. The mark fills, which is the same step from
+   outline to ground the lesson stamps take when work has happened. */
+.listen[data-offer='play'] .listenMark,
+.listen[data-offer='pause'] .listenMark {
+  background: currentColor;
+}
+
+/* Asked for, and nothing said yet. Half filled, in the band's own
+   mustard -- the ink this catalogue uses for work in hand, on the bench
+   and everywhere else. */
+.listen[data-offer='waiting'] .listenMark {
+  border-color: var(--plate-mustard);
+  background: linear-gradient(to right, var(--plate-mustard) 50%, transparent 50%);
+}
+
+/* Still being made, and there is something to hear: the mark fills like
+   a recording that exists, in the ink of work still in hand. The word
+   says *Listen* and the count beside it says how much of it. */
+.listen[data-offer='making'] .listenMark {
+  border-color: var(--plate-mustard);
+  background: var(--plate-mustard);
+}
+
+.listen[data-offer='again'] {
+  color: var(--plate-mustard);
+}
+
+.listen[data-offer='again'] .listenMark {
+  border-color: currentColor;
+  border-style: dotted;
 }
 
 .headRule {

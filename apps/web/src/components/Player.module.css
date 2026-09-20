@@ -306,3 +306,99 @@
     transform: none;
   }
 }
+
+/* --- Folded away ------------------------------------------------- */
+
+/* The player, down to a disc in the corner.
+
+   The bar lies over the foot of the sheet rather than pushing it up,
+   which is the right trade while the reader is listening and the wrong
+   one the moment they want to write under a passage. So it folds, and
+   what is left is small enough to live beside everything else at the
+   foot instead of on top of it.
+
+   It stands on the bench rather than over it. The bench publishes its
+   own height and the marking desk already reads it, so this is the
+   arrangement the foot of the sheet already has rather than a second
+   one -- and it is the player moving for something else, which is the
+   direction that surprises nobody. */
+.folded {
+  position: fixed;
+  left: var(--space-4);
+  bottom: calc(
+    var(--bench-stack, 0px) + env(safe-area-inset-bottom, 0px) + var(--space-4)
+  );
+  z-index: 50;
+
+  display: grid;
+  place-items: center;
+  grid-template-areas: 'mark';
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+
+  background: var(--paper);
+  border: none;
+  border-radius: 50%;
+  color: var(--plate-green);
+  cursor: pointer;
+  /* Lifted off the page, because unlike the bar it has no rule of its
+     own to sit behind and nothing to tell it from the prose under it. */
+  box-shadow: 0 2px 10px rgba(var(--ink-rgb), 0.28);
+
+  animation: folding var(--dur-state) var(--ease-settle) both;
+}
+
+.folded > * {
+  grid-area: mark;
+}
+
+@keyframes folding {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+}
+
+.folded:hover {
+  background: var(--paper-deep);
+}
+
+.folded:focus-visible {
+  outline: 2px solid var(--plate-ultramarine);
+  outline-offset: 2px;
+}
+
+/* How far in, around the rim: the fact the bar's own line carries, in
+   the one place left to put it. The geometry is the ring the topic
+   sheet's play controls use, at the size this disc happens to be. */
+.foldedRim {
+  stroke: rgba(var(--ink-rgb), 0.15);
+}
+
+.foldedPlayed {
+  stroke: var(--plate-green);
+  /* 2πr at r = 20. Written out because a stylesheet cannot do π, and
+     the alternative is a second inline style for a constant. */
+  stroke-dasharray: 125.664;
+  stroke-dashoffset: calc(125.664 * (1 - var(--played, 0)));
+  transform: rotate(-90deg);
+  transform-origin: center;
+  transition: stroke-dashoffset 1s linear;
+}
+
+.foldedMark {
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .folded {
+    animation: none;
+  }
+
+  .foldedPlayed {
+    transition: none;
+  }
+}

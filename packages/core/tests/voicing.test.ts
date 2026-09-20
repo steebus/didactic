@@ -8,6 +8,7 @@ import {
   spokenClock,
   spokenLength,
   voicingProgress,
+  LISTEN_WORD,
   NOT_VOICED,
   type VoicingStanding,
 } from '../src/voicing'
@@ -225,5 +226,25 @@ describe('spokenClock', () => {
 
   it('never prints a negative clock', () => {
     expect(spokenClock(-4)).toBe('0:00')
+  })
+})
+
+describe('LISTEN_WORD', () => {
+  it('tells the press that makes a recording from the press that plays one', () => {
+    // The whole point of the row: eight minutes of somebody's machine
+    // must not look like the press that costs nothing.
+    expect(LISTEN_WORD[listenOffer(standing())]).toBe('Read it aloud')
+    expect(LISTEN_WORD[listenOffer(standing({ state: 'ready' }))]).toBe('Listen')
+  })
+
+  it('offers to play a lesson that is only part made', () => {
+    const half = standing({ state: 'voicing', done: 4, total: 12 })
+    expect(LISTEN_WORD[listenOffer(half)]).toBe('Listen')
+  })
+
+  it('has a word for every offer', () => {
+    for (const offer of ['make', 'waiting', 'making', 'play', 'pause', 'again'] as const) {
+      expect(LISTEN_WORD[offer]).toBeTruthy()
+    }
   })
 })

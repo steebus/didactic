@@ -156,6 +156,29 @@ export function listenLabel(
   }
 }
 
+/**
+ * The offer as a word, for a surface that has room for one.
+ *
+ * The lesson's own head prints its figures as label-and-value -- stage,
+ * length, state -- and the listening belongs in that row rather than as
+ * a circle among words. It said *Listen* whether the recording existed
+ * or not, so the one press in the catalogue that might cost eight
+ * minutes of somebody's machine looked exactly like the one that costs
+ * nothing. The words are what tell those apart here; the mark beside
+ * them only makes it quicker.
+ */
+export const LISTEN_WORD: Record<ListenOffer, string> = {
+  // Says what pressing it does, not what the reader wants: this is the
+  // press that makes the recording, and it should not read as one that
+  // plays it.
+  make: 'Read it aloud',
+  waiting: 'Being read…',
+  making: 'Listen',
+  play: 'Listen',
+  pause: 'Pause',
+  again: 'Try again',
+}
+
 /** The short word under the circle's breath, for a tooltip on a sheet
  *  that has room for one. The same five facts, without the title. */
 export const LISTEN_NOTE: Record<ListenOffer, string> = {

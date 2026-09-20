@@ -102,6 +102,17 @@ export function Player({ children }: { children: React.ReactNode }) {
    * what asks for anything.
    */
   const [scrub, setScrub] = useState<number | null>(null)
+  /**
+   * Folded away: the bar is down to a disc in the corner and the lesson
+   * is still playing.
+   *
+   * Not the same as stopping, which is what the ✕ does. A reader who
+   * wants to write a note under a passage they are listening to wants
+   * the foot of the screen back, not the recording ended -- and every
+   * way of giving it back by moving other things is the reflow this
+   * player exists not to cause.
+   */
+  const [folded, setFolded] = useState(false)
   const audio = useRef<HTMLAudioElement | null>(null)
   /**
    * Whether the reader means to be listening.
@@ -177,6 +188,13 @@ export function Player({ children }: { children: React.ReactNode }) {
       if (now?.lessonId === lesson.id) {
         const el = audio.current
         if (!el) return
+        // Folded away, the press is about the lesson rather than about
+        // the transport: show the bar again and leave it playing, since
+        // a pause the reader cannot see is a player that has broken.
+        if (folded) {
+          setFolded(false)
+          return
+        }
         if (el.paused) {
           wants.current = true
           void el.play()
@@ -210,6 +228,9 @@ export function Player({ children }: { children: React.ReactNode }) {
               // They pressed Listen and walked off; the first piece
               // arriving is what they were waiting for.
               wants.current = true
+              // A lesson starting is worth seeing: whatever the reader
+              // folded away, it was not this one.
+              setFolded(false)
               setNow({
                 lessonId: lesson.id,
                 title: got.title ?? lesson.title,
@@ -228,6 +249,7 @@ export function Player({ children }: { children: React.ReactNode }) {
 
       // Something is already made: play it now.
       wants.current = true
+      setFolded(false)
       setNow({
         lessonId: lesson.id,
         title: first.title ?? lesson.title,
@@ -237,7 +259,7 @@ export function Player({ children }: { children: React.ReactNode }) {
       })
       setAt(0)
     },
-    [now, refresh, start]
+    [now, folded, refresh, start]
   )
 
   /**
@@ -469,19 +491,25 @@ export function Player({ children }: { children: React.ReactNode }) {
     }
   }, [total, before, elapsed])
 
-  /**
-   * How much room the player takes, so the bench's notices stand on it
-   * rather than under it. The same variable anything docked at the foot
-   * already reads.
+  /*
+   * The player deliberately sets no `--foot-bar`.
+   *
+   * It used to, and everything docked at the foot stood on it: the
+   * bench climbed, and the marking desk climbed on top of the bench.
+   * So pressing Listen re-laid the foot of every sheet in the
+   * catalogue, and pressing stop re-laid it back -- buttons moving out
+   * from under a thumb that was already reaching for them, in the
+   * middle of reading, because a recording started somewhere else.
+   *
+   * It is the one piece of furniture here that the reader turns on and
+   * off at will, and furniture that comes and goes must not be
+   * something the rest of the page is arranged around. So it lies over
+   * the foot instead, and when it is in the way it folds (below) --
+   * which is a press the reader chose, not a reflow they did not.
+   *
+   * `--foot-bar` is left alone rather than deleted: it is still the
+   * right contract for anything genuinely docked, which this is not.
    */
-  useEffect(() => {
-    const root = document.documentElement
-    if (now) root.style.setProperty('--foot-bar', '4.5rem')
-    else root.style.removeProperty('--foot-bar')
-    return () => {
-      root.style.removeProperty('--foot-bar')
-    }
-  }, [now])
 
   const onEnded = useCallback(() => {
     if (!now) return
@@ -503,6 +531,9 @@ export function Player({ children }: { children: React.ReactNode }) {
     setNow(null)
     setPlaying(false)
     setAt(0)
+    // The next lesson opens as a bar, not as whatever this one was left
+    // as: a fold is about the recording in hand, not a setting.
+    setFolded(false)
   }, [])
 
   /**
@@ -573,7 +604,62 @@ export function Player({ children }: { children: React.ReactNode }) {
         preload="auto"
       />
 
-      {now && (
+      {now && folded && (
+        /* Folded: a disc in the corner, still reporting.
+
+           It stands on the bench rather than over it -- the bench
+           publishes its own height and the marking desk already reads
+           it, so this is the same arrangement rather than a second one.
+           That is the player moving for something else, which is the
+           direction that does not surprise anybody. */
+        <button
+          type="button"
+          className={styles.folded}
+          onClick={() => setFolded(false)}
+          aria-label={`Show the player — ${now.title}`}
+          title={`${now.title} — ${playing ? 'playing' : 'paused'}`}
+          style={{
+            ['--played' as string]: (total && total > 0
+              ? Math.min(1, Math.max(0, (before + elapsed) / total))
+              : 0
+            ).toFixed(4),
+          }}
+        >
+          {/* How far in, around the edge of the disc: the same fact the
+              bar's own line carries, in the one place left to put it. */}
+          <svg
+            className={styles.foldedRing}
+            width="44"
+            height="44"
+            viewBox="0 0 44 44"
+            aria-hidden="true"
+          >
+            <circle className={styles.foldedRim} cx="22" cy="22" r="20" fill="none" strokeWidth="2" />
+            <circle
+              className={styles.foldedPlayed}
+              cx="22"
+              cy="22"
+              r="20"
+              fill="none"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+          <span className={styles.foldedMark} aria-hidden="true">
+            <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
+              <path
+                d="M1 6.5 L6 1.5 L11 6.5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+        </button>
+      )}
+
+      {now && !folded && (
         <div className={styles.bar} role="region" aria-label="Lesson audio">
           <div className={styles.what}>
             <Link href={`/lesson/${now.lessonId}`} className={styles.title}>
@@ -624,6 +710,23 @@ export function Player({ children }: { children: React.ReactNode }) {
               aria-label="On a piece"
             >
               ⏭
+            </button>
+            <button
+              type="button"
+              className={styles.button}
+              onClick={() => setFolded(true)}
+              aria-label="Fold the player away"
+              title="Fold the player away — it keeps playing"
+            >
+              <svg width="12" height="8" viewBox="0 0 12 8" aria-hidden="true" fill="none">
+                <path
+                  d="M1 1.5 L6 6.5 L11 1.5"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </button>
             <button
               type="button"
