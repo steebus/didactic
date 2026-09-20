@@ -1,0 +1,62 @@
+/* The voice, drawn. Takes its colour from whatever it stands in, so
+   the bar and the folded disc do not each state one. */
+
+.wave {
+  display: block;
+  width: auto;
+  /* Set from the line it sits on rather than in pixels: on the bar it
+     is beside the clock and should stand as tall as it, and in the
+     disc the font-size it inherits is the one the disc sets. */
+  height: 0.75em;
+}
+
+.bar {
+  /* The rect is drawn at the box's full height and squashed from the
+     middle, so a bar grows and shrinks about its own centre the way a
+     level meter does rather than hanging off the top edge. `fill-box`
+     is what makes `center` mean the rect rather than the whole svg. */
+  transform-box: fill-box;
+  transform-origin: center;
+  transform: scaleY(var(--rest));
+  /* Only for the settle back to the silhouette when the voice stops.
+     While it is running the animation owns the property and this does
+     nothing; the moment the animation is taken off, this is what stops
+     the bars from snapping. */
+  transition: transform var(--dur-state) var(--ease-settle);
+}
+
+.wave[data-playing] .bar {
+  /* `ease-in-out` rather than either of the app's two easings, and
+     this is the one place that is right. Both of those are one-way
+     curves for a thing arriving — `--ease-settle` puts nine tenths of
+     the travel in the first quarter of the time, which on a loop means
+     each bar snaps to its extreme and sits there, and five bars
+     snapping and holding reads as flashing rather than as sound. A
+     symmetric curve is what makes it breathe. */
+  animation: swing var(--swing) ease-in-out infinite alternate;
+  /* Negative, so every bar is already partway through its swing on the
+     first frame instead of standing still waiting its turn. */
+  animation-delay: calc(-1 * var(--delay) * var(--swing));
+}
+
+@keyframes swing {
+  from {
+    transform: scaleY(var(--low));
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+/* Still a waveform standing still: the silhouette is the whole reason
+   `rest` is a shape rather than a flat row, so a reader who has asked
+   for no motion loses the movement and keeps the meaning. */
+@media (prefers-reduced-motion: reduce) {
+  .wave[data-playing] .bar {
+    animation: none;
+  }
+
+  .bar {
+    transition: none;
+  }
+}

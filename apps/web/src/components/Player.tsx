@@ -14,6 +14,7 @@ import { didactic } from '@didactic/api'
 import type { SpokenChunk, Voicing } from '@didactic/api/lessons'
 import { placeAt, secondsBefore, spokenClock, spokenLength } from '@didactic/core/voicing'
 import { useBench } from './Bench'
+import { WaveMark } from './WaveMark'
 import styles from './Player.module.css'
 
 const api = didactic()
@@ -802,16 +803,19 @@ export function Player({ children }: { children: React.ReactNode }) {
               strokeLinecap="round"
             />
           </svg>
+          {/* A voice, not a chevron.
+
+              It wore a chevron up, which is the honest picture of
+              *this opens* and the wrong thing to say at this size: a
+              chevron is what every collapsed panel in every app wears,
+              and what is worth carrying in a disc the size of a
+              thumbnail is not that it opens but that a lesson is being
+              read aloud behind it. The rim already says how far in.
+              This says what it is, and moves while it is running, so a
+              disc that is working is distinguishable from one that is
+              waiting without reading anything. */}
           <span className={styles.foldedMark} aria-hidden="true">
-            <svg width="12" height="8" viewBox="0 0 12 8" fill="none">
-              <path
-                d="M1 6.5 L6 1.5 L11 6.5"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <WaveMark playing={playing} />
           </span>
         </button>
       )}
@@ -847,12 +851,23 @@ export function Player({ children }: { children: React.ReactNode }) {
             <Link href={`/lesson/${now.lessonId}`} className={styles.title}>
               {now.title}
             </Link>
+            {/* The clock, with the voice drawn in front of it.
+
+                Here rather than anywhere else on the bar because this
+                line is already the one that says what is happening,
+                and because it costs no width the controls wanted: the
+                bar is tight on a phone and a mark of its own between
+                the fold and the title would have come out of the
+                lesson's name. */}
             <p className={styles.where}>
-              {starved
-                ? 'Making the next piece…'
-                : total
-                  ? `${spokenClock(shown)} of ${spokenClock(total)}`
-                  : `${spokenClock(shown)} · still being read`}
+              <WaveMark playing={playing} />
+              <span>
+                {starved
+                  ? 'Making the next piece…'
+                  : total
+                    ? `${spokenClock(shown)} of ${spokenClock(total)}`
+                    : `${spokenClock(shown)} · still being read`}
+              </span>
             </p>
           </div>
 

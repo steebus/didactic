@@ -1158,11 +1158,35 @@ still the right contract for anything genuinely docked, which this is not.
 **Rule — what lies over the page can be got out of the way, by a press.** A
 minimise control wearing a chevron down folds the bar to a
 `2.75rem` disc at the near corner — `--paper`, lifted on a shadow, the played
-fraction drawn round its rim in `--plate-green`, a chevron up in the middle.
+fraction drawn round its rim in `--plate-green`, and the drawn voice in the
+middle.
 The recording keeps running: the `audio` element is never unmounted and never
 re-parented, because re-parenting one stops it, which on a phone reads as the
 app cutting out. Folding is about the furniture and not about the recording,
 and it is a press the reader chose rather than a reflow they did not.
+
+**Rule — the mark in the middle says what is happening, not what the control
+does.** The disc wore a chevron up. That is the honest picture of *this opens*
+and it is the wrong thing to say at that size: a chevron is what every
+collapsed panel in every app wears, and the fact worth carrying in something
+the size of a thumbnail is not that it opens but that a lesson is being read
+aloud behind it. The rim already says how far in; the middle now says what it
+is. It is five bars of a **drawn voice** — `core/waveform`, so the phone draws
+the same one — and the same mark stands on the bar itself, in front of the
+clock, where it costs none of the width the lesson's name wanted. While the
+voice runs each bar swings between `WAVE_LOW` and full on one duration with
+its own offset, so the row moves without travelling: staggered rather than
+marching, since a left-to-right sweep is what a progress spinner does. Stopped,
+the bars hold a **silhouette** — tallest in the middle, falling away unevenly
+either side — so the mark still reads as sound while it is standing still, on
+a paused player and under a reader who has asked for no motion. The bars are
+scaled, never re-laid: a transform is composited where `height` and `y` are
+layout, and this runs in the corner of a sheet for twelve minutes at a stretch.
+It is the one animation in the build on a **symmetric** easing rather than
+`--ease-settle` or `--ease-exit`; both of those are one-way curves for a thing
+arriving, and `--ease-settle` on a loop puts nine tenths of the travel in the
+first quarter of the time, which reads as five bars flashing rather than as one
+voice sounding.
 
 **Rule — the disc stands on the bench, not over it.** The bench publishes its
 own height and the marking desk already reads it, so the folded player reads

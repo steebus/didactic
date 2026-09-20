@@ -72,6 +72,12 @@
   font-size: var(--step--1);
   color: var(--ink-soft);
   font-variant-numeric: tabular-nums;
+  /* The drawn voice, then the clock. Baseline would drop the mark half
+     a line below the figures it stands with, since it has no baseline
+     of its own to sit on. */
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
 
 .buttons {
@@ -438,6 +444,12 @@
   display: grid;
   place-items: center;
   pointer-events: none;
+  /* The mark takes its size from the text size it inherits, and the
+     disc has no text in it — so the disc states one. Large enough to
+     read as five bars at arm's length, small enough to keep clear of
+     the played rim drawn round the outside. */
+  font-size: 1.25rem;
+  color: var(--ink-soft);
 }
 
 @media (prefers-reduced-motion: reduce) {
