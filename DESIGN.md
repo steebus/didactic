@@ -1134,6 +1134,16 @@ nobody.
 another lesson opens as a bar, and so does stopping and starting again. A
 reader who folded one lesson away has said nothing about the next.
 
+**Rule — the transport's marks are drawn, never typed.** The media control
+characters — ⏮ `U+23EE`, ⏸ `U+23F8`, ⏭ `U+23ED` — carry *emoji* presentation by
+default on iOS, so the pause button came out as Apple's bright orange glyph in
+the middle of a paper-and-ink catalogue. The variation selector that asks for
+the text form is honoured unevenly, and even where it works the mark is then
+whatever size and weight the fallback font draws it, in a row where four of
+them have to match. As paths on a shared 14-square they are one colour — the
+button's own — at one weight in every browser, and nothing can re-present them.
+The same reasoning as the play mark on the listening rings.
+
 **Rule — the control that changes the furniture stands apart from the ones
 that change the recording.** The fold is first on the bar, before the lesson's
 name, with the transport and *stop* at the other end. It sat beside ✕ — the one

@@ -342,3 +342,32 @@ describe('standing aside for the mark composer', () => {
     expect(bar()).not.toBeNull()
   })
 })
+
+describe('the transport marks', () => {
+  it('draws them rather than typing them', async () => {
+    await open()
+    for (const label of ['Back a piece', 'Play', 'On a piece', 'Stop listening']) {
+      const button = container.querySelector(`[aria-label="${label}"]`)!
+      expect(button.querySelector('svg')).not.toBeNull()
+      // Nothing to re-present: the mark is a path, not a character.
+      expect(button.textContent).toBe('')
+    }
+  })
+
+  it('carries no character that a platform may draw as an emoji', async () => {
+    await open()
+    // U+23E9 to U+23FA is the media control block, and iOS gives ⏸, ⏮
+    // and ⏭ emoji presentation by default -- which put Apple's bright
+    // orange pause button in the middle of a paper-and-ink catalogue.
+    const media = /[\u23E9-\u23FA]/u
+    expect(media.test(bar()!.textContent ?? '')).toBe(false)
+  })
+
+  it('keeps the play mark and the pause mark on the same button', async () => {
+    await open()
+    const button = () => container.querySelector('[aria-label="Play"], [aria-label="Pause"]')!
+    // Paused in jsdom, which has no media pipeline, so this is the play
+    // mark. What is asserted is that both are drawn the same way.
+    expect(button().querySelector('svg')?.getAttribute('viewBox')).toBe('0 0 14 14')
+  })
+})

@@ -42,6 +42,78 @@ const api = didactic()
 /** How often to ask what else has been made, while it is still coming. */
 const POLL_MS = 4000
 
+/* --- The transport's marks -----------------------------------------
+ *
+ * Drawn rather than typed, and the reason is not taste. The media
+ * control characters -- ⏮ U+23EE, ⏸ U+23F8, ⏭ U+23ED -- carry *emoji*
+ * presentation by default on iOS, so the pause button in the middle of
+ * a paper-and-ink catalogue came out as Apple's bright orange glyph.
+ * There is a variation selector that asks for the text form and it is
+ * honoured unevenly; even where it works, the mark is then whatever
+ * size and weight the fallback font happens to draw it, in a row where
+ * the four of them have to match.
+ *
+ * As paths they are one colour -- the button's own -- at one weight in
+ * every browser, and they cannot be re-presented by anything. The same
+ * reasoning as the play mark on the topic sheet's listening rings,
+ * which were drawn for the second half of it.
+ *
+ * All on a 14-square so the four sit on one baseline, optically rather
+ * than by their bounding boxes: a triangle centred on its box reads
+ * left of centre, and a pair of bars does not.
+ */
+
+const MARK = { width: 14, height: 14, viewBox: '0 0 14 14', fill: 'currentColor' } as const
+
+function PlayMark() {
+  return (
+    <svg {...MARK} aria-hidden="true">
+      {/* Nudged right by a hair, for the same reason the ring's is. */}
+      <path d="M3.6 1.9 L12.2 7 L3.6 12.1 Z" />
+    </svg>
+  )
+}
+
+function PauseMark() {
+  return (
+    <svg {...MARK} aria-hidden="true">
+      <rect x="3.1" y="2" width="2.9" height="10" rx="0.5" />
+      <rect x="8" y="2" width="2.9" height="10" rx="0.5" />
+    </svg>
+  )
+}
+
+function BackMark() {
+  return (
+    <svg {...MARK} aria-hidden="true">
+      <rect x="2.2" y="2.4" width="1.8" height="9.2" rx="0.5" />
+      <path d="M12.4 2.4 L12.4 11.6 L5.3 7 Z" />
+    </svg>
+  )
+}
+
+function OnMark() {
+  return (
+    <svg {...MARK} aria-hidden="true">
+      <path d="M1.6 2.4 L1.6 11.6 L8.7 7 Z" />
+      <rect x="10" y="2.4" width="1.8" height="9.2" rx="0.5" />
+    </svg>
+  )
+}
+
+function StopMark() {
+  return (
+    <svg {...MARK} fill="none" aria-hidden="true">
+      <path
+        d="M3 3 L11 11 M11 3 L3 11"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
 interface Playing {
   lessonId: string
   title: string
@@ -792,7 +864,7 @@ export function Player({ children }: { children: React.ReactNode }) {
               disabled={at === 0}
               aria-label="Back a piece"
             >
-              ⏮
+              <BackMark />
             </button>
             <button
               type="button"
@@ -810,7 +882,7 @@ export function Player({ children }: { children: React.ReactNode }) {
               }}
               aria-label={playing ? 'Pause' : 'Play'}
             >
-              {playing ? '⏸' : '▶'}
+              {playing ? <PauseMark /> : <PlayMark />}
             </button>
             <button
               type="button"
@@ -819,7 +891,7 @@ export function Player({ children }: { children: React.ReactNode }) {
               disabled={at >= now.chunks.length - 1}
               aria-label="On a piece"
             >
-              ⏭
+              <OnMark />
             </button>
             <button
               type="button"
@@ -827,7 +899,7 @@ export function Player({ children }: { children: React.ReactNode }) {
               onClick={close}
               aria-label="Stop listening"
             >
-              ✕
+              <StopMark />
             </button>
           </div>
 
