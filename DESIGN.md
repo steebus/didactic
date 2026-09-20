@@ -144,19 +144,32 @@ is drawn rather than written.** It was three words — *System · Daylight · Af
 dark* — at the foot of the subjects sheet beside the way out, which put a
 setting about the *room* on the paper, and put it on one sheet out of sixteen:
 the one nobody is standing on at the hour it matters, because the room goes
-dark while you are in a lesson or in the garden. It now stands on the strip of
-press bed below the trim of every sheet, which is the one surface the whole
-catalogue shares, rendered from `layout.tsx` outside `main` like everything
-else at the foot. Three glyphs take the room the line of prose took: a disc
+dark while you are in a lesson or in the garden. It now sits in the *bottom trim of
+every sheet*, on the sheet's own paper, rendered from `layout.tsx` outside
+`main` like everything else at the foot. It stood on the strip of press bed
+*below* the trim for a version, and that was wrong in the way a banner is
+wrong: a ground a shade darker than the paper turned three glyphs into a
+separate piece of furniture bolted under the page rather than the last line of
+it. The catalogue runs to six sheet measures, from the sign-in sheet's `30rem`
+to the bed's `1240px`, and every one of them ends with the same
+`padding: 0 0 var(--space-6)` — so the foot takes exactly that margin back and
+needs no ground, no tooth and no width of its own to keep in step with six
+others. It is centred, because the middle is the one position that lands on
+paper whatever the measure, and because that is where a printed page keeps its
+own marginalia. It has to be lifted (`position: relative; z-index: 1`) to be
+seen at all: every sheet arrives rather than appears, `sheetIn` carries a
+`transform`, and a filled transform makes a stacking context that paints above
+the normal-flow content of a later sibling overlapping it. Three glyphs take the room the line of prose took: a disc
 with rays, a disc bitten to a crescent, and a disc half lit for *ask the room*
 — one disc under three conditions rather than three unrelated pictures, and the
 half-lit one drawn at the crescent's radius rather than the sun's, since the
 sun carries rays the other two do not and matching on the circle alone left a
 row of three different sizes. The geometry is `core/lighting`, not markup, for
 the reason every drawn thing here keeps its geometry in `core`: the phone draws
-the same three off the same paths. The one in use is inked and sits in a struck
-disc — a fill rather than the underline the words wore, because there is no
-baseline under a drawing for a rule to belong to. Each glyph carries the
+the same three off the same paths. The one in use is inked and ruled under in
+mustard, exactly as the option was when these were words and as every other
+action at a foot is: a struck disc behind the glyph was tried and was the
+loudest thing on the sheet, a filled shape among hairlines. Each glyph carries the
 sentence it used to say in words as its accessible name, since a control whose
 whole face is a drawing has no visible text to fall back on.
 

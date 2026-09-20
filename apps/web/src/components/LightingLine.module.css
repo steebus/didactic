@@ -1,6 +1,6 @@
-/* Three glyphs at the foot of every sheet, standing on the press bed
-   rather than on the paper. Marginalia, not a control panel: the ink
-   is the faint end of the ramp until one of them is the one in use. */
+/* Three glyphs in the sheet's bottom trim, set in the register the
+   foot around them is already set in: the faint end of the ink ramp,
+   marked the way every other pressed thing at a foot is marked. */
 
 .lighting {
   display: flex;
@@ -11,27 +11,28 @@
 .option {
   display: grid;
   place-items: center;
-  /* A press target that clears the thumb minimum while the drawing
-     inside it stays small: the glyph is marginalia, the target is not. */
-  width: 2.25rem;
-  height: 2.25rem;
-  padding: 0;
+  width: 2rem;
+  /* Tight enough that the rule reads as belonging to the glyph above
+     it rather than floating under the row. Wide before it is tall:
+     the press target wants the room, the mark does not. */
+  height: 1.625rem;
+  padding: 0 0 2px;
   color: var(--ink-faint);
   background: none;
   border: none;
-  /* Round where the catalogue is square, because what is being pressed
-     is a disc: a square hit area drawn round a circle reads as a box
-     that missed. */
-  border-radius: 50%;
+  /* The rule the one in use wears, held clear at rest so nothing
+     moves when it is pressed — the same trick the way out beside it
+     uses, and the same mustard every action in the catalogue is
+     underlined in. */
+  border-bottom: 1px solid transparent;
+  border-radius: 0;
   cursor: pointer;
-  transition:
-    color var(--dur-feedback) var(--ease-settle),
-    background-color var(--dur-feedback) var(--ease-settle);
+  transition: color var(--dur-feedback) var(--ease-settle);
 }
 
 .glyph {
-  width: 1.25rem;
-  height: 1.25rem;
+  width: 1rem;
+  height: 1rem;
   display: block;
 }
 
@@ -39,17 +40,13 @@
   color: var(--plate-terracotta);
 }
 
-/* The one in use is inked and sits in a struck disc, the way the
-   pressed option was inked and ruled under when these were words. A
-   fill rather than an underline: there is no baseline under a drawing
-   for a rule to belong to. */
+/* Inked and ruled under, exactly as the option was when these were
+   words. It was a struck disc behind the glyph for a while, and that
+   disc was the loudest thing at the foot of the sheet — a filled
+   shape where everything around it is a hairline. */
 .option[aria-pressed='true'] {
   color: var(--ink);
-  background-color: rgba(var(--ink-rgb), 0.07);
-}
-
-.option[aria-pressed='true']:hover {
-  color: var(--ink);
+  border-bottom-color: var(--plate-mustard);
 }
 
 @media (prefers-reduced-motion: reduce) {
