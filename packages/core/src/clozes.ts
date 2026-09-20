@@ -508,6 +508,46 @@ export function cardTruth(card: Pick<CardShape, 'kind' | 'answer'>): boolean | n
 }
 
 /**
+ * Which way the next true-or-false statement written here should come
+ * out.
+ *
+ * Every one of them was `False`, and that is not a run of bad luck: a
+ * true-or-false is asked for as *a plausible confusion the lesson
+ * corrects*, and a confusion a lesson corrects is a statement that does
+ * not hold. The model was doing exactly as it was told and the deck it
+ * produced was worthless, because a card whose answer can be given
+ * without reading it is graded *Easy*, honestly, and filed away for
+ * four months on the strength of a reflex. A reader who has met four of
+ * these has learned the only thing the shape can teach them: answer
+ * `False`.
+ *
+ * So the verdict is drawn before the statement is written rather than
+ * fallen into after it. What is handed in is whatever true-or-false
+ * cards a lesson already holds, read as verdicts; the draw is the one
+ * that is behind, and a coin where they are level or there are none.
+ * Drawn rather than alternated because an alternating deck is a deck
+ * with a tell in it -- two readings of one lesson and the reader knows
+ * which way the next one goes.
+ *
+ * The randomness is passed in, as it is for `shuffled`, so the draw is
+ * a testable thing rather than a thing that is merely believed.
+ */
+export function wantedVerdict(
+  standing: readonly (boolean | null)[] = [],
+  random: () => number = Math.random
+): boolean {
+  let held = 0
+  let broken = 0
+  for (const truth of standing) {
+    if (truth === true) held++
+    else if (truth === false) broken++
+  }
+  if (held < broken) return true
+  if (broken < held) return false
+  return random() < 0.5
+}
+
+/**
  * What can be wrong with a card of any shape, said as a sentence.
  *
  * `clozeProblem` still holds the whole of the cloze judgement and is

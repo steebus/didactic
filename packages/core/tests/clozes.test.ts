@@ -23,6 +23,7 @@ import {
   memoryColumns,
   memoryOf,
   tendPhrase,
+  wantedVerdict,
   type Cloze,
 } from '../src/clozes'
 import { AGAIN, EASY, GOOD, HARD, freshMemory, review, waitPhrase } from '../src/fsrs'
@@ -350,6 +351,37 @@ describe('a card of any shape, read the same way', () => {
      rows, and a card that throws is a sitting that stops. */
   it('says nothing rather than guessing for a verdict that is neither word', () => {
     expect(cardTruth(standard({ kind: 'truefalse', answer: 'Sometimes' }))).toBeNull()
+  })
+})
+
+/* Every true-or-false the model wrote came out `False`, because it was
+   asked for a confusion the lesson corrects and every one of those is a
+   statement that does not hold. The verdict is drawn first now. */
+describe('the verdict a true-or-false is written to', () => {
+  it('draws the word the lesson has fewer of', () => {
+    expect(wantedVerdict([false, false, false])).toBe(true)
+    expect(wantedVerdict([true, true, false])).toBe(false)
+  })
+
+  it('tosses a coin where the two are level, and where there are none', () => {
+    expect(wantedVerdict([true, false], () => 0.2)).toBe(true)
+    expect(wantedVerdict([true, false], () => 0.9)).toBe(false)
+    expect(wantedVerdict([], () => 0.2)).toBe(true)
+    expect(wantedVerdict([], () => 0.9)).toBe(false)
+  })
+
+  /* A lesson's cards are read whole and most of them are not statements
+     at all; a cloze counts towards neither word. */
+  it('counts only the cards that carry a verdict', () => {
+    expect(wantedVerdict([null, null, false, null], () => 0.9)).toBe(true)
+    expect(wantedVerdict([null, null, null], () => 0.9)).toBe(false)
+  })
+
+  /* Drawn rather than alternated: an alternating deck has a tell in it,
+     and two readings of one lesson is all it takes to find it. */
+  it('is a coin rather than a turn-and-turn-about, once the lesson is level', () => {
+    const drawn = [0.1, 0.1, 0.1].map(r => wantedVerdict([true, false], () => r))
+    expect(drawn).toEqual([true, true, true])
   })
 })
 

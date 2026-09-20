@@ -8,7 +8,9 @@ import {
   cardFront,
   cardKey,
   cardProblem,
+  cardTruth,
   givesAway,
+  wantedVerdict,
   type CardKind,
 } from '@didactic/core/clozes'
 
@@ -234,7 +236,7 @@ const TOOL = {
                   },
                   answer: {
                     type: 'string',
-                    description: `qa and truefalse only. For qa, the answer — a phrase or one short sentence, never a paragraph. For truefalse, exactly "${TRUE_WORD}" or "${FALSE_WORD}".`,
+                    description: `qa and truefalse only. For qa, the answer — a phrase or one short sentence, never a paragraph. For truefalse, exactly "${TRUE_WORD}" or "${FALSE_WORD}", and it must be the verdict this reading was told to write.`,
                   },
                   note: {
                     type: 'string',
@@ -282,7 +284,7 @@ The rest of the sentence must give the reader something to recall from and must 
 
 **Question-and-answer cards.** Either direction, and use both across a lesson: "What is a CDN?" → "A network of edge servers that serve content from near the visitor", and "A network of edge servers that serve content from near the visitor" → "A CDN". The answer is a phrase or one short sentence. Never write a question whose answer is sitting inside it.
 
-**True-or-false cards.** A statement worth being wrong about — a plausible confusion the lesson corrects, not a triviality. Answer exactly "${TRUE_WORD}" or "${FALSE_WORD}", and always give the one-line reason.
+**True-or-false cards.** A statement worth being wrong about — one the reader has to check against the lesson rather than wave through, not a triviality. Answer exactly "${TRUE_WORD}" or "${FALSE_WORD}", and always give the one-line reason. **Which of the two you are writing is drawn for you and said below this brief; it is not yours to choose.** A statement that holds is every bit as hard to wave through as one that does not, and it is written the same way round: take the confusion the lesson corrects and state the *correct* side of it, in the words the mistaken side would tempt — "an index makes writes slower, not faster" holds, and a reader running on reflex will still say it does not. If a concept has nothing worth judging in the verdict you were given, write a cloze or a question under it instead of reaching for the other verdict.
 
 **Nothing may hand over its own answer.** The concept's name is printed on every card under it before the reader answers, so it is a heading — the area, never a figure or a term some card asks for. The sentence of a cloze must not contain its own blanked words somewhere else in it, and a question must not contain its answer. A nudge nudges; it never answers. A card that can be read off is worse than no card at all: it is graded *Easy*, honestly, and the scheduler then files it away for four months on the strength of a reading.
 
@@ -293,6 +295,22 @@ The concept's \`gist\` is the exception and is shown on the back, after the answ
 **Mathematics** between $ or $$ is typeset when the card is shown. A cloze blank may take a whole formula, delimiters included, or stay clear of one — never part of one. "The equation $2^x = 100$ has no ordinary answer" may blank "$2^x = 100$" or "ordinary", never "100".
 
 Skip a concept rather than inventing cards for it, and write one card rather than a second that only rephrases the first. Fewer, answerable cards beat a lesson nobody can face tending.`
+
+/**
+ * The drawn verdict, said to the model as an instruction rather than
+ * left in the brief as a preference.
+ *
+ * Kept out of `BRIEF` because the brief is one constant and this is a
+ * different sentence on every reading. It says the word twice -- once
+ * as the rule and once as the thing to write -- because the single
+ * most expensive failure here is the model reading *write a
+ * true-or-false* and writing the one that comes more easily.
+ */
+function verdictBrief(wanted: boolean): string {
+  const word = wanted ? TRUE_WORD : FALSE_WORD
+  const other = wanted ? FALSE_WORD : TRUE_WORD
+  return `\n\n**Every true-or-false statement in this reading is answered ${word}.** The verdict was drawn before you read the lesson, and it is the one thing about these cards that is not yours to judge: write statements the lesson makes ${word.toLowerCase()}, and give the one-line reason for each. A concept with no ${word.toLowerCase()} statement worth judging gets a cloze or a question instead — a true-or-false answered ${other} is discarded unread, and the concept goes with it if it has nothing else.`
+}
 
 /**
  * Read a lesson and propose what to tend.
@@ -307,8 +325,13 @@ Skip a concept rather than inventing cards for it, and write one card rather tha
 export async function proposeClozes(
   title: string,
   body: string,
-  standing: string[] = []
+  standing: string[] = [],
+  /** The true-or-false cards already standing here, read as verdicts.
+   *  What the draw is weighed against, so a lesson tended twice comes
+   *  out of the second reading less lopsided than it went in. */
+  verdicts: readonly (boolean | null)[] = []
 ): Promise<{ concepts: ProposedConcept[]; report: VerifyReport }> {
+  const wanted = wantedVerdict(verdicts)
   const already = standing.slice(0, SEEN_SHOWN)
   const avoid = already.length
     ? `\n\nThis lesson already has these cards. Write cards that ask about something they do not, or ask the same thing from a genuinely different direction. Do not restate any of them:\n${already
@@ -325,7 +348,7 @@ export async function proposeClozes(
     messages: [
       {
         role: 'user',
-        content: `${BRIEF}${avoid}
+        content: `${BRIEF}${verdictBrief(wanted)}${avoid}
 
 Lesson: ${title}
 
@@ -341,7 +364,7 @@ ${body.slice(0, MAX_CHARS)}`,
 
   const { concepts } = tool.input as { concepts: ProposedConcept[] }
   const report = emptyReport()
-  return { concepts: verify(concepts ?? [], body, standing, report), report }
+  return { concepts: verify(concepts ?? [], body, standing, report, wanted), report }
 }
 
 /**
@@ -375,7 +398,22 @@ export function verify(
    * Optional, so nothing that only wants the cards has to hold a
    * bucket.
    */
-  report?: VerifyReport
+  report?: VerifyReport,
+  /**
+   * The verdict this reading drew, where one was drawn.
+   *
+   * A true-or-false answered the other way is refused here, not merely
+   * discouraged in the brief: the whole garden came back `False`
+   * because the brief asked for a confusion the lesson corrects and
+   * every one of those is a statement that does not hold, and a
+   * preference that has already lost once is not what to hang the
+   * shape on a second time. A prompt is an instruction and a filter is
+   * a promise.
+   *
+   * Undefined where the caller drew nothing -- a card made by hand, a
+   * test of the other rules -- and then nothing here judges a verdict.
+   */
+  wanted?: boolean
 ): ProposedConcept[] {
   const flat = collapse(body)
   const threw = (reason: string) => {
@@ -409,6 +447,20 @@ export function verify(
       if (problem) {
         threw(problem)
         continue
+      }
+
+      // The verdict was drawn before the lesson was read, and a card
+      // that came out the other way is the bias this exists to stop
+      // rather than a card that happens to disagree with a coin. Its
+      // concept survives on whatever else it carries; the brief says
+      // to write a cloze or a question rather than reach for the
+      // other verdict, and the reason is counted so a reading emptied
+      // by this rule says so instead of going quiet.
+      if (card.kind === 'truefalse' && wanted !== undefined) {
+        if (cardTruth(asShape(card)) !== wanted) {
+          threw(`the statement was to be one answered ${wanted ? TRUE_WORD : FALSE_WORD}`)
+          continue
+        }
       }
 
       // Nothing on the face of this card may hand over its back. The

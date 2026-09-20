@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Cloze, ClozeCard, ClozeCount } from '@didactic/core/clozes'
-import { cardFront, memoryColumns, memoryOf, shuffled } from '@didactic/core/clozes'
+import { cardFront, cardTruth, memoryColumns, memoryOf, shuffled } from '@didactic/core/clozes'
 import { freshMemory, review, type Rating } from '@didactic/core/fsrs'
 import { proposeClozes, readingNote, type ProposedCard } from './llm/clozes'
 
@@ -223,11 +223,22 @@ export async function sowClozes(
     .eq('user_id', userId)
     .eq('lesson_id', lessonId)
 
-  const fronts = ((asked ?? []) as unknown as Parameters<typeof cardFront>[0][]).map(card =>
-    cardFront(card, '…')
-  )
+  const here = (asked ?? []) as unknown as Parameters<typeof cardFront>[0][]
+  const fronts = here.map(card => cardFront(card, '…'))
 
-  const { concepts: proposed, report } = await proposeClozes(lesson.title, lesson.body, fronts)
+  // Which way the true-or-false cards already here come out. The
+  // reading draws the verdict that is behind, so a lesson whose garden
+  // is four statements all answered `False` -- which is every lesson
+  // tended before this -- comes out of its next reading with the other
+  // word on it rather than a fifth of the same.
+  const verdicts = here.map(card => cardTruth(card))
+
+  const { concepts: proposed, report } = await proposeClozes(
+    lesson.title,
+    lesson.body,
+    fronts,
+    verdicts
+  )
 
   const now = new Date()
   /** What the database would not take, said in its own words. */

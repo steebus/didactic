@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { verify, type ProposedCard, type ProposedConcept } from '@/lib/llm/clozes'
+import { verify, emptyReport, type ProposedCard, type ProposedConcept } from '@/lib/llm/clozes'
 import { cardColumns, prefixFor, ratingWord } from '@/lib/clozes'
 import { AGAIN, EASY, GOOD, HARD } from '@didactic/core/fsrs'
 
@@ -215,6 +215,62 @@ describe('verifying what the model proposed', () => {
     expect(verify([concept({ cards: [nudged, QA] })], BODY)[0].cards[0].hint).toBe(
       'Not the saving half.'
     )
+  })
+
+  /* The verdict is drawn before the lesson is read (`core.wantedVerdict`)
+     and `verify` is what makes the draw binding. Without it every
+     true-or-false in the garden came back `False`, because the brief
+     asked for a confusion the lesson corrects and every one of those is
+     a statement that does not hold. */
+  it('refuses a true-or-false answered the other way from the draw', () => {
+    const wrong: ProposedCard = {
+      kind: 'truefalse',
+      question: 'Saving a resource counts as an exposure.',
+      answer: 'False',
+      note: 'Only consuming it counts.',
+    }
+    const kept = verify([concept({ cards: [wrong, CLOZE] })], BODY, [], undefined, true)
+    expect(kept[0].cards.every(c => c.kind !== 'truefalse')).toBe(true)
+  })
+
+  it('keeps the true-or-false the draw asked for', () => {
+    const right: ProposedCard = {
+      kind: 'truefalse',
+      question: 'A mark is the lightest exposure there is.',
+      answer: 'True',
+      note: 'The lesson says so in as many words.',
+    }
+    const kept = verify([concept({ cards: [right, CLOZE] })], BODY, [], undefined, true)
+    expect(kept[0].cards[0].kind).toBe('truefalse')
+    expect(kept[0].cards[0].answer).toBe('True')
+  })
+
+  /* The concept survives on whatever else it carries, and the reading
+     says why the statement went rather than going quiet. */
+  it('says a refused verdict out loud, and keeps the concept', () => {
+    const wrong: ProposedCard = {
+      kind: 'truefalse',
+      question: 'Saving a resource counts as an exposure.',
+      answer: 'False',
+      note: 'Only consuming it counts.',
+    }
+    const report = emptyReport()
+    const kept = verify([concept({ cards: [wrong, CLOZE] })], BODY, [], report, true)
+    expect(kept).toHaveLength(1)
+    expect(report.dropped).toBe(1)
+    expect(Object.keys(report.why)[0]).toContain('True')
+  })
+
+  /* Nothing judges a verdict where no draw was made: a card made by
+     hand is held to the shared rules and to nothing else. */
+  it('judges no verdict where the caller drew none', () => {
+    const either: ProposedCard = {
+      kind: 'truefalse',
+      question: 'Saving a resource counts as an exposure.',
+      answer: 'False',
+      note: 'Only consuming it counts.',
+    }
+    expect(verify([concept({ cards: [either, CLOZE] })], BODY)[0].cards[0].kind).toBe('truefalse')
   })
 
   /* A statement containing the word *true* has not revealed that it is
