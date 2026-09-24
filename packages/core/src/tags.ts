@@ -26,6 +26,18 @@ export const tags = {
   highlights: 'highlights',
   /** One route through a topic, and its lessons. */
   curriculum: (id: string) => `curriculum:${id}`,
+  /** The learning plans: the reasoning behind a course's shape and the
+   *  log of what its lessons taught (`049`). Its own tag rather than the
+   *  curriculum's, because the two move on completely different rhythms
+   *  -- a plan gains a line on every lesson written, and dropping the
+   *  whole route's cache for a document no sheet of the route prints
+   *  would re-read the lessons to redraw nothing.
+   *
+   *  Flat rather than per-course, because `ENDPOINTS` carries static
+   *  names and a second invalidation mechanism for one route would cost
+   *  more than this does: no sheet on the map reads a plan, so dropping
+   *  every plan drops one sheet nobody else is looking at. */
+  plans: 'plans',
   /** The adjudication queue. */
   pending: 'pending',
   /** The garden: what is due, and what stands against a lesson. */

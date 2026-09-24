@@ -48,6 +48,121 @@ export const config = {
   // model proposing one topic twice under two names.
   RESOLVER_SIBLING_AMBIGUOUS: 0.9,
 
+  // What an evaluation model's distribution has to look like before it
+  // is allowed to write.
+  //
+  // These replace the judging half of the bands above, not the bands
+  // themselves: the cosine still nominates, and `RESOLVER_MATCH` and
+  // `RESOLVER_AMBIGUOUS` survive as the degraded path for when the
+  // gateway is down or the deadline blows, which is the only reason a
+  // resource can still be filed with no model call at all.
+  //
+  // One bar, not two. The margin to the runner-up was the obvious
+  // second test -- a race between two topics is the case a cosine can
+  // never see -- but the distribution is normalised, so a winner above
+  // 0.75 forces every rival below 0.25 and the margin can never bind.
+  // The top probability already carries the daylight. A separate
+  // MARGIN threshold was written, tested, and found to be unreachable.
+  //
+  // Set high, because the two errors still do not cost the same:
+  // `merge_topics` deletes the loser and keeps no record of it (`043`),
+  // while a wrong question costs one press. Re-measure with
+  // `npx vite-node scripts/bakeoff/bakeoff.ts` -- this is a starting
+  // position taken from the shape of the decision, not yet from rows.
+  JEV_LINK: 0.75,
+
+  // What the second reading has to say before a link is let through.
+  //
+  // Measured, and the measurement is why this threshold exists at all.
+  // Swept over the real map, no value of LINK separates the merges that
+  // should happen from the ones that should not: at 0.99 a twentieth of
+  // the hard negatives still merged and 63% of the right answers had
+  // been given up to buy it. The reason is visible once the pairs are
+  // printed instead of the scores -- "Generics in TypeScript" into
+  // "TypeScript" at 0.95, "Virtual DOM Diffing Algorithm" into "React"
+  // at 0.90, "Database Indexing" into "Relational Databases and SQL".
+  // A narrower case swallowed by its parent, confidently and always in
+  // the same direction, which is exactly the shape a single bar cannot
+  // catch.
+  //
+  // So scope is asked as its own question and this is the bar on its
+  // answer. Lower than LINK, because it is a veto rather than a
+  // verdict: it is not being asked to find the merge, only to stop one
+  // where the two are plainly not the same size.
+  //
+  // Swept over 77 proposed links -- 58 aliases it should pass, 19
+  // negatives it should hold:
+  //
+  //     bar    aliases through    negatives through
+  //     0.40        56.9%               5.3%
+  //     0.50        41.4%               0.0%   <- here
+  //     0.60        37.9%               0.0%
+  //     0.70        25.9%               0.0%
+  //
+  // 0.50 is the lowest bar that holds everything it should. Below it
+  // the guard stops guarding; above it costs aliases for nothing.
+  //
+  // What the sweep also showed, and what this number cannot fix: the
+  // scope question hedges toward "narrower" on genuine synonyms.
+  // "Diary Writing" against "Journaling" reads 0.41 same / 0.59
+  // narrower; "Redundant Component Rendering" against "Unnecessary
+  // Re-renders" reads 0.48 / 0.51. Those are one topic twice, and the
+  // readings are near coin-flips rather than mistakes made confidently
+  // -- which is why they sit just under any bar that works. Roughly
+  // three fifths of aliases therefore reach the queue instead of
+  // linking.
+  //
+  // That is the safe direction (a merge deletes a history, a question
+  // costs one press) and it is not the finished answer. The next move
+  // is the question, not the number: a phrasing that stops treating a
+  // more specific-sounding name as a narrower topic.
+  JEV_SAME_SCOPE: 0.5,
+
+  // Where a queued pair is a close race rather than a shrug. This
+  // decides how the queue words itself and nothing else -- both are
+  // pending either way -- because "it might be this one or that one"
+  // and "nothing here looks right" are different things to be told.
+  JEV_CLOSE: 0.15,
+
+  // What "none of these" has to score before a concept is created
+  // outright, and before a topic is recorded as belonging under no
+  // subject at all. Lower than LINK: creating is the reversible
+  // direction.
+  JEV_DISTINCT: 0.6,
+
+  // A subject's share of a concept's distribution before the concept is
+  // filed under it. Deliberately low, and read off every subject rather
+  // than the winner: membership is many-to-many (`012`), and a topic
+  // splitting 0.45/0.45 across two subjects belongs in both rather than
+  // in whichever rounded up.
+  JEV_SUBJECT: 0.25,
+
+  // How many topics the embedding nominates for the reading to judge.
+  //
+  // `overlap.ts` shows five, on the grounds that the far end of the
+  // list is noise the call pays for. That was a sound trade against
+  // Sonnet and stops being one at $0.042 per million, so the depth was
+  // measured instead of argued. On this map -- 74 active topics, 66
+  // aliases written from them -- the true topic was found at:
+  //
+  //     depth  1   83.3%        median rank of a true match   1
+  //     depth  3   93.9%        90th centile                  3
+  //     depth  5   95.5%   ← today
+  //     depth 10   97.0%        worst observed rank          15
+  //     depth 15  100.0%
+  //
+  // So retrieval was never the main fault: five was costing 4.5% of
+  // aliases, not most of them. Widening is worth doing because it is
+  // nearly free and it closes that gap outright, but the case for
+  // demoting the cosine rests on the judging, not on this.
+  //
+  // Set above the measured ceiling rather than at it. The worst rank
+  // will drift as the map grows toward the thousands `PRODUCT.md`
+  // expects, and 25 costs about 1,375 tokens a concept, which is a
+  // twentieth of a penny. Re-measure with
+  // `node --env-file=apps/web/.env node_modules/vite-node/dist/cli.mjs scripts/bakeoff/recall.ts`.
+  RESOLVER_NOMINATED: 25,
+
   // Two rows that are the same piece of material.
   //
   // A URL settles identity where there is one, and the database now

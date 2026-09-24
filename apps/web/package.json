@@ -20,6 +20,7 @@
     "@mozilla/readability": "^0.6.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.115.0",
+    "ai": "^7.0.113",
     "dompurify": "^3.4.15",
     "graphology": "^0.26.0",
     "graphology-layout-forceatlas2": "^0.10.1",

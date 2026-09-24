@@ -9,6 +9,7 @@ import type {
   LessonStage,
 } from '@didactic/core/types'
 import type { CurriculumProgress, LessonView } from '@didactic/core/curriculum'
+import type { LearningPlan } from '@didactic/core/learningPlan'
 
 export interface CurriculumPatch {
   action?: string
@@ -18,6 +19,31 @@ export interface CurriculumPatch {
   status?: CurriculumStatus
   lessonOrder?: string[]
   prereqs?: Array<{ lesson_id: string; requires_lesson_id: string }>
+}
+
+/**
+ * What the plan sheet reads, and what a revision answers with.
+ *
+ * `plan` is null for a course drafted before plans existed (`049`),
+ * which is a different thing from a plan holding nothing -- the sheet
+ * says so rather than offering an empty document to edit.
+ */
+export interface PlanView {
+  curriculumTitle: string
+  plan: LearningPlan | null
+}
+
+/**
+ * A revision. Both fields are optional and either may be sent alone.
+ *
+ * `reasoning` replaces the argument outright. `note` appends a line to
+ * the log marked as the reader's -- the log is a record of what was
+ * actually written and is not rewritten, so disagreeing with it means
+ * adding to it.
+ */
+export interface PlanRevision {
+  reasoning?: string
+  note?: string
 }
 
 export interface NewLesson {
@@ -204,6 +230,9 @@ export const curricula = (api: Api) => {
 
     patch: (id: string, body: CurriculumPatch) =>
       api.patch<{ ok: true }>(`/api/curricula/${id}`, body),
+    plan: (id: string) => api.get<PlanView>(`/api/curricula/${id}/plan`),
+    revisePlan: (id: string, body: PlanRevision) =>
+      api.patch<{ plan: LearningPlan | null }>(`/api/curricula/${id}/plan`, body),
     remove: (id: string) => api.del<{ ok: true }>(`/api/curricula/${id}`),
     addLesson: (id: string, body: NewLesson) =>
       api.post<{ lesson: Lesson }>(`/api/curricula/${id}/lessons`, body),
