@@ -1,10 +1,10 @@
 import { embed } from '../../apps/web/src/lib/embedding'
-import { resolveConcept, settleResolution } from '../../apps/web/src/lib/resolver'
+import { resolveConcept, type Resolution } from '../../apps/web/src/lib/resolver'
 import { judgeConcepts, NEAREST_SHOWN, type ConceptToJudge } from '../../apps/web/src/lib/llm/overlap'
-import { judgeWithJev } from '../../apps/web/src/lib/llm/jev'
+import { judgeWithJev, type JevVerdict } from '../../apps/web/src/lib/llm/jev'
 import { cosineSimilarity } from '@didactic/core/similarity'
 import { config } from '@didactic/core/config'
-import { loadProbes, nominate, readSubjects, heading, pct, type Probe } from './shared'
+import { loadProbes, nominate, readSubjects, saveDistributions, heading, pct, type Probe } from './shared'
 
 /**
  * The two arms, on one exam.
@@ -34,6 +34,39 @@ import { loadProbes, nominate, readSubjects, heading, pct, type Probe } from './
  */
 
 const BATCH = 8
+
+/**
+ * Arm A's arbitration, pinned.
+ *
+ * A copy of `settleResolution` as `main` has it, kept here rather than
+ * exported from the app. The control arm has to be the pipeline as it
+ * was on the day, and a shared function would quietly become whatever
+ * the branch changed it into -- which is the one thing a control may
+ * not do. Production carries no copy of it: `settleWithReading`
+ * replaced it, and dead code kept alive for a harness is how a harness
+ * starts lying.
+ */
+function settleResolution(
+  resolution: Resolution,
+  verdict: { sameAs: string | null; distinct: boolean } | undefined,
+  similarityOf: (topicId: string) => number
+): Resolution {
+  if (!verdict || resolution.action === 'link') return resolution
+
+  if (verdict.sameAs) {
+    const similarity = similarityOf(verdict.sameAs)
+    if (resolution.action === 'pending' && similarity >= config.RESOLVER_AMBIGUOUS) {
+      return { action: 'link', topicId: verdict.sameAs, similarity }
+    }
+    return { action: 'pending', title: resolution.title, similarity, nearestId: verdict.sameAs }
+  }
+
+  if (verdict.distinct && resolution.action === 'pending') {
+    return { action: 'create', title: resolution.title }
+  }
+
+  return resolution
+}
 
 const probes = loadProbes()
 const subjects = await readSubjects()
@@ -81,8 +114,14 @@ interface Outcome {
   action: 'link' | 'pending' | 'create'
   topicId: string | null
   subjects: string[] | null
+  /** False where the call was refused. Such a probe is left out of the
+   *  scoring rather than counted as a correct `create`. */
+  answered?: boolean
   /** Arm B only: what it gave the true topic, for calibration. */
   trueProbability?: number
+  /** Arm B only: the whole distribution, kept so the bars can be swept
+   *  afterwards without paying for the run again. */
+  probabilities?: Record<string, number>
 }
 
 async function runA(): Promise<Outcome[]> {
@@ -106,7 +145,7 @@ async function runA(): Promise<Outcome[]> {
       const settled = settleResolution(
         resolveConcept(concept.name, candidates, vector),
         verdict,
-        id => {
+        (id: string) => {
           const found = candidates.find(c => c.id === id)
           return found ? cosineSimilarity(vector, found.embedding) : 0
         }
@@ -119,12 +158,60 @@ async function runA(): Promise<Outcome[]> {
             : settled.action === 'pending' ? settled.nearestId
             : null,
         subjects: verdict ? verdict.subjects : null,
+        answered: true,
       })
     })
     process.stdout.write('.')
   }
 
   return out
+}
+
+/** What the gateway refused, and whether splitting the batch helped. */
+const trouble: string[] = []
+let splits = 0
+
+/**
+ * One batch of concepts, halved on failure until it goes through.
+ *
+ * The gateway answered a batch of eight with
+ * `GatewayInternalServerError` after three retries of its own, having
+ * answered the batch before it. A harness that dies there measures
+ * nothing, and worse, it cannot say *why* it died -- transient or
+ * structural look identical from one failed call.
+ *
+ * Halving tells them apart. If the halves go through, the batch was too
+ * big and the ceiling is somewhere between; if a single concept still
+ * fails, it was the gateway or that one concept, and the note says
+ * which. Either way the run finishes and the other 131 probes are still
+ * measured.
+ */
+async function judgeSlice(slice: ConceptToJudge[]): Promise<Map<string, JevVerdict> | null> {
+  try {
+    return await judgeWithJev({
+      resourceTitle: 'A mixed reading',
+      concepts: slice,
+      subjects: subjects.map(s => ({ id: s.id, title: s.title, topics: s.topics })),
+    })
+  } catch (e) {
+    const why = e instanceof Error ? e.message : String(e)
+
+    if (slice.length === 1) {
+      trouble.push(`${slice[0].name}: ${why.slice(0, 160)}`)
+      process.stdout.write('x')
+      return null
+    }
+
+    splits++
+    process.stdout.write('/')
+    const half = Math.ceil(slice.length / 2)
+    const merged = new Map<string, JevVerdict>()
+    for (const part of [slice.slice(0, half), slice.slice(half)]) {
+      const got = await judgeSlice(part)
+      if (got) for (const [k, v] of got) merged.set(k, v)
+    }
+    return merged.size > 0 ? merged : null
+  }
 }
 
 async function runB(): Promise<Outcome[]> {
@@ -134,16 +221,14 @@ async function runB(): Promise<Outcome[]> {
     const slice = searched
       .slice(i, i + BATCH)
       .map((_, j) => conceptFor(i + j, config.RESOLVER_NOMINATED))
-    const verdicts = await judgeWithJev({
-      resourceTitle: 'A mixed reading',
-      concepts: slice,
-      subjects: subjects.map(s => ({ id: s.id, title: s.title, topics: s.topics })),
-    })
+    const verdicts = await judgeSlice(slice)
 
     slice.forEach((concept, j) => {
       const verdict = verdicts?.get(concept.key)
       if (!verdict) {
-        out.push({ action: 'create', topicId: null, subjects: null })
+        // Not an answer. Counted apart from a real `create` below, so a
+        // refused call cannot read as the arm getting something right.
+        out.push({ action: 'create', topicId: null, subjects: null, answered: false })
         return
       }
       const { reading } = verdict
@@ -154,7 +239,9 @@ async function runB(): Promise<Outcome[]> {
             : reading.action === 'pending' ? reading.nearestId
             : null,
         subjects: verdict.subjects,
+        answered: true,
         trueProbability: verdict.probabilities?.[searched[i + j].probe.topicId] ?? 0,
+        probabilities: verdict.probabilities,
       })
     })
     process.stdout.write('.')
@@ -164,10 +251,14 @@ async function runB(): Promise<Outcome[]> {
 }
 
 function score(name: string, outcomes: Outcome[]): void {
-  const aliases = probes.map((p, i) => [p, outcomes[i]] as const).filter(([p]) => p.kind === 'alias')
-  const neighbours = probes
+  const answered = probes
     .map((p, i) => [p, outcomes[i]] as const)
-    .filter(([p]) => p.kind === 'neighbour')
+    .filter(([, o]) => o.answered !== false)
+  const aliases = answered.filter(([p]) => p.kind === 'alias')
+  const neighbours = answered.filter(([p]) => p.kind === 'neighbour')
+
+  const refused = probes.length - answered.length
+  if (refused > 0) console.log(`  (${refused} probes left out: the call was refused)`)
 
   // An alias that linked to the topic it was written from.
   const hit = aliases.filter(([p, o]) => o.action === 'link' && o.topicId === p.topicId).length
@@ -196,8 +287,8 @@ function score(name: string, outcomes: Outcome[]): void {
   const irreversible = wrongLink + falseMerge
   const queued = aliasQueued + neighbourQueued
   console.log('  overall')
-  console.log(`    irreversible errors   ${pct(irreversible, probes.length)}   ${irreversible}`)
-  console.log(`    queue load            ${pct(queued, probes.length)}   ${queued}`)
+  console.log(`    irreversible errors   ${pct(irreversible, answered.length)}   ${irreversible}`)
+  console.log(`    queue load            ${pct(queued, answered.length)}   ${queued}`)
 
   // Subjects, scored on aliases only: a neighbour's true membership is
   // not known, and guessing it would make the figure meaningless.
@@ -241,6 +332,33 @@ console.log('')
 
 score('Arm A — as it stands', a)
 score('Arm B — demoted', b)
+
+// Kept so `sweep.ts` can ask what a different bar would have done
+// without paying for the reading again. The distributions are the
+// expensive part of this run and they do not change with a threshold.
+saveDistributions(
+  probes.map((probe, i) => ({
+    kind: probe.kind,
+    name: probe.name,
+    topicId: probe.topicId,
+    topicTitle: probe.topicTitle,
+    answered: b[i].answered !== false,
+    probabilities: b[i].probabilities ?? null,
+  }))
+)
+
+if (splits > 0 || trouble.length > 0) {
+  heading('What the gateway refused')
+  console.log(`  batches halved before they went through: ${splits}`)
+  console.log(`  concepts that failed even on their own:  ${trouble.length}`)
+  for (const line of trouble.slice(0, 10)) console.log(`    ${line}`)
+  if (splits > 0 && trouble.length === 0) {
+    console.log('')
+    console.log('  Every split eventually went through, so the batch size is the')
+    console.log('  ceiling, not the request shape. Eight concepts at 25 candidates')
+    console.log('  each is too much for one call, and production sends a book worth.')
+  }
+}
 
 // The rows where they disagreed, which is where the reading is. A
 // table of two percentages says which arm won; this says why.

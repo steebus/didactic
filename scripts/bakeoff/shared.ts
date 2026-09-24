@@ -31,6 +31,41 @@ if (!url || !key) {
 
 const db = createClient(url, key, { auth: { persistSession: false } })
 
+/**
+ * A PostgREST failure as something with a stack on it.
+ *
+ * `{ data, error }` hands back a plain object, not an `Error`. Thrown as
+ * it arrives from a script whose work is top-level `await`, Node reports
+ * the whole thing as `UnhandledPromiseRejection ... the reason
+ * "#<Object>"` and nothing else -- no message, no code, no hint, and no
+ * line. Which is how an ambiguous embed spent a run looking like a fault
+ * in the gateway.
+ */
+function fault(where: string, error: unknown): Error {
+  const e = (error ?? {}) as Record<string, unknown>
+  const parts = [`bakeoff: ${where} failed`]
+  if (e.code) parts.push(`[${String(e.code)}]`)
+  if (e.message) parts.push(String(e.message))
+  const thrown = new Error(parts.join(' '))
+  if (e.hint) thrown.message += `
+  hint: ${String(e.hint)}`
+  if (e.details) thrown.message += `
+  details: ${JSON.stringify(e.details)}`
+  return thrown
+}
+
+// Every script here is top-level await, so a rejection escaping one is
+// reported by Node with the value stringified and nothing else. This
+// prints what was actually thrown before the process goes.
+process.on('unhandledRejection', reason => {
+  console.error('')
+  console.error('bakeoff: unhandled rejection')
+  console.error('')
+  if (reason instanceof Error) console.error(reason.stack ?? reason.message)
+  else console.dir(reason, { depth: 6 })
+  process.exit(1)
+})
+
 export interface MapTopic {
   id: string
   title: string
@@ -54,7 +89,7 @@ export async function readTopics(): Promise<MapTopic[]> {
     .from('topics')
     .select('id, title, summary, topic_subjects(subject_id)')
     .eq('state', 'active')
-  if (error) throw error
+  if (error) throw fault('reading topics', error)
 
   return (data ?? []).map(row => ({
     id: row.id as string,
@@ -68,10 +103,17 @@ export async function readTopics(): Promise<MapTopic[]> {
 
 /** Every subject, with a sample of what it holds. */
 export async function readSubjects(sample = 12): Promise<MapSubject[]> {
+  // `topics!topic_subjects` rather than `topics`: there are two
+  // relationships between the tables -- `primary_subject_id`, which is
+  // the topic's home, and the `topic_subjects` join, which is every bed
+  // it sits in -- so an unqualified embed is ambiguous and PostgREST
+  // refuses it with PGRST201. Membership is the one wanted here, because
+  // what a subject holds is the nearest thing it has to a description of
+  // itself, and `012` made that many-to-many.
   const { data, error } = await db
     .from('subjects')
-    .select('id, title, topics(title)')
-  if (error) throw error
+    .select('id, title, topics!topic_subjects(title)')
+  if (error) throw fault('reading subjects', error)
 
   return (data ?? []).map(row => ({
     id: row.id as string,
@@ -97,7 +139,7 @@ export async function nominate(
     query_embedding: JSON.stringify(vector),
     match_count: limit,
   })
-  if (error) throw error
+  if (error) throw fault('match_topics', error)
 
   return (data ?? []).map(
     (row: {
@@ -147,6 +189,34 @@ const PROBE_FILE = join(here, 'probes.json')
 export function saveProbes(probes: Probe[]): void {
   mkdirSync(dirname(PROBE_FILE), { recursive: true })
   writeFileSync(PROBE_FILE, JSON.stringify(probes, null, 2))
+}
+
+/** One probe's distribution, kept for the threshold sweep. */
+export interface SavedDistribution {
+  kind: 'alias' | 'neighbour'
+  name: string
+  topicId: string
+  topicTitle: string
+  answered: boolean
+  probabilities: Record<string, number> | null
+}
+
+const DISTRIBUTION_FILE = join(here, 'distributions.json')
+
+export function saveDistributions(rows: SavedDistribution[]): void {
+  writeFileSync(DISTRIBUTION_FILE, JSON.stringify(rows, null, 2))
+  console.log('')
+  console.log('Distributions written to scripts/bakeoff/distributions.json')
+}
+
+export function loadDistributions(): SavedDistribution[] {
+  if (!existsSync(DISTRIBUTION_FILE)) {
+    throw new Error(
+      'bakeoff: no distributions yet. Run the bake-off first: ' +
+        'node --env-file=apps/web/.env node_modules/vite-node/dist/cli.mjs scripts/bakeoff/bakeoff.ts'
+    )
+  }
+  return JSON.parse(readFileSync(DISTRIBUTION_FILE, 'utf8')) as SavedDistribution[]
 }
 
 export function loadProbes(): Probe[] {

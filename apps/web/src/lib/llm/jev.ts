@@ -60,6 +60,27 @@ export const MODEL = 'typesafe-ai/jev'
  *  below it, so this is a guard against a caller, not a tuning knob. */
 const MAX_OPTIONS = 255
 
+/**
+ * How many candidate options one request may carry, across all of its
+ * questions.
+ *
+ * Not a documented limit. Measured: the gateway answered eight concepts
+ * at twenty-five candidates each with `GatewayInternalServerError` after
+ * three retries of its own, having answered the batch before it, and
+ * every halving of that batch went through. Eight times twenty-five is
+ * two hundred options in one request; four times twenty-five is a
+ * hundred and holds.
+ *
+ * This matters more in production than in the harness. A batch of eight
+ * is what the bake-off happened to use; a book yields twenty-odd
+ * concepts, which at the same depth is five hundred options and would
+ * have failed every time. The failure would not even have been loud --
+ * `ingest.judge` catches it, warns, and files by name -- so every book
+ * would quietly have been filed by the fallback while the numbers said
+ * the reading was on.
+ */
+const OPTIONS_PER_REQUEST = 100
+
 const SAME_INSTRUCTIONS =
   'Which of these existing topics is this concept, written under another name? ' +
   'Two names for one idea -- things that would be taught as one thing -- is a match. ' +
@@ -95,6 +116,45 @@ export async function judgeWithJev(input: {
   const { concepts, subjects } = input
   if (concepts.length === 0) return null
   if (subjects.length === 0 && concepts.every(c => c.nearest.length === 0)) return null
+
+  // Packed by options rather than by concept count, because that is what
+  // the ceiling is measured in: one concept with twenty-five candidates
+  // costs what five with five do. Chunks go up together -- Jev evaluates
+  // questions in parallel anyway, and the shared state is small next to
+  // the criteria, so splitting costs little beyond re-sending it.
+  const chunks: ConceptToJudge[][] = []
+  let carrying = 0
+  for (const concept of concepts) {
+    const options = Math.min(concept.nearest.length, MAX_OPTIONS - 1) + 1
+    if (chunks.length === 0 || carrying + options > OPTIONS_PER_REQUEST) {
+      chunks.push([concept])
+      carrying = options
+    } else {
+      chunks[chunks.length - 1].push(concept)
+      carrying += options
+    }
+  }
+
+  if (chunks.length > 1) {
+    const parts = await Promise.all(
+      chunks.map(chunk => judgeOneRequest({ ...input, concepts: chunk }))
+    )
+    const merged = new Map<string, JevVerdict>()
+    for (const part of parts) if (part) for (const [k, v] of part) merged.set(k, v)
+    return merged.size > 0 ? merged : null
+  }
+
+  return judgeOneRequest(input)
+}
+
+/** One request's worth. `judgeWithJev` decides how much that is. */
+async function judgeOneRequest(input: {
+  resourceTitle: string
+  concepts: ConceptToJudge[]
+  subjects: SubjectToJudge[]
+  signal?: AbortSignal
+}): Promise<Map<string, JevVerdict> | null> {
+  const { concepts, subjects } = input
 
   const questions: Record<string, Parameters<typeof evaluate>[0]['questions'][string]> = {}
 
