@@ -199,6 +199,11 @@ export interface SavedDistribution {
   topicTitle: string
   answered: boolean
   probabilities: Record<string, number> | null
+  /** The second reading's distribution over same/narrower/broader/
+   *  adjacent, where a link was proposed and the guard was asked about
+   *  it. Null on anything that never reached a link, which is most
+   *  probes and is not the same as a guard that had nothing to say. */
+  scope: Record<string, number> | null
 }
 
 const DISTRIBUTION_FILE = join(here, 'distributions.json')

@@ -61,6 +61,10 @@ vi.mock('@/lib/supabase', () => ({
             error: null,
           }
         },
+        // A read whose absence is an ordinary answer rather than an
+        // error. `readPlan` asks this way because a course drafted
+        // before `049` has no plan and that is not a fault.
+        maybeSingle: async () => ({ data: null, error: null }),
         // Awaiting the builder itself is a list read, or a write.
         then: (resolve: (v: unknown) => void) =>
           resolve({

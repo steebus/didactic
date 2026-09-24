@@ -113,3 +113,58 @@ console.log('')
 console.log('If some of them are one topic under two names, they are aliases that')
 console.log('were labelled negatives, every arm is being marked wrong for getting')
 console.log('them right, and the exam has to be fixed before the table means anything.')
+
+/**
+ * The guard's own bar, swept the same way.
+ *
+ * `JEV_SAME_SCOPE` at 0.6 took the irreversible errors to nought and
+ * took two thirds of the right answers with them: 31.8% of aliases
+ * linked where the unguarded arm managed 89.2%. That is the safe
+ * direction to be wrong in -- a question costs one press, a merge
+ * cannot be taken back -- but sixty-two per cent of probes reaching the
+ * queue is a queue nobody works, and an arm that asks about everything
+ * has not decided anything.
+ *
+ * Only links reach the guard, so only links are swept. A probe with no
+ * scope reading never proposed one and is untouched either way.
+ */
+const guarded = rows.filter(r => r.scope)
+if (guarded.length > 0) {
+  heading(`Sweeping JEV_SAME_SCOPE over ${guarded.length} proposed links`)
+  const guardedAliases = guarded.filter(r => r.kind === 'alias')
+  const guardedNeighbours = guarded.filter(r => r.kind === 'neighbour')
+  console.log(
+    `${guardedAliases.length} of them are aliases the guard should let through,`
+  )
+  console.log(`${guardedNeighbours.length} are negatives it should hold.`)
+  console.log('')
+  console.log('   bar   aliases let through   NEGATIVES LET THROUGH')
+
+  for (const bar of [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]) {
+    const through = (r: (typeof guarded)[number]) => (r.scope?.same ?? 0) >= bar
+    const right = guardedAliases.filter(through).length
+    const wrong = guardedNeighbours.filter(through).length
+    const mark = wrong === 0 ? '  <- nothing wrong gets through' : ''
+    console.log(
+      `  ${bar.toFixed(2)}   ${pct(right, guardedAliases.length)}              ` +
+        `${pct(wrong, guardedNeighbours.length)}${mark}`
+    )
+  }
+
+  heading('Aliases the guard held, worst first')
+  console.log('These are the presses the guard costs. If their scope readings')
+  console.log('are close, the bar is too high; if they are decisive, the probe')
+  console.log('set is calling two different topics the same one.')
+  console.log('')
+  for (const row of guardedAliases
+    .filter(r => (r.scope?.same ?? 0) < 0.6)
+    .sort((a, b) => (b.scope?.same ?? 0) - (a.scope?.same ?? 0))
+    .slice(0, 15)) {
+    const s = row.scope ?? {}
+    console.log(`  ${row.name}  ->  ${row.topicTitle}`)
+    console.log(
+      `        same ${(s.same ?? 0).toFixed(2)}  narrower ${(s.narrower ?? 0).toFixed(2)}` +
+        `  broader ${(s.broader ?? 0).toFixed(2)}  adjacent ${(s.adjacent ?? 0).toFixed(2)}`
+    )
+  }
+}

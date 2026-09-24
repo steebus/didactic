@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readDistribution, readSubjects, readingSentence, NONE } from '../src/resolution'
+import { readDistribution, readSubjects, readingSentence, guardScope, NONE } from '../src/resolution'
 import { config } from '../src/config'
 
 describe('readDistribution', () => {
@@ -128,5 +128,62 @@ describe('readingSentence', () => {
   it('prints a percentage rather than a probability', () => {
     const sentence = readingSentence(readDistribution('t1', { t1: 0.94, t2: 0.04, [NONE]: 0.02 }))
     expect(sentence).toContain('94%')
+  })
+})
+
+describe('guardScope', () => {
+  const link = readDistribution('t1', { t1: 0.95, t2: 0.03, [NONE]: 0.02 })
+  const queued = readDistribution('t1', { t1: 0.5, t2: 0.3, [NONE]: 0.2 })
+  const created = readDistribution(NONE, { [NONE]: 0.9, t1: 0.1 })
+
+  it('lets a link through where the two are the same size', () => {
+    expect(guardScope(link, { same: 0.9, narrower: 0.06, broader: 0.02, adjacent: 0.02 }))
+      .toBe(link)
+  })
+
+  it('holds a link where the concept is the narrower case', () => {
+    // "Generics in TypeScript" read as TypeScript at 0.95. The first
+    // distribution cannot see this and no bar on it can.
+    const held = guardScope(link, { same: 0.1, narrower: 0.85, broader: 0.03, adjacent: 0.02 })
+    expect(held).toMatchObject({ action: 'pending', nearestId: 't1', because: 'wrong-scope' })
+  })
+
+  it('holds a link where the concept is the broader one', () => {
+    const held = guardScope(link, { same: 0.08, narrower: 0.05, broader: 0.85, adjacent: 0.02 })
+    expect(held.action).toBe('pending')
+  })
+
+  it('holds a link the scope reading could not be got for', () => {
+    // A guard that waves through what it could not check is not a guard,
+    // and the fault it exists for is one-directional.
+    expect(guardScope(link, undefined).action).toBe('pending')
+    expect(guardScope(link, {}).action).toBe('pending')
+  })
+
+  it('keeps the probability and margin of the reading it held', () => {
+    const held = guardScope(link, { same: 0.1, narrower: 0.9 })
+    expect(held.probability).toBe(link.probability)
+    expect(held.margin).toBe(link.margin)
+  })
+
+  it('never downgrades a link past pending', () => {
+    // "The narrower case of that topic" is a real relationship worth
+    // recording as an edge; throwing it to `create` would lose the pair.
+    const held = guardScope(link, { same: 0, narrower: 1 })
+    expect(held.action).toBe('pending')
+  })
+
+  it('leaves anything that was not a link alone', () => {
+    expect(guardScope(queued, { same: 0, narrower: 1 })).toBe(queued)
+    expect(guardScope(created, { same: 0, narrower: 1 })).toBe(created)
+  })
+
+  it('holds a link on a same score that is not a finite number', () => {
+    expect(guardScope(link, { same: Number.NaN, narrower: 0.5 }).action).toBe('pending')
+  })
+
+  it('holds the bar the config sets', () => {
+    expect(guardScope(link, { same: config.JEV_SAME_SCOPE - 0.01 }).action).toBe('pending')
+    expect(guardScope(link, { same: config.JEV_SAME_SCOPE }).action).toBe('link')
   })
 })

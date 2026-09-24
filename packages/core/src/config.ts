@@ -71,6 +71,26 @@ export const config = {
   // position taken from the shape of the decision, not yet from rows.
   JEV_LINK: 0.75,
 
+  // What the second reading has to say before a link is let through.
+  //
+  // Measured, and the measurement is why this threshold exists at all.
+  // Swept over the real map, no value of LINK separates the merges that
+  // should happen from the ones that should not: at 0.99 a twentieth of
+  // the hard negatives still merged and 63% of the right answers had
+  // been given up to buy it. The reason is visible once the pairs are
+  // printed instead of the scores -- "Generics in TypeScript" into
+  // "TypeScript" at 0.95, "Virtual DOM Diffing Algorithm" into "React"
+  // at 0.90, "Database Indexing" into "Relational Databases and SQL".
+  // A narrower case swallowed by its parent, confidently and always in
+  // the same direction, which is exactly the shape a single bar cannot
+  // catch.
+  //
+  // So scope is asked as its own question and this is the bar on its
+  // answer. Lower than LINK, because it is a veto rather than a
+  // verdict: it is not being asked to find the merge, only to stop one
+  // where the two are plainly not the same size.
+  JEV_SAME_SCOPE: 0.6,
+
   // Where a queued pair is a close race rather than a shrug. This
   // decides how the queue words itself and nothing else -- both are
   // pending either way -- because "it might be this one or that one"

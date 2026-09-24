@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { proposeCurriculum } from '@/lib/llm/curriculum'
+import { openPlan, qualifiersForTopic } from '@/lib/learningPlan'
 import { findPrereqCycle } from '@didactic/core/curriculum'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
@@ -130,6 +131,22 @@ export async function POST(req: Request) {
     await db.from('curricula').delete().eq('id', curriculum.id)
     return NextResponse.json({ error: lessonError.message }, { status: 500 })
   }
+
+  // The plan is opened with the course (`049`): the reasoning the
+  // drafting agent just gave, and a snapshot of what the reader said
+  // when they sowed the subject. Every agent that writes a lesson for
+  // this course is shown it, which is how the course stays one course
+  // rather than sixteen lessons that happen to share a title.
+  //
+  // Not awaited before the response and never fatal. A course whose
+  // plan failed to open is a course; `openPlan` logs and returns, and
+  // the lessons it produces are the generic ones rather than none.
+  await openPlan(db, {
+    curriculumId: curriculum.id,
+    userId: topic.user_id,
+    reasoning: proposal.reasoning,
+    qualifiers: await qualifiersForTopic(db, topic.id),
+  })
 
   const idBySlug = new Map((lessons ?? []).map(l => [l.slug, l.id]))
   const idByKey = new Map(

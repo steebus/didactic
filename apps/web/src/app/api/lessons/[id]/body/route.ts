@@ -4,6 +4,8 @@ import { generateLessonBody, ROUNDS_MAX } from '@/lib/llm/curriculum'
 import { settlePictures } from '@/lib/pictures'
 import { lessonsWithinReach } from '@/lib/curriculum'
 import { passagesForLesson, unsupportedCitations } from '@/lib/citations'
+import { readPlan, appendEntry } from '@/lib/learningPlan'
+import { summariseForPlan } from '@/lib/llm/plan'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
 
@@ -168,6 +170,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // resolve there.
   const links = await lessonsWithinReach(db, curriculum.topic_id, id)
 
+  // The course's standing record: why it is shaped as it is, what the
+  // reader said about the subject, and what the lessons before this one
+  // actually taught (`049`). Null for a course drafted before plans
+  // existed, which writes exactly as it always did.
+  const plan = await readPlan(db, curriculum.id)
+
   // The passages from the reader's own documents nearest to what this
   // lesson is about. Empty for a topic nobody handed a document to,
   // which is the ordinary case and writes exactly as it always did.
@@ -208,6 +216,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       ),
       links,
       passages,
+      plan,
       nearby: dedupe(
         (nearby ?? []).flatMap(r =>
           r.resources
@@ -266,6 +275,31 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // Dropping the cache on every round would re-read the whole map three
   // times for one lesson.
   if (written.finished) dropCache()
+
+  /* The line this lesson leaves in the plan.
+     -----------------------------------------------------------------
+
+     Only on the round that finishes it: a summary of half a lesson
+     would describe a lesson that does not exist, and the log is read by
+     every agent writing a later one.
+
+     After the body is saved and never in front of it. The lesson is the
+     thing the reader asked for and it is already theirs by this point;
+     the log line is context for the next agent, and a failure to write
+     one must not reach back and cost anyone a lesson. `appendEntry`
+     says whether it landed and nothing here acts on the answer. */
+  if (written.finished) {
+    await appendEntry(db, curriculum.id, {
+      by: 'ai',
+      kind: 'lesson',
+      ref: id,
+      body: await summariseForPlan({
+        lessonTitle: lesson.title,
+        curriculumTitle: curriculum.title,
+        body: pictures.text,
+      }),
+    })
+  }
 
   // A citation the agent was not shown. It is told plainly to cite only
   // what it is given, and mostly does -- but a citation of a real book

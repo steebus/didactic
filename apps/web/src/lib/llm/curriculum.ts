@@ -5,6 +5,7 @@ import type { CurriculumShape, LessonStage } from '@didactic/core/types'
 import { blockPromptSection } from '@didactic/core/blocks'
 import { lessonSlug, type LessonLink } from '@didactic/core/lessonLinks'
 import { passagePromptSection, type CitedPassage } from '../citations'
+import { planPrompt, type LearningPlan } from '@didactic/core/learningPlan'
 
 /** A lesson as the model proposes it, before it has an id. Branching is
  *  expressed with the model's own keys so it never has to invent uuids. */
@@ -21,6 +22,15 @@ export interface ProposedCurriculum {
   title: string
   shape: CurriculumShape
   lessons: ProposedLesson[]
+  /**
+   * Why the course is shaped this way, for the learning plan (`049`).
+   *
+   * Null where the model did not answer with one. The plan then opens
+   * with no reasoning, which the sheet and every later prompt can tell
+   * apart from a reasoning that is empty -- a course whose argument was
+   * never written is not a course that was argued to have none.
+   */
+  reasoning: string | null
 }
 
 export interface CurriculumBrief {
@@ -53,6 +63,10 @@ const STAGES: LessonStage[] = ['introductory', 'core', 'advanced']
 const LINKS_HERE = 40
 const LINKS_OVER = 25
 
+/** Between the two halves of the system prompt: how to write, then what
+ *  this course is for. A blank line, so neither runs into the other. */
+const PROMPT_GAP = '\n\n'
+
 const TOOL = {
   name: 'record_curriculum',
   description:
@@ -66,6 +80,16 @@ const TOOL = {
         enum: ['linear', 'branching'],
         description:
           'linear when the material has one sensible order; branching when it genuinely forks.',
+      },
+      reasoning: {
+        type: 'string',
+        description:
+          'Why this course is shaped the way it is, in two or three short paragraphs addressed to ' +
+          'another agent who will write the lessons. Say what you decided and why: where it starts ' +
+          'and what that assumes they already hold, what you left out on purpose, what the handed-over ' +
+          'material is covering so the lessons need not, and anything about this reader that should ' +
+          'change how the lessons are written. Do not restate the lesson list — it is already recorded. ' +
+          'This is the standing record every later agent works from.',
       },
       lessons: {
         type: 'array',
@@ -87,7 +111,7 @@ const TOOL = {
         },
       },
     },
-    required: ['title', 'shape', 'lessons'],
+    required: ['title', 'shape', 'lessons', 'reasoning'],
   },
 }
 
@@ -137,7 +161,9 @@ ${brief.sources.length
     }`
   : ''}
 
-8 to 16 lessons. Use "requires" to say what must come first: a linear curriculum chains each lesson to the one before, a branching one has several starting points and forks where the material genuinely diverges. Never make a lesson require itself or form a loop.`,
+8 to 16 lessons. Use "requires" to say what must come first: a linear curriculum chains each lesson to the one before, a branching one has several starting points and forks where the material genuinely diverges. Never make a lesson require itself or form a loop.
+
+Then write the "reasoning". Every agent that writes a lesson for this course will be shown it and nothing else about how you were thinking, so it is the only chance to say why the shape is what it is rather than leaving each of them to guess separately. Write it to them, not to the reader.`,
     }],
   })
 
@@ -149,6 +175,7 @@ ${brief.sources.length
   const raw = tool.input as {
     title?: string
     shape?: string
+    reasoning?: string
     lessons?: Array<Partial<ProposedLesson>>
   }
 
@@ -174,6 +201,8 @@ ${brief.sources.length
       ? raw.title.trim()
       : `${brief.topicTitle}, end to end`,
     shape: raw.shape === 'branching' ? 'branching' : 'linear',
+    reasoning:
+      typeof raw.reasoning === 'string' && raw.reasoning.trim() ? raw.reasoning.trim() : null,
     lessons: lessons.map(l => ({
       ...l,
       requires: [...new Set(l.requires.filter(r => r !== l.key && keys.has(r)))],
@@ -267,6 +296,18 @@ export async function generateLessonBody(
      *  into the prompt whole: the agent cites what it can see and
      *  nothing else. See `lib/citations.ts`. */
     passages?: CitedPassage[]
+    /**
+     * The course's standing record of why it is shaped as it is and
+     * what has been written into it so far (`049`).
+     *
+     * In the system prompt rather than the user turn, beside the voice
+     * and for the same reason: it is what is true of every round of
+     * every lesson in this course, so it belongs in front of the cached
+     * prefix rather than inside the request. `covered` names the
+     * lessons that came before; this says what they actually taught,
+     * and why the course asked for them in that order.
+     */
+    plan?: LearningPlan | null
   },
   /**
    * The lesson as far as it has been written, where this is carrying on
@@ -367,7 +408,14 @@ ${blockPromptSection()}`
     // prefix rather than inside the request -- and so a round that
     // carries on from half a lesson is told the voice again, which the
     // carried prose alone does not reliably say.
-    system: LESSON_VOICE,
+    //
+    // The learning plan joins it there. It is the same for every lesson
+    // in the course, and a course with no plan adds nothing rather than
+    // an empty heading -- `planPrompt` returns null for that, which is
+    // why this is a filter and not a template.
+    system: [LESSON_VOICE, planPrompt(input.plan ?? null)]
+      .filter((part): part is string => Boolean(part))
+      .join(PROMPT_GAP),
     messages,
   })
   const res = await stream.finalMessage()

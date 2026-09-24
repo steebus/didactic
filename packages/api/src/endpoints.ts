@@ -102,6 +102,13 @@ export const ENDPOINTS = {
 
   'curricula.create': { name: 'curricula.create', method: 'POST', path: '/api/curricula', invalidates: [tags.topics] },
   'curricula.patch': { name: 'curricula.patch', method: 'PATCH', path: '/api/curricula/[id]', invalidates: [tags.topics] },
+  // The plan has its own tag rather than the curriculum's. No sheet of
+  // the route prints it, so dropping `topics` or the curriculum would
+  // re-read the lessons to redraw nothing -- but a revision does change
+  // what the plan sheet shows, and a write that drops nothing is the
+  // stale-map failure this table exists to prevent.
+  'curricula.plan': { name: 'curricula.plan', method: 'GET', path: '/api/curricula/[id]/plan', invalidates: [] },
+  'curricula.revisePlan': { name: 'curricula.revisePlan', method: 'PATCH', path: '/api/curricula/[id]/plan', invalidates: [tags.plans] },
   'curricula.remove': { name: 'curricula.remove', method: 'DELETE', path: '/api/curricula/[id]', invalidates: [tags.topics] },
   'curricula.addLesson': { name: 'curricula.addLesson', method: 'POST', path: '/api/curricula/[id]/lessons', invalidates: [tags.topics] },
 

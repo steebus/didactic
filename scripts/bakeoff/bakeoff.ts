@@ -122,6 +122,7 @@ interface Outcome {
   /** Arm B only: the whole distribution, kept so the bars can be swept
    *  afterwards without paying for the run again. */
   probabilities?: Record<string, number>
+  scope?: Record<string, number>
 }
 
 async function runA(): Promise<Outcome[]> {
@@ -241,6 +242,7 @@ async function runB(): Promise<Outcome[]> {
         subjects: verdict.subjects,
         answered: true,
         trueProbability: verdict.probabilities?.[searched[i + j].probe.topicId] ?? 0,
+        scope: verdict.scope,
         probabilities: verdict.probabilities,
       })
     })
@@ -344,6 +346,7 @@ saveDistributions(
     topicTitle: probe.topicTitle,
     answered: b[i].answered !== false,
     probabilities: b[i].probabilities ?? null,
+    scope: b[i].scope ?? null,
   }))
 )
 

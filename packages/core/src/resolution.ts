@@ -50,8 +50,34 @@ export type Reading = ResolutionAction & {
   margin: number
   /** Why it went this way, for the queue to print and for the harness
    *  to count. Not user-facing copy. */
-  because: 'sure' | 'narrow-margin' | 'unsure' | 'distinct' | 'empty'
+  because: 'sure' | 'narrow-margin' | 'unsure' | 'distinct' | 'empty' | 'wrong-scope'
 }
+
+/**
+ * How a concept sits against the topic the reading chose.
+ *
+ * Asked as a second question because the first one cannot answer it. A
+ * distribution over candidates says *which* topic is closest and says
+ * nothing about whether the two are the same size -- and measured on
+ * this map, that is the whole of what goes wrong. "Generics in
+ * TypeScript" reads as TypeScript at 0.95, "Virtual DOM Diffing
+ * Algorithm" as React at 0.90, "Database Indexing" as Relational
+ * Databases and SQL. Every one is a narrower case swallowed by its
+ * parent, and every one is confidently wrong in the same direction, so
+ * no bar on the first distribution can separate them: `sweep.ts`
+ * flatlines at 0.99 with merges still happening and two thirds of the
+ * right answers given up to buy it.
+ *
+ * `SAME_INSTRUCTIONS` forbids exactly this, twice, in words. Asking
+ * again as its own typed question is what makes it answerable, and it
+ * costs one more question on a call that already runs them in parallel.
+ */
+export const SCOPE = {
+  same: 'same',
+  narrower: 'narrower',
+  broader: 'broader',
+  adjacent: 'adjacent',
+} as const
 
 /**
  * Read a distribution into an action.
@@ -120,6 +146,45 @@ export function readDistribution(
 }
 
 /**
+ * Hold a link back where the two are not the same size.
+ *
+ * Only a link can be held: a pending is already a question and a create
+ * already keeps them apart, so neither has anything to lose here. And
+ * the guard only ever downgrades to `pending` -- never to `create` --
+ * because "this is the narrower case of that topic" is a genuine
+ * relationship the reader may still want recorded as one. The queue is
+ * where that gets decided; `edges.ts` is what records it.
+ *
+ * Asked only of links, which is what makes the second call cheap: most
+ * concepts never clear `JEV_LINK`, and the ones that do are the only
+ * ones a wrong answer costs anything on.
+ *
+ * An absent or unreadable distribution holds the link too. The guard
+ * exists because the first reading is confidently wrong in one
+ * direction, and a guard that waves through whatever it could not check
+ * is not a guard.
+ */
+export function guardScope(
+  reading: Reading,
+  probabilities: Readonly<Record<string, number>> | undefined
+): Reading {
+  if (reading.action !== 'link') return reading
+
+  const same = probabilities?.[SCOPE.same]
+  if (typeof same === 'number' && Number.isFinite(same) && same >= config.JEV_SAME_SCOPE) {
+    return reading
+  }
+
+  return {
+    action: 'pending',
+    nearestId: reading.topicId,
+    probability: reading.probability,
+    margin: reading.margin,
+    because: 'wrong-scope',
+  }
+}
+
+/**
  * The subjects a concept belongs under, from one distribution.
  *
  * Membership is many-to-many and has been since `012` -- a topic
@@ -168,6 +233,8 @@ export function readingSentence(reading: Reading): string {
       return `Read as the same topic, ${pct}% sure.`
     case 'narrow-margin':
       return `Nearest match read at ${pct}%, with another close behind it — a race rather than a match.`
+    case 'wrong-scope':
+      return `Read as the same subject matter at ${pct}%, but not at the same scope — one of them is the narrower case, which is an edge rather than a merge.`
     case 'distinct':
       return `Read as its own topic, ${pct}% sure it is none of the ones nearby.`
     case 'empty':

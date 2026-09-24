@@ -1,5 +1,12 @@
 import { experimental_evaluate as evaluate } from 'ai'
-import { readDistribution, readSubjects, NONE, type Reading } from '@didactic/core/resolution'
+import {
+  readDistribution,
+  readSubjects,
+  guardScope,
+  NONE,
+  SCOPE,
+  type Reading,
+} from '@didactic/core/resolution'
 import { config } from '@didactic/core/config'
 import type { ConceptToJudge, SubjectToJudge } from './overlap'
 
@@ -52,6 +59,10 @@ export interface JevVerdict {
   /** The distribution itself, for the adjudication queue to show and
    *  for the harness to score calibration against. */
   probabilities: Record<string, number> | undefined
+  /** How the two sizes compared, where a link was proposed and the
+   *  second reading was asked about it. Absent on anything that never
+   *  reached a link. */
+  scope?: Record<string, number> | undefined
 }
 
 export const MODEL = 'typesafe-ai/jev'
@@ -253,7 +264,97 @@ async function judgeOneRequest(input: {
     })
   }
 
+  await checkScope(verdicts, concepts, input.signal)
+
   return verdicts.size > 0 ? verdicts : null
+}
+
+/**
+ * Ask, of every link only, whether the two are the same size.
+ *
+ * A second call rather than a second question on the first, because the
+ * question cannot be written until the first answer exists: it names the
+ * one topic that won, and until the distribution comes back there is no
+ * way to know which that is. Asking it per candidate instead would be
+ * twenty-five scope questions a concept to use one.
+ *
+ * Cheap for the same reason it is late. Only links are asked -- most
+ * concepts never clear `JEV_LINK` -- and each is four options with no
+ * descriptions to carry, against a state the call has to send anyway.
+ *
+ * Never throws. A scope check that fails leaves every link held as a
+ * question, which is the safe direction and the same one an unreadable
+ * answer takes: `guardScope` waves nothing through on missing evidence.
+ */
+async function checkScope(
+  verdicts: Map<string, JevVerdict>,
+  concepts: ConceptToJudge[],
+  signal: AbortSignal | undefined
+): Promise<void> {
+  const titleOf = new Map<string, string>()
+  for (const concept of concepts) for (const n of concept.nearest) titleOf.set(n.id, n.title)
+
+  const asking = [...verdicts].filter(([, v]) => v.reading.action === 'link')
+  if (asking.length === 0) return
+
+  const byKey = new Map(concepts.map(c => [c.key, c]))
+  const questions: Record<string, Parameters<typeof evaluate>[0]['questions'][string]> = {}
+
+  for (const [key, verdict] of asking) {
+    if (verdict.reading.action !== 'link') continue
+    const concept = byKey.get(key)
+    const topic = titleOf.get(verdict.reading.topicId)
+    if (!concept || !topic) continue
+
+    questions[`scope:${key}`] = {
+      type: 'choice',
+      instructions:
+        `How does "${concept.name}"${concept.description ? ` (${concept.description})` : ''} ` +
+        `sit against the topic "${topic}"? Judge the size of the two, not whether they are ` +
+        'related -- they have already been read as being about the same subject matter. ' +
+        'The question is whether one of them contains the other.',
+      criteria: {
+        [SCOPE.same]:
+          'The same ground, at the same size. Two names for one topic; anyone teaching either would teach the same material.',
+        [SCOPE.narrower]:
+          `A narrower case of "${topic}" — one part, technique or special case of it, which would be taught as a lesson inside it rather than instead of it.`,
+        [SCOPE.broader]:
+          `Wider than "${topic}" — it contains that topic as one of several parts.`,
+        [SCOPE.adjacent]:
+          'Neither contains the other. A prerequisite, a sibling, or a neighbour that happens to share vocabulary.',
+      },
+    }
+  }
+
+  if (Object.keys(questions).length === 0) return
+
+  let answers: Record<string, unknown>
+  try {
+    const result = await evaluate({
+      model: MODEL,
+      state: {
+        asking: 'whether each concept is the same size as the topic it was read as',
+      },
+      questions,
+      abortSignal: signal,
+    })
+    answers = result.answers as Record<string, unknown>
+  } catch {
+    // The guard cannot be skipped just because it failed. Every link it
+    // was meant to check becomes a question instead.
+    answers = {}
+  }
+
+  for (const [key, verdict] of asking) {
+    const scope = answers[`scope:${key}`] as
+      | { probabilities?: Record<string, number> }
+      | undefined
+    verdicts.set(key, {
+      ...verdict,
+      reading: guardScope(verdict.reading, scope?.probabilities),
+      scope: scope?.probabilities,
+    })
+  }
 }
 
 /** How many topics the embedding is asked for. Named here so the
