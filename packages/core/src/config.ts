@@ -89,7 +89,34 @@ export const config = {
   // answer. Lower than LINK, because it is a veto rather than a
   // verdict: it is not being asked to find the merge, only to stop one
   // where the two are plainly not the same size.
-  JEV_SAME_SCOPE: 0.6,
+  //
+  // Swept over 77 proposed links -- 58 aliases it should pass, 19
+  // negatives it should hold:
+  //
+  //     bar    aliases through    negatives through
+  //     0.40        56.9%               5.3%
+  //     0.50        41.4%               0.0%   <- here
+  //     0.60        37.9%               0.0%
+  //     0.70        25.9%               0.0%
+  //
+  // 0.50 is the lowest bar that holds everything it should. Below it
+  // the guard stops guarding; above it costs aliases for nothing.
+  //
+  // What the sweep also showed, and what this number cannot fix: the
+  // scope question hedges toward "narrower" on genuine synonyms.
+  // "Diary Writing" against "Journaling" reads 0.41 same / 0.59
+  // narrower; "Redundant Component Rendering" against "Unnecessary
+  // Re-renders" reads 0.48 / 0.51. Those are one topic twice, and the
+  // readings are near coin-flips rather than mistakes made confidently
+  // -- which is why they sit just under any bar that works. Roughly
+  // three fifths of aliases therefore reach the queue instead of
+  // linking.
+  //
+  // That is the safe direction (a merge deletes a history, a question
+  // costs one press) and it is not the finished answer. The next move
+  // is the question, not the number: a phrasing that stops treating a
+  // more specific-sounding name as a narrower topic.
+  JEV_SAME_SCOPE: 0.5,
 
   // Where a queued pair is a close race rather than a shrug. This
   // decides how the queue words itself and nothing else -- both are
