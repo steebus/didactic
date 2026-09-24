@@ -3,16 +3,15 @@ import { extractConcepts } from './llm/concepts'
 import { proposeEdges } from './llm/edges'
 import { fileWhatTheBedIsSureOf } from './filing'
 import { embed } from './embedding'
-import { resolveConcept, fetchCandidates, settleResolution } from './resolver'
+import { resolveConcept, fetchCandidates, settleWithReading } from './resolver'
 import {
-  judgeConcepts,
-  NEAREST_SHOWN,
   SUBJECT_SAMPLE,
   type ConceptToJudge,
   type SubjectToJudge,
-  type Verdict,
 } from './llm/overlap'
+import { judgeWithJev, type JevVerdict } from './llm/jev'
 import { cosineSimilarity } from '@didactic/core/similarity'
+import { config } from '@didactic/core/config'
 import { extractFromHtml } from './extract/url'
 import { readDocumentRound } from './document'
 
@@ -192,9 +191,13 @@ export async function ingestResource(
       const found = candidates.find(c => c.id === id)
       return found ? cosineSimilarity(vector, found.embedding) : 0
     }
-    const resolution = settleResolution(
+    const resolution = settleWithReading(
+      concept.name,
+      verdict?.reading,
+      // The degraded path, computed either way: it is what stands when
+      // the reading did not happen, and its similarity is what the
+      // adjudication queue prints when it did.
       resolveConcept(concept.name, candidates, vector),
-      verdict,
       similarityOf
     )
 
@@ -321,7 +324,7 @@ async function judge(
     deadline?: number
     warnings: string[]
   }
-): Promise<Map<string, Verdict> | null> {
+): Promise<Map<string, JevVerdict> | null> {
   if (input.deadline !== undefined && input.deadline - Date.now() < JUDGING_NEEDS_MS) {
     input.warnings.push('Judged by name only: too little of the minute was left to read the descriptions.')
     return null
@@ -378,10 +381,10 @@ async function judge(
           subjects: subjectsOf.get(c.id) ?? [],
         }))
         .sort((a, b) => b.similarity - a.similarity)
-        .slice(0, NEAREST_SHOWN),
+        .slice(0, config.RESOLVER_NOMINATED),
     }))
 
-    return await judgeConcepts({ resourceTitle: input.resourceTitle, concepts, subjects })
+    return await judgeWithJev({ resourceTitle: input.resourceTitle, concepts, subjects })
   } catch (e) {
     input.warnings.push(
       `Judged by name only: reading the descriptions failed (${e instanceof Error ? e.message : String(e)}).`

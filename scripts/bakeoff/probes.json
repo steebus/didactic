@@ -1,0 +1,1258 @@
+[
+  {
+    "kind": "alias",
+    "name": "Storytelling Techniques",
+    "description": "An overview of the devices writers use to structure and convey a story, such as flashback, foreshadowing, and unreliable narration.",
+    "topicId": "37e5f015-f537-4569-9b3a-7e5c029db025",
+    "topicTitle": "Narrative Techniques",
+    "subjectIds": [
+      "51a2314b-1df6-4146-a92b-3bfc63e6c3cd"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Point of View and Voice",
+    "description": "The narrower study of who tells the story and how their perspective and tone shape the reader's experience.",
+    "topicId": "37e5f015-f537-4569-9b3a-7e5c029db025",
+    "topicTitle": "Narrative Techniques",
+    "subjectIds": [
+      "51a2314b-1df6-4146-a92b-3bfc63e6c3cd"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Frontend Performance Tuning",
+    "description": "A discussion of techniques for making websites load and render faster on real-world devices and networks.",
+    "topicId": "3e48309e-71f8-4893-899d-d21c8c869315",
+    "topicTitle": "Web Performance Optimization",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Image and Media Optimization",
+    "description": "The narrower practice of compressing, resizing, and serving images and video efficiently to reduce page weight.",
+    "topicId": "3e48309e-71f8-4893-899d-d21c8c869315",
+    "topicTitle": "Web Performance Optimization",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Published Game Worlds",
+    "description": "A survey of the official settings a tabletop RPG offers, each with its own geography, tone, and default assumptions.",
+    "topicId": "477c1dbb-c830-4af0-8f99-6302707e6284",
+    "topicTitle": "Settings and Campaign Worlds",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Homebrew World-Building",
+    "description": "The practice of designing an original campaign setting from scratch rather than using an officially published one.",
+    "topicId": "477c1dbb-c830-4af0-8f99-6302707e6284",
+    "topicTitle": "Settings and Campaign Worlds",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Data Analytics",
+    "description": "The broad field concerned with extracting insights and building predictive models from structured and unstructured data.",
+    "topicId": "3536ef5d-049e-4377-ba30-84dc84ee85ec",
+    "topicTitle": "Data Science",
+    "subjectIds": []
+  },
+  {
+    "kind": "neighbour",
+    "name": "Machine Learning",
+    "description": "The narrower discipline focused specifically on algorithms that learn patterns from data to make predictions.",
+    "topicId": "3536ef5d-049e-4377-ba30-84dc84ee85ec",
+    "topicTitle": "Data Science",
+    "subjectIds": []
+  },
+  {
+    "kind": "alias",
+    "name": "Rules Evolution Across Editions",
+    "description": "A chronological account of how core mechanics and design philosophy shifted from the game's earliest printings to its current edition.",
+    "topicId": "c1db2cf9-8a85-44c7-ba69-bd619576a8f0",
+    "topicTitle": "Edition History and Design Evolution",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Retroclones and OSR Movement",
+    "description": "The narrower phenomenon of modern games that recreate or riff on the rules of older editions outside official publication.",
+    "topicId": "c1db2cf9-8a85-44c7-ba69-bd619576a8f0",
+    "topicTitle": "Edition History and Design Evolution",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Death and Resurrection Rules",
+    "description": "A rundown of how a game handles a character dropping to zero hit points, stabilizing, and eventually being brought back to life.",
+    "topicId": "5eea9a19-b7a9-4ebb-b831-e056d20f10cf",
+    "topicTitle": "Death, Dying, and Resurrection Mechanics",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Hit Points and Damage Thresholds",
+    "description": "The narrower, prerequisite mechanic defining how much damage a character can take before facing death in the first place.",
+    "topicId": "5eea9a19-b7a9-4ebb-b831-e056d20f10cf",
+    "topicTitle": "Death, Dying, and Resurrection Mechanics",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Balance and Power Curve Design",
+    "description": "An examination of the mathematical philosophies designers use to keep characters and monsters challenging across levels.",
+    "topicId": "e24fd51c-7690-4c65-9a24-05a33545f832",
+    "topicTitle": "Game Balance Philosophy and Math Design",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Bounded Accuracy",
+    "description": "The narrower, specific design principle of keeping numerical bonuses flat across levels rather than continuously scaling.",
+    "topicId": "e24fd51c-7690-4c65-9a24-05a33545f832",
+    "topicTitle": "Game Balance Philosophy and Math Design",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "HyperText Markup Language",
+    "description": "The standard markup language used to structure content and elements on web pages.",
+    "topicId": "ba64ee07-f0db-4d1e-bde2-f002cde0dae4",
+    "topicTitle": "HTML",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "CSS Styling",
+    "description": "The related but distinct language used to control the visual presentation and layout of HTML elements.",
+    "topicId": "ba64ee07-f0db-4d1e-bde2-f002cde0dae4",
+    "topicTitle": "HTML",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "React.useMemo hook",
+    "description": "A React hook that memoizes the result of an expensive computation so it only recalculates when its dependencies change.",
+    "topicId": "7084db46-baf1-4254-a33a-f06b33a41f2d",
+    "topicTitle": "useMemo",
+    "subjectIds": []
+  },
+  {
+    "kind": "neighbour",
+    "name": "useCallback",
+    "description": "A React hook that memoizes a function definition itself rather than a computed value, preventing unnecessary re-creation on re-renders.",
+    "topicId": "7084db46-baf1-4254-a33a-f06b33a41f2d",
+    "topicTitle": "useMemo",
+    "subjectIds": []
+  },
+  {
+    "kind": "alias",
+    "name": "TypeScript Type System",
+    "description": "A superset of JavaScript that adds compile-time type checking through features like generics, interfaces, and type inference.",
+    "topicId": "a6ec1025-6381-4020-9657-da5c94283dec",
+    "topicTitle": "TypeScript",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Generics in TypeScript",
+    "description": "A narrower feature of the type system that allows writing reusable components and functions parameterized over types.",
+    "topicId": "a6ec1025-6381-4020-9657-da5c94283dec",
+    "topicTitle": "TypeScript",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Web Networking Basics",
+    "description": "The foundational concepts of how data moves between clients and servers, including DNS lookups, HTTP requests, and TLS encryption.",
+    "topicId": "4aa9f7ce-6720-4354-87a0-bcd52b775795",
+    "topicTitle": "HTTP and Networking Fundamentals",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "TLS/SSL Handshake Process",
+    "description": "A narrower, specific mechanism within networking that establishes an encrypted connection between client and server before data exchange.",
+    "topicId": "4aa9f7ce-6720-4354-87a0-bcd52b775795",
+    "topicTitle": "HTTP and Networking Fundamentals",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Rendering Strategies for Web Apps",
+    "description": "An overview of how and where HTML is generated for a web page, spanning client rendering, server rendering, static generation, and hydration.",
+    "topicId": "d4ad160f-dd4f-4b8b-a7ad-e3e5b25c71d4",
+    "topicTitle": "Client-Side vs Server-Side Rendering",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Hydration",
+    "description": "A narrower, specific process where client-side JavaScript attaches event handlers and state to server-rendered HTML to make it interactive.",
+    "topicId": "d4ad160f-dd4f-4b8b-a7ad-e3e5b25c71d4",
+    "topicTitle": "Client-Side vs Server-Side Rendering",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "React.js Library Fundamentals",
+    "description": "A JavaScript library for building user interfaces through reusable components, hooks, and a virtual DOM reconciliation process.",
+    "topicId": "5d14a30e-0584-4c69-a7d5-aca14726aec3",
+    "topicTitle": "React",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "React State Management",
+    "description": "A narrower topic focused specifically on how data and state are stored, updated, and shared across components within a React application.",
+    "topicId": "5d14a30e-0584-4c69-a7d5-aca14726aec3",
+    "topicTitle": "React",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Browser Security Model and CORS",
+    "description": "The set of browser-enforced rules and policies, including same-origin policy and CORS, that govern how resources can be shared and protected across origins.",
+    "topicId": "ac7f820e-92e5-4c2c-997d-31df817bcc7a",
+    "topicTitle": "Cross-Origin Resource Sharing and Web Security Model",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Cross-Site Scripting (XSS) Prevention",
+    "description": "A narrower, specific security concern focused on preventing malicious scripts from being injected into and executed within trusted web pages.",
+    "topicId": "ac7f820e-92e5-4c2c-997d-31df817bcc7a",
+    "topicTitle": "Cross-Origin Resource Sharing and Web Security Model",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Identity and Access Management for Web Apps",
+    "description": "The practices and flows used to verify user identity and control what resources they can access, including sessions, tokens, and OAuth.",
+    "topicId": "ebb3386e-6a91-4d73-a00d-f44e572eed42",
+    "topicTitle": "Authentication and Authorization",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "JSON Web Tokens (JWT)",
+    "description": "A narrower, specific token format used to represent claims securely between two parties as part of a broader authentication scheme.",
+    "topicId": "ebb3386e-6a91-4d73-a00d-f44e572eed42",
+    "topicTitle": "Authentication and Authorization",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Personal Experience as the Wellspring of Essays",
+    "description": "The concept that an essayist's own lived experience and introspection form the essential starting material for crafting a personal essay.",
+    "topicId": "4e3479d4-f71a-41fc-8f53-6c3c69b0ae90",
+    "topicTitle": "Personal Reflection as Essay Foundation",
+    "subjectIds": [
+      "51a2314b-1df6-4146-a92b-3bfc63e6c3cd"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Memoir Writing",
+    "description": "A narrower, related literary form that extensively narrates personal life events as a structured, book-length account rather than a shorter reflective essay.",
+    "topicId": "4e3479d4-f71a-41fc-8f53-6c3c69b0ae90",
+    "topicTitle": "Personal Reflection as Essay Foundation",
+    "subjectIds": [
+      "51a2314b-1df6-4146-a92b-3bfc63e6c3cd"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Web Application Test Automation",
+    "description": "An overview of how developers verify web application correctness through unit, integration, and end-to-end tests run automatically in CI pipelines.",
+    "topicId": "e43e4ea1-e8ca-42da-9b9e-4c651f691dd9",
+    "topicTitle": "Testing and Quality Assurance for Web Apps",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Test-Driven Development",
+    "description": "A software development methodology where tests are written before the implementation code to drive design decisions.",
+    "topicId": "e43e4ea1-e8ca-42da-9b9e-4c651f691dd9",
+    "topicTitle": "Testing and Quality Assurance for Web Apps",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Browser Layout and Painting Pipeline",
+    "description": "An explanation of how browsers turn parsed markup and styles into pixels on screen through layout, paint, and compositing stages.",
+    "topicId": "f5b7a4fb-e8a1-457a-80ac-1202acb6e2ce",
+    "topicTitle": "Browser Rendering Engine",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Critical Rendering Path Optimization",
+    "description": "Techniques for minimizing the time between navigation and first meaningful paint by reducing blocking resources and render-critical work.",
+    "topicId": "f5b7a4fb-e8a1-457a-80ac-1202acb6e2ce",
+    "topicTitle": "Browser Rendering Engine",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Beyond React: Other UI Frameworks",
+    "description": "A survey of frontend frameworks and reactivity models outside the React ecosystem, including Vue, Svelte, and signal-based approaches.",
+    "topicId": "298be905-5f75-42e2-9c81-bb01002905bd",
+    "topicTitle": "Alternative Frontend Frameworks and Paradigms",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Signals-Based Reactivity Model",
+    "description": "A specific pattern for fine-grained reactive state management popularized by frameworks like Solid and adopted increasingly across the frontend ecosystem.",
+    "topicId": "298be905-5f75-42e2-9c81-bb01002905bd",
+    "topicTitle": "Alternative Frontend Frameworks and Paradigms",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Concrete Imagery in Personal Essays",
+    "description": "An approach to reflective writing that emphasizes specific sensory detail to bring the reader into the writer's lived experience.",
+    "topicId": "f32ff496-b1a9-4f06-8bc4-0f7049385f22",
+    "topicTitle": "Sensory and Specific Detail in Reflective Writing",
+    "subjectIds": [
+      "51a2314b-1df6-4146-a92b-3bfc63e6c3cd"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Show, Don't Tell Technique",
+    "description": "A broader narrative writing principle instructing writers to dramatize experience through scene and action rather than summarizing it.",
+    "topicId": "f32ff496-b1a9-4f06-8bc4-0f7049385f22",
+    "topicTitle": "Sensory and Specific Detail in Reflective Writing",
+    "subjectIds": [
+      "51a2314b-1df6-4146-a92b-3bfc63e6c3cd"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Async JavaScript and the Call Stack",
+    "description": "A description of how JavaScript's single-threaded call stack interacts with task and microtask queues to schedule asynchronous work like promises and timers.",
+    "topicId": "d331b199-5b69-47a5-8556-906d17fac61b",
+    "topicTitle": "JavaScript Event Loop and Asynchrony",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Promise Chaining and Error Handling",
+    "description": "The specific patterns and pitfalls of composing multiple promises together and correctly propagating or catching rejections.",
+    "topicId": "d331b199-5b69-47a5-8556-906d17fac61b",
+    "topicTitle": "JavaScript Event Loop and Asynchrony",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "RESTful and GraphQL API Architecture",
+    "description": "A discussion of how to design web APIs, covering resource naming, versioning, backward compatibility, and query structures.",
+    "topicId": "ac681107-65bc-4732-a402-662d1e052898",
+    "topicTitle": "Web APIs and REST/GraphQL Design",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "API Authentication and Authorization",
+    "description": "The mechanisms, such as OAuth and API keys, used to control who can access an API and what actions they are permitted to perform.",
+    "topicId": "ac681107-65bc-4732-a402-662d1e052898",
+    "topicTitle": "Web APIs and REST/GraphQL Design",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Cultivating a Writer's Voice Over Time",
+    "description": "A perspective on developing one's personal writing voice gradually through sustained, incremental practice rather than a single breakthrough.",
+    "topicId": "cf6e1df8-bbb4-4d32-9dbb-6c161a47a8a7",
+    "topicTitle": "Ongoing Voice Development as a Writing Practice",
+    "subjectIds": [
+      "51a2314b-1df6-4146-a92b-3bfc63e6c3cd"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Finding Your Niche as a Writer",
+    "description": "The process of identifying a specific subject area or audience focus that distinguishes a writer's body of work.",
+    "topicId": "cf6e1df8-bbb4-4d32-9dbb-6c161a47a8a7",
+    "topicTitle": "Ongoing Voice Development as a Writing Practice",
+    "subjectIds": [
+      "51a2314b-1df6-4146-a92b-3bfc63e6c3cd"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Advantage/Disadvantage Roll Mechanics",
+    "description": "An explanation of the d20 system rule where players roll two dice and keep the higher or lower result, along with the conditions that trigger it.",
+    "topicId": "fa440bb4-b5ad-4239-96cd-ec3e8241f968",
+    "topicTitle": "Advantage, Disadvantage, and Core d20 Modifiers",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Situational Modifiers and Circumstance Bonuses",
+    "description": "The broader category of numeric bonuses and penalties applied to d20 rolls based on specific in-game circumstances, distinct from the binary advantage/disadvantage mechanic.",
+    "topicId": "fa440bb4-b5ad-4239-96cd-ec3e8241f968",
+    "topicTitle": "Advantage, Disadvantage, and Core d20 Modifiers",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "SQL and Relational Data Modeling",
+    "description": "An overview of how relational databases organize data into tables and how SQL is used to query and manipulate that data.",
+    "topicId": "8e6a8c4c-e47a-42af-aead-c86116848511",
+    "topicTitle": "Relational Databases and SQL",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Database Normalization",
+    "description": "The process of structuring tables to reduce redundancy and improve data integrity through normal forms.",
+    "topicId": "8e6a8c4c-e47a-42af-aead-c86116848511",
+    "topicTitle": "Relational Databases and SQL",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Core JavaScript Language Fundamentals",
+    "description": "A look at the essential language mechanics of JavaScript, including scope, object prototypes, and function binding.",
+    "topicId": "5544d88b-7f13-43ee-b2e0-15167c77f897",
+    "topicTitle": "JavaScript",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Asynchronous JavaScript and Promises",
+    "description": "Techniques for handling asynchronous operations in JavaScript using callbacks, promises, and async/await.",
+    "topicId": "5544d88b-7f13-43ee-b2e0-15167c77f897",
+    "topicTitle": "JavaScript",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "AWS Deployment and Hosting Pipelines",
+    "description": "A guide to deploying applications on AWS using services like Amplify, along with CI/CD automation and configuration management.",
+    "topicId": "8f1e33a3-4741-4d3a-addd-8e877f7781e5",
+    "topicTitle": "Cloud Infrastructure and Deployment (AWS)",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Infrastructure as Code with CloudFormation",
+    "description": "A narrower discipline of defining and provisioning AWS infrastructure through declarative template files.",
+    "topicId": "8f1e33a3-4741-4d3a-addd-8e877f7781e5",
+    "topicTitle": "Cloud Infrastructure and Deployment (AWS)",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Postgres Advanced Features",
+    "description": "An exploration of Postgres-specific capabilities such as JSONB storage, row-level security, and custom extensions.",
+    "topicId": "a1b0331b-ea15-4d40-8b46-33768746534d",
+    "topicTitle": "PostgreSQL",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "General SQL Query Optimization",
+    "description": "Broader techniques for improving query performance that apply across relational database systems, not just Postgres.",
+    "topicId": "a1b0331b-ea15-4d40-8b46-33768746534d",
+    "topicTitle": "PostgreSQL",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "JavaScript Bundling and Build Pipelines",
+    "description": "A survey of tools that bundle, transpile, and optimize JavaScript code for development and production environments.",
+    "topicId": "03f5b8c7-df59-4b7d-bf14-c55b41a98ca7",
+    "topicTitle": "Build Tools and Module Bundlers",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "JavaScript Transpilation with Babel",
+    "description": "The narrower practice of converting modern JavaScript syntax into backward-compatible code using a transpiler.",
+    "topicId": "03f5b8c7-df59-4b7d-bf14-c55b41a98ca7",
+    "topicTitle": "Build Tools and Module Bundlers",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "The Personal Essay as Audience-Aware Writing",
+    "description": "An account of the personal essay as a deliberately shaped form of reflective writing meant to engage an external reader.",
+    "topicId": "2e1df684-2b31-4682-8d58-1b8d9a6a23f5",
+    "topicTitle": "Personal Essay as Reader-Directed Reflective Writing",
+    "subjectIds": [
+      "51a2314b-1df6-4146-a92b-3bfc63e6c3cd"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Diary and Journal Writing",
+    "description": "Private, unshaped reflective writing intended for the writer alone rather than for any audience.",
+    "topicId": "2e1df684-2b31-4682-8d58-1b8d9a6a23f5",
+    "topicTitle": "Personal Essay as Reader-Directed Reflective Writing",
+    "subjectIds": [
+      "51a2314b-1df6-4146-a92b-3bfc63e6c3cd"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Negotiation and Reaction Roll Frameworks",
+    "description": "A discussion of the rules used to adjudicate social interactions, reactions, and moral alignment during roleplay.",
+    "topicId": "3ae01b18-7551-4de3-9e82-27437e47a6f8",
+    "topicTitle": "Social Systems and Roleplay Mechanics",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Alignment and Morality Systems",
+    "description": "A narrower set of rules specifically defining character ethical stances and how they influence behavior in play.",
+    "topicId": "3ae01b18-7551-4de3-9e82-27437e47a6f8",
+    "topicTitle": "Social Systems and Roleplay Mechanics",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "The d20 Roll-and-Modify Resolution System",
+    "description": "An explanation of how polyhedral dice, especially the d20, are used with modifiers to resolve success or failure against a target number.",
+    "topicId": "9eff25f3-b48b-48c3-87bc-420bdb615be9",
+    "topicTitle": "Dice and Core Resolution Mechanic",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Polyhedral Dice Set Composition",
+    "description": "The narrower topic of the specific set of dice shapes used in the game and what each is used for.",
+    "topicId": "9eff25f3-b48b-48c3-87bc-420bdb615be9",
+    "topicTitle": "Dice and Core Resolution Mechanic",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "From Specific to General in Memoir Writing",
+    "description": "An article on how personal essayists pivot from a concrete anecdote to a wider, universal insight.",
+    "topicId": "347d3c36-4b8d-4107-a1a1-e3c63563af68",
+    "topicTitle": "Particular-to-Universal Movement in Personal Essays",
+    "subjectIds": [
+      "51a2314b-1df6-4146-a92b-3bfc63e6c3cd"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Show, Don't Tell in Personal Narrative",
+    "description": "The craft technique of rendering specific sensory and emotional detail vividly rather than summarizing it, which often feeds into but is distinct from the movement toward universal reflection.",
+    "topicId": "347d3c36-4b8d-4107-a1a1-e3c63563af68",
+    "topicTitle": "Particular-to-Universal Movement in Personal Essays",
+    "subjectIds": [
+      "51a2314b-1df6-4146-a92b-3bfc63e6c3cd"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Adventurers League Rules and Etiquette",
+    "description": "A guide to the shared restrictions and DM guidelines that keep organized play games consistent across tables.",
+    "topicId": "9e1bafe7-a627-4af1-816b-95214dcb9102",
+    "topicTitle": "Running Organized and Shared-World Play",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Home Campaign House Rules",
+    "description": "The customized rulings and setting choices a DM makes for a private, non-shared-world campaign, which contrasts with the fixed constraints of organized play.",
+    "topicId": "9e1bafe7-a627-4af1-816b-95214dcb9102",
+    "topicTitle": "Running Organized and Shared-World Play",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "The Six Core Stats and Their Bonuses",
+    "description": "An explainer on Strength, Dexterity, Constitution, Intelligence, Wisdom, and Charisma and how each score converts into a modifier used across the game.",
+    "topicId": "f9e37f6c-f608-4871-a857-d5638d24b9e7",
+    "topicTitle": "Ability Scores and Modifiers",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Ability Score Improvement and Point Buy Generation",
+    "description": "The specific methods for generating and increasing ability scores during character creation and leveling, as opposed to how existing scores translate into modifiers.",
+    "topicId": "f9e37f6c-f608-4871-a857-d5638d24b9e7",
+    "topicTitle": "Ability Scores and Modifiers",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Red-Black Deployment Strategy",
+    "description": "An article describing how two identical production environments are swapped to release new versions with zero downtime.",
+    "topicId": "e149126e-c537-453d-91a1-d7739eead6ff",
+    "topicTitle": "Blue Green Deployment",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Canary Release Deployment",
+    "description": "A deployment strategy that gradually shifts a small percentage of traffic to a new version before full rollout, differing from the all-at-once environment swap of blue-green.",
+    "topicId": "e149126e-c537-453d-91a1-d7739eead6ff",
+    "topicTitle": "Blue Green Deployment",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Ancestry and Background Traits",
+    "description": "A rundown of how a character's species or heritage and upbringing bestow proficiencies, features, and roleplay hooks.",
+    "topicId": "bcd64db4-a04f-4569-ba6f-e916a7d2ee7b",
+    "topicTitle": "Races/Species and Character Origins (Lineages)",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Character Backstory and Personality Traits",
+    "description": "The narrative details a player invents about a character's history and personality, which are shaped by but distinct from the mechanical origin choices of species and background.",
+    "topicId": "bcd64db4-a04f-4569-ba6f-e916a7d2ee7b",
+    "topicTitle": "Races/Species and Character Origins (Lineages)",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Class Roles and Subclass Archetypes",
+    "description": "An overview of how each class and its subclass options define resource pools, abilities, and progression through levels.",
+    "topicId": "83412a3e-6272-46dc-abd3-490c49deb091",
+    "topicTitle": "Character Classes and Subclasses",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Multiclassing Rules",
+    "description": "The specific rules governing how a character combines levels from more than one class, distinct from the baseline design of any single class or subclass.",
+    "topicId": "83412a3e-6272-46dc-abd3-490c49deb091",
+    "topicTitle": "Character Classes and Subclasses",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Proficiency Checks and Saves",
+    "description": "An explanation of how proactive ability checks differ mechanically from reactive saving throws, and how proficiency and expertise adjust them.",
+    "topicId": "3623330b-1899-4c33-b086-440357763c76",
+    "topicTitle": "Skills, Checks, and Saving Throws",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Passive Perception Mechanics",
+    "description": "The specific rule for a static, non-rolled score used to represent constant awareness, a narrower application built on top of general skill check mechanics.",
+    "topicId": "3623330b-1899-4c33-b086-440357763c76",
+    "topicTitle": "Skills, Checks, and Saving Throws",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Magic Casting Mechanics",
+    "description": "A breakdown of spell slots, prepared versus known spells, casting times, components, and concentration rules.",
+    "topicId": "ddd01e28-dca8-404d-aaf5-40040dad5322",
+    "topicTitle": "Spellcasting Systems",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Concentration and Duration Rules",
+    "description": "The narrower rule set governing how spells with lasting effects require concentration and can be broken, a specific subset of the broader spellcasting system.",
+    "topicId": "ddd01e28-dca8-404d-aaf5-40040dad5322",
+    "topicTitle": "Spellcasting Systems",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Gear and Magic Item Rarity System",
+    "description": "An overview of mundane equipment, encumbrance rules, and the rarity and attunement structure that governs magic items.",
+    "topicId": "b43ddc33-f145-4613-be74-bc9a44dfaaf7",
+    "topicTitle": "Equipment, Magic Items, and Treasure",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Magic Item Crafting and Creation",
+    "description": "The rules and downtime processes by which characters research, gather materials for, and craft new magic items.",
+    "topicId": "b43ddc33-f145-4613-be74-bc9a44dfaaf7",
+    "topicTitle": "Equipment, Magic Items, and Treasure",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Leveling Up and Multiclass Rules",
+    "description": "Covers how characters gain experience or level via milestones and the rules and tradeoffs of mixing multiple classes.",
+    "topicId": "4f68b3ff-a69c-4f6c-8b32-57b2c731fe28",
+    "topicTitle": "Character Advancement and Multiclassing",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Class Feature Selection and Subclasses",
+    "description": "The specific choices within a single class, such as archetypes or subclasses, that shape a character's abilities as they advance.",
+    "topicId": "4f68b3ff-a69c-4f6c-8b32-57b2c731fe28",
+    "topicTitle": "Character Advancement and Multiclassing",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Game Master Duties and Authority",
+    "description": "Describes the DM's job as narrator, referee, and final arbiter of how rules interact with the unfolding fiction, separate from any player's role.",
+    "topicId": "da8cecee-25c5-4a5e-a2b5-1e2780a4bfd8",
+    "topicTitle": "The Role of the Dungeon Master",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Player Roles and Table Etiquette",
+    "description": "The expectations and social conventions guiding how players behave and interact with each other and the DM at the table.",
+    "topicId": "da8cecee-25c5-4a5e-a2b5-1e2780a4bfd8",
+    "topicTitle": "The Role of the Dungeon Master",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Combat Encounter Budgeting",
+    "description": "Explains how to construct combat and non-combat encounters suited to a party's level using tools like Challenge Rating and XP thresholds.",
+    "topicId": "6a3199a9-fbd0-4c52-969e-c3a598ab9028",
+    "topicTitle": "Encounter Design and Balancing",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Action Economy and Combat Difficulty Scaling",
+    "description": "How the number of actions available to each side in a fight, rather than raw stat budgets, drives perceived difficulty.",
+    "topicId": "6a3199a9-fbd0-4c52-969e-c3a598ab9028",
+    "topicTitle": "Encounter Design and Balancing",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Campaign and Session Planning",
+    "description": "Discusses structuring one-shots and long campaigns, including hooks, pacing, session prep, and balancing improvisation with prewritten modules.",
+    "topicId": "e4d41c80-77eb-4c3e-92e9-2f74434c1da1",
+    "topicTitle": "Adventure and Campaign Construction",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Worldbuilding and Setting Design",
+    "description": "The creation of the fictional world's history, geography, and factions that a campaign takes place within.",
+    "topicId": "e4d41c80-77eb-4c3e-92e9-2f74434c1da1",
+    "topicTitle": "Adventure and Campaign Construction",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Creature Stat Block Design",
+    "description": "Explains how monster stat blocks are constructed, what their traits and actions imply about intended tactics, and how to adapt or homebrew creatures.",
+    "topicId": "c5b1760d-64a9-4c5f-a1f3-ac982384398b",
+    "topicTitle": "Monster Design and the Bestiary",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Monster Challenge Rating Calculation",
+    "description": "The specific formulas and math used to assign a numeric difficulty rating to a given monster.",
+    "topicId": "c5b1760d-64a9-4c5f-a1f3-ac982384398b",
+    "topicTitle": "Monster Design and the Bestiary",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "DM Rulings and Ambiguity Handling",
+    "description": "Covers how a DM interprets unclear rules, resolves edge cases during play, and knowingly departs from the written rules.",
+    "topicId": "0f6e64a7-20f6-4f34-8f59-4d19a3f88bb8",
+    "topicTitle": "Rules Adjudication and House Ruling",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Homebrew Content Creation",
+    "description": "The design of entirely new rules, classes, or subsystems from scratch rather than adjudicating existing ones.",
+    "topicId": "0f6e64a7-20f6-4f34-8f59-4d19a3f88bb8",
+    "topicTitle": "Rules Adjudication and House Ruling",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Exploration and Downtime Subsystems",
+    "description": "Details the less combat-oriented rules governing crafting, resting, travel pace, and downtime activities.",
+    "topicId": "7424917f-c73c-49cf-a57d-963b64e3bb86",
+    "topicTitle": "Downtime, Exploration, and Travel Rules",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Resting and Recovery Mechanics",
+    "description": "The specific rules for short and long rests that determine how characters recover hit points and resources.",
+    "topicId": "7424917f-c73c-49cf-a57d-963b64e3bb86",
+    "topicTitle": "Downtime, Exploration, and Travel Rules",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Great Wheel Cosmology",
+    "description": "An overview of how the planes of existence are arranged and how rival cosmological models like the Great Wheel and World Axis have shaped different editions of the game.",
+    "topicId": "09e38279-b4b6-4af8-933d-babff771b6db",
+    "topicTitle": "Planar Cosmology (Great Wheel and World Axis)",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Planar Travel and Portals",
+    "description": "The methods, spells, and rules used by characters to physically move between different planes of existence.",
+    "topicId": "09e38279-b4b6-4af8-933d-babff771b6db",
+    "topicTitle": "Planar Cosmology (Great Wheel and World Axis)",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Turn Structure and Initiative",
+    "description": "A rundown of how initiative order, actions, bonus actions, reactions, and movement combine to form the turn-based structure of tactical combat.",
+    "topicId": "4814a75e-abf3-4df6-adc8-bd789e7da2aa",
+    "topicTitle": "Combat Rules and Action Economy",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Conditions and Status Effects",
+    "description": "The specific debuffs and states like prone, stunned, or grappled that modify what a creature can do on its turn.",
+    "topicId": "4814a75e-abf3-4df6-adc8-bd789e7da2aa",
+    "topicTitle": "Combat Rules and Action Economy",
+    "subjectIds": [
+      "1acb96c9-270c-4a17-8a6e-a525b3cc9972"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Statistical Learning",
+    "description": "A field of computer science focused on building algorithms that improve automatically through exposure to data.",
+    "topicId": "446a5d86-206c-4c21-b831-4a4dec7d34ce",
+    "topicTitle": "Machine Learning",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Neural Networks",
+    "description": "A specific class of models loosely inspired by the brain that underlies most modern deep learning approaches.",
+    "topicId": "446a5d86-206c-4c21-b831-4a4dec7d34ce",
+    "topicTitle": "Machine Learning",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Statistical Analysis",
+    "description": "The discipline concerned with collecting, analyzing, and interpreting numerical data to uncover patterns and support inference.",
+    "topicId": "ff1995f0-041b-4de2-9fa2-6994bdb85917",
+    "topicTitle": "Statistics",
+    "subjectIds": []
+  },
+  {
+    "kind": "neighbour",
+    "name": "Probability Theory",
+    "description": "The mathematical study of randomness and uncertainty that underpins statistical methods.",
+    "topicId": "ff1995f0-041b-4de2-9fa2-6994bdb85917",
+    "topicTitle": "Statistics",
+    "subjectIds": []
+  },
+  {
+    "kind": "alias",
+    "name": "Writing with a Genuine Voice",
+    "description": "An exploration of how writers convey sincerity and personal truth rather than imitating a style that isn't theirs.",
+    "topicId": "97736516-9bc6-4ef4-be16-c58f8bf42e6d",
+    "topicTitle": "Authenticity in Writing",
+    "subjectIds": []
+  },
+  {
+    "kind": "neighbour",
+    "name": "Finding Your Writing Voice",
+    "description": "The narrower process of developing a distinctive, recognizable style that sets a writer apart from others.",
+    "topicId": "97736516-9bc6-4ef4-be16-c58f8bf42e6d",
+    "topicTitle": "Authenticity in Writing",
+    "subjectIds": []
+  },
+  {
+    "kind": "alias",
+    "name": "Layout Thrashing and Reflow Cost",
+    "description": "A look at how changes to the DOM force the browser to recalculate layout and repaint, and the performance costs this incurs.",
+    "topicId": "be2b5db9-7786-4e50-afd0-db3b01031bb7",
+    "topicTitle": "DOM Update Performance (Layout/Reflow)",
+    "subjectIds": []
+  },
+  {
+    "kind": "neighbour",
+    "name": "CSS Paint and Compositing",
+    "description": "The later stages of the rendering pipeline where the browser paints pixels and composites layers after layout is resolved.",
+    "topicId": "be2b5db9-7786-4e50-afd0-db3b01031bb7",
+    "topicTitle": "DOM Update Performance (Layout/Reflow)",
+    "subjectIds": []
+  },
+  {
+    "kind": "alias",
+    "name": "Batched DOM Writes",
+    "description": "A technique of grouping multiple DOM mutations together so the browser performs layout and paint work only once instead of repeatedly.",
+    "topicId": "8cf93aaa-65f6-4ad8-ae78-240b5f98aa15",
+    "topicTitle": "DOM Batching",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "neighbour",
+    "name": "Virtual DOM Diffing",
+    "description": "An approach where a lightweight in-memory representation of the UI is compared between updates to compute the minimal set of real DOM changes needed.",
+    "topicId": "8cf93aaa-65f6-4ad8-ae78-240b5f98aa15",
+    "topicTitle": "DOM Batching",
+    "subjectIds": [
+      "d770448f-5161-4127-9b90-571e5eed8200"
+    ]
+  },
+  {
+    "kind": "alias",
+    "name": "Redundant Component Rendering",
+    "description": "A discussion of how components can re-render even when their output would be unchanged, wasting computation.",
+    "topicId": "2156ed32-4d81-4fcd-a8e3-8d877f259104",
+    "topicTitle": "Unnecessary Re-renders",
+    "subjectIds": []
+  },
+  {
+    "kind": "neighbour",
+    "name": "Memoization Strategies",
+    "description": "Techniques like memoizing components or values to prevent recomputation and avoid triggering unnecessary re-renders.",
+    "topicId": "2156ed32-4d81-4fcd-a8e3-8d877f259104",
+    "topicTitle": "Unnecessary Re-renders",
+    "subjectIds": []
+  },
+  {
+    "kind": "alias",
+    "name": "Literary Nonfiction",
+    "description": "A prose genre that uses literary techniques like scene-setting and voice to tell true stories.",
+    "topicId": "d59243c7-421d-4e18-842f-a9d1e6e9c66a",
+    "topicTitle": "Creative Nonfiction",
+    "subjectIds": []
+  },
+  {
+    "kind": "neighbour",
+    "name": "Memoir Writing",
+    "description": "A narrower form of creative nonfiction focused specifically on recounting the author's own remembered life experiences.",
+    "topicId": "d59243c7-421d-4e18-842f-a9d1e6e9c66a",
+    "topicTitle": "Creative Nonfiction",
+    "subjectIds": []
+  },
+  {
+    "kind": "alias",
+    "name": "Diary Writing",
+    "description": "The practice of regularly recording personal thoughts, events, and reflections in a private written record.",
+    "topicId": "9059c989-c9e8-43a9-b738-07410ae1abd2",
+    "topicTitle": "Journaling",
+    "subjectIds": []
+  },
+  {
+    "kind": "neighbour",
+    "name": "Bullet Journaling",
+    "description": "A structured, narrower method of journaling that uses rapid logging, symbols, and modular collections to organize tasks and notes.",
+    "topicId": "9059c989-c9e8-43a9-b738-07410ae1abd2",
+    "topicTitle": "Journaling",
+    "subjectIds": []
+  },
+  {
+    "kind": "alias",
+    "name": "Relational Schema Normalization",
+    "description": "The process of organizing tables and columns in a relational database to reduce redundancy and improve data integrity.",
+    "topicId": "8a83faf0-3319-4a6e-9271-2e1611173943",
+    "topicTitle": "Database Normalization",
+    "subjectIds": []
+  },
+  {
+    "kind": "neighbour",
+    "name": "Database Indexing",
+    "description": "A related but distinct technique that speeds up data retrieval by creating auxiliary structures rather than restructuring table relationships.",
+    "topicId": "8a83faf0-3319-4a6e-9271-2e1611173943",
+    "topicTitle": "Database Normalization",
+    "subjectIds": []
+  },
+  {
+    "kind": "alias",
+    "name": "Interest Compounding",
+    "description": "The process by which interest is calculated on both the initial principal and the accumulated interest from previous periods.",
+    "topicId": "8b6d43fe-a09f-4ee3-87dd-d27c169e2efd",
+    "topicTitle": "Compound Interest",
+    "subjectIds": []
+  },
+  {
+    "kind": "neighbour",
+    "name": "Simple Interest",
+    "description": "A sibling concept where interest is calculated only on the original principal, without compounding on accumulated interest.",
+    "topicId": "8b6d43fe-a09f-4ee3-87dd-d27c169e2efd",
+    "topicTitle": "Compound Interest",
+    "subjectIds": []
+  },
+  {
+    "kind": "alias",
+    "name": "Managed Investment Funds",
+    "description": "Pooled investment vehicles where money from many investors is professionally managed to buy a diversified portfolio of securities.",
+    "topicId": "f18ab4b5-c9cd-4c3a-b323-35cabeceda6b",
+    "topicTitle": "Mutual Funds",
+    "subjectIds": []
+  },
+  {
+    "kind": "neighbour",
+    "name": "Exchange-Traded Funds",
+    "description": "A narrower, related investment vehicle that pools assets like a mutual fund but trades on an exchange throughout the day like a stock.",
+    "topicId": "f18ab4b5-c9cd-4c3a-b323-35cabeceda6b",
+    "topicTitle": "Mutual Funds",
+    "subjectIds": []
+  },
+  {
+    "kind": "alias",
+    "name": "Function Result Caching",
+    "description": "An optimization technique where the results of expensive function calls are stored and reused when the same inputs occur again.",
+    "topicId": "1f7ec4bf-61f2-4933-a4ba-3a6269161d98",
+    "topicTitle": "Memoisation",
+    "subjectIds": []
+  },
+  {
+    "kind": "neighbour",
+    "name": "Dynamic Programming",
+    "description": "A broader algorithmic strategy that often uses memoisation as one tool but also involves systematically breaking problems into overlapping subproblems.",
+    "topicId": "1f7ec4bf-61f2-4933-a4ba-3a6269161d98",
+    "topicTitle": "Memoisation",
+    "subjectIds": []
+  },
+  {
+    "kind": "alias",
+    "name": "Financial Securities",
+    "description": "Tradable financial instruments that represent ownership, a creditor relationship, or rights to ownership such as stocks and bonds.",
+    "topicId": "92a9da57-6ca8-4b62-ab45-9234cefb3869",
+    "topicTitle": "Securities",
+    "subjectIds": []
+  },
+  {
+    "kind": "neighbour",
+    "name": "Bonds",
+    "description": "A narrower category of security representing a debt obligation where the issuer owes the holder a debt and must repay principal with interest.",
+    "topicId": "92a9da57-6ca8-4b62-ab45-9234cefb3869",
+    "topicTitle": "Securities",
+    "subjectIds": []
+  },
+  {
+    "kind": "alias",
+    "name": "Re-render Debugging Process",
+    "description": "A systematic approach for identifying why a UI component re-renders unnecessarily and pinpointing the triggering state or prop changes.",
+    "topicId": "44e1505c-1d21-48d6-99f6-231d1d5016db",
+    "topicTitle": "Component Re-render Diagnosis Workflow",
+    "subjectIds": []
+  },
+  {
+    "kind": "neighbour",
+    "name": "React Profiler Usage",
+    "description": "A narrower, specific tool-focused practice of using the React Profiler to measure render timings as one step within the broader diagnosis workflow.",
+    "topicId": "44e1505c-1d21-48d6-99f6-231d1d5016db",
+    "topicTitle": "Component Re-render Diagnosis Workflow",
+    "subjectIds": []
+  },
+  {
+    "kind": "alias",
+    "name": "Layout and Reflow in the Browser",
+    "description": "The browser recalculates the geometry and position of elements on a page whenever the DOM or styles change in ways that affect layout.",
+    "topicId": "0332be5b-bc1b-4a2b-a1ad-d48d06e1de78",
+    "topicTitle": "Browser Layout and Reflow",
+    "subjectIds": []
+  },
+  {
+    "kind": "neighbour",
+    "name": "Repaint and Compositing",
+    "description": "After layout is settled, the browser repaints pixels and composites layers to produce the final visual output on screen.",
+    "topicId": "0332be5b-bc1b-4a2b-a1ad-d48d06e1de78",
+    "topicTitle": "Browser Layout and Reflow",
+    "subjectIds": []
+  },
+  {
+    "kind": "alias",
+    "name": "React's Render-Commit Pipeline",
+    "description": "React updates the UI by first rendering components to produce a virtual representation, reconciling it against the previous tree, and then committing the resulting changes to the DOM.",
+    "topicId": "44993713-6fbd-445d-a25f-2bb3b3693c9d",
+    "topicTitle": "React Rendering Lifecycle (Render, Reconciliation, Commit)",
+    "subjectIds": []
+  },
+  {
+    "kind": "neighbour",
+    "name": "Virtual DOM Diffing Algorithm",
+    "description": "The specific algorithm React uses to compare two virtual DOM trees and determine the minimal set of changes needed to update the real DOM.",
+    "topicId": "44993713-6fbd-445d-a25f-2bb3b3693c9d",
+    "topicTitle": "React Rendering Lifecycle (Render, Reconciliation, Commit)",
+    "subjectIds": []
+  }
+]

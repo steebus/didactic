@@ -22,6 +22,7 @@
     "eslint": "^9",
     "jsdom": "^26.1.0",
     "turbo": "^2.3.3",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vite-node": "^6.0.0"
   }
 }

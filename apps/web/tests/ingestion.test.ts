@@ -2,8 +2,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { config } from '@didactic/core/config'
+import { readDistribution, NONE } from '@didactic/core/resolution'
 
 const html = readFileSync(join(__dirname, 'fixtures/article.html'), 'utf-8')
+
+/** A reading that is sure the concept is none of the topics it was
+ *  shown. What the old mocks said with `{ sameAs: null, distinct: true }`. */
+const distinct = () => readDistribution(NONE, { [NONE]: 0.95 })
 
 vi.mock('@/lib/llm/concepts', () => ({
   extractConcepts: vi.fn().mockResolvedValue({
@@ -17,9 +22,9 @@ vi.mock('@/lib/llm/concepts', () => ({
 vi.mock('@/lib/llm/edges', () => ({ proposeEdges: vi.fn().mockResolvedValue([]) }))
 // Nothing read unless a case says so: the name-only path is the one the
 // older cases describe.
-vi.mock('@/lib/llm/overlap', async importOriginal => ({
-  ...(await importOriginal<typeof import('@/lib/llm/overlap')>()),
-  judgeConcepts: vi.fn().mockResolvedValue(null),
+vi.mock('@/lib/llm/jev', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/lib/llm/jev')>()),
+  judgeWithJev: vi.fn().mockResolvedValue(null),
 }))
 vi.mock('@/lib/embedding', () => ({
   embed: vi.fn().mockImplementation(async (t: string) => {
@@ -266,11 +271,11 @@ describe('ingestion reads the descriptions', { timeout: 30_000 }, () => {
   })
 
   it('files a new topic where the reading puts it, and says nothing when it was not read', async () => {
-    const { judgeConcepts } = await import('@/lib/llm/overlap')
-    vi.mocked(judgeConcepts).mockResolvedValueOnce(new Map([
-      ['c1', { sameAs: null, distinct: true, subjects: ['frontend'] }],
+    const { judgeWithJev } = await import('@/lib/llm/jev')
+    vi.mocked(judgeWithJev).mockResolvedValueOnce(new Map([
+      ['c1', { reading: distinct(), subjects: ['frontend'], probabilities: undefined }],
       // c2 read, and stands alone.
-      ['c2', { sameAs: null, distinct: true, subjects: [] }],
+      ['c2', { reading: distinct(), subjects: [], probabilities: undefined }],
     ]))
     const db = mockDb({ resource: article, candidates: [], html })
     const { ingestResource } = await import('@/lib/ingest')
@@ -291,10 +296,10 @@ describe('ingestion reads the descriptions', { timeout: 30_000 }, () => {
   })
 
   it('creates an ambiguous concept the reading is sure is different, instead of queueing it', async () => {
-    const { judgeConcepts } = await import('@/lib/llm/overlap')
-    vi.mocked(judgeConcepts).mockResolvedValueOnce(new Map([
-      ['c1', { sameAs: null, distinct: true, subjects: [] }],
-      ['c2', { sameAs: null, distinct: true, subjects: [] }],
+    const { judgeWithJev } = await import('@/lib/llm/jev')
+    vi.mocked(judgeWithJev).mockResolvedValueOnce(new Map([
+      ['c1', { reading: distinct(), subjects: [], probabilities: undefined }],
+      ['c2', { reading: distinct(), subjects: [], probabilities: undefined }],
     ]))
     const db = mockDb({
       resource: article,
@@ -310,7 +315,7 @@ describe('ingestion reads the descriptions', { timeout: 30_000 }, () => {
   })
 
   it('shows the reading each concept with its nearest topics and their descriptions', async () => {
-    const { judgeConcepts } = await import('@/lib/llm/overlap')
+    const { judgeWithJev } = await import('@/lib/llm/jev')
     const db = mockDb({
       resource: article,
       candidates: [{ id: 'topic-x', title: 'Something Adjacent', embedding: unit(midBand) }],
@@ -319,7 +324,7 @@ describe('ingestion reads the descriptions', { timeout: 30_000 }, () => {
     const { ingestResource } = await import('@/lib/ingest')
     await ingestResource(db as never, 'r1')
 
-    const asked = vi.mocked(judgeConcepts).mock.calls[0][0]
+    const asked = vi.mocked(judgeWithJev).mock.calls[0][0]
     expect(asked.concepts[0]).toMatchObject({
       key: 'c1',
       name: 'React Hooks',
@@ -329,18 +334,18 @@ describe('ingestion reads the descriptions', { timeout: 30_000 }, () => {
   })
 
   it('judges by name, and says so, when too little of the minute is left to read', async () => {
-    const { judgeConcepts } = await import('@/lib/llm/overlap')
+    const { judgeWithJev } = await import('@/lib/llm/jev')
     const db = mockDb({ resource: article, candidates: [], html })
     const { ingestResource } = await import('@/lib/ingest')
     const result = await ingestResource(db as never, 'r1', { deadline: Date.now() + 5_000 })
 
-    expect(judgeConcepts).not.toHaveBeenCalled()
+    expect(judgeWithJev).not.toHaveBeenCalled()
     expect(result.warnings?.[0]).toMatch(/by name only/)
   })
 
   it('files the resource by name when the reading throws', async () => {
-    const { judgeConcepts } = await import('@/lib/llm/overlap')
-    vi.mocked(judgeConcepts).mockRejectedValueOnce(new Error('overloaded'))
+    const { judgeWithJev } = await import('@/lib/llm/jev')
+    vi.mocked(judgeWithJev).mockRejectedValueOnce(new Error('overloaded'))
     const db = mockDb({ resource: article, candidates: [], html })
     const { ingestResource } = await import('@/lib/ingest')
     const result = await ingestResource(db as never, 'r1')

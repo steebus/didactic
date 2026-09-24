@@ -1,6 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { config } from '@didactic/core/config'
 import { cosineSimilarity } from '@didactic/core/similarity'
+import type { Reading } from '@didactic/core/resolution'
 
 export type Resolution =
   | { action: 'link'; topicId: string; similarity: number }
@@ -54,51 +55,59 @@ export function resolveConcept(
 }
 
 /**
- * What a reading of the descriptions is worth against the embedding.
+ * What the reading says, with the embedding's answer held in reserve.
  *
- * The two are asked the same question from different evidence, and
- * neither is trusted alone where they disagree:
+ * This used to arbitrate between two opinions of roughly equal
+ * standing, and the arbitration was the problem. The embedding's
+ * opinion was never worth much on this question -- `config.ts` records
+ * that no cutoff separates "React / React Hooks" at 0.916, which must
+ * not merge, from "CDN Distribution / Content Delivery Network" at
+ * 0.852, which should -- and giving a weak opinion a vote is how the
+ * bands ended up overlapping in the first place.
  *
- *  - A **link** stands. Above `RESOLVER_MATCH` the names are all but
- *    the same, and that bar was tuned against real rows.
- *  - In the **ambiguous band**, the reading settles it. Sure it is the
- *    same topic -- and that topic is itself in the band -- links; sure
- *    it is none of them creates. Unsure stays a question for the reader.
- *  - Below the band, a reading that says **same** where the names said
- *    different is a question for the reader, never a link. A wrong link
- *    files the resource against someone else's topic and loses the name
- *    it was read under; a wrong question costs one press.
- *
- * No verdict, and the embedding's answer is the answer, which is what
- * ingestion did before descriptions were read at all.
+ * So the reading decides, and the cosine is the degraded path rather
+ * than a second voice. When there is no reading -- the gateway is down,
+ * the key is missing, the minute ran out -- `resolveConcept`'s answer
+ * stands, because a resource filed by name alone is still a resource
+ * filed and that is what ingestion did before any of this. The
+ * similarity is still computed and still carried, because the
+ * adjudication queue prints it and a pending row without one would
+ * show the reader nothing.
  */
-export function settleResolution(
-  resolution: Resolution,
-  verdict: { sameAs: string | null; distinct: boolean } | undefined,
+export function settleWithReading(
+  concept: string,
+  reading: Reading | undefined,
+  fallback: Resolution,
   similarityOf: (topicId: string) => number
 ): Resolution {
-  if (!verdict || resolution.action === 'link') return resolution
+  if (!reading) return fallback
 
-  if (verdict.sameAs) {
-    const similarity = similarityOf(verdict.sameAs)
-    if (resolution.action === 'pending' && similarity >= config.RESOLVER_AMBIGUOUS) {
-      return { action: 'link', topicId: verdict.sameAs, similarity }
-    }
-    const title = resolution.title
-    return { action: 'pending', title, similarity, nearestId: verdict.sameAs }
+  switch (reading.action) {
+    case 'link':
+      return {
+        action: 'link',
+        topicId: reading.topicId,
+        similarity: similarityOf(reading.topicId),
+      }
+    case 'pending':
+      return {
+        action: 'pending',
+        title: concept,
+        similarity: similarityOf(reading.nearestId),
+        nearestId: reading.nearestId,
+      }
+    case 'create':
+      return { action: 'create', title: concept }
   }
-
-  if (verdict.distinct && resolution.action === 'pending') {
-    return { action: 'create', title: resolution.title }
-  }
-
-  return resolution
 }
 
 export async function fetchCandidates(
   db: SupabaseClient,
   conceptEmbedding: number[],
-  limit = 10
+  // Wider than the ten this asked for while the cosine was also
+  // deciding. Recall is the ceiling on everything downstream, and
+  // `config.RESOLVER_NOMINATED` carries the measurement that set it.
+  limit = config.RESOLVER_NOMINATED
 ): Promise<Array<{ id: string; title: string; summary: string | null; embedding: number[] }>> {
   const { data, error } = await db.rpc('match_topics', {
     query_embedding: conceptEmbedding,
