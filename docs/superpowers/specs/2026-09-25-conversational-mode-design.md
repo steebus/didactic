@@ -22,10 +22,11 @@ topics, diagrams, questions, and in the end a section of the lesson itself.
 
 ### What this is not
 
-Not a second writing agent. It proposes; it does not write to the map. Every
-row it would create is offered and waits for a tap, which is the posture the
-app already takes toward irreversible acts — merging a resource is "a
-suggestion on the shelf rather than something done quietly".
+Not a second writing agent. It keeps the reader's own material — a mark, a
+card — and asks before it touches the map. A topic is offered and waits for
+a tap, which is the posture the app already takes toward irreversible acts:
+merging a resource is "a suggestion on the shelf rather than something done
+quietly".
 
 Not a new rendering surface. It draws with the blocks lessons already use.
 
@@ -47,9 +48,10 @@ next week.
 - Automatic context: route kind, entity id and title, visible section, and
   the selected quote when opened from a selection.
 - "Ask more" as a third button in the lesson selection toolbar.
-- Five tools: `propose_mark`, `propose_card`, `propose_topic`,
-  `read_lesson`, `search_map`.
-- Proposals accepted by tap, which is the only thing that writes a row.
+- Five tools: `add_mark`, `add_card`, `propose_topic`, `read_lesson`,
+  `search_map`.
+- Marks and cards are written as the agent decides them, each shown with
+  an undo. A topic is proposed and waits for a tap.
 - Agent-authored blocks from the existing `BLOCKS` registry.
 - Persistence on the existing `conversations` / `messages` tables.
 - An anchor in the lesson that reopens a discussion.
@@ -111,13 +113,13 @@ One migration, `050_ask.sql`, additive and safe to run twice.
 ```sql
 alter table conversations
   add column if not exists lesson_id uuid references lessons(id) on delete cascade,
-  add column if not exists topic_id  uuid references topics(id)  on delete cascade,
   add column if not exists context   jsonb;
 ```
 
-The existing `node_id` column references `nodes(id)`, which predates
-`012_subjects_and_topics`. An ask conversation does not use it; it anchors
-on `lesson_id` or `topic_id` instead.
+The existing `node_id` column is already the topic: `012` renamed `nodes` to
+`topics` and left the column's name behind it. A conversation about a topic
+uses that column rather than a second one beside it. A lesson is the thing
+it could not say, so that is what is added.
 
 `context` holds the `AskContext` as it was when the conversation opened —
 route kind, entity, section id, and the selected quote where there was one.
@@ -140,11 +142,11 @@ alter table messages
   add column if not exists proposals jsonb;
 ```
 
-A proposal is what a tool call produced and the reader has not accepted:
-`[{ kind: 'mark', quote, note }, …]`, each gaining an `accepted_at` when
-tapped. It sits on the message that offered it, so it survives a reload
-without a table of its own. A separate table would earn its place if
-proposals had to be queried across conversations; they do not.
+Two things share this column. A proposal the reader has not accepted — only
+`{ kind: 'topic', … }` in v1 — gains an `accepted_at` when tapped. A write
+the agent already made records what it was and the id it created, so the
+panel can show it and offer the undo after a reload. Both sit on the message
+that produced them, so neither needs a table of its own.
 
 ### `ask_anchors`
 
@@ -186,17 +188,28 @@ the honest statement of the one case where it is, and it costs a line.
 
 | Tool | Effect |
 |---|---|
-| `propose_mark` | Returns a proposal. Writes nothing. |
-| `propose_card` | Returns a proposal. Writes nothing. |
+| `add_mark` | Writes a highlight. Shown with an undo. |
+| `add_card` | Writes a `qa` card. Shown with an undo. |
 | `propose_topic` | Returns a proposal. Writes nothing. |
 | `read_lesson` | Reads the body, or one named section. |
 | `search_map` | Finds existing topics by name. |
 
-The three write tools do not write. The agent loop has no write path at
-all; a row appears only when the reader taps accept and
-`POST /api/ask/[id]/accept` inserts it. The property worth having is that a
-prompt injection carried in a lesson body can make the agent *suggest*
-something and never create it.
+A card here is a `qa` row on `clozes` — a question and its answer, the
+shape `046` added precisely because a card written for the purpose beats a
+sentence cut out of the prose. The `clozes_shape` constraint requires the
+kind to be declared, so the write says `kind: 'qa'` rather than taking the
+`'cloze'` default and failing on the columns a question does not have.
+
+The split is by blast radius, not by convenience. A mark and a card are the
+reader's own material, sit against one lesson, and are deleted in one press
+by machinery that already exists — so the agent writes them and says it did,
+with an undo. A topic is a row in the map, which the resolver, the filing
+rules and the graph all read; it is offered and waits for a tap, and
+`POST /api/ask/[id]/accept` is the only thing that creates one.
+
+What this buys is bounded rather than absolute: a prompt injection carried
+in a lesson body can cause a spurious mark or card, both visible and both
+removable, and still cannot reach the map.
 
 `search_map` exists because of what `config.ts` already records: the
 resolver went to considerable trouble not to create near-duplicate topics,
@@ -281,8 +294,9 @@ row as built / planned.
   chat and lessons drifting apart.
 - The fold: given a body and a `sectionId`, the section lands after the
   right heading. A pure function over markdown, so it tests without a model.
-- Routes: auth answers 401 and never a redirect; the proposal→accept path
-  writes exactly one row.
+- Routes: auth answers 401 and never a redirect; `add_mark` writes exactly
+  one highlight and its undo removes it; the topic proposal writes nothing
+  until accepted, then exactly one row.
 - No test asserts model prose.
 
 ---
