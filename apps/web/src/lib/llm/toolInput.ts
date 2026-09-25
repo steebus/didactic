@@ -56,3 +56,42 @@ export function toolList(input: unknown, field: string): unknown[] {
 
   return []
 }
+
+/**
+ * Pull `field` out of a tool's input as a string.
+ *
+ * The scalar sibling of `toolList`, and it exists for the same observed
+ * fault: the API usually hands back the object, and sometimes hands back
+ * the JSON *text* of it under the field name, in which case reading the
+ * field the obvious way gives `undefined`.
+ *
+ * Strict about what comes out, deliberately. A caller that wants a
+ * string and is given an object must not be handed `String(value)` --
+ * that is how a literal `[object Object]` was written into a mark and
+ * shown to the reader as the passage they had supposedly kept. Anything
+ * that is not a string, or is only whitespace, comes back as `''`, which
+ * every caller already treats as "the model said nothing usable".
+ */
+export function toolText(input: unknown, field: string): string {
+  const direct = pick(input, field)
+  if (typeof direct === 'string' && direct.trim()) return direct
+
+  // The whole input re-encoded as JSON text.
+  if (typeof input === 'string') {
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(input)
+    } catch {
+      return ''
+    }
+    const inner = pick(parsed, field)
+    if (typeof inner === 'string' && inner.trim()) return inner
+  }
+
+  return ''
+}
+
+function pick(input: unknown, field: string): unknown {
+  if (!input || typeof input !== 'object') return undefined
+  return (input as Record<string, unknown>)[field]
+}

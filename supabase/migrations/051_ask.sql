@@ -28,31 +28,11 @@ alter table conversations
 alter table messages
   add column if not exists proposals jsonb;
 
--- A discussion, found again in the prose it was about.
+-- When a conversation was written into its lesson.
 --
--- The quote and prefix pair is the one `highlights` uses, deliberately:
--- `paintMarks` and `markAnchor` re-find it by machinery that already
--- exists, and a rewritten lesson degrades it the way it degrades a mark
--- rather than in some new way of its own.
-create table if not exists ask_anchors (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id),
-  conversation_id uuid not null references conversations(id) on delete cascade,
-  lesson_id uuid not null references lessons(id) on delete cascade,
-
-  quote text not null,
-  prefix text,
-
-  created_at timestamptz not null default now()
-);
-
-create index if not exists ask_anchors_lesson_idx on ask_anchors (user_id, lesson_id);
-
-alter table ask_anchors enable row level security;
-
-drop policy if exists "own ask anchors" on ask_anchors;
-create policy "own ask anchors" on ask_anchors
-  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-
-comment on table ask_anchors is
-  'A conversation kept against a passage of a lesson, found again by the same quote/prefix pair a highlight uses. Arrived in 051.';
+-- Folding twice appends twice: the route re-reads a body that already
+-- holds the first fold. The panel disabling its button is not a guard --
+-- a retried request or a direct call reaches the route regardless -- so
+-- the fact lives on the row and the second attempt is refused.
+alter table conversations
+  add column if not exists folded_at timestamptz;

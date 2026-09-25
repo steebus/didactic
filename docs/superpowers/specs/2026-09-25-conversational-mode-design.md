@@ -54,9 +54,14 @@ next week.
   an undo. A topic is proposed and waits for a tap.
 - Agent-authored blocks from the existing `BLOCKS` registry.
 - Persistence on the existing `conversations` / `messages` tables.
-- An anchor in the lesson that reopens a discussion.
+- ~~An anchor in the lesson that reopens a discussion.~~ **Not built.** The
+  table was written and removed again when nothing came to use it; a
+  migration is permanent and an unused one is worse than a missing one.
 - Fold: an explicit action that writes a reformatted section into
   `lessons.body` near where the conversation started.
+- **Not built:** reading a conversation back. `messages.proposals` is
+  written for it and nothing reads it yet; closing the panel starts a new
+  conversation.
 
 ### Out (deferred)
 

@@ -17,21 +17,50 @@ vi.mock('@/lib/llm/ask', async importOriginal => {
   return { ...real, askTurn: (...args: unknown[]) => askTurn(...args) }
 })
 vi.mock('next/cache', () => ({ revalidateTag: vi.fn() }))
+// A topic is not written without one, so the double answers instantly
+// rather than reaching for the edge function.
+vi.mock('@/lib/embedding', () => ({ embed: vi.fn(async () => new Array(1536).fill(0)) }))
 
-/** A Supabase double that records what it was asked to do. */
-function fakeDb(over: Record<string, unknown> = {}) {
+/**
+ * A Supabase double that records what it was asked to do.
+ *
+ * It honours `.eq()` rather than ignoring it, which matters: an earlier
+ * version returned a row whatever it was asked for, so every test that
+ * claimed to check ownership passed against code with the ownership
+ * check deleted. A double that cannot express "not yours" cannot test
+ * for it.
+ */
+function fakeDb(rows: Record<string, Record<string, unknown>[]> = {}) {
   const deleted: Array<{ table: string; id: string; userId: string }> = []
   const inserted: Array<{ table: string; row: Record<string, unknown> }> = []
 
+  const DEFAULT: Record<string, Record<string, unknown>[]> = {
+    conversations: [{ id: 'conv-1', user_id: 'user-1', lesson_id: 'l1', context: { route: 'lesson' } }],
+    lessons: [{ id: 'l1', user_id: 'user-1', body: '# A lesson' }],
+    topics: [],
+    messages: [],
+  }
+  const store = { ...DEFAULT, ...rows }
+
   const chain = (table: string) => {
+    const filters: Array<[string, unknown]> = []
+    const matching = () =>
+      (store[table] ?? []).filter(row => filters.every(([col, val]) => row[col] === val))
+
     const q: Record<string, unknown> = {}
     q.select = () => q
-    q.eq = () => q
+    q.eq = (col: string, val: unknown) => {
+      filters.push([col, val])
+      return q
+    }
     q.ilike = () => q
     q.limit = () => q
     q.order = () => q
-    q.single = async () => ({ data: { id: 'row-1' }, error: null })
-    q.maybeSingle = async () => ({ data: { id: 'conv-1', user_id: 'user-1' }, error: null })
+    q.single = async () => {
+      const found = matching()[0]
+      return found ? { data: found, error: null } : { data: null, error: { message: 'no rows' } }
+    }
+    q.maybeSingle = async () => ({ data: matching()[0] ?? null, error: null })
     q.insert = (row: Record<string, unknown>) => {
       inserted.push({ table, row })
       return {
@@ -47,11 +76,12 @@ function fakeDb(over: Record<string, unknown> = {}) {
         },
       }),
     })
+    q._rows = () => matching()
     q.update = () => ({ eq: async () => ({ error: null }) })
     return q
   }
 
-  return { from: (t: string) => chain(t), _deleted: deleted, _inserted: inserted, ...over }
+  return { from: (t: string) => chain(t), _deleted: deleted, _inserted: inserted }
 }
 
 let db = fakeDb()
@@ -146,8 +176,8 @@ describe('accepting a topic', () => {
     ownerId.mockResolvedValue(null)
     const { POST } = await import('@/app/api/ask/[id]/accept/route')
     const res = await POST(
-      new Request('http://x/api/ask/c1/accept', { method: 'POST', body: JSON.stringify({ name: 'X' }) }),
-      { params: Promise.resolve({ id: 'c1' }) }
+      new Request('http://x/api/ask/conv-1/accept', { method: 'POST', body: JSON.stringify({ name: 'X' }) }),
+      { params: Promise.resolve({ id: 'conv-1' }) }
     )
     expect(res.status).toBe(401)
   })
@@ -155,24 +185,101 @@ describe('accepting a topic', () => {
   it('refuses a topic with no name', async () => {
     const { POST } = await import('@/app/api/ask/[id]/accept/route')
     const res = await POST(
-      new Request('http://x/api/ask/c1/accept', { method: 'POST', body: '{}' }),
-      { params: Promise.resolve({ id: 'c1' }) }
+      new Request('http://x/api/ask/conv-1/accept', { method: 'POST', body: '{}' }),
+      { params: Promise.resolve({ id: 'conv-1' }) }
     )
     expect(res.status).toBe(400)
   })
 
-  it('returns the standing topic rather than erroring when accepted twice', async () => {
+  it('refuses a conversation belonging to somebody else', async () => {
+    db = fakeDb({ conversations: [{ id: 'conv-1', user_id: 'someone-else' }] })
     const { POST } = await import('@/app/api/ask/[id]/accept/route')
     const res = await POST(
-      new Request('http://x/api/ask/c1/accept', {
+      new Request('http://x/api/ask/conv-1/accept', {
         method: 'POST',
         body: JSON.stringify({ name: 'Compounding', summary: 's' }),
       }),
-      { params: Promise.resolve({ id: 'c1' }) }
+      { params: Promise.resolve({ id: 'conv-1' }) }
     )
-    // The double responds with an existing row from maybeSingle, which
-    // is the second-tap case.
+    expect(res.status).toBe(404)
+    expect(db._inserted.filter(i => i.table === 'topics')).toHaveLength(0)
+  })
+
+  it('creates the topic for a conversation that is yours', async () => {
+    const { POST } = await import('@/app/api/ask/[id]/accept/route')
+    const res = await POST(
+      new Request('http://x/api/ask/conv-1/accept', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'Compounding', summary: 's' }),
+      }),
+      { params: Promise.resolve({ id: 'conv-1' }) }
+    )
     expect(res.status).toBe(200)
-    expect(await res.json()).toHaveProperty('topicId')
+    const written = db._inserted.find(i => i.table === 'topics')
+    expect(written?.row).toMatchObject({ user_id: 'user-1', title: 'Compounding', slug: 'compounding' })
+  })
+
+  it('writes an embedding, without which the resolver can never see the topic', async () => {
+    const { POST } = await import('@/app/api/ask/[id]/accept/route')
+    await POST(
+      new Request('http://x/api/ask/conv-1/accept', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'Compounding', summary: 's' }),
+      }),
+      { params: Promise.resolve({ id: 'conv-1' }) }
+    )
+    // `match_topics` selects `where state = 'active' and embedding is not
+    // null`. A topic written without one is invisible to the resolver for
+    // good, and the next ingestion that meets the same concept creates
+    // the near-duplicate `search_map` exists to prevent.
+    const written = db._inserted.find(i => i.table === 'topics')
+    expect(written?.row.embedding).toBeTruthy()
+  })
+
+  it('returns the standing topic rather than creating a second', async () => {
+    db = fakeDb({ topics: [{ id: 'topic-9', user_id: 'user-1', slug: 'compounding' }] })
+    const { POST } = await import('@/app/api/ask/[id]/accept/route')
+    const res = await POST(
+      new Request('http://x/api/ask/conv-1/accept', {
+        method: 'POST',
+        body: JSON.stringify({ name: 'Compounding', summary: 's' }),
+      }),
+      { params: Promise.resolve({ id: 'conv-1' }) }
+    )
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ topicId: 'topic-9' })
+    expect(db._inserted.filter(i => i.table === 'topics')).toHaveLength(0)
+  })
+})
+
+describe('a conversation that is not yours', () => {
+  it('is refused when carried into a turn, rather than appended to', async () => {
+    db = fakeDb({ conversations: [{ id: 'conv-1', user_id: 'someone-else' }] })
+    const { POST } = await import('@/app/api/ask/route')
+    const res = await POST(
+      post({ conversationId: 'conv-1', message: 'hi', context: { route: 'other' } })
+    )
+    expect(res.status).toBe(404)
+    expect(db._inserted.filter(i => i.table === 'messages')).toHaveLength(0)
+  })
+
+  it('is refused when folded', async () => {
+    db = fakeDb({ conversations: [{ id: 'conv-1', user_id: 'someone-else', lesson_id: 'l1' }] })
+    const { POST } = await import('@/app/api/ask/[id]/fold/route')
+    const res = await POST(new Request('http://x', { method: 'POST' }), {
+      params: Promise.resolve({ id: 'conv-1' }),
+    })
+    expect(res.status).toBe(404)
+  })
+})
+
+describe('a lesson that is not yours', () => {
+  it('cannot be asked about, so nothing is hung off it', async () => {
+    const { POST } = await import('@/app/api/ask/route')
+    const res = await POST(
+      post({ message: 'hi', context: { route: 'lesson', entityId: 'someone-elses-lesson' } })
+    )
+    expect(res.status).toBe(404)
+    expect(db._inserted).toHaveLength(0)
   })
 })

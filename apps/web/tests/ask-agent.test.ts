@@ -190,3 +190,95 @@ describe('what the agent does with a tool call', () => {
     expect(sent[sent.length - 1].content).toBe('what does that mean?')
   })
 })
+
+describe('tool input that is not the shape it should be', () => {
+  it('reads a mark out of input handed back as JSON text', async () => {
+    const { askTurn } = await import('@/lib/llm/ask')
+    const d = deps()
+    // The fault `toolInput.ts` was written for: the whole input object
+    // re-encoded as a string under the tool call. `Array.isArray` and
+    // property access both fail on it, silently.
+    create
+      .mockResolvedValueOnce({
+        content: [
+          { type: 'text', text: 'One moment.' },
+          {
+            type: 'tool_use',
+            id: 'tu_1',
+            name: 'add_mark',
+            input: JSON.stringify({ quote: 'the rate is annual', note: 'why' }),
+          },
+        ],
+      })
+      .mockResolvedValueOnce(answering('Kept.'))
+
+    const turn = await askTurn({
+      context: { route: 'lesson', entityId: 'l1' },
+      history: [],
+      message: 'keep that',
+      deps: d,
+    })
+
+    expect(d.addMark).toHaveBeenCalledWith('the rate is annual', 'why')
+    expect(turn.writes).toHaveLength(1)
+  })
+
+  it('refuses an object where a string belongs, rather than writing [object Object]', async () => {
+    const { askTurn } = await import('@/lib/llm/ask')
+    const d = deps()
+    create
+      .mockResolvedValueOnce(callingTool('add_mark', { quote: { a: 1 }, note: ['x'] }))
+      .mockResolvedValueOnce(answering('ok'))
+
+    const turn = await askTurn({
+      context: { route: 'lesson', entityId: 'l1' },
+      history: [],
+      message: 'keep that',
+      deps: d,
+    })
+
+    expect(d.addMark).not.toHaveBeenCalled()
+    expect(turn.writes).toEqual([])
+  })
+
+  it('refuses a whitespace-only answer the database would reject anyway', async () => {
+    const { askTurn } = await import('@/lib/llm/ask')
+    const d = deps()
+    create
+      .mockResolvedValueOnce(callingTool('add_card', { question: 'q', answer: '   ' }))
+      .mockResolvedValueOnce(answering('ok'))
+
+    await askTurn({
+      context: { route: 'lesson', entityId: 'l1' },
+      history: [],
+      message: 'make a card',
+      deps: d,
+    })
+
+    expect(d.addCard).not.toHaveBeenCalled()
+  })
+})
+
+describe('when the rounds run out', () => {
+  it('still says something, because an empty message bricks the conversation', async () => {
+    const { askTurn } = await import('@/lib/llm/ask')
+    const d = deps()
+    // Four tool-only rounds: the loop ends having written marks and
+    // never having written a word.
+    create.mockResolvedValue({
+      content: [{ type: 'tool_use', id: 't', name: 'add_mark', input: { quote: 'q', note: 'n' } }],
+    })
+
+    const turn = await askTurn({
+      context: { route: 'lesson', entityId: 'l1' },
+      history: [],
+      message: 'hi',
+      deps: d,
+    })
+
+    expect(turn.text.trim()).not.toBe('')
+    // And it says what it did, since the marks are real.
+    expect(turn.text).toContain('mark')
+    expect(turn.writes.length).toBeGreaterThan(0)
+  })
+})

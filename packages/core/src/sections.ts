@@ -103,6 +103,55 @@ export function lessonSections(markdown: string): Section[] {
 }
 
 /**
+ * Every heading in a body, with the line it sits on.
+ *
+ * `lessonSections` lifts blocks out before it reads, which is right for
+ * a contents list and useless to anything that has to write back into
+ * the body: the indices it sees belong to the pieces between the
+ * blocks, not to the document.
+ *
+ * So this walks the body once, applying the same grammar -- fences are
+ * skipped, three spaces of indent are allowed, trailing hashes come off,
+ * `plain` takes the markup out -- and numbers duplicates through the
+ * same `outlineFrom`, so the ids it returns are the ids the contents
+ * rail shows. It exists so that `foldInto` can find where a section ends
+ * without re-deciding what a heading is; a second opinion about that is
+ * how a fold once landed inside a ```sh block.
+ */
+export function headingLines(markdown: string): Array<Section & { line: number }> {
+  const found: Array<Heading & { line: number }> = []
+  const lines = markdown.split('\n')
+  let fenced = false
+
+  for (const [i, line] of lines.entries()) {
+    if (/^\s{0,3}(```|~~~)/.test(line)) {
+      fenced = !fenced
+      continue
+    }
+    if (fenced) continue
+
+    const atx = /^\s{0,3}(#{1,3})\s+(.+?)\s*#*\s*$/.exec(line)
+    if (atx) {
+      found.push({ level: atx[1].length, text: plain(atx[2]), line: i })
+      continue
+    }
+
+    const underline = /^\s{0,3}(=+|-+)\s*$/.exec(line)
+    if (underline && lines[i - 1]?.trim() && !/^\s{0,3}(#|>|[-*+]\s)/.test(lines[i - 1])) {
+      found.push({
+        level: underline[1].startsWith('=') ? 1 : 2,
+        text: plain(lines[i - 1]),
+        // The heading is the text, not the rule under it.
+        line: i - 1,
+      })
+    }
+  }
+
+  const named = outlineFrom(found.map(({ level, text }) => ({ level, text })))
+  return named.map((section, i) => ({ ...section, line: found[i].line }))
+}
+
+/**
  * A heading as it will read once it is printed.
  *
  * The list says what the heading says, so the marks that made it bold

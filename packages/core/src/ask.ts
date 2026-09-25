@@ -12,7 +12,7 @@
  * afterwards does not make the record wrong.
  */
 
-import { lessonSections, slugFor } from './sections'
+import { headingLines } from './sections'
 
 export type AskRoute = 'lesson' | 'topic' | 'subject' | 'cards' | 'other'
 
@@ -44,17 +44,16 @@ export interface Proposal {
   kind: 'topic'
   name: string
   summary: string
-  acceptedAt?: string
 }
 
-/** Something the agent kept by itself -- a mark or a card -- recorded so
- *  the panel can still offer the undo after a reload. */
+/** Something the agent kept by itself -- a mark or a card -- recorded on
+ *  the message that did it, so the panel can print what happened and
+ *  offer the way back. */
 export interface AgentWrite {
   kind: 'mark' | 'card'
   id: string
   /** What to print against the undo: the quote, or the question. */
   label: string
-  undoneAt?: string
 }
 
 /**
@@ -114,23 +113,24 @@ export function foldInto(body: string, sectionId: string | undefined, section: s
   const append = () => `${body.trimEnd()}\n\n${section.trim()}\n`
   if (!sectionId) return append()
 
-  const sections = lessonSections(body)
-  const index = sections.findIndex(s => s.id === sectionId)
+  // One reading of what a heading is, shared with the contents rail.
+  // The fold used to find its own headings with a plain line regex that
+  // had no idea what a code fence was: a lesson with a ```sh block whose
+  // comment happened to slug to the next heading's id took the folded
+  // section *inside* the fence and broke every line after it. A second
+  // opinion about what a heading is was the whole of that bug.
+  const headings = headingLines(body)
+  const index = headings.findIndex(h => h.id === sectionId)
   if (index === -1) return append()
 
   // The section ends where the next heading of the same level or
   // shallower begins; a deeper one is still part of it.
-  const here = sections[index]
-  const next = sections.slice(index + 1).find(s => s.level <= here.level)
+  const here = headings[index]
+  const next = headings.slice(index + 1).find(h => h.level <= here.level)
   if (!next) return append()
 
   const lines = body.split('\n')
-  const headingLine = lines.findIndex(
-    line => /^#{1,3}\s/.test(line) && slugFor(line.replace(/^#{1,3}\s*/, '')) === next.id
-  )
-  if (headingLine === -1) return append()
-
-  const before = lines.slice(0, headingLine).join('\n').trimEnd()
-  const after = lines.slice(headingLine).join('\n')
+  const before = lines.slice(0, next.line).join('\n').trimEnd()
+  const after = lines.slice(next.line).join('\n')
   return `${before}\n\n${section.trim()}\n\n${after}`
 }

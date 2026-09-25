@@ -4,6 +4,7 @@ import { ownerId } from '@/lib/auth'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
 import { slugFor } from '@didactic/core/sections'
+import { embed } from '@/lib/embedding'
 
 /**
  * Drop what accepting a topic changed.
@@ -61,6 +62,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   if (standing) return NextResponse.json({ topicId: standing.id })
 
+  // The embedding is not optional furniture. `match_topics` selects
+  // `where state = 'active' and embedding is not null`, so a topic
+  // written without one is invisible to the resolver for good -- and the
+  // next ingestion that meets the same concept would create the very
+  // near-duplicate `search_map` exists to prevent. A topic the resolver
+  // cannot see is worse than no topic.
+  let vector: number[]
+  try {
+    vector = await embed(name)
+  } catch {
+    return NextResponse.json(
+      { error: 'the topic could not be added just now' },
+      { status: 503 }
+    )
+  }
+
   const { data, error } = await db
     .from('topics')
     .insert({
@@ -68,6 +85,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       title: name,
       slug,
       summary: summary ?? null,
+      embedding: JSON.stringify(vector),
       created_by: 'user',
     })
     .select('id')

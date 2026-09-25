@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NO_THINKING } from './thinking'
+import { toolText } from './toolInput'
 import { blockPromptSection } from '@didactic/core/blocks'
 import { contextPreamble, type AskContext, type Proposal, type AgentWrite } from '@didactic/core/ask'
 
@@ -200,14 +201,14 @@ export async function askTurn(input: {
 
     const results: Anthropic.ToolResultBlockParam[] = []
     for (const call of calls) {
-      const given = (call.input ?? {}) as Record<string, unknown>
+      const given: unknown = call.input ?? {}
       const say = (content: string) =>
         results.push({ type: 'tool_result', tool_use_id: call.id, content })
 
       try {
         if (call.name === 'add_mark') {
-          const quote = String(given.quote ?? '')
-          const note = String(given.note ?? '')
+          const quote = toolText(given, 'quote')
+          const note = toolText(given, 'note')
           if (!quote) {
             say('No quote given; nothing was kept.')
           } else {
@@ -216,9 +217,11 @@ export async function askTurn(input: {
             say('Kept.')
           }
         } else if (call.name === 'add_card') {
-          const question = String(given.question ?? '')
-          const answer = String(given.answer ?? '')
+          const question = toolText(given, 'question')
+          const answer = toolText(given, 'answer')
           if (!question || !answer) {
+            // `toolText` has already refused a blank or a non-string, so
+            // this is the model genuinely not having said one of them.
             say('A card needs both a question and an answer; nothing was kept.')
           } else {
             const { id } = await deps.addCard(question, answer)
@@ -226,18 +229,18 @@ export async function askTurn(input: {
             say('Kept.')
           }
         } else if (call.name === 'propose_topic') {
-          const name = String(given.name ?? '')
+          const name = toolText(given, 'name')
           if (!name) {
             say('A topic needs a name; nothing was offered.')
           } else {
-            proposals.push({ kind: 'topic', name, summary: String(given.summary ?? '') })
+            proposals.push({ kind: 'topic', name, summary: toolText(given, 'summary') })
             say('Offered to the reader, who decides whether it is created.')
           }
         } else if (call.name === 'read_lesson') {
-          const section = given.section === undefined ? undefined : String(given.section)
+          const section = toolText(given, 'section') || undefined
           say((await deps.readLesson(section)) || 'The lesson has no body yet.')
         } else if (call.name === 'search_map') {
-          const found = await deps.searchMap(String(given.query ?? ''))
+          const found = await deps.searchMap(toolText(given, 'query'))
           say(
             found.length
               ? found.map(t => `${t.name} (${t.id})`).join('\n')
@@ -254,6 +257,19 @@ export async function askTurn(input: {
     }
 
     messages.push({ role: 'user', content: results })
+  }
+
+  // Four rounds of tool calls and never a word. The model was still
+  // working when the loop ran out, and what it did is real -- marks may
+  // have been kept -- so the turn says what happened rather than coming
+  // back empty. An empty assistant message is not a cosmetic problem:
+  // it is stored, read back as history, and the API refuses a message
+  // with no content, which would fail every later turn of this
+  // conversation rather than just this one.
+  if (!text) {
+    text = writes.length
+      ? `Kept ${writes.map(w => `a ${w.kind}`).join(' and ')}, but ran out of room before writing an answer. Ask again and I will.`
+      : 'I ran out of room before writing an answer. Ask again.'
   }
 
   return { text, proposals, writes }

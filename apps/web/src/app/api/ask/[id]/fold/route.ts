@@ -43,7 +43,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const { data: conversation } = await db
     .from('conversations')
-    .select('id, user_id, lesson_id, context')
+    .select('id, user_id, lesson_id, context, folded_at')
     .eq('id', id)
     .eq('user_id', userId)
     .maybeSingle()
@@ -103,6 +103,15 @@ ${blockPromptSection()}`,
 
   if (!section) return NextResponse.json({ error: 'nothing was written' }, { status: 502 })
 
+  // Folding twice appends twice: the route re-reads a body that already
+  // contains the first fold. The panel disables its button, which is not
+  // a guard -- a retried request or a direct call reaches here anyway --
+  // so the conversation records that it has been folded and the second
+  // attempt is refused rather than duplicating a section.
+  if (conversation.folded_at) {
+    return NextResponse.json({ error: 'this conversation is already in the lesson' }, { status: 409 })
+  }
+
   const folded = foldInto(lesson.body, context.sectionId, section)
   const { error } = await db
     .from('lessons')
@@ -110,6 +119,8 @@ ${blockPromptSection()}`,
     .eq('id', conversation.lesson_id)
 
   if (error) return NextResponse.json({ error: 'the lesson could not be written' }, { status: 500 })
+
+  await db.from('conversations').update({ folded_at: new Date().toISOString() }).eq('id', id)
 
   dropCache()
   return NextResponse.json({ ok: true })

@@ -95,3 +95,89 @@ describe('folding a discussion into a lesson', () => {
     expect(out.indexOf('The second section.')).toBeLessThan(out.indexOf('Added prose.'))
   })
 })
+
+describe('folding, against what a heading actually is', () => {
+  /**
+   * The fold once found its own headings with a plain line regex, which
+   * disagreed with the contents rail about fences, indents, trailing
+   * hashes and duplicate names. The fence case corrupted the lesson; the
+   * rest quietly appended. One grammar now answers both.
+   */
+  it('never lands inside a fenced block', () => {
+    const body = [
+      '# Shell basics',
+      '',
+      '## Pipes',
+      '',
+      'Pipes join commands.',
+      '',
+      '```sh',
+      '# Copying files',
+      'cp a b',
+      '```',
+      '',
+      '## Copying files',
+      '',
+      'How cp works.',
+    ].join('\n')
+
+    const out = foldInto(body, 'pipes', '## Folded\n\nNEW')
+
+    const fenceStart = out.indexOf('```sh')
+    const fenceEnd = out.indexOf('```', fenceStart + 5)
+    const added = out.indexOf('NEW')
+    expect(added).toBeGreaterThan(-1)
+    expect(added > fenceStart && added < fenceEnd).toBe(false)
+
+    // The fence survives whole, and its contents stay inside it.
+    expect(out).toContain('```sh\n# Copying files\ncp a b\n```')
+  })
+
+  it('finds a heading indented up to three spaces', () => {
+    const body = ['# Top', '', '  ## Indented', '', 'One.', '', '## Next', '', 'Two.'].join('\n')
+    const out = foldInto(body, 'indented', '## Folded\n\nNEW')
+    expect(out.indexOf('One.')).toBeLessThan(out.indexOf('NEW'))
+    expect(out.indexOf('NEW')).toBeLessThan(out.indexOf('Two.'))
+  })
+
+  it('finds a heading written with trailing hashes', () => {
+    const body = ['# Top', '', '## Done ##', '', 'One.', '', '## Next ##', '', 'Two.'].join('\n')
+    const out = foldInto(body, 'done', '## Folded\n\nNEW')
+    expect(out.indexOf('One.')).toBeLessThan(out.indexOf('NEW'))
+    expect(out.indexOf('NEW')).toBeLessThan(out.indexOf('Two.'))
+  })
+
+  it('finds a heading whose text carries markup', () => {
+    const body = ['# Top', '', '## The **hard** part', '', 'One.', '', '## After', '', 'Two.'].join('\n')
+    const out = foldInto(body, 'the-hard-part', '## Folded\n\nNEW')
+    expect(out.indexOf('One.')).toBeLessThan(out.indexOf('NEW'))
+    expect(out.indexOf('NEW')).toBeLessThan(out.indexOf('Two.'))
+  })
+
+  it('tells two sections of the same name apart', () => {
+    const body = [
+      '# Top', '', '## Example', '', 'First.', '',
+      '## Middle', '', 'Mid.', '',
+      '## Example', '', 'Second.', '',
+      '## End', '', 'Last.',
+    ].join('\n')
+
+    // The second "Example" is `example-2` in the contents rail, and the
+    // fold has to mean the same one by it.
+    const out = foldInto(body, 'example-2', '## Folded\n\nNEW')
+    expect(out.indexOf('Second.')).toBeLessThan(out.indexOf('NEW'))
+    expect(out.indexOf('NEW')).toBeLessThan(out.indexOf('Last.'))
+  })
+
+  it('keeps every word of the body whatever it does', () => {
+    const body = [
+      '# Top', '', '## One', '', 'Alpha.', '',
+      '```js', '## Not a heading', 'const x = 1', '```', '',
+      '## Two', '', 'Beta.',
+    ].join('\n')
+    const out = foldInto(body, 'one', '## Folded\n\nNEW')
+    for (const word of ['Alpha.', 'Beta.', 'const x = 1', '## Not a heading']) {
+      expect(out).toContain(word)
+    }
+  })
+})
