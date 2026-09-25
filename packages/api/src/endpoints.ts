@@ -119,6 +119,11 @@ export const ENDPOINTS = {
 
   'refresher.write': { name: 'refresher.write', method: 'POST', path: '/api/refresher/[topicId]', invalidates: [tags.topics, tags.subjects] },
 
+  'ask.say': { name: 'ask.say', method: 'POST', path: '/api/ask', invalidates: [tags.highlights, tags.clozes] },
+  'ask.accept': { name: 'ask.accept', method: 'POST', path: '/api/ask/[id]/accept', invalidates: [tags.topics, tags.subjects] },
+  'ask.undo': { name: 'ask.undo', method: 'POST', path: '/api/ask/[id]/undo', invalidates: [tags.highlights, tags.clozes] },
+  'ask.fold': { name: 'ask.fold', method: 'POST', path: '/api/ask/[id]/fold', invalidates: [tags.topics] },
+
   'highlights.create': { name: 'highlights.create', method: 'POST', path: '/api/highlights', invalidates: MARKS },
   'highlights.patch': { name: 'highlights.patch', method: 'PATCH', path: '/api/highlights', invalidates: MARKS },
   'highlights.remove': { name: 'highlights.remove', method: 'DELETE', path: '/api/highlights', invalidates: MARKS },

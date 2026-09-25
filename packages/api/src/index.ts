@@ -15,6 +15,7 @@
 import { createApi, type Api, type ApiOptions } from './client'
 import { auth } from './auth'
 import { books } from './books'
+import { ask } from './ask'
 import { clozes } from './clozes'
 import { curricula } from './curricula'
 import { graph } from './graph'
@@ -48,6 +49,7 @@ export type { PendingAction, TopicDetail, TopicPatch } from './topics'
 export type { AddResource, Filed } from './resources'
 export type { CurriculumDetail, CurriculumPatch, Drafted, NewLesson, Opened } from './curricula'
 export type { Completion, LessonDetail, LessonPatch, Written, WrittenWhole } from './lessons'
+export type { AskAnswer } from './ask'
 export type { Kept, NewHighlight } from './highlights'
 export type { DiaryExposure } from './diary'
 export type { ClozeEdit, ClozeScope, NewCloze, SownClozes, Tended } from './clozes'
@@ -60,6 +62,7 @@ export function didactic(options: ApiOptions = {}) {
     api,
     auth: auth(api),
     books: books(api),
+    ask: ask(api),
     clozes: clozes(api),
     curricula: curricula(api),
     graph: graph(api),
