@@ -11,3 +11,6 @@ apps/web/.impeccable/review/
 .playwright-mcp/
 
 .vercel
+
+# Scratch for executing plans. The commits are the record.
+.superpowers/
