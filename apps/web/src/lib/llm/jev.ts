@@ -82,8 +82,8 @@ const MAX_OPTIONS = 255
  * two hundred options in one request; four times twenty-five is a
  * hundred and holds.
  *
- * This matters more in production than in the harness. A batch of eight
- * is what the bake-off happened to use; a book yields twenty-odd
+ * This matters more in production than it did in measurement. A batch of
+ * eight is what the harness happened to use; a book yields twenty-odd
  * concepts, which at the same depth is five hundred options and would
  * have failed every time. The failure would not even have been loud --
  * `ingest.judge` catches it, warns, and files by name -- so every book

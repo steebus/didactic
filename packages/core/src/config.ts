@@ -66,9 +66,11 @@ export const config = {
   //
   // Set high, because the two errors still do not cost the same:
   // `merge_topics` deletes the loser and keeps no record of it (`043`),
-  // while a wrong question costs one press. Re-measure with
-  // `npx vite-node scripts/bakeoff/bakeoff.ts` -- this is a starting
-  // position taken from the shape of the decision, not yet from rows.
+  // while a wrong question costs one press. This is a starting position
+  // taken from the shape of the decision, not yet from rows. The harness
+  // that measured it has been removed; re-measuring means writing probes
+  // against the map again -- aliases that must resolve home, and close
+  // neighbours that must not.
   JEV_LINK: 0.75,
 
   // What the second reading has to say before a link is let through.
@@ -159,8 +161,9 @@ export const config = {
   // Set above the measured ceiling rather than at it. The worst rank
   // will drift as the map grows toward the thousands `PRODUCT.md`
   // expects, and 25 costs about 1,375 tokens a concept, which is a
-  // twentieth of a penny. Re-measure with
-  // `node --env-file=apps/web/.env node_modules/vite-node/dist/cli.mjs scripts/bakeoff/recall.ts`.
+  // twentieth of a penny. The recall harness that produced the table
+  // above has been removed; the numbers are what it found on a map of
+  // 74 active topics and 66 aliases written from them.
   RESOLVER_NOMINATED: 25,
 
   // Two rows that are the same piece of material.
