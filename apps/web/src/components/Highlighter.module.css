@@ -364,6 +364,43 @@
   gap: var(--space-1);
 }
 
+/* On a phone the offer is a drawer at the foot, not a label on the
+   selection.
+
+   Three verbs do not fit beside a passage on a narrow screen: placed
+   against the words, the third ran off the edge and could not be
+   pressed at all. Worse, the sensible place for them is under a thumb
+   rather than wherever in the column the sentence happens to sit --
+   which is where the mark composer and the player already put
+   themselves for the same reason.
+
+   The coordinates are written inline by the component, which computes
+   them from the selection, so they are overridden rather than not sent:
+   what the drawer needs is the same offer, placed by the screen instead
+   of by the text. */
+@media (max-width: 40rem) {
+  .pins {
+    top: auto !important;
+    right: 0;
+    bottom: 0;
+    left: 0 !important;
+    justify-content: stretch;
+    gap: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--paper);
+    border-top: 1px solid var(--rule);
+    box-shadow: 0 -4px 20px rgba(var(--ink-rgb), 0.25);
+  }
+
+  /* Each takes its share of the width, so the row is a thumb's worth of
+     target from edge to edge however the labels measure. */
+  .pins .pin {
+    flex: 1;
+    min-height: 3.25rem;
+    box-shadow: none;
+  }
+}
+
 .pin {
   font-family: var(--font-text);
   font-size: var(--step--2);

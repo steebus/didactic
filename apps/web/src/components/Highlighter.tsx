@@ -16,6 +16,7 @@ import { ClozeCard } from './ClozeCard'
 import { ClozeMaker } from './ClozeMaker'
 import { NoteEditor } from './NoteEditor'
 import { NoteIcon } from './NoteIcon'
+import { AskIcon } from './AskIcon'
 import { MarksIcon } from './MarksIcon'
 import { TopIcon } from './TopIcon'
 import { MarkList } from './MarkList'
@@ -296,19 +297,22 @@ export function Highlighter({
   )
 
   /**
-   * Take the passage to the agent in the corner.
+   * Open the agent, with a passage if there is one.
    *
-   * The highlighter is inside the sheet and the disc is docked from the
-   * layout, so they are in different trees; the passage travels as an
-   * event rather than through a context that would have to wrap the
+   * The desk is inside the sheet and the panel is mounted from the
+   * layout, so they are in different trees; what to ask about travels as
+   * an event rather than through a context that would have to wrap the
    * whole catalogue to carry one string.
+   *
+   * `null` is the desk button: ask about the lesson rather than about a
+   * sentence in it, which is the same distinction `noteOnLesson` makes
+   * just below.
    */
   const askAbout = useCallback((chosen: Offer | null) => {
-    if (!chosen) return
     setOffer(null)
     window.dispatchEvent(
       new CustomEvent('didactic:ask', {
-        detail: { quote: chosen.quote, prefix: chosen.prefix },
+        detail: chosen ? { quote: chosen.quote, prefix: chosen.prefix } : {},
       })
     )
   }, [])
@@ -1010,6 +1014,22 @@ export function Highlighter({
           title="A note on this lesson"
         >
           <NoteIcon />
+        </button>
+
+        {/* The third that writes, and the only one that answers. It sits
+            with the desk rather than in the corner of the window because
+            on a lesson these are the buttons a reader already reaches
+            for -- a fourth floating somewhere near them is a second
+            arrangement of the same idea, and the two drifted apart at
+            the first width that moved one and not the other. */}
+        <button
+          type="button"
+          className={styles.deskNote}
+          onClick={() => askAbout(null)}
+          aria-label="Ask about this lesson"
+          title="Ask about this lesson"
+        >
+          <AskIcon />
         </button>
 
         {/* The way back to the head of the sheet, under the two that

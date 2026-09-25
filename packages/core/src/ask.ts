@@ -134,3 +134,92 @@ export function foldInto(body: string, sectionId: string | undefined, section: s
   const after = lines.slice(next.line).join('\n')
   return `${before}\n\n${section.trim()}\n\n${after}`
 }
+
+/**
+ * How a list of conversations is arranged.
+ *
+ * Two questions get asked of a pile of old chats, and they want
+ * different shapes. "What was I doing last week" wants them in the order
+ * they happened. "Where is that conversation about compounding" wants
+ * them gathered by what they were about. So the sort is a toggle rather
+ * than a decision made here.
+ */
+export type ChatOrder = 'date' | 'subject'
+
+/** A chat, as far as arranging them needs to know. */
+export interface ChatLike {
+  id: string
+  startedAt: string
+  context: { route: AskRoute; title?: string }
+}
+
+/** A run of chats printed under one heading. */
+export interface ChatGroup<T> {
+  /** What the heading says. */
+  title: string
+  /** Stable enough to key on and to remember which sections are shut. */
+  key: string
+  chats: T[]
+}
+
+/** The day a chat was had, as a heading: "Today", "Yesterday", or a date. */
+function dayOf(iso: string, now: Date): string {
+  const when = new Date(iso)
+  const days = Math.floor(
+    (Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) -
+      Date.UTC(when.getFullYear(), when.getMonth(), when.getDate())) /
+      86_400_000
+  )
+  if (days <= 0) return 'Today'
+  if (days === 1) return 'Yesterday'
+  if (days < 7) return 'This week'
+  if (days < 30) return 'This month'
+  return when.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
+}
+
+/**
+ * Gather chats under headings.
+ *
+ * By date, the headings are the plain ones a person uses out loud --
+ * today, yesterday, this week -- rather than a date on every row, which
+ * is a wall of numbers to scan. By subject, the heading is whatever the
+ * conversation was about, and everything asked from nowhere in
+ * particular falls to the end under one heading rather than being
+ * scattered as a dozen groups of one.
+ *
+ * Pure, and here rather than in the page, so the phone groups the same
+ * list the same way and the arrangement can be tested without a screen.
+ */
+export function groupChats<T extends ChatLike>(
+  chats: T[],
+  order: ChatOrder,
+  now: Date = new Date()
+): Array<ChatGroup<T>> {
+  const groups = new Map<string, ChatGroup<T>>()
+
+  for (const chat of chats) {
+    const title =
+      order === 'date'
+        ? dayOf(chat.startedAt, now)
+        : (chat.context.title ?? 'Asked from elsewhere')
+
+    const held = groups.get(title)
+    if (held) held.chats.push(chat)
+    else groups.set(title, { title, key: title.toLowerCase().replace(/\s+/g, '-'), chats: [chat] })
+  }
+
+  const out = [...groups.values()]
+
+  // By date the map is already in order, because the rows arrive newest
+  // first. By subject the headings are alphabetical, except the one that
+  // means "no subject", which goes last wherever its name would sort.
+  if (order === 'subject') {
+    out.sort((a, b) => {
+      if (a.title === 'Asked from elsewhere') return 1
+      if (b.title === 'Asked from elsewhere') return -1
+      return a.title.localeCompare(b.title)
+    })
+  }
+
+  return out
+}

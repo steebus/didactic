@@ -1,0 +1,172 @@
+/* The conversations sheet wears the chrome the marked sheet and the
+   inbox wear: it is another list of things said and kept. */
+
+.sheet {
+  max-width: var(--sheet-max);
+  margin: 0 auto;
+  padding: 0 0 var(--space-6);
+  background-color: var(--paper);
+  background-image:
+    repeating-linear-gradient(90deg, rgba(var(--tooth-rgb), 0.04) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(var(--tooth-rgb), 0.03) 0 1px, transparent 1px 4px);
+  min-height: 100dvh;
+}
+
+.head {
+  background: var(--band-fill);
+  color: var(--on-plate);
+  padding: var(--space-5);
+  /* The band is a saturated plate, so the terracotta focus ring
+     disappears into it. Controls in here state their own. */
+  --focus-ink: var(--paper);
+}
+
+.title {
+  font-size: var(--step-3);
+  font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 72;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.standfirst {
+  margin: var(--space-3) 0 0;
+  font-size: var(--step--1);
+  opacity: 0.85;
+}
+
+/* Two ways of looking at the same pile, drawn as what they are: links,
+   because the choice lives in the URL and is a place you can return to
+   rather than a state this sheet remembers. */
+.toggle {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5) 0;
+}
+
+.toggleHere,
+.toggleOther {
+  padding: 0.25rem var(--space-3);
+  font-size: var(--step--1);
+  text-decoration: none;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+}
+
+.toggleHere {
+  color: var(--paper);
+  background: var(--plate-green);
+  border-color: var(--plate-green);
+}
+
+.toggleOther {
+  color: var(--ink);
+}
+
+.group {
+  padding: 0 var(--space-5);
+}
+
+.groupHead {
+  margin: var(--space-4) 0 0;
+  font-size: var(--step-0);
+}
+
+.groupButton {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) 0;
+  font: inherit;
+  font-family: var(--font-display);
+  color: var(--ink);
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  cursor: pointer;
+}
+
+/* The mark turns rather than swapping for another glyph, so the shut
+   and open states are plainly the same control. */
+.markShut,
+.markOpen {
+  display: inline-block;
+  font-size: 0.7em;
+  color: var(--rule-strong);
+  transition: rotate var(--dur-feedback, 120ms) var(--ease-settle, ease);
+}
+
+.markOpen {
+  rotate: 90deg;
+}
+
+.groupCount {
+  margin-left: auto;
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  color: var(--rule-strong);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  border-bottom: 1px solid rgba(var(--ink-rgb), 0.1);
+}
+
+.rowLink {
+  display: grid;
+  gap: 0.15rem;
+  padding: var(--space-3) 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+/* The reader's own first question names the conversation better than a
+   title we could write for it, so it is what the row leads with. */
+.opening {
+  font-family: var(--font-display);
+  font-size: var(--step-0);
+  line-height: 1.25;
+}
+
+.about {
+  font-size: var(--step--2);
+  color: var(--rule-strong);
+}
+
+.kept {
+  font-size: var(--step--2);
+  color: var(--plate-green);
+}
+
+/* One conversation, read back. */
+.transcript {
+  padding: var(--space-4) var(--space-5) 0;
+}
+
+.saidByReader {
+  margin: 0 0 var(--space-4);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--rule);
+}
+
+.asked {
+  margin: 0;
+  font-family: var(--font-display);
+  color: var(--rule-strong);
+}
+
+.saidByTutor {
+  margin: 0 0 var(--space-5);
+}
+
+.back {
+  padding: 0 var(--space-5);
+  font-size: var(--step--1);
+}

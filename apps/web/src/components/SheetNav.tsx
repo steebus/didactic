@@ -25,7 +25,7 @@ export function SheetNav({
    */
   filedUnder?: { id: string; title: string }
   /** Which sheet is showing, so its link is marked rather than offered. */
-  current?: 'stock' | 'bed' | 'marked' | 'tend' | 'inbox'
+  current?: 'stock' | 'bed' | 'marked' | 'chats' | 'tend' | 'inbox'
 }) {
   // Subjects is the sheet you are standing on when `current` is
   // 'stock', and a running head printing the sheet you are already on
@@ -36,6 +36,7 @@ export function SheetNav({
     { key: 'stock', href: '/', label: 'Subjects' },
     { key: 'bed', href: '/graph', label: 'The bed' },
     { key: 'marked', href: '/marked', label: 'Marked' },
+    { key: 'chats', href: '/chats', label: 'Chats' },
     // Between Marked and Inbox on purpose: what you kept, then what you
     // are keeping hold of, then what is waiting to be filed.
     { key: 'tend', href: '/tend', label: 'Tend' },

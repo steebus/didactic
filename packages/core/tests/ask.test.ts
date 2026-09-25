@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isAskContext, contextPreamble, foldInto } from '../src/ask'
+import { isAskContext, contextPreamble, foldInto, groupChats } from '../src/ask'
 
 describe('an ask context', () => {
   it('accepts the shape the panel sends', () => {
@@ -179,5 +179,66 @@ describe('folding, against what a heading actually is', () => {
     for (const word of ['Alpha.', 'Beta.', 'const x = 1', '## Not a heading']) {
       expect(out).toContain(word)
     }
+  })
+})
+
+describe('arranging a pile of old chats', () => {
+  const at = (iso: string, title?: string, id = iso) => ({
+    id,
+    startedAt: iso,
+    context: { route: 'lesson' as const, ...(title ? { title } : {}) },
+  })
+
+  const now = new Date('2026-09-25T12:00:00Z')
+
+  it('groups by the day a person would name, not by a date on every row', () => {
+    const groups = groupChats(
+      [
+        at('2026-09-25T09:00:00Z'),
+        at('2026-09-24T09:00:00Z'),
+        at('2026-09-21T09:00:00Z'),
+        at('2026-05-02T09:00:00Z'),
+      ],
+      'date',
+      now
+    )
+    expect(groups.map(g => g.title)).toEqual(['Today', 'Yesterday', 'This week', 'May 2026'])
+  })
+
+  it('keeps the newest group first, because the rows arrive that way', () => {
+    const groups = groupChats([at('2026-09-25T09:00:00Z'), at('2026-09-24T09:00:00Z')], 'date', now)
+    expect(groups[0].title).toBe('Today')
+  })
+
+  it('gathers by what the conversation was about', () => {
+    const groups = groupChats(
+      [
+        at('2026-09-25T09:00:00Z', 'Compounding', 'a'),
+        at('2026-09-24T09:00:00Z', 'Borrowing', 'b'),
+        at('2026-09-23T09:00:00Z', 'Compounding', 'c'),
+      ],
+      'subject',
+      now
+    )
+    expect(groups.map(g => g.title)).toEqual(['Borrowing', 'Compounding'])
+    expect(groups[1].chats.map(c => c.id)).toEqual(['a', 'c'])
+  })
+
+  it('puts everything asked from nowhere in particular last, under one heading', () => {
+    const groups = groupChats(
+      [at('2026-09-25T09:00:00Z', undefined, 'a'), at('2026-09-24T09:00:00Z', 'Zebras', 'b')],
+      'subject',
+      now
+    )
+    expect(groups.map(g => g.title)).toEqual(['Zebras', 'Asked from elsewhere'])
+  })
+
+  it('gives every group a key that can be remembered and keyed on', () => {
+    const groups = groupChats([at('2026-09-25T09:00:00Z', 'The hard part')], 'subject', now)
+    expect(groups[0].key).toBe('the-hard-part')
+  })
+
+  it('has nothing to say about nothing', () => {
+    expect(groupChats([], 'date', now)).toEqual([])
   })
 })

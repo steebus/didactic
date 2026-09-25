@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { useAskContext } from '@/lib/useAskContext'
 import type { AskContext } from '@didactic/core/ask'
 import { AskPanel } from './AskPanel'
+import { AskIcon } from './AskIcon'
 import styles from './Ask.module.css'
 
 /**
@@ -26,6 +28,7 @@ export function AskButton() {
   // shut: the context of a question is the moment it was asked.
   const [context, setContext] = useState<AskContext | null>(null)
   const readContext = useAskContext()
+  const path = usePathname()
 
   useEffect(() => {
     const onAsk = (e: Event) => {
@@ -52,31 +55,28 @@ export function AskButton() {
     setSelection({})
   }
 
+  // On a lesson the marking desk carries this button itself, beside the
+  // two that already write. Drawing a second one in the corner of the
+  // window put it over them, and would have been two arrangements of one
+  // idea even if it had not: the desk is sticky inside the prose and
+  // this is fixed to the viewport, so nothing keeps them together. The
+  // panel still mounts from here, because it is the same panel.
+  const onLesson = path.startsWith('/lesson/')
+
   return (
     <>
-      <button
-        type="button"
-        className={styles.disc}
-        aria-label="Ask about this"
-        aria-expanded={open}
-        onClick={() => (open ? close() : open_())}
-      >
-        <AskIcon />
-      </button>
+      {!onLesson && (
+        <button
+          type="button"
+          className={styles.disc}
+          aria-label="Ask about this"
+          aria-expanded={open}
+          onClick={() => (open ? close() : open_())}
+        >
+          <AskIcon />
+        </button>
+      )}
       {open && context && <AskPanel context={{ ...context, ...selection }} onClose={close} />}
     </>
-  )
-}
-
-function AskIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none">
-      <path
-        d="M3 6.5A2.5 2.5 0 0 1 5.5 4h9A2.5 2.5 0 0 1 17 6.5v5A2.5 2.5 0 0 1 14.5 14H8l-4 3v-3H5.5A2.5 2.5 0 0 1 3 11.5z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-    </svg>
   )
 }
