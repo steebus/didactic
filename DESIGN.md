@@ -173,6 +173,23 @@ loudest thing on the sheet, a filled shape among hairlines. Each glyph carries t
 sentence it used to say in words as its accessible name, since a control whose
 whole face is a drawing has no visible text to fall back on.
 
+**Rule — the foot has two corners, and a disc in one stands on what is
+already there.** The player's disc is on the left; the corner a reader asks
+from is on the right. Both are 2.75rem of `--paper`, round, lifted on a soft
+shadow rather than ruled, because unlike the bar neither has a rule of its
+own to sit behind and nothing else tells them from the prose beneath. Two
+differently drawn circles at one foot would read as two different kinds of
+thing, so they are drawn the same and told apart by which corner they are in
+and by the glyph.
+
+Neither is positioned against the bottom of the window. Both stand on
+`max(--bench-stack, --mark-panel)` — the taller of whatever has the foot
+already, a notice or a composer docked across it — and anything that opens
+down there publishes its own height in the same way, so what arrives next
+stands on it in turn rather than over it. A sum would stack a disc on things
+that are not both present; the maximum is what keeps the arrangement honest
+on a phone, where the composer covers the corner the bench is in.
+
 **Rule — the bed map has no foot.** Every other route is a sheet: paper that
 ends, on a bed that carries the lighting underneath it. `/graph` is a canvas
 the exact height of the window, panned by dragging, and a strip added below it

@@ -9,6 +9,16 @@ import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
 
 /**
+ * Drop what folding changed.
+ *
+ * The lesson body is read through the topic sheet that lists it, so the
+ * topics tag is what carries a rewritten lesson to the reader.
+ */
+function dropCache() {
+  revalidateTag(tags.topics, 'max')
+}
+
+/**
  * Turn a discussion into a section of the lesson it happened in.
  *
  * Asked for explicitly; never something that happens because a
@@ -101,6 +111,6 @@ ${blockPromptSection()}`,
 
   if (error) return NextResponse.json({ error: 'the lesson could not be written' }, { status: 500 })
 
-  revalidateTag(tags.topics, 'max')
+  dropCache()
   return NextResponse.json({ ok: true })
 }

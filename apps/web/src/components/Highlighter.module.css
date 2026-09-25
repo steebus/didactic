@@ -628,3 +628,16 @@
     );
   }
 }
+
+/* The third thing to do with a passage: ask about it. Its own plate,
+   because it is its own kind of act -- the other two keep the words,
+   this one opens a conversation about them. */
+.pinAsk {
+  color: var(--paper);
+  background: var(--plate-ultramarine);
+}
+
+.pinAsk:hover {
+  background: var(--ink);
+  color: var(--paper);
+}

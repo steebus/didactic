@@ -6,6 +6,16 @@ import { tags } from '@didactic/core/tags'
 import { slugFor } from '@didactic/core/sections'
 
 /**
+ * Drop what accepting a topic changed.
+ *
+ * A new topic is a new row on the map, which every bed sheet and the
+ * loose list are built from.
+ */
+function dropCache() {
+  for (const tag of [tags.topics, tags.subjects]) revalidateTag(tag, 'max')
+}
+
+/**
  * Accept a proposed topic.
  *
  * The one thing in this feature that puts a row in the map, and the only
@@ -65,6 +75,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   if (error || !data) return NextResponse.json({ error: 'could not create the topic' }, { status: 500 })
 
-  for (const tag of [tags.topics, tags.subjects]) revalidateTag(tag, 'max')
+  dropCache()
   return NextResponse.json({ topicId: data.id })
 }

@@ -296,6 +296,24 @@ export function Highlighter({
   )
 
   /**
+   * Take the passage to the agent in the corner.
+   *
+   * The highlighter is inside the sheet and the disc is docked from the
+   * layout, so they are in different trees; the passage travels as an
+   * event rather than through a context that would have to wrap the
+   * whole catalogue to carry one string.
+   */
+  const askAbout = useCallback((chosen: Offer | null) => {
+    if (!chosen) return
+    setOffer(null)
+    window.dispatchEvent(
+      new CustomEvent('didactic:ask', {
+        detail: { quote: chosen.quote, prefix: chosen.prefix },
+      })
+    )
+  }, [])
+
+  /**
    * Write about the lesson rather than about a passage in it.
    *
    * The composer opens with nothing quoted, and what is kept is a mark
@@ -1120,6 +1138,13 @@ export function Highlighter({
               onClick={() => compose(offer, 'cloze')}
             >
               Make a cloze
+            </button>
+            <button
+              type="button"
+              className={`${styles.pin} ${styles.pinAsk}`}
+              onClick={() => askAbout(offer)}
+            >
+              Ask more
             </button>
           </div>
         )}

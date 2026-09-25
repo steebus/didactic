@@ -314,6 +314,13 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
      not get is a small hole in it, and the writer is the one person who
      can put a paragraph there instead. */
   const notes = [
+    // A regenerate blanks the body and writes it again from nothing, so
+    // anything folded into this lesson from a conversation is gone with
+    // it. It is the one case where a fold does not persist, and saying
+    // so costs a line.
+    regenerate
+      ? 'This lesson was written again from the start. Anything added to it from a conversation is not in the new text.'
+      : null,
     unsupported.length
       ? `${unsupported.length} ${
           unsupported.length === 1 ? 'citation points' : 'citations point'

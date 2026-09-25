@@ -1,0 +1,214 @@
+/* The disc, in the corner opposite the player's.
+
+   Same size, ground and lift as `.folded` in Player.module.css, because
+   it is the same kind of offer and two differently drawn circles at one
+   foot would read as two different kinds of thing. It stands on
+   whichever of the bench or a docked composer has the foot, which is the
+   arrangement the foot of the sheet already keeps. */
+.disc {
+  position: fixed;
+  right: var(--space-4);
+  bottom: max(
+    calc(var(--bench-stack, 0px) + env(safe-area-inset-bottom, 0px) + var(--space-4)),
+    calc(var(--mark-panel, 0px) + var(--space-2))
+  );
+  z-index: 50;
+
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+
+  background: var(--paper);
+  border: none;
+  border-radius: 50%;
+  color: var(--plate-green);
+  cursor: pointer;
+  /* Lifted off the page, because like the player's disc it has no rule
+     of its own to sit behind and nothing to tell it from the prose. */
+  box-shadow: 0 2px 10px rgba(var(--ink-rgb), 0.28);
+}
+
+.panel {
+  position: fixed;
+  right: var(--space-4);
+  /* Clear of the disc, which keeps its own footing below. */
+  bottom: calc(
+    max(
+      calc(var(--bench-stack, 0px) + env(safe-area-inset-bottom, 0px) + var(--space-4)),
+      calc(var(--mark-panel, 0px) + var(--space-2))
+    ) + 3.25rem
+  );
+  z-index: 51;
+
+  display: flex;
+  flex-direction: column;
+  width: min(26rem, calc(100vw - var(--space-4) * 2));
+  max-height: min(32rem, 70vh);
+
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 24px rgba(var(--ink-rgb), 0.3);
+}
+
+/* The sheet is narrow enough that the panel has to dock, at the same
+   breakpoint the highlighter already uses for the same reason. */
+@media (max-width: 40rem) {
+  .panel {
+    right: 0;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 80vh;
+    border-radius: 0.5rem 0.5rem 0 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+.head {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--rule);
+}
+
+.where {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  color: var(--ink);
+}
+
+.close {
+  padding: 0;
+  font-size: 0.9rem;
+  line-height: 1;
+  color: var(--rule-strong);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.log {
+  flex: 1;
+  padding: var(--space-3);
+  overflow-y: auto;
+}
+
+/* The passage the conversation was opened from, kept in view so the
+   answer has something to sit against. */
+.quote {
+  margin: 0 0 var(--space-3);
+  padding-left: var(--space-3);
+  font-family: var(--font-display);
+  color: var(--rule-strong);
+  border-left: 2px solid var(--rule);
+}
+
+.fromReader {
+  margin-bottom: var(--space-3);
+  text-align: right;
+  color: var(--rule-strong);
+}
+
+.fromTutor {
+  margin-bottom: var(--space-3);
+  color: var(--ink);
+}
+
+/* What the agent kept by itself, said plainly, with the way back. */
+.kept {
+  margin: var(--space-2) 0 0;
+  font-size: 0.85rem;
+  color: var(--rule-strong);
+}
+
+.what {
+  font-style: italic;
+}
+
+.undo {
+  padding: 0;
+  font: inherit;
+  color: var(--plate-green);
+  text-decoration: underline;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* A topic offered. Drawn as a card rather than a line, because it is
+   the one thing here that waits for the reader to decide. */
+.proposal {
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: rgba(var(--ink-rgb), 0.04);
+  border: 1px solid var(--rule);
+  border-radius: 0.375rem;
+}
+
+.proposalName {
+  font-family: var(--font-display);
+  color: var(--ink);
+}
+
+.proposalSummary {
+  margin: var(--space-2) 0;
+  font-size: 0.85rem;
+  color: var(--rule-strong);
+}
+
+.accept,
+.send,
+.fold {
+  padding: 0.35rem var(--space-3);
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--paper);
+  background: var(--plate-green);
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+}
+
+.accept:disabled,
+.send:disabled,
+.fold:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.thinking {
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--rule-strong);
+}
+
+.composer {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-top: 1px solid var(--rule);
+}
+
+.field {
+  flex: 1;
+  min-width: 0;
+  padding: 0.35rem var(--space-2);
+  font: inherit;
+  font-size: 0.9rem;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 0.25rem;
+}
+
+/* Its own row under the composer: it acts on the whole conversation
+   rather than on what is in the field, and a button that rewrites the
+   lesson should not sit where the send button is reached for. */
+.fold {
+  margin: 0 var(--space-3) var(--space-3);
+}

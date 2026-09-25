@@ -4,6 +4,7 @@ import { Fraunces, Archivo } from 'next/font/google'
 import './globals.css'
 import { Bench } from '@/components/Bench'
 import { Player } from '@/components/Player'
+import { AskButton } from '@/components/AskButton'
 import { TendNotice } from '@/components/TendNotice'
 import { SheetFoot } from '@/components/SheetFoot'
 
@@ -97,6 +98,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <SheetFoot />
             </Suspense>
           </Player>
+          {/* The other corner of the foot. Outside `main` like everything
+              else docked down there, and inside the bench so it stands on
+              the notices the way the player's disc does.
+
+              Behind a boundary for the reason the notice and the player
+              above it are: it reads the address it is standing at, to
+              tell the agent which sheet the question came from, and a
+              client hook that reads URL data in the root layout blocks
+              the static shell of every route in the catalogue. No
+              fallback, because there is nothing to fall back to -- a
+              disc that streams in a moment after the sheet is a disc
+              arriving where it was always going to be. */}
+          <Suspense fallback={null}>
+            <AskButton />
+          </Suspense>
         </Bench>
       </body>
     </html>

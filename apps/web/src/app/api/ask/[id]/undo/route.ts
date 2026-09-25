@@ -6,6 +6,16 @@ import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
 
 /**
+ * Drop what taking it back changed.
+ *
+ * The same tags the keeping dropped: a mark and a card are both printed
+ * by running heads built from these.
+ */
+function dropCache(kind: 'mark' | 'card') {
+  revalidateTag(kind === 'mark' ? tags.highlights : tags.clozes, 'max')
+}
+
+/**
  * Take back a mark or a card the agent kept.
  *
  * The other half of letting it write at all: a write the reader did not
@@ -27,6 +37,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   }
 
   await undoWrite(supabaseAdmin(), userId, kind, writeId)
-  revalidateTag(kind === 'mark' ? tags.highlights : tags.clozes, 'max')
+  dropCache(kind)
   return NextResponse.json({ ok: true })
 }
