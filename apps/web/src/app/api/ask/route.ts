@@ -103,8 +103,9 @@ export async function POST(req: Request) {
         user_id: userId,
         kind: 'ask',
         lesson_id: context.route === 'lesson' ? (context.entityId ?? null) : null,
-        // `node_id` is the topic column, under the name 012 left it.
-        node_id: context.route === 'topic' ? (context.entityId ?? null) : null,
+        // `012` renamed this column along with the table: `nodes` became
+        // `topics` and `node_id` became `topic_id` (012:24).
+        topic_id: context.route === 'topic' ? (context.entityId ?? null) : null,
         context,
       })
       .select('id')

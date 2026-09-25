@@ -252,6 +252,31 @@ describe('accepting a topic', () => {
   })
 })
 
+describe('the row a conversation is written as', () => {
+  /**
+   * The double accepts any column, so a name the database does not have
+   * passes every other test in this file and 500s in production. This
+   * pins the column names against the migrations instead: `012` renamed
+   * `nodes` to `topics` *and* `node_id` to `topic_id` (012:24), and the
+   * first version of this route wrote `node_id`.
+   */
+  it('names columns the conversations table actually has', async () => {
+    const { POST } = await import('@/app/api/ask/route')
+    askTurn.mockResolvedValue({ text: 'hello', proposals: [], writes: [] })
+    await POST(post({ message: 'hi', context: { route: 'topic', entityId: 't1' } }))
+
+    const written = db._inserted.find(i => i.table === 'conversations')
+    expect(written).toBeTruthy()
+
+    // Every column in 005 as 012 left it, plus what 051 added.
+    const allowed = new Set(['id', 'user_id', 'kind', 'topic_id', 'started_at', 'lesson_id', 'context', 'folded_at'])
+    for (const column of Object.keys(written!.row)) {
+      expect(allowed.has(column), `conversations has no column "${column}"`).toBe(true)
+    }
+    expect(written!.row).toMatchObject({ topic_id: 't1', lesson_id: null })
+  })
+})
+
 describe('a conversation that is not yours', () => {
   it('is refused when carried into a turn, rather than appended to', async () => {
     db = fakeDb({ conversations: [{ id: 'conv-1', user_id: 'someone-else' }] })
