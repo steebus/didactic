@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { ownerId } from '@/lib/auth'
 import { plates } from '@didactic/tokens'
+import { nextPlate } from '@didactic/core/plates'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
 
@@ -37,12 +38,12 @@ export async function POST(_: Request, { params }: { params: Promise<{ id: strin
     .from('topics').select('id, title, user_id').eq('id', id).eq('user_id', userId).maybeSingle()
   if (!topic) return NextResponse.json({ error: 'no such topic' }, { status: 404 })
 
-  // The next plate along, which is how every subject gets its ink. The
-  // list is `@didactic/tokens.plates` rather than a copy: the order is
-  // data, and two copies of it had already fallen out of step.
+  // The least used plate, which is how every subject gets its ink
+  // (`core/plates`). The list is `@didactic/tokens.plates` rather than a
+  // copy: the order is data, and two copies of it had fallen out of step.
   const { data: existing } = await db
-    .from('subjects').select('id', { count: 'exact' }).eq('user_id', userId)
-  const colour = plates[(existing?.length ?? 0) % plates.length]
+    .from('subjects').select('colour').eq('user_id', userId)
+  const colour = nextPlate((existing ?? []).map(s => s.colour as string), plates)
 
   const { data: subjectId, error } = await db.rpc('promote_topic_to_subject', {
     p_topic: id,

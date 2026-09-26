@@ -415,6 +415,18 @@ export interface Sprouting {
   unembedded: number
   /** Whether decisions can be kept yet: false until `052` has run. */
   keeps: boolean
+  /**
+   * Clumps the reading looked at and did not offer, with why
+   * (`core/sprouting.SetAside`, worded by `setAsideSentence`). Additive:
+   * the answer to "nothing is sprouting, but I can see a clump".
+   */
+  lookedAt: Array<{
+    key: string
+    reason: 'one-resource' | 'unjoined'
+    sentence: string
+    topics: Array<{ id: string; title: string }>
+    material: Array<{ id: string; title: string; read: boolean }>
+  }>
 }
 
 /* ------------------------------------------------------ resource reading */

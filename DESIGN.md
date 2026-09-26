@@ -257,6 +257,14 @@ recognisably the same green. It is not *exactly* the same green, and that is the
 real cost of this change: a plate is subject identity, so a bed is a slightly
 different colour in the two lights. The alternative is a bed nobody can read.
 
+**Rule — a new subject takes the least used plate** (`core/plates.nextPlate`),
+earliest in `@didactic/tokens.plates` order on a tie: six subjects get six
+plates, a seventh doubles up on the first. Taking the next plate by count
+collided as soon as a subject was thrown away, and the sow and promote paths
+held the six in different orders, so beds came to share an ink — the graph
+drew three subjects in one mustard. `055` put right the ones already made,
+moving only later subjects that shared a plate.
+
 **Two surfaces derived from a plate, because they invert differently.** A band
 and an accent fill are both saturated plates with text reversed out, and after
 dark they part company: the band is *deepened* (`--band-fill`, `#23412a`) and
@@ -585,9 +593,10 @@ separate head is what stops the entry being read as one more bed.
 
 **Sprouting** follows in the same form: a section head, one `.entry` to
 `/sprouting` on a specimen in `--plate-green`, weighted by the count of open
-sprouting subjects, *Total* over the count. It is absent when nothing is
-sprouting, and streamed in after the rest of the sheet rather than awaited with
-it.
+sprouting subjects, *Total* over the count. It is there even at nought —
+*Nothing has come up on its own yet* — because hidden, it left no way in, and
+nothing sprouting is itself worth reading with the reasons behind it. It is
+streamed in after the rest of the sheet rather than awaited with it.
 
 ### Fertile ground, under the stock list
 
@@ -607,6 +616,13 @@ inside it:
 being made, with the title of the thing read, what it turned out to be
 about, and the one action that answers it, so it takes a full-width row and
 the mustard edge the sheet already uses to mean *this is where the work is*.
+
+**Rule — a title that will not wrap is made to.** A resource's title is often its
+URL when the page gave none, and a URL is one word as wide as it is long: it
+pushed the whole sheet off the side of a phone. The title breaks anywhere
+(`overflow-wrap: anywhere`) and stops at two lines (`line-clamp: 2`), the full
+title on hover; the row and its head carry `min-width: 0` so the grid lets them
+shrink.
 
 ### An errand folded away
 
@@ -757,6 +773,14 @@ what is on it is coming up, not unresolved.
 | The topics | A wrapped run of links; the core ones `600`, loose ones followed by *loose* in terracotta small caps. |
 | The material | Behind a `1px` rule, each marked *read* or *unread*. |
 | The presses | *Call it* over an italic name field, then *Give it a bed* on the band green and *Not this* in a rule-strong outline. |
+
+**Rule — what was looked at is shown with why.** Under the entries, a dotted
+rule and *Looked at, and set aside* in the label register: each clump the
+reading saw and did not offer, its reason in italic `--ink-soft`
+(`core/sprouting.setAsideSentence`), its topics as a run of links, and the
+material it came from in `--ink-faint`. Quieter than an entry: a reason, not an
+offer. Without it, *nothing is sprouting* reads as the reading not having looked
+at the clump the reader can see on the bed.
 
 **Rule — the name is the reader's to settle.** The model's name is where the
 field starts, never a label: whatever is typed is what the subject is called.
@@ -1377,6 +1401,12 @@ name in italic Georgia above it on a paper halo — *Not yet named* until it is.
 Nothing is sown there, so it takes no plate ink and no fill; the one open in the
 panel alone takes a wash of the green at 0.07. A press inside the outline opens
 it.
+
+**Rule — on a phone the sliders stack.** Below `40rem` each slider takes a row
+of its own across the strip — the label in a fixed `7.5rem` column so the tracks
+start level, the track the full remaining width at a `2rem` touch height, the
+figure right-aligned — and *By kinship* and *Reset* share the row under them.
+Five `4.5rem` tracks side by side could not be set with a thumb.
 
 **Rule — the canvas starts below the strip it sits under.** The control strip is
 measured, not guessed, because it wraps to as many rows as the width needs; a

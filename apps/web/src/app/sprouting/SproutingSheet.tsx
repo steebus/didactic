@@ -91,6 +91,7 @@ export function SproutingSheet({ initial }: { initial: Sprouting }) {
         <p className={styles.empty}>
           Nothing is sprouting. As material arrives, any topics it keeps
           putting together outside the subjects you have will come up here.
+          {sprouting.lookedAt.length > 0 && ' What the reading looked at and set aside is below, with why.'}
         </p>
       ) : (
         <ol className={styles.list}>
@@ -106,6 +107,41 @@ export function SproutingSheet({ initial }: { initial: Sprouting }) {
             />
           ))}
         </ol>
+      )}
+
+      {/* The clumps the reading saw and did not offer. A reader looking
+          at the bed can see these; without them, "nothing is sprouting"
+          would read as the reading not having looked. */}
+      {sprouting.lookedAt.length > 0 && (
+        <section className={styles.lookedAt}>
+          <h2 className={styles.lookedAtHead}>Looked at, and set aside</h2>
+          <ul className={styles.lookedAtList}>
+            {sprouting.lookedAt.map(item => (
+              <li key={item.key} className={styles.lookedAtRow}>
+                <p className={styles.lookedAtWhy}>{item.sentence}</p>
+                <p className={styles.lookedAtTopics}>
+                  {item.topics.map((t, i) => (
+                    <span key={t.id}>
+                      {i > 0 && ' · '}
+                      <Link href={`/topics/${t.id}`}>{t.title}</Link>
+                    </span>
+                  ))}
+                </p>
+                {item.material.length > 0 && (
+                  <p className={styles.lookedAtFrom}>
+                    From{' '}
+                    {item.material.map((m, i) => (
+                      <span key={m.id}>
+                        {i > 0 && ', '}
+                        <Link href={`/resources/${m.id}`}>{m.title}</Link>
+                      </span>
+                    ))}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {sprouting.setAside > 0 && (

@@ -18,13 +18,27 @@ describe('kinship from material', () => {
       materials: [read('r1', 'a', 'b'), read('r2', 'a', 'b'), read('r3', 'a', 'b')],
       marks: [], edges: [],
     })
-    // Always together is a cosine of 1, shrunk by 3/4 for three shared.
-    expect(line(lines, 'a', 'b')!.material).toBeCloseTo(0.75, 5)
+    // Always together, three times over: 1 − e^(−2 × 3).
+    expect(line(lines, 'a', 'b')!.material).toBeCloseTo(1 - Math.exp(-6), 5)
   })
 
-  it('halves a pair seen together only once', () => {
+  it('makes one short article most of a tie, and a second nearly certain', () => {
     const once = kinship({ topics: [topic('a'), topic('b')], materials: [read('r', 'a', 'b')], marks: [], edges: [] })
-    expect(line(once, 'a', 'b')!.material).toBeCloseTo(0.5, 5)
+    const twice = kinship({
+      topics: [topic('a'), topic('b')], materials: [read('r', 'a', 'b'), read('s', 'a', 'b')], marks: [], edges: [],
+    })
+    expect(line(once, 'a', 'b')!.material).toBeCloseTo(1 - Math.exp(-2), 5)
+    expect(line(twice, 'a', 'b')!.material).toBeCloseTo(1 - Math.exp(-4), 5)
+  })
+
+  it('gives each pair of one long essay only a small tie', () => {
+    // Nine topics filed from one essay. Each of its 36 pairs used to
+    // score as much as a short piece joining two, which made every
+    // article a clique no kinship with any other could outweigh.
+    const ids = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i']
+    const lines = kinship({ topics: ids.map(id => topic(id)), materials: [read('essay', ...ids)], marks: [], edges: [] })
+    expect(line(lines, 'a', 'b')!.material).toBeCloseTo(1 - Math.exp(-2 / 8), 5)
+    expect(line(lines, 'a', 'b')!.material).toBeLessThan(0.25)
   })
 
   it('damps a topic that is in everything', () => {

@@ -350,13 +350,31 @@
   min-width: 2ch;
 }
 
+/* On a phone the sliders stack, one to a row and the full width of the
+   strip: a 4.5rem track side by side with four others was too short to
+   set with a thumb. The label keeps a fixed column so the tracks start
+   level, and the presets sit together under them. */
 @media (max-width: 40rem) {
   .forces {
-    gap: var(--space-3);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-2) var(--space-3);
+  }
+
+  .force {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr) 2.5ch;
+    gap: var(--space-2);
   }
 
   .force input[type='range'] {
-    width: 4.5rem;
+    width: 100%;
+    min-height: 2rem;
+  }
+
+  .forceValue {
+    text-align: right;
   }
 }
 

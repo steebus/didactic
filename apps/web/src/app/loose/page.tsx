@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { getLooseStock } from '@/lib/loose'
 import { requireOwner } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase'
@@ -44,6 +45,15 @@ export default async function LoosePage() {
       <div className={styles.headRule} />
 
       <div className={styles.body}>
+        {/* The other question loose stock raises: not where each topic
+            goes, but whether a handful of them are a subject of their
+            own. That reading is its own sheet. */}
+        {loose.length > 0 && (
+          <p className={styles.note}>
+            Some of these may belong together as a subject nobody has
+            sown yet: <Link href="/sprouting">see what is sprouting</Link>.
+          </p>
+        )}
         <LooseSheet loose={loose} subjects={subjects ?? []} />
       </div>
     </main>

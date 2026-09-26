@@ -7,6 +7,7 @@ import {
   keyOf,
   kindLine,
   matchKept,
+  setAsideSentence,
   sproutingSentence,
   UNNAMED,
   nameStillFits,
@@ -98,6 +99,15 @@ describe('readSprouts', () => {
     expect(sprouts.some(s => s.topicIds.includes('o0'))).toBe(false)
   })
 
+  it('says what it set aside, and why', () => {
+    // The answer to "nothing is sprouting, but I can see a clump".
+    const { setAside } = reading()
+    const article = setAside.find(a => a.topicIds.includes('o0'))!
+    expect(article.reason).toBe('one-resource')
+    expect(article.materials).toEqual(['ro'])
+    expect(article.topicIds).toEqual(['o0', 'o1', 'o2', 'o3', 'o4'])
+  })
+
   it('does not offer a subject the reader already has', () => {
     const { sprouts } = reading()
     expect(sprouts.some(s => s.topicIds.includes('w0') && s.topicIds.includes('w5'))).toBe(false)
@@ -115,7 +125,7 @@ describe('readSprouts', () => {
 
   it('reads nothing into a map with no kinship', () => {
     expect(readSprouts({ topics: [], lines: [], materials: [], marks: [] })).toEqual({
-      sprouts: [], found: { subjectIds: [], of: 0 },
+      sprouts: [], found: { subjectIds: [], of: 0 }, setAside: [],
     })
   })
 })
@@ -210,5 +220,68 @@ describe('kindLine and sproutingSentence', () => {
     expect(sproutingSentence(1)).toBe('One subject has come up on its own.')
     expect(sproutingSentence(3)).toBe('3 subjects have come up on their own.')
     expect(UNNAMED).toBe('Not yet named')
+  })
+})
+
+/**
+ * Two essays on one theme, as ingestion actually leaves them: each filed
+ * its own topics, so they share none, and only what the topics mean ties
+ * one essay to the other. Beside them, two unrelated articles.
+ *
+ * The meaning is built the way gte-small's is shaped: every vector
+ * shares one large common direction, a theme direction is shared by the
+ * topics of both essays, and each topic has a little of its own.
+ */
+function essays() {
+  const dims = 24
+  const vec = (theme: number, own: number) => {
+    const v = new Array(dims).fill(0)
+    v[0] = 8
+    v[1 + theme] = 1
+    v[8 + (own % 16)] = 0.35
+    return v
+  }
+  const emerson = range('e', 9), twain = range('t', 7), photo = range('ph', 4), econ = range('ec', 4)
+  const topics: KinTopic[] = [
+    ...emerson.map((id, i) => ({ id, subjects: [], vector: vec(0, i) })),
+    ...twain.map((id, i) => ({ id, subjects: [], vector: vec(0, i + 9) })),
+    ...photo.map((id, i) => ({ id, subjects: [], vector: vec(2, i) })),
+    ...econ.map((id, i) => ({ id, subjects: [], vector: vec(4, i + 4) })),
+  ]
+  const materials: KinMaterial[] = [
+    read('emerson', ...emerson), read('twain', ...twain), read('photo', ...photo), read('econ', ...econ),
+  ]
+  // Ingestion relates the topics one resource brought in to each other.
+  const edges = materials.flatMap(m => m.topics.slice(1).map((t, i) => ({ from: m.topics[i].id, to: t.id, weight: 0.6 })))
+  const lines = kinship({ topics, materials, marks: [], edges })
+  return readSprouts({ topics, lines, materials, marks: [] })
+}
+
+describe('two essays on one theme', () => {
+  it('sprout together, though each alone is one article', () => {
+    const { sprouts } = essays()
+    const both = sprouts.find(s => s.topicIds.includes('e0'))
+    expect(both).toBeDefined()
+    expect(both!.topicIds.some(id => id.startsWith('t'))).toBe(true)
+    expect(both!.binding.materials.sort()).toEqual(['emerson', 'twain'])
+  })
+
+  it('do not pull unrelated articles into a subject with each other', () => {
+    const { sprouts, setAside } = essays()
+    expect(sprouts.some(s => s.topicIds.includes('ph0') && s.topicIds.includes('ec0'))).toBe(false)
+    const alone = setAside.filter(a => a.topicIds.includes('ph0') || a.topicIds.includes('ec0'))
+    expect(alone.length).toBeGreaterThan(0)
+  })
+})
+
+describe('setAsideSentence', () => {
+  it('says what one reading is, and what would make it a subject', () => {
+    expect(setAsideSentence({ topicIds: range('a', 9), reason: 'one-resource', materials: ['r'] }))
+      .toBe('9 topics that came in on one piece of material and have turned up nowhere else yet. One reading is fertile ground rather than a subject; it sprouts when other material on the same theme joins it.')
+  })
+
+  it('says when the material holding a clump has nothing in common', () => {
+    expect(setAsideSentence({ topicIds: range('a', 6), reason: 'unjoined', materials: ['r', 's'] }))
+      .toBe('6 topics carried by 2 pieces of material that nothing else ties together, so nothing says they are one subject.')
   })
 })
