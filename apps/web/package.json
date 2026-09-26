@@ -23,7 +23,6 @@
     "ai": "^7.0.113",
     "dompurify": "^3.4.15",
     "graphology": "^0.26.0",
-    "graphology-layout-forceatlas2": "^0.10.1",
     "jsdom": "^26.1.0",
     "katex": "^0.18.7",
     "marked": "^18.0.12",

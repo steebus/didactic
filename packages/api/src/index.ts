@@ -29,6 +29,7 @@ import { refresher } from './refresher'
 import { resources } from './resources'
 import { settings } from './settings'
 import { subjects } from './subjects'
+import { sprouts } from './sprouts'
 import { topics } from './topics'
 
 export * from './client'
@@ -50,6 +51,7 @@ export type { AddResource, Filed } from './resources'
 export type { CurriculumDetail, CurriculumPatch, Drafted, NewLesson, Opened } from './curricula'
 export type { Completion, LessonDetail, LessonPatch, Written, WrittenWhole } from './lessons'
 export type { AskAnswer } from './ask'
+export type { Planted } from './sprouts'
 export type { Kept, NewHighlight } from './highlights'
 export type { DiaryExposure } from './diary'
 export type { ClozeEdit, ClozeScope, NewCloze, SownClozes, Tended } from './clozes'
@@ -76,6 +78,7 @@ export function didactic(options: ApiOptions = {}) {
     resources: resources(api),
     settings: settings(api),
     subjects: subjects(api),
+    sprouts: sprouts(api),
     topics: topics(api),
   }
 }

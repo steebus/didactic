@@ -3,12 +3,19 @@ import { createClient } from '@supabase/supabase-js'
 // edge function over HTTP, neither of which belongs in a package the
 // phone reads.
 import { embed } from '../apps/web/src/lib/embedding'
+import { kinText } from '../packages/core/src/kinship'
 
 /**
  * Regenerate every topic's embedding through the current model. An
  * embedding is a cache of the title, so this is safe to re-run; it is
  * needed after a model or dimension change.
+ *
+ * `--kin` does the same for the kinship vector (`052`), which is of the
+ * title and summary together. The app fills those lazily, a batch at a
+ * time, whenever sprouting subjects are named; this is the one-go
+ * backfill for a map that already holds hundreds of topics.
  */
+const kin = process.argv.includes('--kin')
 const db = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://127.0.0.1:54600',
   process.env.SUPABASE_SERVICE_ROLE_KEY ??
@@ -16,17 +23,18 @@ const db = createClient(
   { auth: { persistSession: false } }
 )
 
-const { data: topics, error } = await db.from('topics').select('id, title')
+const { data: topics, error } = await db.from('topics').select('id, title, summary')
 if (error) throw error
 
 let done = 0
 for (const topic of topics ?? []) {
-  const vector = await embed(topic.title as string)
+  const text = kin ? kinText(topic.title as string, topic.summary as string | null) : (topic.title as string)
+  const vector = await embed(text)
   const { error: updateError } = await db.from('topics')
-    .update({ embedding: JSON.stringify(vector) })
+    .update(kin ? { kin_embedding: JSON.stringify(vector) } : { embedding: JSON.stringify(vector) })
     .eq('id', topic.id)
   if (updateError) throw updateError
   done++
 }
 
-console.log('re-embedded', done, 'topics')
+console.log(kin ? 'kinship-embedded' : 're-embedded', done, 'topics')

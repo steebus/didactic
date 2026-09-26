@@ -5,9 +5,15 @@ import { requireOwner } from '@/lib/auth'
 export default async function GraphPage({
   searchParams,
 }: {
-  searchParams: Promise<{ subject?: string; topic?: string }>
+  searchParams: Promise<{ subject?: string; topic?: string; sprouting?: string }>
 }) {
   await requireOwner()
-  const { subject, topic } = await searchParams
-  return <GraphCanvas initialSubject={subject ?? null} initialTopic={topic ?? null} />
+  const { subject, topic, sprouting } = await searchParams
+  return (
+    <GraphCanvas
+      initialSubject={subject ?? null}
+      initialTopic={topic ?? null}
+      initialSprouts={sprouting === '1'}
+    />
+  )
 }

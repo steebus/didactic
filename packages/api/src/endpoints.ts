@@ -58,6 +58,7 @@ export const ENDPOINTS = {
   'topics.area': { name: 'topics.area', method: 'GET', path: '/api/topics/[id]/area', invalidates: [] },
   'topics.pending': { name: 'topics.pending', method: 'GET', path: '/api/topics/pending', invalidates: [] },
   'topics.loose': { name: 'topics.loose', method: 'GET', path: '/api/topics/loose', invalidates: [] },
+  'sprouts.read': { name: 'sprouts.read', method: 'GET', path: '/api/sprouts', invalidates: [] },
   'resources.list': { name: 'resources.list', method: 'GET', path: '/api/resources', invalidates: [] },
   'curricula.get': { name: 'curricula.get', method: 'GET', path: '/api/curricula/[id]', invalidates: [] },
   'lessons.get': { name: 'lessons.get', method: 'GET', path: '/api/lessons/[id]', invalidates: [] },
@@ -140,6 +141,12 @@ export const ENDPOINTS = {
   'clozes.remove': { name: 'clozes.remove', method: 'DELETE', path: '/api/clozes/[id]', invalidates: GARDEN },
   'clozes.review': { name: 'clozes.review', method: 'POST', path: '/api/clozes/[id]/review', invalidates: GARDEN },
   'clozes.sow': { name: 'clozes.sow', method: 'POST', path: '/api/lessons/[id]/clozes', invalidates: GARDEN },
+
+  /* sprouting subjects — naming and dismissing move only the decisions;
+     planting makes a subject and files its topics, so it moves the bed */
+  'sprouts.name': { name: 'sprouts.name', method: 'POST', path: '/api/sprouts/name', invalidates: [tags.sprouts] },
+  'sprouts.plant': { name: 'sprouts.plant', method: 'POST', path: '/api/sprouts/[id]/plant', invalidates: [...BED, tags.sprouts] },
+  'sprouts.dismiss': { name: 'sprouts.dismiss', method: 'POST', path: '/api/sprouts/[id]/dismiss', invalidates: [tags.sprouts] },
 } as const satisfies Record<string, Endpoint>
 
 export type EndpointName = keyof typeof ENDPOINTS

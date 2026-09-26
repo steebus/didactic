@@ -4,10 +4,22 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Graph from 'graphology'
 import Sigma from 'sigma'
-import forceAtlas2 from 'graphology-layout-forceatlas2'
-import FA2Supervisor from 'graphology-layout-forceatlas2/worker'
 import { didactic } from '@didactic/api'
 import { vagueFigure } from '@didactic/core/scoring'
+import {
+  layBed,
+  seedBed,
+  DEFAULT_FORCES,
+  FORCE_CONTROLS,
+  KINSHIP_FORCES,
+  type BedLayout,
+  type BedLink,
+  type BedNode,
+  type Forces,
+} from '@didactic/core/forces'
+import { contains, outline, type Point } from '@didactic/core/hull'
+import type { Sprouting, SproutView } from '@didactic/core/shapes'
+import { kindLine, UNNAMED } from '@didactic/core/sprouting'
 import { SheetNav } from './SheetNav'
 import styles from './GraphCanvas.module.css'
 
@@ -28,6 +40,7 @@ import {
   PAPER_DARK,
 } from '@didactic/core/graph'
 import { useTheme } from './useTheme'
+import { SproutActions } from './SproutActions'
 
 /**
  * The bed's own inks, per lighting condition.
@@ -62,6 +75,10 @@ const INKS = {
     hullEdge: 'rgba(239, 231, 214, 0.9)',
     routeWorked: '#2f5233',
     routeLeft: 'rgba(107, 92, 69, 0.45)',
+    // A sprouting subject is drawn in the garden green, outlined and
+    // never filled: something coming up, not something sown.
+    sprout: 'rgba(47, 82, 51, 0.8)',
+    sproutWash: 'rgba(47, 82, 51, 0.07)',
   },
   dark: {
     ground: PAPER_DARK,
@@ -83,8 +100,13 @@ const INKS = {
     hullEdge: 'rgba(28, 22, 19, 0.9)',
     routeWorked: '#649069',
     routeLeft: 'rgba(206, 188, 154, 0.3)',
+    sprout: 'rgba(130, 176, 134, 0.85)',
+    sproutWash: 'rgba(130, 176, 134, 0.08)',
   },
 } as const
+
+/** How far a sprout's outline stands off its seeds, in screen pixels. */
+const SPROUT_PAD = 22
 
 interface GraphTopic {
   id: string
@@ -153,14 +175,20 @@ interface GraphMark {
   topic_ids: string[]
   lesson_ids: string[]
 }
+
 export function GraphCanvas({
   initialSubject,
   initialTopic,
+  initialSprouts = false,
 }: {
   initialSubject: string | null
   initialTopic: string | null
+  /** Open with the sprouting outlines drawn: the sprouting sheet's
+   *  *See it on the bed* arrives this way. */
+  initialSprouts?: boolean
 }) {
   const holder = useRef<HTMLDivElement>(null)
+  const controls = useRef<HTMLDivElement>(null)
   const sigma = useRef<Sigma | null>(null)
 
   // Held in a ref rather than closed over: the canvas is built in an
@@ -192,15 +220,49 @@ export function GraphCanvas({
   const [showMarks, setShowMarks] = useState(false)
   // The forces, exposed the way Obsidian exposes them: pulling these
   // around is how you find the arrangement that reads for you, and no
-  // single default suits every planting.
-  const [repel, setRepel] = useState(24)
-  const [centre, setCentre] = useState(1.2)
-  const [linkDistance, setLinkDistance] = useState(1)
+  // single default suits every planting. Moving one warms the running
+  // bed rather than laying it out again from nothing.
+  const [forces, setForces] = useState<Forces>(DEFAULT_FORCES)
+
+  // Sprouting subjects: drawn as outlines over the topics they gather,
+  // and the source of the kinship lines kinship pull pulls along. Read
+  // only once something asks for them.
+  const [showSprouts, setShowSprouts] = useState(initialSprouts)
+  const [sprouting, setSprouting] = useState<Sprouting | null>(null)
+  const [sproutNote, setSproutNote] = useState<string | null>(null)
+  const [chosenSprout, setChosenSprout] = useState<string | null>(null)
+  const [sproutReload, setSproutReload] = useState(0)
 
   // Bumped when the bed changes under us -- grubbing a topic out takes
   // its node and every edge into it, so the planting has to be read
   // again rather than patched.
   const [reload, setReload] = useState(0)
+
+  // What the canvas needs from React state without being rebuilt when
+  // it changes: the running layout, the forces it was last told, and
+  // what to draw over it.
+  const layout = useRef<BedLayout | null>(null)
+  const settleNow = useRef<() => void>(() => {})
+  const forcesNow = useRef(forces)
+  const overlay = useRef<{ show: boolean; sprouting: Sprouting | null; chosen: string | null }>({
+    show: false, sprouting: null, chosen: null,
+  })
+
+  // The control strip wraps to as many rows as the width needs, and
+  // opening the forces adds more. A fixed inset parked the top of the
+  // planting under the strip on a phone, so the canvas is told how
+  // tall the strip actually is.
+  const [controlsHeight, setControlsHeight] = useState<number | null>(null)
+  useEffect(() => {
+    const el = controls.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(() => {
+      setControlsHeight(el.getBoundingClientRect().height)
+      sigma.current?.refresh()
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
 
   // The bed is painted rather than styled, so it has to be told which
   // light it is being read under. Changing this redraws it.
@@ -214,6 +276,57 @@ export function GraphCanvas({
       if (ok) setData(body)
     })
   }, [reload])
+
+  // The reading is fetched when something needs it, and named when it
+  // comes back with anything unnamed: naming is a model call, so it is
+  // asked for only where there is something to name.
+  const wantsSprouts = showSprouts || forces.kinshipPull > 0
+  useEffect(() => {
+    if (!wantsSprouts) return
+    let cancelled = false
+    void (async () => {
+      setSproutNote(current => current ?? 'Reading what is sprouting…')
+      const read = await api.sprouts.read()
+      if (cancelled) return
+      if (!read.ok) {
+        setSproutNote(read.error ?? 'Could not read what is sprouting.')
+        return
+      }
+      setSprouting(read.body)
+      setSproutNote(null)
+      if (read.body.keeps && (read.body.unnamed > 0 || read.body.unembedded > 0)) {
+        setSproutNote('Naming what is sprouting…')
+        const named = await api.sprouts.name()
+        if (cancelled) return
+        if (named.ok) setSprouting(named.body)
+        setSproutNote(named.ok ? null : named.error ?? 'Could not name what is sprouting.')
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [wantsSprouts, reload, sproutReload])
+
+  // Forces first, so on the first render there is no layout yet to
+  // warm; the build below reads `forcesNow` for itself.
+  useEffect(() => {
+    forcesNow.current = forces
+    layout.current?.configure(forces)
+    settleNow.current()
+  }, [forces])
+
+  // Kinship arrives after the bed is drawn, and is handed to the
+  // running layout rather than rebuilding it.
+  useEffect(() => {
+    if (!sprouting) return
+    layout.current?.setKinship(kinLinks(sprouting))
+    if (forcesNow.current.kinshipPull > 0) settleNow.current()
+  }, [sprouting])
+
+  useEffect(() => {
+    overlay.current = { show: showSprouts, sprouting, chosen: chosenSprout }
+    sigma.current?.refresh()
+  }, [showSprouts, sprouting, chosenSprout])
 
   const colourFor = useCallback(
     (topic: GraphTopic) => {
@@ -239,15 +352,7 @@ export function GraphCanvas({
     })
 
     const visibleIds = new Set(visible.map(t => t.id))
-
-    // Seed each subject in its own quarter of the bed. Most topics carry
-    // no edges at all, and force layout can only group what is
-    // connected — without this the planting settles into one ring with
-    // photography sitting next to edge functions.
-    const subjectIds = [...new Set(visible.map(t => t.primary_subject_id ?? 'loose'))]
-    const seedAngle = new Map(
-      subjectIds.map((id, i) => [id, (i / Math.max(1, subjectIds.length)) * Math.PI * 2])
-    )
+    const topicById = new Map(visible.map(t => [t.id, t]))
 
     // One pass over the lessons, so the ring is cheap to draw.
     const lessonTally = new Map<string, { total: number; worked: number }>()
@@ -259,12 +364,10 @@ export function GraphCanvas({
       lessonTally.set(lesson.topic_id, tally)
     }
 
-    visible.forEach((t, i) => {
-      const home = t.primary_subject_id ?? 'loose'
-      const base = seedAngle.get(home) ?? 0
-      // Spread within the bed so members do not start stacked.
-      const jitter = (i % 7) / 7 - 0.5
-      const radius = 260 + ((i % 5) - 2) * 34
+    // Positions are left at the origin here: `seedBed` places every
+    // seed below, once the whole planting -- material included -- is
+    // known.
+    visible.forEach(t => {
       graph.addNode(t.id, {
         label: t.title,
         // Size by ability: a stronger holding is a larger seed.
@@ -272,8 +375,8 @@ export function GraphCanvas({
         // Dormancy is mixed into the fill itself. Sigma has no alpha
         // attribute, so a separate opacity key renders as nothing.
         color: fade(colourFor(t), nodeFade(t.freshness), inks.ground),
-        x: Math.cos(base + jitter * 0.8) * radius,
-        y: Math.sin(base + jitter * 0.8) * radius,
+        x: 0,
+        y: 0,
         freshness: t.freshness,
         ability: t.ability,
         // The lessons on this topic, tallied for the ring drawn around
@@ -419,47 +522,89 @@ export function GraphCanvas({
       }
     }
 
-    // Membership pulls too. Topics sharing a subject attract even with
-    // no stated relationship, which is what makes the bed cluster by
-    // subject rather than by whatever the LLM happened to connect.
-    // These carry no weight in the render, only in the physics.
-    const bySubject = new Map<string, string[]>()
-    for (const t of visible) {
-      for (const subjectId of t.subject_ids.length ? t.subject_ids : ['loose']) {
-        bySubject.set(subjectId, [...(bySubject.get(subjectId) ?? []), t.id])
+    // --- The forces ---------------------------------------------------
+    //
+    // `core/forces` holds the model and says why it replaced
+    // ForceAtlas2; what is here is wiring. Topics are pulled toward the
+    // middle of each subject they sit in (never toward each other
+    // through invisible edges, which folded a subject into a ring and
+    // strung every loose topic onto one ring of its own), along the
+    // map's stated relations, and along kinship once it has been read.
+    // Material, lessons and marks are carried beside what they touch.
+    const bedNodes: BedNode[] = []
+    graph.forEachNode((id, attrs) => {
+      const topic = topicById.get(id)
+      bedNodes.push({
+        id,
+        radius: attrs.size as number,
+        subjects: topic?.subject_ids ?? [],
+        satellite: !topic,
+      })
+    })
+
+    const stated: BedLink[] = data.edges
+      .filter(e => visibleIds.has(e.from_topic) && visibleIds.has(e.to_topic))
+      .map(e => ({ source: e.from_topic, target: e.to_topic, weight: Number(e.weight) }))
+
+    const attach: BedLink[] = []
+    graph.forEachEdge((_edge, attrs, source, target) => {
+      if (['covers', 'teaches', 'marked in', 'about'].includes(attrs.kind as string)) {
+        attach.push({ source, target, weight: 1 })
       }
-    }
-    for (const members of bySubject.values()) {
-      // A ring through the members: enough to hold a bed together
-      // without the density of connecting every pair.
-      for (let i = 0; i < members.length; i++) {
-        const a = members[i]
-        const b = members[(i + 1) % members.length]
-        if (a === b || graph.hasEdge(a, b)) continue
-        graph.addEdge(a, b, { size: 0.4, color: inks.membership, kind: 'membership' })
+    })
+
+    seedBed(
+      bedNodes,
+      n => topicById.get(n.id)?.primary_subject_id ?? 'loose',
+      n => {
+        let anchor: string | null = null
+        graph.forEachNeighbor(n.id, neighbour => {
+          if (anchor === null && topicById.has(neighbour)) anchor = neighbour
+        })
+        return anchor
       }
+    )
+
+    const kinship = overlay.current.sprouting ? kinLinks(overlay.current.sprouting) : []
+    const bed = layBed(bedNodes, { stated, attach, kinship }, forcesNow.current)
+    const at = new Map(bedNodes.map(n => [n.id, n]))
+
+    // Copy the simulation's positions onto the graph, which is what
+    // Sigma draws from and what makes it schedule a frame.
+    const place = () => {
+      graph.updateEachNodeAttributes(
+        (id, attrs) => {
+          const n = at.get(id)
+          if (n) {
+            attrs.x = n.x ?? 0
+            attrs.y = n.y ?? 0
+          }
+          return attrs
+        },
+        { attributes: ['x', 'y'] }
+      )
     }
 
-    const layoutSettings = {
-      // Centre force pulls the planting together; repulsion pushes the
-      // beds apart. Both are the user's to set.
-      gravity: centre,
-      scalingRatio: repel,
-      edgeWeightInfluence: linkDistance,
-      slowDown: 14,
-      adjustSizes: true,
-      barnesHutOptimize: graph.order > 80,
-    }
-
-    // Drag physics stay live under reduced motion: they are a direct
-    // response to the hand, which is feedback rather than decoration.
-    if (graph.order > 0) {
-      // Settle fully before the first paint. Cutting this short to let
-      // the bed visibly take root was tried and reverted: the running
-      // forces need a resolved starting state, and from a half-settled
-      // one they leave seeds clumped and overlapping instead of
-      // spreading. A legible bed beats an entrance.
-      forceAtlas2.assign(graph, { iterations: 400, settings: layoutSettings })
+    // The bed simulates as it opens: seeded evenly, it runs live and
+    // cools to rest in a few seconds, so the reader watches each
+    // subject draw together. This used to be settled before the first
+    // paint, because ForceAtlas2 started from wedges it had to fight
+    // its way out of and a half-settled bed left seeds clumped; the
+    // seeding here is already even, so there is nothing to hide.
+    //
+    // Under reduced motion it is still settled first, and a slider
+    // settles again at once. Dragging stays live either way: it is a
+    // direct response to the hand, which is feedback, not decoration.
+    const still = typeof window !== 'undefined'
+      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    if (still) bed.settle()
+    place()
+    bed.simulation.on('tick', place)
+    layout.current = bed
+    settleNow.current = () => {
+      if (!still) return
+      bed.settle()
+      place()
     }
 
     const renderer = new Sigma(graph, holder.current, {
@@ -520,6 +665,70 @@ export function GraphCanvas({
       renderer.refresh()
     })
 
+    // --- Sprouting subjects, drawn over the bed -------------------------
+    //
+    // A dashed outline around the topics each one gathers, its name in
+    // italic above it: outlined and unfilled, because nothing has been
+    // sown there. The outlines are kept in screen space as they are
+    // drawn, so a press inside one can be told from a press on the bed.
+    const sproutShapes = new Map<string, Point[]>()
+
+    const drawSprouts = (context: CanvasRenderingContext2D) => {
+      sproutShapes.clear()
+      const { show, sprouting: reading, chosen } = overlay.current
+      if (!show || !reading) return
+      // CSS pixels, as graphToViewport answers in.
+      const width = context.canvas.width / (window.devicePixelRatio || 1)
+
+      for (const sprout of reading.sprouts) {
+        const points = sprout.topics.flatMap(t => {
+          if (!graph.hasNode(t.id)) return []
+          const a = graph.getNodeAttributes(t.id)
+          return [renderer.graphToViewport({ x: a.x as number, y: a.y as number })]
+        })
+        // One seed left on the bed after a filter is not a clump.
+        if (points.length < 2) continue
+
+        const shape = outline(points, SPROUT_PAD)
+        sproutShapes.set(sprout.key, shape)
+        const isChosen = chosen === sprout.key
+
+        context.save()
+        context.beginPath()
+        shape.forEach((p, i) => (i === 0 ? context.moveTo(p.x, p.y) : context.lineTo(p.x, p.y)))
+        context.closePath()
+        if (isChosen) {
+          context.fillStyle = inks.sproutWash
+          context.fill()
+        }
+        context.setLineDash([6, 5])
+        context.lineWidth = isChosen ? 2.2 : 1.5
+        context.strokeStyle = inks.sprout
+        context.stroke()
+
+        // The name sits above the outline, kept inside the frame: the
+        // camera fits the seeds to the canvas, not the names over them,
+        // so an outline along the top edge would print its name off it.
+        const name = sprout.title ?? UNNAMED
+        const top = Math.min(...shape.map(p => p.y))
+        const bottom = Math.max(...shape.map(p => p.y))
+        const middle = points.reduce((sum, p) => sum + p.x, 0) / points.length
+        context.setLineDash([])
+        context.font = `italic 600 15px Georgia, serif`
+        context.textAlign = 'center'
+        const half = context.measureText(name).width / 2
+        const x = Math.min(Math.max(middle, half + 6), width - half - 6)
+        const y = top - 6 >= 18 ? top - 6 : bottom + 18
+        context.lineJoin = 'round'
+        context.lineWidth = 4
+        context.strokeStyle = inks.hullEdge
+        context.strokeText(name, x, y)
+        context.fillStyle = inks.sprout
+        context.fillText(name, x, y)
+        context.restore()
+      }
+    }
+
     // --- Pulling back shows the beds -----------------------------------
     //
     // Zoomed in you read topics; zoomed out the individual names stop
@@ -532,14 +741,16 @@ export function GraphCanvas({
     }
 
     renderer.on('afterRender', () => {
+      const context = renderer.getCanvases().labels.getContext('2d')
+      if (!context) return
+
+      drawSprouts(context)
+
       const ratio = renderer.getCamera().ratio
       // Below this the seed labels carry the sheet; above it they have
       // thinned out and the bed names take over.
       const strength = Math.min(1, Math.max(0, (ratio - 0.9) / 0.6))
       if (strength <= 0.01) return
-
-      const context = renderer.getCanvases().labels.getContext('2d')
-      if (!context) return
 
       // CSS pixels, not device pixels: positions from graphToViewport
       // are in the same space.
@@ -674,43 +885,36 @@ export function GraphCanvas({
         return
       }
       if (node.startsWith('resource:')) return
+      setChosenSprout(null)
       setSelected(node)
     })
-    renderer.on('clickStage', () => setSelected(null))
 
-    // --- Live forces --------------------------------------------------
-    //
-    // The layout keeps running in a worker, so dragging a seed pushes
-    // its neighbours out of the way and the bed settles again. A held
-    // node is pinned: fixed while the drag lasts, released after, which
-    // is what makes the planting feel like it has weight.
-    // Running settings differ from the one-shot pass. Continuous
-    // iteration with the settling values collapses the bed into a clump:
-    // gravity keeps pulling while nothing pushes back hard enough. More
-    // repulsion and far weaker gravity hold the beds open while a drag
-    // still propagates through them.
-    const supervisor = new FA2Supervisor(graph, {
-      settings: {
-        ...layoutSettings,
-        gravity: 0.05,
-        scalingRatio: 80,
-        slowDown: 40,
-      },
+    // A press on open ground inside a sprout's outline opens that
+    // sprout; anywhere else closes whatever was open.
+    renderer.on('clickStage', ({ event }) => {
+      const hit = [...sproutShapes].find(([, shape]) => contains(shape, { x: event.x, y: event.y }))
+      setSelected(null)
+      setChosenSprout(hit ? hit[0] : null)
     })
+
+    // --- Dragging -------------------------------------------------------
+    //
+    // A held seed is pinned where the hand is, and the bed stays warm
+    // while it is held, so its neighbours make way and settle again
+    // around wherever it is dropped.
     let dragging: string | null = null
-    let settleTimer: ReturnType<typeof setTimeout> | undefined
 
     renderer.on('downNode', ({ node }) => {
       dragging = node
       graph.setNodeAttribute(node, 'highlighted', true)
-      // Pin it where the hand is, or the forces fight the drag.
-      graph.setNodeAttribute(node, 'fixed', true)
-      if (!supervisor.isRunning()) supervisor.start()
+      const n = at.get(node)
+      bed.pin(node, n?.x ?? 0, n?.y ?? 0)
     })
 
     renderer.on('moveBody', ({ event }) => {
       if (!dragging) return
       const position = renderer.viewportToGraph(event)
+      bed.pin(dragging, position.x, position.y)
       graph.setNodeAttribute(dragging, 'x', position.x)
       graph.setNodeAttribute(dragging, 'y', position.y)
       // Stop the canvas panning under the finger while a seed is held.
@@ -722,10 +926,8 @@ export function GraphCanvas({
     const release = () => {
       if (!dragging) return
       graph.removeNodeAttribute(dragging, 'highlighted')
-      graph.removeNodeAttribute(dragging, 'fixed')
+      bed.release(dragging)
       dragging = null
-      // Let the bed settle around where it was dropped, then rest.
-      settleTimer = setTimeout(() => supervisor.stop(), 2500)
     }
 
     renderer.on('upNode', release)
@@ -742,22 +944,25 @@ export function GraphCanvas({
 
     sigma.current = renderer
     return () => {
-      clearTimeout(settleTimer)
-      // kill() terminates the worker; stop() alone leaves it running.
-      supervisor.kill()
+      bed.simulation.on('tick', null)
+      bed.simulation.stop()
+      layout.current = null
+      settleNow.current = () => {}
       renderer.kill()
       sigma.current = null
     }
     // `inks` is in the list because the bed is painted rather than
     // styled: a reader switching to dark gets the whole thing drawn
-    // again, which is the only way a canvas can follow a theme.
-  }, [data, query, subject, showDormantOnly, showResources, showLessons, showMarks, colourFor, repel, centre, linkDistance, inks, theme])
+    // again, which is the only way a canvas can follow a theme. The
+    // forces are not: moving one warms the running bed instead.
+  }, [data, query, subject, showDormantOnly, showResources, showLessons, showMarks, colourFor, inks, theme])
 
   const selectedTopic = data?.topics.find(t => t.id === selected) ?? null
+  const chosen = sprouting?.sprouts.find(s => s.key === chosenSprout) ?? null
 
   return (
     <div className={styles.frame}>
-      <div className={styles.controls}>
+      <div className={styles.controls} ref={controls}>
         <SheetNav back={{ href: '/', label: 'Subjects' }} current="bed" />
         <div className={styles.filters}>
           <input
@@ -814,6 +1019,18 @@ export function GraphCanvas({
             Marks
           </label>
 
+          <label className={styles.toggle}>
+            <input
+              type="checkbox"
+              checked={showSprouts}
+              onChange={e => {
+                setShowSprouts(e.target.checked)
+                if (!e.target.checked) setChosenSprout(null)
+              }}
+            />
+            Sprouting
+          </label>
+
           <button
             className={styles.forcesToggle}
             onClick={() => setShowForces(v => !v)}
@@ -825,47 +1042,46 @@ export function GraphCanvas({
 
         {showForces && (
           <div className={styles.forces}>
-            <label className={styles.force}>
-              <span className={styles.forceLabel}>Repel</span>
-              <input
-                type="range" min={4} max={80} step={2}
-                value={repel}
-                onChange={e => setRepel(+e.target.value)}
-              />
-              <span className={styles.forceValue}>{repel}</span>
-            </label>
-            <label className={styles.force}>
-              <span className={styles.forceLabel}>Draw together</span>
-              <input
-                type="range" min={0.1} max={6} step={0.1}
-                value={centre}
-                onChange={e => setCentre(+e.target.value)}
-              />
-              <span className={styles.forceValue}>{centre.toFixed(1)}</span>
-            </label>
-            <label className={styles.force}>
-              <span className={styles.forceLabel}>Link pull</span>
-              <input
-                type="range" min={0} max={3} step={0.1}
-                value={linkDistance}
-                onChange={e => setLinkDistance(+e.target.value)}
-              />
-              <span className={styles.forceValue}>{linkDistance.toFixed(1)}</span>
-            </label>
+            {FORCE_CONTROLS.map(control => (
+              <label key={control.key} className={styles.force}>
+                <span className={styles.forceLabel}>{control.label}</span>
+                <input
+                  type="range" min={0} max={control.max} step={control.step}
+                  value={forces[control.key]}
+                  onChange={e => {
+                    const value = +e.target.value
+                    setForces(current => ({ ...current, [control.key]: value }))
+                  }}
+                />
+                <span className={styles.forceValue}>{forces[control.key].toFixed(1)}</span>
+              </label>
+            ))}
+            {/* Subjects let go and kinship taken up: whatever clumps
+                now is clumping because the material puts it together. */}
             <button
               className={styles.forcesToggle}
-              onClick={() => { setRepel(24); setCentre(1.2); setLinkDistance(1) }}
+              onClick={() => setForces(KINSHIP_FORCES)}
+            >
+              By kinship
+            </button>
+            <button
+              className={styles.forcesToggle}
+              onClick={() => setForces(DEFAULT_FORCES)}
             >
               Reset
             </button>
           </div>
         )}
+
+        {wantsSprouts && sproutNote && <p className={styles.sproutNote}>{sproutNote}</p>}
       </div>
 
       <div
         ref={holder}
         className={styles.canvas}
-        style={{ '--controls-height': showForces ? '8.5rem' : '4.5rem' } as React.CSSProperties}
+        style={controlsHeight
+          ? ({ '--controls-height': `${controlsHeight}px` } as React.CSSProperties)
+          : undefined}
       />
 
       {!data && (
@@ -893,8 +1109,31 @@ export function GraphCanvas({
           onFiled={() => setReload(n => n + 1)}
         />
       )}
+
+      {!selectedTopic && chosen && (
+        <SproutPanel
+          key={chosen.key}
+          sprout={chosen}
+          onClose={() => setChosenSprout(null)}
+          onPlanted={() => {
+            setChosenSprout(null)
+            // A new subject moves hulls and inks, so the bed is read
+            // again; the reading is too, since this one is now a bed.
+            setReload(n => n + 1)
+          }}
+          onDismissed={() => {
+            setChosenSprout(null)
+            setSproutReload(n => n + 1)
+          }}
+        />
+      )}
     </div>
   )
+}
+
+/** The reading's kinship lines as the simulation takes them. */
+function kinLinks(reading: Sprouting): BedLink[] {
+  return reading.kinship.map(([source, target, weight]) => ({ source, target, weight }))
 }
 
 function TopicPanel({
@@ -1127,6 +1366,96 @@ function TopicPanel({
       </div>
 
       {error && <p className={styles.grubProblem}>{error}</p>}
+    </aside>
+  )
+}
+
+/**
+ * A sprouting subject, opened from its outline on the bed.
+ *
+ * Says what it is, why, and on what evidence -- the counts first, since
+ * they are the reasoning -- and offers the two presses the sheet does.
+ * The whole list lives on `/sprouting`; this is the one in front of you.
+ */
+function SproutPanel({
+  sprout,
+  onClose,
+  onPlanted,
+  onDismissed,
+}: {
+  sprout: SproutView
+  onClose: () => void
+  onPlanted: () => void
+  onDismissed: () => void
+}) {
+  const [planted, setPlanted] = useState<string | null>(null)
+
+  return (
+    <aside className={styles.panel}>
+      <button className={styles.close} onClick={onClose} aria-label="Close">
+        Close
+      </button>
+
+      <div className={styles.sproutPlate} aria-hidden="true" />
+
+      <p className={styles.sproutKind}>
+        Sprouting · {kindLine(sprout)}
+      </p>
+      <h2 className={`${styles.panelTitle} ${styles.sproutTitle}`}>
+        {sprout.title ?? UNNAMED}
+      </h2>
+
+      {sprout.why && <p className={styles.sproutWhy}>{sprout.why}</p>}
+      <p className={styles.caveat}>{sprout.evidence}</p>
+
+      <section className={styles.panelBlock}>
+        <h3 className={styles.panelBlockTitle}>Topics</h3>
+        <ul className={styles.record}>
+          {sprout.topics.map(t => (
+            <li key={t.id}>
+              <a href={`/topics/${t.id}`}>{t.title}</a>
+              <span className={styles.recordDate}>
+                {t.core ? 'at its heart' : t.loose ? 'loose' : ''}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {sprout.material.length > 0 && (
+        <section className={styles.panelBlock}>
+          <h3 className={styles.panelBlockTitle}>Held together by</h3>
+          <ul className={styles.record}>
+            {sprout.material.map(m => (
+              <li key={m.id}>
+                <span>{m.title}</span>
+                <span className={styles.recordDate}>{m.read ? 'read' : 'unread'}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section className={styles.panelBlock}>
+        {planted ? (
+          <p className={styles.caveat}>{planted}</p>
+        ) : (
+          <SproutActions
+            sprout={sprout}
+            onPlanted={p => {
+              setPlanted(p.note)
+              onPlanted()
+            }}
+            onDismissed={onDismissed}
+          />
+        )}
+      </section>
+
+      <div className={styles.panelFoot}>
+        <a className={styles.tend} href="/sprouting">
+          Everything sprouting
+        </a>
+      </div>
     </aside>
   )
 }

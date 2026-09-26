@@ -353,3 +353,61 @@ export interface Inbox {
   pending: PendingTopic[]
   queued: Resource[]
 }
+
+/* ------------------------------------------------------------ sprouting */
+
+/** One subject a sprouting subject's topics already sit in. */
+export interface SproutSource {
+  subjectId: string
+  title: string
+  colour: string
+  count: number
+}
+
+/**
+ * A sprouting subject as the sheet and the bed print it: the reading
+ * from `core/sprouting`, with whatever was decided about it kept beside.
+ */
+export interface SproutView {
+  /** The kept row. Null until the sprout is first read by name, which
+   *  is what makes one: a row is a decision, and nothing has been
+   *  decided about a set of topics nobody has looked at. */
+  id: string | null
+  /** Stable for its set of topics. */
+  key: string
+  /** The model's name. Null until named, or when it has passed. */
+  title: string | null
+  why: string | null
+  kind: 'new' | 'across'
+  /** The subjects its topics sit in, most first. Empty for new ground
+   *  made wholly of loose topics. */
+  from: SproutSource[]
+  /** Its topics, the heart of it first. */
+  topics: Array<{ id: string; title: string; loose: boolean; core: boolean }>
+  /** The resources that bind it, most binding first, capped. */
+  material: Array<{ id: string; title: string; read: boolean }>
+  /** `core/sprouting.bindingSentence`, printed as it stands. */
+  evidence: string
+  /** The name was written for a set this one has drifted from. */
+  stale: boolean
+}
+
+/** Everything the sheet, the bed and the stock list read about sprouting. */
+export interface Sprouting {
+  /** Open sprouts, strongest first. */
+  sprouts: SproutView[]
+  /** The kinship lines, `[a, b, weight]`, for the bed's kinship pull. */
+  kinship: Array<[string, string, number]>
+  /** `core/sprouting.foundSentence`: how many existing subjects the same
+   *  reading finds again. Null where there are none large enough. */
+  found: string | null
+  /** Sprouts the reader dismissed, or the model passed on, that the
+   *  reading still finds. */
+  setAside: number
+  /** Sprouts with no name yet, or a name written for other topics. */
+  unnamed: number
+  /** Active topics still waiting for their `title — summary` vector. */
+  unembedded: number
+  /** Whether decisions can be kept yet: false until `052` has run. */
+  keeps: boolean
+}

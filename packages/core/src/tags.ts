@@ -42,4 +42,7 @@ export const tags = {
   pending: 'pending',
   /** The garden: what is due, and what stands against a lesson. */
   clozes: 'clozes',
+  /** Sprouting subjects: what was decided about each, and the reading
+   *  itself, which is also built from topics, material and marks. */
+  sprouts: 'sprouts',
 } as const

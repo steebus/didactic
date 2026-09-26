@@ -1,0 +1,100 @@
+/* Giving a sprouting subject a bed, or not. Set like the loose sheet's
+   bulk actions: printed buttons, square, the plate green on the press
+   that sows something. */
+
+.actions {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.name {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.nameLabel {
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.nameInput {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: var(--step-0);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  border-radius: 0;
+  padding: var(--space-2) var(--space-3);
+  min-width: 0;
+}
+
+.nameInput:focus {
+  outline: 2px solid var(--plate-green);
+  outline-offset: 1px;
+}
+
+.buttons {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.plant,
+.dismiss {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: 0;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  transition: background-color 120ms ease-out, color 120ms ease-out;
+}
+
+.plant {
+  color: var(--on-plate);
+  background: var(--band-fill);
+  border: 1px solid var(--plate-green);
+}
+
+.plant:hover:not(:disabled) {
+  background: var(--plate-green);
+}
+
+.dismiss {
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid var(--rule-strong);
+}
+
+.dismiss:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--ink-soft);
+}
+
+.plant:disabled,
+.dismiss:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.waiting {
+  font-size: var(--step--1);
+  font-style: italic;
+  color: var(--ink-faint);
+  margin: 0;
+}
+
+.problem {
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--plate-terracotta);
+  border-left: 2px solid var(--plate-terracotta);
+  padding-left: var(--space-3);
+  margin: 0;
+}

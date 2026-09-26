@@ -583,6 +583,12 @@ everything under it down the page, while doing nothing about any of them. The
 count says how big the job is; the sheet behind it is where it gets done. The
 separate head is what stops the entry being read as one more bed.
 
+**Sprouting** follows in the same form: a section head, one `.entry` to
+`/sprouting` on a specimen in `--plate-green`, weighted by the count of open
+sprouting subjects, *Total* over the count. It is absent when nothing is
+sprouting, and streamed in after the rest of the sheet rather than awaited with
+it.
+
 ### Fertile ground, under the stock list
 
 Material that was read, put topics in the ground, and matched no subject
@@ -735,6 +741,28 @@ handful asks is what the fourteen hold *between* them, so the reckoning sums
 them (`core/loose.reckon`) and says plainly whether any of it has been read.
 Resources are summed rather than deduplicated: that overstates a handful drawn
 from one article, which is the honest direction to be wrong in above a delete.
+
+### Sprouting subjects
+
+The loose sheet's chrome with its band in `--band-fill`, the garden green:
+what is on it is coming up, not unresolved.
+
+| Part | Treatment |
+| --- | --- |
+| The band | `--band-fill` under the mustard `5px` rule, the standfirst counting what has come up (`core/sprouting.sproutingSentence`). |
+| The found-again check | Above the list, `600` weight behind a `3px` green rule: the evidence the reading can be believed, set before anything it vouches for. |
+| The kind | Label register in the plate green — *New ground*, or *Across* and the subjects in full, each after a `0.7em` square chip of its plate. |
+| The name | Display face, italic, `--step-2`; *Not yet named* in `--ink-faint` until it is. |
+| The evidence | Counts first, in `--ink-soft` (`core/sprouting.bindingSentence`). |
+| The topics | A wrapped run of links; the core ones `600`, loose ones followed by *loose* in terracotta small caps. |
+| The material | Behind a `1px` rule, each marked *read* or *unread*. |
+| The presses | *Call it* over an italic name field, then *Give it a bed* on the band green and *Not this* in a rule-strong outline. |
+
+**Rule — the name is the reader's to settle.** The model's name is where the
+field starts, never a label: whatever is typed is what the subject is called.
+
+**Rule — a bulk action states what it has not done**, as on the loose sheet:
+giving a sprout a bed files its topics but does not place them, and says so.
 
 ---
 
@@ -1292,8 +1320,8 @@ turns rather than filling.
 
 ## 6. The Graph
 
-Same world, different substrate: WebGL through Sigma with a live ForceAtlas2
-worker.
+Same world, different substrate: WebGL through Sigma, laid out by the d3-force
+model in `core/forces`, which the phone's Skia bed runs too.
 
 **Encoding:**
 
@@ -1315,20 +1343,44 @@ with black text beside it reads as two things; the entry must read as one state.
 canvas width, the label is drawn to the left of its seed. This is what makes the
 bed legible on a phone, which PRODUCT requires.
 
-**Rule — membership pulls but does not print.** Topics sharing a subject get a
-ring of edges at `size: 0.4`, `rgba(90,76,56,0.10)`, existing only so the physics
-cluster by subject. Most topics carry no stated relationship, and force layout can
-only group what is connected.
+**Rule — every pull off is an even bed.** The forces are chosen for what they do
+when turned off: equal charge on every seed falling as 1/d, balanced by a spring
+to the centre, settles as an evenly spaced disc — a 2D Coulomb gas in a harmonic
+trap. Each slider adds shape to that. ForceAtlas2 was taken out because its
+gravity had one strength at every distance (a dense knot and a thin halo, with
+everything off), it weighted charge by degree, and its link slider moved nothing.
+The five sliders are *Spacing*, *Draw together*, *Link pull*, *Subject pull* and
+*Kinship pull*, 0 to 3; *By kinship* and *Reset* sit after them.
 
-**Rule — settle before first paint.** 400 one-shot iterations
-(`gravity: 1.2, scalingRatio: 24, slowDown: 14`) run before the renderer opens, so
-the bed is readable immediately rather than animating out of a seeded ring. The
-running worker then uses deliberately different values (`gravity: 0.05,
-scalingRatio: 80, slowDown: 40`) — continuous iteration with the settling values
-collapses the bed into a clump.
+**Rule — membership pulls toward a centre, never along a ring.** Each topic is
+sprung to the centroid of every subject it sits in; a topic in two sits between
+them. Nothing is drawn for it. The ring of invisible edges this replaced folded a
+subject into a loop and strung every loose topic onto one false cluster — the very
+topics a new subject would come from. Loose topics feel no subject pull at all.
+
+**Rule — the bed simulates as it opens.** Seeds start on a Fibonacci lattice cut
+into one wedge per subject, already even, and the simulation runs live and cools
+to rest in about five seconds; the reader watches each subject draw together.
+Moving a slider warms the running bed rather than laying it out again. Under
+reduced motion the bed is settled before the first paint and a slider settles at
+once.
 
 **Rule — a held seed is pinned, and the bed settles around where it is dropped.**
-`fixed` for the duration of the drag, released after, worker stopped 2500ms later.
+The seed is fixed where the hand is and the simulation kept warm while it is held,
+then let cool — drag stays live under reduced motion, because it is a direct
+response to the hand.
+
+**Rule — a sprouting subject is outlined, never filled.** With *Sprouting* on,
+each open sprouting subject is a dashed rule (`6px` on, `5px` off, `1.5px`, the
+plate green at 0.8) standing `22px` off the hull of its visible topics, with its
+name in italic Georgia above it on a paper halo — *Not yet named* until it is.
+Nothing is sown there, so it takes no plate ink and no fill; the one open in the
+panel alone takes a wash of the green at 0.07. A press inside the outline opens
+it.
+
+**Rule — the canvas starts below the strip it sits under.** The control strip is
+measured, not guessed, because it wraps to as many rows as the width needs; a
+fixed inset parked the top of the planting under it on a phone.
 
 The graph panel is a right rail at `min(24rem, 100%)` on desktop and a bottom
 sheet at `max-height: 72dvh` below `40rem` — a 24rem rail would cover the whole

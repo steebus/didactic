@@ -1,7 +1,9 @@
 import { EDITION_DATE as EDITION_DATE } from '@didactic/core/copy'
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { viabilityFigure, vagueFigure } from '@didactic/core/scoring'
 import { getHomeData } from '@/lib/home'
+import { getSprouting } from '@/lib/sprouting'
 import { Emblem, slugify } from '@/components/Emblem'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
 import { SheetNav } from '@/components/SheetNav'
@@ -188,6 +190,13 @@ export default async function Home() {
               </section>
             )}
 
+            {/* Subjects nobody sowed. Streamed in rather than awaited
+                with the rest: the reading is built from the whole map,
+                and the stock list should never wait on it. */}
+            <Suspense fallback={null}>
+              <SproutingEntry largestHolding={largestHolding} index={data.subjects.length + 1} />
+            </Suspense>
+
             {/* Something read that matched nothing already sown. The
                 topics are real and in the ground; what they are missing
                 is a subject to belong to, and the resource that put them
@@ -350,5 +359,46 @@ export default async function Home() {
       </footer>
       </div>
     </main>
+  )
+}
+
+/**
+ * Sprouting subjects, folded behind one entry as loose stock is: set as
+ * a holding, sized by its count against the largest bed, with the total
+ * where a subject prints its figures. Absent when nothing is sprouting,
+ * because an entry saying "none" is a line of the sheet spent on nothing.
+ */
+async function SproutingEntry({ largestHolding, index }: { largestHolding: number; index: number }) {
+  const { sprouts } = await getSprouting()
+  if (sprouts.length === 0) return null
+  const weight = Math.min(1, sprouts.length / largestHolding)
+
+  return (
+    <section className={styles.looseStock}>
+      <div className={styles.sectionHead}>
+        <h2 className={styles.sectionTitle}>Sprouting</h2>
+      </div>
+      <Link
+        href="/sprouting"
+        className={styles.entry}
+        style={{ '--weight': weight, '--i': index } as React.CSSProperties}
+      >
+        <Emblem slug="sprouting-subjects" colour={plate.green} size={48 + weight * 28} />
+
+        <div className={styles.entryBody}>
+          <h3 className={styles.entryTitle}>
+            {sprouts.length === 1 ? 'Sprouting subject' : 'Sprouting subjects'}
+          </h3>
+          <div className={styles.entryMeta}>
+            <span>Topics your material keeps putting together, under no subject yet</span>
+          </div>
+        </div>
+
+        <div className={styles.entryFigures}>
+          <span className={styles.figureLabel}>Total</span>
+          <span className={styles.viability}>{sprouts.length}</span>
+        </div>
+      </Link>
+    </section>
   )
 }
