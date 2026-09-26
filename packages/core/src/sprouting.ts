@@ -111,15 +111,23 @@ export interface SetAside {
  * - `parts`: no one community does, but at least half of it sits in
  *   communities that are each mostly this subject -- the reading agrees
  *   where its edge is and sees sub-themes inside it. Counted as found.
- * - `mixed`: most of it fell in with another subject's topics, or with
- *   loose ones.
+ * - `together`: most of it sits in communities made of it and another of
+ *   the reader's subjects -- the reading sees the two as one area and
+ *   draws no line between them. Web development and system design are
+ *   close, and a reading that put them together has not got either
+ *   wrong. Counted as found.
+ * - `mixed`: most of it fell in with loose topics, or scattered across
+ *   communities that are no one's.
  * - `thin`: most of it is tied to nothing the reading kept.
  */
 export interface SubjectReading {
   subjectId: string
   /** Its topics among those read. */
   size: number
-  verdict: 'whole' | 'parts' | 'mixed' | 'thin'
+  verdict: 'whole' | 'parts' | 'together' | 'mixed' | 'thin'
+  /** Its topics in communities that are mostly it and one other subject,
+   *  by that subject, most first. */
+  together: Array<{ subjectId: string; count: number }>
   /** Its topics in communities that are mostly it. */
   own: number
   /** Those communities' shares of it, largest first. */
@@ -140,7 +148,7 @@ export interface SproutReading {
   /** The subjects the same reading finds again, of those large enough
    *  to be found: the evidence that it can be believed about the rest.
    *  `inParts` are found as sub-themes rather than whole. */
-  found: { subjectIds: string[]; of: number; inParts: string[] }
+  found: { subjectIds: string[]; of: number; inParts: string[]; together: string[] }
   /** How each subject large enough to be found came out, largest first. */
   subjects: SubjectReading[]
   /** Clumps of loose or mixed topics looked at and not offered, with why. */
@@ -209,6 +217,24 @@ export function readSprouts(input: SproutInput): SproutReading {
         continue
       }
 
+      // Two of the reader's own subjects read as one area -- mostly
+      // theirs, and at least half of one of them -- is those subjects
+      // side by side, not a new subject between them. A bridge is a few
+      // topics from each, and still sprouts.
+      const second = from[1]
+      if (dominant && second) {
+        const either = members.filter(id => {
+          const subjects = subjectsOf.get(id) ?? []
+          return subjects.includes(dominant.subjectId) || subjects.includes(second.subjectId)
+        }).length
+        const holdsHalf = (f: { subjectId: string; count: number }) =>
+          f.count / (subjectSize.get(f.subjectId) ?? Infinity) >= SPROUTING.HOLDS
+        if (either / members.length >= SPROUTING.WITHIN && (holdsHalf(dominant) || holdsHalf(second))) {
+          for (const id of members) accounted.add(id)
+          continue
+        }
+      }
+
       const binding = bindingOf(inside, input.materials, input.marks)
       const reason =
         binding.materials.length === 0 ? 'no-material' as const
@@ -256,7 +282,7 @@ export function readSprouts(input: SproutInput): SproutReading {
   })
 
   const subjects = readSubjects(input, finest, subjectsOf, subjectSize)
-  const found = subjects.filter(r => r.verdict === 'whole' || r.verdict === 'parts')
+  const found = subjects.filter(r => r.verdict === 'whole' || r.verdict === 'parts' || r.verdict === 'together')
 
   return {
     sprouts: sprouts.sort((a, b) => b.score - a.score || a.key.localeCompare(b.key)),
@@ -264,6 +290,7 @@ export function readSprouts(input: SproutInput): SproutReading {
       subjectIds: found.map(r => r.subjectId).sort(),
       of: subjects.length,
       inParts: found.filter(r => r.verdict === 'parts').map(r => r.subjectId).sort(),
+      together: found.filter(r => r.verdict === 'together').map(r => r.subjectId).sort(),
     },
     subjects,
     // What was set aside at the finest grain and never taken up by a
@@ -323,6 +350,7 @@ function readSubjects(
 
       const parts: number[] = []
       const partner = new Map<string | null, number>()
+      const alongside = new Map<string, number>()
       finest.forEach((c, i) => {
         const mine = makeUp[i].get(subjectId) ?? 0
         if (mine === 0) return
@@ -341,22 +369,36 @@ function readSubjects(
           }
         }
         partner.set(best, (partner.get(best) ?? 0) + mine)
+        // And if that is another subject, and the two between them are
+        // most of the community, this subject is read alongside it.
+        if (best !== null) {
+          const either = c.filter(id => {
+            const subjects = subjectsOf.get(id) ?? []
+            return subjects.includes(subjectId) || subjects.includes(best as string)
+          }).length
+          if (either / c.length >= SPROUTING.WITHIN) alongside.set(best, (alongside.get(best) ?? 0) + mine)
+        }
       })
       parts.sort((a, b) => b - a)
 
       const own = parts.reduce((a, b) => a + b, 0)
+      const shared = [...alongside.values()].reduce((a, b) => a + b, 0)
       const alone = members.filter(id => !communityOf.has(id)).length
       const bar = SPROUTING.HOLDS * size
       const verdict: SubjectReading['verdict'] =
         (parts[0] ?? 0) >= bar ? 'whole'
           : own >= bar ? 'parts'
-            : alone >= bar ? 'thin'
-              : 'mixed'
+            : shared > 0 && own + shared >= bar ? 'together'
+              : alone >= bar ? 'thin'
+                : 'mixed'
 
       return {
         subjectId,
         size,
         verdict,
+        together: [...alongside]
+          .map(([id, count]) => ({ subjectId: id, count }))
+          .sort((a, b) => b.count - a.count || a.subjectId.localeCompare(b.subjectId)),
         own,
         parts,
         with: [...partner]
@@ -576,6 +618,15 @@ export function subjectSentence(r: SubjectReading, titleOf: (subjectId: string) 
     return `Read as ${r.parts.length} sub-themes of ${sizes} topics, each still its own: ${r.own} ${of} in all.`
   }
   if (r.verdict === 'thin') return `${r.alone} ${of} topics are tied to nothing the reading kept.${hint()}`
+  if (r.verdict === 'together') {
+    const names = r.together.map(t => titleOf(t.subjectId))
+    const listed = names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
+    const count = r.own + r.together.reduce((a, t) => a + t.count, 0)
+    const apart = r.related * 2 >= r.size
+      ? ''
+      : ' If you want the two told apart, Draw connections on its bed gives the reading relations of its own to go on.'
+    return `Read as one area with ${listed}: ${count} ${of} topics sit among ${names.length === 1 ? `${listed}'s` : 'theirs'}, close enough that the reading draws no line between them.${apart}`
+  }
 
   const went = r.with.slice(0, 2).map(w =>
     w.subjectId === null ? `${w.count} with loose topics` : `${w.count} with ${titleOf(w.subjectId)}'s`
@@ -587,6 +638,7 @@ export function subjectSentence(r: SubjectReading, titleOf: (subjectId: string) 
 export const SUBJECT_VERDICT: Record<SubjectReading['verdict'], string> = {
   whole: 'Found',
   parts: 'Found in parts',
+  together: 'Found together',
   mixed: 'Read with others',
   thin: 'Too little to read',
 }
@@ -595,8 +647,12 @@ export const SUBJECT_VERDICT: Record<SubjectReading['verdict'], string> = {
 export function foundSentence(found: SproutReading['found']): string | null {
   if (found.of === 0) return null
   const n = found.subjectIds.length
-  const parts = found.inParts?.length ?? 0
-  const inParts = parts === 0 ? '' : parts === n && n === 1 ? ', in parts' : `, ${parts === 1 ? 'one' : parts} of them in parts`
+  const count = (k: number) => (k === 1 ? 'one' : String(k))
+  const quals = [
+    ...((found.inParts?.length ?? 0) > 0 ? [`${count(found.inParts.length)} in parts`] : []),
+    ...((found.together?.length ?? 0) > 0 ? [`${count(found.together.length)} as one area with a neighbour`] : []),
+  ]
+  const inParts = quals.length === 0 ? '' : `, ${quals[0].replace(/^(\w+) /, '$1 of them ')}${quals.length > 1 ? ` and ${quals[1]}` : ''}`
   if (n === found.of) {
     return found.of === 1
       ? `Read the same way, the map finds your one subject again${inParts}.`

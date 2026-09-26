@@ -185,7 +185,15 @@ communities: *found* where one community, mostly it, holds half of it;
 communities that are each mostly it — the reading agrees where its edge
 is and sees sub-themes inside it, so this counts as found; *read with
 others* where most of it fell in with another subject's topics or loose
-ones; *too little to read* where most of it is tied to nothing. The sheet
+ones; *too little to read* where most of it is tied to nothing. And
+*found together* where most of it sits among another of the reader's
+subjects' topics: web development and system design are close, and a
+reading that draws no line between them has got neither wrong, so this
+counts as found too. By the same token a clump that is mostly two of the
+reader's own subjects, holding at least half of one of them, is those
+subjects side by side and is never offered as a sprout — it was, as an
+*across* sprout, until the reader pointed out the two belong together. A
+bridge is a few topics from each, and still sprouts. The sheet
 lists every subject with its verdict and a sentence of counts, and where
 the reading had little to go on — few relations drawn among its own
 topics, no material — it says so and points at *Draw connections*.

@@ -767,7 +767,7 @@ what is on it is coming up, not unresolved.
 | --- | --- |
 | The band | `--band-fill` under the mustard `5px` rule, the standfirst counting what has come up (`core/sprouting.sproutingSentence`). |
 | The found-again check | Above the list, `600` weight behind a `3px` green rule: the evidence the reading can be believed, set before anything it vouches for. |
-| How each subject read | Folded under the check (a `details`, open when any subject was missed): each subject's plate chip, name, and verdict in the label register — green *Found* / *Found in parts*, terracotta *Read with others* / *Too little to read* — over a sentence of counts in `--ink-soft` (`core/sprouting.subjectSentence`), behind a `1px` rule. |
+| How each subject read | Folded under the check (a `details`, open when any subject was missed): each subject's plate chip, name, and verdict in the label register — green *Found* / *Found in parts* / *Found together*, terracotta *Read with others* / *Too little to read* — over a sentence of counts in `--ink-soft` (`core/sprouting.subjectSentence`), behind a `1px` rule. |
 | The kind | Label register in the plate green — *New ground*, or *Across* and the subjects in full, each after a `0.7em` square chip of its plate. |
 | The name | Display face, italic, `--step-2`; *Not yet named* in `--ink-faint` until it is. |
 | The evidence | Counts first, in `--ink-soft` (`core/sprouting.bindingSentence`). |

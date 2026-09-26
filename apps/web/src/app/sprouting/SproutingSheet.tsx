@@ -83,7 +83,7 @@ export function SproutingSheet({ initial }: { initial: Sprouting }) {
                 <p className={styles.readingName}>
                   <span className={styles.chip} style={{ '--chip': r.colour } as React.CSSProperties} aria-hidden="true" />
                   <Link href={`/subjects/${r.subjectId}`}>{r.title}</Link>
-                  <span className={r.verdict === 'whole' || r.verdict === 'parts' ? styles.verdictFound : styles.verdictMissed}>
+                  <span className={r.verdict === 'mixed' || r.verdict === 'thin' ? styles.verdictMissed : styles.verdictFound}>
                     {SUBJECT_VERDICT[r.verdict]}
                   </span>
                 </p>

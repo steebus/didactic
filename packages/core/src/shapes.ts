@@ -425,7 +425,7 @@ export interface Sprouting {
     subjectId: string
     title: string
     colour: string
-    verdict: 'whole' | 'parts' | 'mixed' | 'thin'
+    verdict: 'whole' | 'parts' | 'together' | 'mixed' | 'thin'
     sentence: string
   }>
   /**

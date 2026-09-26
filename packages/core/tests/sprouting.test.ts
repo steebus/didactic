@@ -118,7 +118,7 @@ describe('readSprouts', () => {
   it('finds the subjects already on the map again', () => {
     // The only evidence that the reading can be believed about the
     // topics nobody has filed.
-    expect(reading().found).toEqual({ subjectIds: ['stats', 'web'], of: 2, inParts: [] })
+    expect(reading().found).toEqual({ subjectIds: ['stats', 'web'], of: 2, inParts: [], together: [] })
   })
 
   it('reads the same map the same way every time', () => {
@@ -127,7 +127,7 @@ describe('readSprouts', () => {
 
   it('reads nothing into a map with no kinship', () => {
     expect(readSprouts({ topics: [], lines: [], materials: [], marks: [] })).toEqual({
-      sprouts: [], found: { subjectIds: [], of: 0, inParts: [] }, subjects: [], setAside: [],
+      sprouts: [], found: { subjectIds: [], of: 0, inParts: [], together: [] }, subjects: [], setAside: [],
     })
   })
 })
@@ -197,10 +197,14 @@ describe('the sentences', () => {
   })
 
   it('reports the found-again check, or nothing where there is nothing to find', () => {
-    expect(foundSentence({ subjectIds: ['a'], of: 3, inParts: [] })).toBe('Read the same way, the map finds 1 of your 3 subjects again.')
-    expect(foundSentence({ subjectIds: ['a', 'b'], of: 2, inParts: [] })).toBe('Read the same way, the map finds all 2 of your subjects again.')
-    expect(foundSentence({ subjectIds: ['a', 'b'], of: 3, inParts: ['b'] })).toBe('Read the same way, the map finds 2 of your 3 subjects again, one of them in parts.')
-    expect(foundSentence({ subjectIds: [], of: 0, inParts: [] })).toBeNull()
+    expect(foundSentence({ subjectIds: ['a'], of: 3, inParts: [], together: [] })).toBe('Read the same way, the map finds 1 of your 3 subjects again.')
+    expect(foundSentence({ subjectIds: ['a', 'b'], of: 2, inParts: [], together: [] })).toBe('Read the same way, the map finds all 2 of your subjects again.')
+    expect(foundSentence({ subjectIds: ['a', 'b'], of: 3, inParts: ['b'], together: [] })).toBe('Read the same way, the map finds 2 of your 3 subjects again, one of them in parts.')
+    expect(foundSentence({ subjectIds: ['a', 'b', 'c'], of: 3, inParts: [], together: ['b', 'c'] }))
+      .toBe('Read the same way, the map finds all 3 of your subjects again, 2 of them as one area with a neighbour.')
+    expect(foundSentence({ subjectIds: ['a', 'b', 'c'], of: 3, inParts: ['a'], together: ['c'] }))
+      .toBe('Read the same way, the map finds all 3 of your subjects again, one of them in parts and one as one area with a neighbour.')
+    expect(foundSentence({ subjectIds: [], of: 0, inParts: [], together: [] })).toBeNull()
   })
 
   it('holds its bars where the spec sets them', () => {
@@ -324,9 +328,10 @@ describe('how each subject reads', () => {
     expect(r.found.inParts).toEqual(['S'])
   })
 
-  it('is mixed where it fell in with another subject, and says what was missing', () => {
+  it('is found together where it reads as one area with a close subject', () => {
     // Two subjects with no material and no relations, whose names mean
-    // much the same thing: the reading has nothing to tell them apart.
+    // much the same thing -- web development and system design, say. The
+    // reading draws no line between them, and has not got either wrong.
     // A third, unrelated group, as a real map always has: without it the
     // mean the meaning channel takes out would be A and B's own theme.
     const a = range('a', 6), b = range('b', 6), c = range('c', 6)
@@ -338,11 +343,43 @@ describe('how each subject reads', () => {
     const lines = kinship({ topics, materials: [], marks: [], edges: [] })
     const r = readSprouts({ topics, lines, materials: [], marks: [] })
     const readA = byId(r, 'A')
+    expect(readA.verdict).toBe('together')
+    expect(readA.together[0].subjectId).toBe('B')
+    expect(r.found.subjectIds).toEqual(['A', 'B'])
+    expect(r.found.together).toEqual(['A', 'B'])
+    expect(subjectSentence(readA, id => (id === 'B' ? 'Web Development' : id)))
+      .toMatch(/^Read as one area with Web Development: \d+ of its 6 topics sit among Web Development's, close enough that the reading draws no line between them\. If you want the two told apart, Draw connections on its bed gives the reading relations of its own to go on\.$/)
+  })
+
+  it('is mixed where it fell in with loose topics, and says what was missing', () => {
+    const a = range('a', 6), l = range('l', 8), c = range('c', 6)
+    const topics: KinTopic[] = [
+      ...a.map((id, i) => ({ id, subjects: ['A'], vector: vec(0, i) })),
+      ...l.map((id, i) => ({ id, subjects: [], vector: vec(0, i + 6) })),
+      ...c.map((id, i) => ({ id, subjects: [], vector: vec(5, i + 14) })),
+    ]
+    const lines = kinship({ topics, materials: [], marks: [], edges: [] })
+    const r = readSprouts({ topics, lines, materials: [], marks: [] })
+    const readA = byId(r, 'A')
     expect(readA.verdict).toBe('mixed')
-    expect(readA.with[0].subjectId).toBe('B')
-    expect(readA.related).toBe(0)
-    expect(subjectSentence(readA, id => (id === 'B' ? 'System Design' : id)))
-      .toMatch(/^Read together with other topics: \d+ with System Design's\. None of its topics has a relation drawn to another of its own and none has any material, so the reading had little but their names to go on\. Draw connections on its bed gives it more\.$/)
+    expect(readA.with[0].subjectId).toBeNull()
+    expect(subjectSentence(readA, id => id))
+      .toMatch(/^Read together with other topics: \d+ with loose topics\. None of its topics has a relation drawn to another of its own and none has any material/)
+  })
+
+  it('never offers two of the reader\'s own subjects, side by side, as a new one', () => {
+    // Most of A and most of B, read together and carried by material
+    // across both: the subjects, not a bridge between them.
+    const a = range('a', 6), b = range('b', 6), c = range('c', 6)
+    const topics: KinTopic[] = [
+      ...a.map((id, i) => ({ id, subjects: ['A'], vector: vec(0, i) })),
+      ...b.map((id, i) => ({ id, subjects: ['B'], vector: vec(0, i + 6) })),
+      ...c.map((id, i) => ({ id, subjects: [], vector: vec(5, i + 12) })),
+    ]
+    const materials = [read('m1', a[0], a[1], b[0], b[1]), read('m2', a[2], a[3], b[2], b[3]), read('m3', a[4], a[5], b[4], b[5])]
+    const lines = kinship({ topics, materials, marks: [], edges: [] })
+    const r = readSprouts({ topics, lines, materials, marks: [] })
+    expect(r.sprouts.filter(s => s.topicIds.some(id => id.startsWith('a')))).toEqual([])
   })
 
   it('is thin where most of it is tied to nothing', () => {
@@ -355,11 +392,11 @@ describe('how each subject reads', () => {
   })
 
   it('names every verdict for the list', () => {
-    expect(Object.keys(SUBJECT_VERDICT).sort()).toEqual(['mixed', 'parts', 'thin', 'whole'])
+    expect(Object.keys(SUBJECT_VERDICT).sort()).toEqual(['mixed', 'parts', 'thin', 'together', 'whole'])
   })
 
   it('words whole and parts by their counts', () => {
-    const base = { subjectId: 'S', size: 12, own: 12, with: [], alone: 0, related: 12, withMaterial: 12 }
+    const base = { subjectId: 'S', size: 12, own: 12, with: [], together: [], alone: 0, related: 12, withMaterial: 12 }
     expect(subjectSentence({ ...base, verdict: 'whole', parts: [10] }, id => id)).toBe('10 of its 12 topics read together, as one.')
     expect(subjectSentence({ ...base, verdict: 'parts', parts: [5, 4, 3] }, id => id))
       .toBe('Read as 3 sub-themes of 5, 4 and 3 topics, each still its own: 12 of its 12 in all.')
