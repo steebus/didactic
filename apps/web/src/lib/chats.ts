@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { isAskContext, type AskContext } from '@didactic/core/ask'
+import { askOrigin, isAskContext, type AskContext, type AskOrigin } from '@didactic/core/ask'
 
 /**
  * Reading back the conversations a reader has had.
@@ -107,6 +107,13 @@ export async function readChats(db: SupabaseClient, userId: string): Promise<Cha
   })
 }
 
+/** One conversation, read back: what was said, and where it began. */
+export interface Chat {
+  messages: ChatMessage[]
+  /** The lesson, topic or subject it was asked from, where there is one. */
+  origin: AskOrigin | null
+}
+
 /**
  * One conversation, in the order it was had.
  *
@@ -117,10 +124,10 @@ export async function readChat(
   db: SupabaseClient,
   userId: string,
   id: string
-): Promise<ChatMessage[] | null> {
+): Promise<Chat | null> {
   const { data: conversation } = await db
     .from('conversations')
-    .select('id')
+    .select('id, context, lesson_id, topic_id')
     .eq('id', id)
     .eq('user_id', userId)
     .maybeSingle()
@@ -133,11 +140,21 @@ export async function readChat(
     .eq('conversation_id', id)
     .order('created_at', { ascending: true })
 
-  return (messages ?? [])
-    .filter(m => m.role === 'user' || m.role === 'assistant')
-    .map(m => ({
-      role: m.role as 'user' | 'assistant',
-      content: m.content,
-      createdAt: m.created_at,
-    }))
+  const context: AskContext = isAskContext(conversation.context)
+    ? conversation.context
+    : { route: 'other' }
+
+  return {
+    origin: askOrigin(context, {
+      lessonId: conversation.lesson_id,
+      topicId: conversation.topic_id,
+    }),
+    messages: (messages ?? [])
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+        createdAt: m.created_at,
+      })),
+  }
 }

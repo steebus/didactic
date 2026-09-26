@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { supabaseAdmin } from '@/lib/supabase'
 import { requireOwner } from '@/lib/auth'
 import { readChat } from '@/lib/chats'
+import type { AskOrigin } from '@didactic/core/ask'
 import { SheetNav } from '@/components/SheetNav'
 import { Prose } from '@/components/Prose'
 import styles from '../page.module.css'
@@ -17,15 +18,24 @@ import styles from '../page.module.css'
 export default async function ChatPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const owner = await requireOwner()
-  const messages = await readChat(supabaseAdmin(), owner.id, id)
+  const chat = await readChat(supabaseAdmin(), owner.id, id)
 
-  if (!messages) notFound()
+  if (!chat) notFound()
+  const { messages, origin } = chat
 
   return (
     <main className={styles.sheet}>
       <header className={styles.head}>
         <SheetNav current="chats" back={{ href: '/chats', label: 'Conversations' }} />
         <h1 className={styles.title}>A conversation</h1>
+        {origin && (
+          <p className={styles.origin}>
+            Asked from {origin.kind === 'cards' ? '' : `the ${origin.kind} `}
+            <Link href={hrefOf(origin)} className={styles.originLink}>
+              {origin.title}
+            </Link>
+          </p>
+        )}
       </header>
 
       {messages.length === 0 ? (
@@ -52,4 +62,21 @@ export default async function ChatPage({ params }: { params: Promise<{ id: strin
       </p>
     </main>
   )
+}
+
+/**
+ * The page a conversation began on. A lesson opens at the section the
+ * reader was at when they asked.
+ */
+function hrefOf(origin: AskOrigin): string {
+  switch (origin.kind) {
+    case 'lesson':
+      return `/lesson/${origin.id}${origin.sectionId ? `#${origin.sectionId}` : ''}`
+    case 'topic':
+      return `/topics/${origin.id}`
+    case 'subject':
+      return `/subjects/${origin.id}`
+    case 'cards':
+      return '/tend'
+  }
 }

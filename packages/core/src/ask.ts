@@ -223,3 +223,43 @@ export function groupChats<T extends ChatLike>(
 
   return out
 }
+
+/** Where a conversation was begun, as a sheet heading it names it. */
+export interface AskOrigin {
+  kind: 'lesson' | 'topic' | 'subject' | 'cards'
+  /** Absent for the cards, which are one place rather than one thing. */
+  id?: string
+  /** What it was called then. Falls back to the kind itself. */
+  title: string
+  /** The section of a lesson the reader was at. */
+  sectionId?: string
+}
+
+/**
+ * The page a conversation was begun from, or null when it was begun
+ * from nowhere in particular.
+ *
+ * The context records it; the conversation row's own `lesson_id` and
+ * `topic_id` stand in for an id the context lost. A lesson, topic or
+ * subject with no id at all cannot be linked to and is not offered.
+ */
+export function askOrigin(
+  c: AskContext,
+  row: { lessonId?: string | null; topicId?: string | null } = {}
+): AskOrigin | null {
+  if (c.route === 'other') return null
+  if (c.route === 'cards') return { kind: 'cards', title: c.title?.trim() || 'Your cards' }
+
+  const id =
+    c.entityId ||
+    (c.route === 'lesson' ? row.lessonId : c.route === 'topic' ? row.topicId : null) ||
+    undefined
+  if (!id) return null
+
+  return {
+    kind: c.route,
+    id,
+    title: c.title?.trim() || `A ${c.route}`,
+    ...(c.route === 'lesson' && c.sectionId ? { sectionId: c.sectionId } : {}),
+  }
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isAskContext, contextPreamble, foldInto, groupChats } from '../src/ask'
+import { isAskContext, contextPreamble, foldInto, groupChats, askOrigin } from '../src/ask'
 
 describe('an ask context', () => {
   it('accepts the shape the panel sends', () => {
@@ -240,5 +240,33 @@ describe('arranging a pile of old chats', () => {
 
   it('has nothing to say about nothing', () => {
     expect(groupChats([], 'date', now)).toEqual([])
+  })
+})
+
+describe('where a conversation was begun', () => {
+  it('names the lesson, topic or subject it was asked from', () => {
+    expect(
+      askOrigin({ route: 'lesson', entityId: 'l1', title: 'DNS', sectionId: 'caching' })
+    ).toEqual({ kind: 'lesson', id: 'l1', title: 'DNS', sectionId: 'caching' })
+    expect(askOrigin({ route: 'subject', entityId: 's1', title: 'Networking' })).toEqual({
+      kind: 'subject',
+      id: 's1',
+      title: 'Networking',
+    })
+  })
+
+  it('falls back to the row for an id the context lost', () => {
+    expect(askOrigin({ route: 'topic', title: 'TTL' }, { topicId: 't9' })?.id).toBe('t9')
+    expect(askOrigin({ route: 'lesson' }, { lessonId: 'l9' })).toEqual({
+      kind: 'lesson',
+      id: 'l9',
+      title: 'A lesson',
+    })
+  })
+
+  it('offers nothing it cannot link to', () => {
+    expect(askOrigin({ route: 'other' })).toBeNull()
+    expect(askOrigin({ route: 'subject', title: 'Lost' })).toBeNull()
+    expect(askOrigin({ route: 'cards' })).toEqual({ kind: 'cards', title: 'Your cards' })
   })
 })
