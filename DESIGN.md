@@ -2153,6 +2153,11 @@ is mustard and a cloze is plum.
 | The foot | *In your own words* — a foot section like the others, `2px --rule-strong` over it, the sprig beside a display-face title, and a line saying how many sections have been said back. It comes after the reading and before the material, the garden and *How did you go?* |
 | On the topic sheet | Under a lesson's title, the reader's whole-lesson summary, two lines at most, italic, behind a `2px` ultramarine rule with *In your words* in the label register. The sprig beside the play control opens every summary of that lesson in the marks' drawer — same column, same ground — each under its section's name, which links back to it. |
 
+**Rule — the reward is said where it is earned.** The foot's note says that
+saying the whole back counts as much as working with it, before anything is
+written. A figure that moves for a reason the sheet never mentioned is one the
+reader cannot trust.
+
 **Rule — one summary per section.** Writing another replaces the last. The
 point is the reader's current account of the section, not a pile of drafts.
 

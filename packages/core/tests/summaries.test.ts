@@ -7,6 +7,7 @@ import {
   summaryOf,
   summaryProblem,
   summaryTally,
+  summaryDepth,
   SUMMARY_LIMIT,
   WHOLE,
 } from '../src/summaries'
@@ -132,5 +133,16 @@ describe('summaryGist', () => {
 
   it('reads nothing as nothing', () => {
     expect(summaryGist(null)).toBe('')
+  })
+})
+
+describe('summaryDepth', () => {
+  it('rewards the whole said back as working with it', () => {
+    expect(summaryDepth(null)).toBe('applied')
+    expect(summaryDepth('  ')).toBe('applied')
+  })
+
+  it('keeps a section light, so twelve headings are not twelve times the work', () => {
+    expect(summaryDepth('Custody')).toBe('marked')
   })
 })

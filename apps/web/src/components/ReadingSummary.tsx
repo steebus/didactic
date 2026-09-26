@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { summaryProblem } from '@didactic/core/summaries'
+import { summaryProblem, WHOLE_SUMMARY_NOTE } from '@didactic/core/summaries'
 import { isUnsaved } from '@didactic/core/marks'
 import type { Highlight } from '@didactic/core/types'
 import { NoteEditor } from './NoteEditor'
@@ -73,7 +73,7 @@ export function ReadingSummary({
       <p className={styles.note}>
         {said
           ? `Your account of this ${noun}.`
-          : `Say what this ${noun} was about, the way you would explain it to someone who has not read it. Writing it down is how it sticks.`}
+          : `Say what this ${noun} was about, the way you would explain it to someone who has not read it. ${WHOLE_SUMMARY_NOTE}`}
         {tally.of > 0 &&
           ` ${tally.said} of ${tally.of} ${tally.of === 1 ? 'section' : 'sections'} said back — press the sprig beside a heading to summarise one.`}
       </p>

@@ -140,6 +140,11 @@ that flatters its owner.
   directly, so every number is reconstructible and explainable.
 - **Reading cannot produce expertise.** Consumption-only ability is capped at
   3.5 of 5; higher requires applied work, or later, quiz and agent evidence.
+- **Saying a reading back is applied work.** The whole of a lesson or a
+  resource summarised in the reader's own words counts as much as working
+  with it — an `applied` exposure, once per reading and topic. Summarising a
+  single section is a light mark, like a note: the sections are the way to a
+  whole that can be said back, and the whole is what is rewarded.
 - **Ambiguous concepts are adjudicated by the user**, not silently merged or
   split. A wrong merge destroys information; a wrong split costs a click.
 - **Single user, and the app is gated by one account.** A fresh installation

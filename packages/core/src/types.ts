@@ -11,6 +11,8 @@ export type ExposureSource =
   | 'lesson'
   | 'highlight'
   | 'diary'
+  /** Saying the whole of a reading back (054). Once per reading. */
+  | 'summary'
 export type ExposureDepth = 'struggled' | 'marked' | 'answered' | 'skim' | 'read' | 'applied'
 export type CurriculumShape = 'linear' | 'branching'
 export type CurriculumStatus = 'draft' | 'active' | 'archived'

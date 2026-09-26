@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { config } from '@didactic/core/config'
-import { sectionKey } from '@didactic/core/summaries'
+import { sectionKey, summaryDepth } from '@didactic/core/summaries'
 import type { Highlight } from '@didactic/core/types'
 import { recomputeAbility } from './scoring'
 import { fileTags } from './highlights'
@@ -43,11 +43,11 @@ export async function summariesFor(
  * before.
  *
  * The first summary of a section writes the same light exposure a note
- * on a lesson does: it is evidence the reader was there and thought
- * about what they read. Rewriting it writes nothing more -- a second
- * draft of one paragraph is not a second reading, and a figure that
- * climbed every time someone fixed a typo would be a figure nobody
- * could explain.
+ * on a lesson does. The whole of the reading said back writes an
+ * `applied` one -- as much as working with it (`core/summaries.
+ * summaryDepth`). Neither is written twice: a second draft of one
+ * paragraph is not a second reading, and a figure that climbed every
+ * time someone fixed a typo would be a figure nobody could explain.
  */
 export async function writeSummary(
   db: SupabaseClient,
@@ -138,19 +138,25 @@ export async function writeSummary(
     console.error('summaries: could not file what the note names', e)
   }
 
-  if (created && reading.topicId) {
-    await db.from('exposures').insert({
-      user_id: input.userId,
-      topic_id: reading.topicId,
-      source: 'highlight',
-      source_id: summary.id,
-      depth: 'marked',
-      ability_delta: config.DEPTH_WEIGHTS.marked,
-      reason: section
-        ? `summarised "${section}" in "${reading.title}"`
-        : `summarised "${reading.title}"`,
-    })
-    await recomputeAbility(db, reading.topicId)
+  if (section !== null) {
+    // A section said back: a light mark, once, as a note is.
+    if (created && reading.topicId) {
+      await db.from('exposures').insert({
+        user_id: input.userId,
+        topic_id: reading.topicId,
+        source: 'highlight',
+        source_id: summary.id,
+        depth: summaryDepth(section),
+        ability_delta: config.DEPTH_WEIGHTS[summaryDepth(section)],
+        reason: `summarised "${section}" in "${reading.title}"`,
+      })
+      await recomputeAbility(db, reading.topicId)
+    }
+  } else {
+    // The whole of it said back counts as working with it -- on every
+    // topic the reading counts toward, once. Checked on a rewrite too,
+    // so a resource filed under a new topic since picks it up there.
+    await rewardWhole(db, input.userId, parent.id, reading)
   }
 
   return { summary, created }
@@ -166,4 +172,50 @@ export async function removeSummary(db: SupabaseClient, userId: string, id: stri
     .eq('user_id', userId)
     .eq('kind', 'summary')
   if (error) throw new Error(error.message)
+}
+
+/**
+ * Write the `applied` exposure the whole of a reading said back earns,
+ * on each of its topics that does not have it yet.
+ *
+ * Once per reading and topic, whatever happens to the summary: its
+ * source is `summary` and its `source_id` is the reading, not the
+ * summary row, so removing a summary and writing another finds the
+ * exposure already standing. Like any exposure it outlives the thing
+ * that wrote it -- the reader did say the reading back, on that day.
+ *
+ * Tolerant of the minutes between this code and 054: before the enum
+ * has its value, the check finds nothing and the write falls back to a
+ * `highlight` source at the same depth, so the reward still lands.
+ */
+async function rewardWhole(
+  db: SupabaseClient,
+  userId: string,
+  readingId: string,
+  reading: { title: string; topicIds: string[] }
+) {
+  if (reading.topicIds.length === 0) return
+
+  const { data: standing } = await db
+    .from('exposures')
+    .select('topic_id')
+    .eq('user_id', userId)
+    .eq('source', 'summary')
+    .eq('source_id', readingId)
+  const held = new Set((standing ?? []).map(e => e.topic_id as string))
+  const owed = reading.topicIds.filter(id => !held.has(id))
+
+  for (const topicId of owed) {
+    const row = {
+      user_id: userId,
+      topic_id: topicId,
+      source_id: readingId,
+      depth: summaryDepth(null),
+      ability_delta: config.DEPTH_WEIGHTS[summaryDepth(null)],
+      reason: `said "${reading.title}" back in their own words`,
+    }
+    const { error } = await db.from('exposures').insert({ ...row, source: 'summary' })
+    if (error) await db.from('exposures').insert({ ...row, source: 'highlight' })
+    await recomputeAbility(db, topicId)
+  }
 }

@@ -13,7 +13,7 @@
  * be a list nobody could read down.
  */
 
-import type { Highlight } from './types'
+import type { ExposureDepth, Highlight } from './types'
 
 /** Long enough for a real paragraph about a long section; short enough
  *  that pasting the section itself back in is refused. */
@@ -133,3 +133,27 @@ export function summaryGist(note: string | null | undefined, clip = 180): string
   const space = cut.lastIndexOf(' ')
   return `${(space > clip * 0.6 ? cut.slice(0, space) : cut).trimEnd()}…`
 }
+
+/**
+ * What a summary is worth to the map.
+ *
+ * The whole of a reading, said back in the reader's own words, counts
+ * as much as working with it: `applied`, the one depth that lifts a
+ * topic past the consumption ceiling. Writing an account of a thing
+ * that someone who has not read it could follow is doing something
+ * with it, not only having read it -- which is exactly the distinction
+ * the ceiling exists to draw.
+ *
+ * A section said back is a light mark, as a note is. Each one is real,
+ * but a lesson with twelve headings would otherwise earn twelve times
+ * what working through it earns, and the figure would stop meaning
+ * anything. The sections are how a reader gets to a whole they can say
+ * back; the whole is what is rewarded.
+ */
+export function summaryDepth(section: string | null | undefined): ExposureDepth {
+  return sectionKey(section) === null ? 'applied' : 'marked'
+}
+
+/** Said under the field at the foot, so the reward is not a secret. */
+export const WHOLE_SUMMARY_NOTE =
+  'Saying the whole of it back counts as much as working with it.'
