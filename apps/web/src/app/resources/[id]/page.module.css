@@ -1,0 +1,59 @@
+/* What a resource's sheet has that a lesson's does not. Everything else
+   is the lesson's own stylesheet: the same band, the same reading
+   measure, the same foot -- a reader working an article is doing the
+   thing they do in a lesson, and the sheet should say so. */
+
+/* Where it came from, set in the band beside the other figures: the
+   figure's size, in the band's own paper, ruled like a link. */
+.source {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  color: var(--paper);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(var(--paper-rgb), 0.5);
+  overflow-wrap: anywhere;
+}
+
+.source:hover {
+  border-bottom-color: var(--paper);
+}
+
+.source:focus-visible {
+  outline: 2px solid var(--paper);
+  outline-offset: 2px;
+}
+
+.filed {
+  margin: 0;
+  max-width: 68ch;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.filedLink {
+  color: var(--ink);
+}
+
+/* Nothing could be brought in. Said plainly, in the sheet's italic, with
+   the way to read it elsewhere -- the summary and the foot below still
+   work, because the reading still happened. */
+.unreadable {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 60ch;
+  padding: var(--space-4) 0;
+}
+
+.unreadableWhy {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-style: italic;
+  color: var(--ink-faint);
+}
+
+.unreadableWay {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}

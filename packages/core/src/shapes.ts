@@ -18,6 +18,8 @@ import type {
   Curriculum,
   Highlight,
   Resource,
+  ResourceKind,
+  ResourceStatus,
   Subject,
   Topic,
 } from './types'
@@ -413,4 +415,36 @@ export interface Sprouting {
   unembedded: number
   /** Whether decisions can be kept yet: false until `052` has run. */
   keeps: boolean
+}
+
+/* ------------------------------------------------------ resource reading */
+
+/** Where a resource's readable body came from (053). */
+export type BodySource = 'article' | 'note' | 'document'
+
+/** A resource's body as the reader prints it, or why there is none. */
+export type ReadableBody =
+  | { body: string; source: BodySource }
+  | { body: null; why: string }
+
+/**
+ * A resource opened to be read in the app: what it is, where it is
+ * filed, its body where one could be made, and every mark and summary
+ * already written in it (the sheet parts them by `kind`).
+ */
+export interface ResourceReading {
+  resource: {
+    id: string
+    title: string
+    kind: ResourceKind
+    url: string | null
+    status: ResourceStatus
+    consumed_at: string | null
+    added_at: string
+    /** Whether there is a file to open in the browser's own viewer. */
+    has_file: boolean
+  }
+  topics: Array<{ id: string; title: string }>
+  readable: ReadableBody
+  written: Highlight[]
 }

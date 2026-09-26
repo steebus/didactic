@@ -10,6 +10,9 @@ export function extractFromHtml(html: string, url: string) {
   return {
     title: parsed.title || url,
     text: parsed.textContent.trim(),
+    /** The article as Readability left it: the page with its furniture
+     *  taken away. What the reader is made from (`./markdown`). */
+    html: parsed.content ?? '',
   }
 }
 

@@ -13,6 +13,7 @@ import { judgeWithJev, type JevVerdict } from './llm/jev'
 import { cosineSimilarity } from '@didactic/core/similarity'
 import { config } from '@didactic/core/config'
 import { extractFromHtml } from './extract/url'
+import { articleBody, keepBody } from './resourceBody'
 import { readDocumentRound } from './document'
 
 const slugify = (s: string) =>
@@ -125,6 +126,16 @@ export async function ingestResource(
       const extracted = extractFromHtml(await res.text(), resource.url)
       title = extracted.title
       text = extracted.text
+
+      // The page is in hand, so the reader's copy of it is made now
+      // rather than fetched again on first open. Not worth failing a
+      // filing over: the reader makes its own if this does not land.
+      try {
+        const body = articleBody(extracted.html, resource.url)
+        if (body) await keepBody(db, resource, body, 'article')
+      } catch (e) {
+        console.error('ingest: could not keep the readable body', e)
+      }
     } else if (resource.kind === 'book') {
       // A book carries metadata and never its contents -- full-text
       // ingestion is out of scope by design (PRODUCT.md). One looked up

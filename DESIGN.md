@@ -2123,6 +2123,21 @@ is ignored on anything that scrolls sideways of its own accord — a plot, a wid
 table — while a selection is being made, while a panel is open, and when the
 travel is more down the page than across it.
 
+### A resource, read in the app
+
+The lesson's sheet, over something the reader brought in. Nothing is drawn
+again for it: the band, the reading measure, the contents, the marks, the
+cloze maker, the sprigs and the foot are the lesson's own stylesheet and
+components, because working an article is the same work as working a lesson.
+
+| Part | Treatment |
+| --- | --- |
+| Band | The trail is *Inbox* and the topic it is most about. The figures are *Kind*, *From* (the site, a link out ruled in the band's paper) or *File* (the document viewer), and *State* — which reads *Reading* as soon as it is opened. |
+| Filed under | One line in `--ink-soft` above the reading, naming every topic it counts toward. |
+| Nothing to read | Said in the display face's italic, in `--ink-faint`, with the way to read it where it lives. The summary and the foot are still there beneath it. |
+| The foot | *In your own words*, then *Have you read it?* — the lesson's depth buttons: **Read it** first, then *Skimmed it* and *Worked with it*. Once said: *Read*, the date, and what it counted toward. |
+| In the inbox | The row's title is the way in, in the heading's ink with a `--rule` hairline under it that darkens to `--ink` under the pointer. |
+
 ### Summaries in the reader's own words
 
 Saying a section back is how it sticks, so every heading carries a way to do

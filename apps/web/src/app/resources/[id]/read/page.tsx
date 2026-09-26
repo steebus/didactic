@@ -31,7 +31,7 @@ export default async function ReadDocumentPage({
   const { id } = await params
   const db = supabaseAdmin()
 
-  const [userId, { data: resource }] = await Promise.all([
+  const [owner, { data: resource }] = await Promise.all([
     requireOwner(),
     db
       .from('resources')
@@ -42,7 +42,10 @@ export default async function ReadDocumentPage({
 
   // Not found rather than forbidden for someone else's document: the
   // answer to "does this exist" is not one a stranger is owed either.
-  if (!resource || resource.user_id !== userId) notFound()
+  // The owner's id, not the owner: `requireOwner` answers the whole
+  // user, and comparing a row's `user_id` to that object was never
+  // equal -- so every document opened here was a 404.
+  if (!resource || resource.user_id !== owner.id) notFound()
 
   // A book recorded by title, or a link: there is no file to open. The
   // shelf only offers this on a document, so arriving here for one of
@@ -59,7 +62,7 @@ export default async function ReadDocumentPage({
     return (
       <main className={styles.sheet}>
         <header className={styles.head}>
-          <SheetNav back={{ href: '/inbox', label: 'Inbox' }} />
+          <SheetNav back={{ href: `/resources/${resource.id}`, label: 'Reading' }} />
           <h1 className={styles.title}>{resource.title}</h1>
         </header>
         <div className={styles.headRule} />
@@ -76,7 +79,7 @@ export default async function ReadDocumentPage({
   return (
     <main className={styles.sheet}>
       <header className={styles.head}>
-        <SheetNav back={{ href: '/inbox', label: 'Inbox' }} />
+        <SheetNav back={{ href: `/resources/${resource.id}`, label: 'Reading' }} />
         <div className={styles.headRow}>
           <h1 className={styles.title}>{resource.title}</h1>
           {/* The way out of the frame, for printing, or for a viewer

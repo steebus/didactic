@@ -5,6 +5,7 @@ import type {
   ResourceKind,
   ResourceStatus,
 } from '@didactic/core/types'
+import type { ResourceReading } from '@didactic/core/shapes'
 
 export interface AddResource {
   kind: ResourceKind
@@ -49,6 +50,9 @@ export interface Filed {
 
 export const resources = (api: Api) => ({
   list: () => api.get<{ resources: Resource[] }>('/api/resources'),
+  /** A resource opened to be read in the app, its body made on the
+   *  first ask (053). Marks and summaries come with it in `written`. */
+  reading: (id: string) => api.get<ResourceReading>(`/api/resources/${id}/reading`),
   add: (body: AddResource) => api.post<Filed>('/api/resources', body),
 
   /**

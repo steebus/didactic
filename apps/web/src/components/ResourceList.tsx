@@ -105,7 +105,13 @@ export function ResourceList({
             className={`${styles.row} ${leaving === r.id ? styles.rowLeaving : ''}`}
           >
             <div>
-              <h3 className={styles.rowTitle}>{r.title}</h3>
+              {/* The title opens it to be read here, the way a lesson's
+                  does -- and opening it is what moves it to *Reading*. */}
+              <h3 className={styles.rowTitle}>
+                <Link href={`/resources/${r.id}`} className={styles.rowTitleLink}>
+                  {r.title}
+                </Link>
+              </h3>
               <div className={styles.rowMeta}>
                 <span className={styles.kind}>{r.kind}</span>
                 {r.url && (
@@ -119,7 +125,7 @@ export function ResourceList({
                     page, this one stays here. */}
                 {r.storage_path && (
                   <Link className={styles.rowLink} href={`/resources/${r.id}/read`}>
-                    Open it
+                    Open the file
                   </Link>
                 )}
                 <span>

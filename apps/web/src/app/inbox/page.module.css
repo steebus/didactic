@@ -344,6 +344,25 @@
   margin: 0;
 }
 
+/* The title is the way in to reading it here. It reads as a title
+   first: the ink of the heading, with a hairline under it that darkens
+   under the pointer, as a lesson's row does on the topic sheet. */
+.rowTitleLink {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid var(--rule);
+  transition: border-color var(--dur-state) var(--ease-settle);
+}
+
+.rowTitleLink:hover {
+  border-bottom-color: var(--ink);
+}
+
+.rowTitleLink:focus-visible {
+  outline: 2px solid var(--plate-terracotta);
+  outline-offset: 2px;
+}
+
 .rowMeta {
   display: flex;
   align-items: baseline;
