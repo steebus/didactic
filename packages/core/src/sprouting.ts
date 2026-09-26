@@ -93,18 +93,56 @@ export interface SetAside {
    * which is fertile ground rather than a subject. `unjoined`: two or
    * more resources carry it, but nothing ties those resources to each
    * other -- two unrelated readings that happen to sit side by side.
+   * `no-material`: nothing the reader has saved carries two of its topics
+   * at all; only drawn relations and what the names mean hold it.
    */
-  reason: 'one-resource' | 'unjoined'
+  reason: 'one-resource' | 'unjoined' | 'no-material'
   /** Resources carrying at least two of its topics. */
   materials: string[]
+}
+
+/**
+ * How one of the reader's own subjects came out of a reading that never
+ * looked at the subjects -- the check on whether it can be believed, one
+ * subject at a time, with what it had to go on.
+ *
+ * - `whole`: one community, most of it this subject, holds at least half
+ *   of it.
+ * - `parts`: no one community does, but at least half of it sits in
+ *   communities that are each mostly this subject -- the reading agrees
+ *   where its edge is and sees sub-themes inside it. Counted as found.
+ * - `mixed`: most of it fell in with another subject's topics, or with
+ *   loose ones.
+ * - `thin`: most of it is tied to nothing the reading kept.
+ */
+export interface SubjectReading {
+  subjectId: string
+  /** Its topics among those read. */
+  size: number
+  verdict: 'whole' | 'parts' | 'mixed' | 'thin'
+  /** Its topics in communities that are mostly it. */
+  own: number
+  /** Those communities' shares of it, largest first. */
+  parts: number[]
+  /** Where the rest went: another subject, or `null` for loose topics. */
+  with: Array<{ subjectId: string | null; count: number }>
+  /** Its topics in no community at all. */
+  alone: number
+  /** Its topics with a relation drawn to another of its own. */
+  related: number
+  /** Its topics carried by any material. */
+  withMaterial: number
 }
 
 /** What a reading of the whole map finds. */
 export interface SproutReading {
   sprouts: Sprout[]
   /** The subjects the same reading finds again, of those large enough
-   *  to be found: the evidence that it can be believed about the rest. */
-  found: { subjectIds: string[]; of: number }
+   *  to be found: the evidence that it can be believed about the rest.
+   *  `inParts` are found as sub-themes rather than whole. */
+  found: { subjectIds: string[]; of: number; inParts: string[] }
+  /** How each subject large enough to be found came out, largest first. */
+  subjects: SubjectReading[]
   /** Clumps of loose or mixed topics looked at and not offered, with why. */
   setAside: SetAside[]
 }
@@ -143,13 +181,13 @@ export function readSprouts(input: SproutInput): SproutReading {
     strength.set(line.b, (strength.get(line.b) ?? 0) + line.weight)
   }
 
-  const found = new Set<string>()
   const sprouts: Sprout[] = []
   const accounted = new Set<string>()
   const setAsideFinest: SetAside[] = []
+  const finest = stableCommunities(input.lines, SPROUTING.GRAINS[0])
 
   SPROUTING.GRAINS.forEach((grain, g) => {
-    for (const community of stableCommunities(input.lines, grain)) {
+    for (const community of g === 0 ? finest : stableCommunities(input.lines, grain)) {
       const members = community.filter(id => !accounted.has(id))
       if (members.length < SPROUTING.MIN_TOPICS) continue
       const inside = new Set(members)
@@ -167,16 +205,14 @@ export function readSprouts(input: SproutInput): SproutReading {
 
       const dominant = from[0]
       if (dominant && dominant.count / members.length >= SPROUTING.WITHIN) {
-        if (dominant.count / (subjectSize.get(dominant.subjectId) ?? Infinity) >= SPROUTING.HOLDS) {
-          found.add(dominant.subjectId)
-        }
         for (const id of members) accounted.add(id)
         continue
       }
 
       const binding = bindingOf(inside, input.materials, input.marks)
       const reason =
-        binding.materials.length < SPROUTING.MIN_MATERIAL ? 'one-resource' as const
+        binding.materials.length === 0 ? 'no-material' as const
+          : binding.materials.length < SPROUTING.MIN_MATERIAL ? 'one-resource' as const
           : joinedMaterials(inside, binding.materials, input.materials, weightOf) < SPROUTING.MIN_MATERIAL
             ? 'unjoined' as const
             : null
@@ -219,15 +255,118 @@ export function readSprouts(input: SproutInput): SproutReading {
     }
   })
 
-  const large = [...subjectSize].filter(([, n]) => n >= SPROUTING.MIN_TOPICS).map(([s]) => s)
+  const subjects = readSubjects(input, finest, subjectsOf, subjectSize)
+  const found = subjects.filter(r => r.verdict === 'whole' || r.verdict === 'parts')
 
   return {
     sprouts: sprouts.sort((a, b) => b.score - a.score || a.key.localeCompare(b.key)),
-    found: { subjectIds: large.filter(s => found.has(s)).sort(), of: large.length },
+    found: {
+      subjectIds: found.map(r => r.subjectId).sort(),
+      of: subjects.length,
+      inParts: found.filter(r => r.verdict === 'parts').map(r => r.subjectId).sort(),
+    },
+    subjects,
     // What was set aside at the finest grain and never taken up by a
     // coarser one: a clump that joined its kin in a sprout has an answer.
     setAside: setAsideFinest.filter(a => !a.topicIds.some(id => accounted.has(id))),
   }
+}
+
+/**
+ * How each of the reader's subjects came out of the finest reading.
+ *
+ * Read off the whole communities, not what was left of them after
+ * subjects were accounted for: this is the question of where the
+ * reading drew a subject's edge, asked of every subject large enough to
+ * have one.
+ */
+function readSubjects(
+  input: SproutInput,
+  finest: readonly string[][],
+  subjectsOf: ReadonlyMap<string, readonly string[]>,
+  subjectSize: ReadonlyMap<string, number>
+): SubjectReading[] {
+  const communityOf = new Map<string, number>()
+  finest.forEach((c, i) => c.forEach(id => communityOf.set(id, i)))
+
+  // Each community's make-up: how many of its topics sit in each
+  // subject, and how many are loose (the `null` key).
+  const makeUp = finest.map(c => {
+    const t = new Map<string | null, number>()
+    for (const id of c) {
+      const subjects = new Set(subjectsOf.get(id) ?? [])
+      if (subjects.size === 0) t.set(null, (t.get(null) ?? 0) + 1)
+      for (const s of subjects) t.set(s, (t.get(s) ?? 0) + 1)
+    }
+    return t
+  })
+
+  const related = new Map<string, Set<string>>()
+  for (const line of input.lines) {
+    if (!(line.stated > 0)) continue
+    const a = subjectsOf.get(line.a) ?? [], b = new Set(subjectsOf.get(line.b) ?? [])
+    for (const s of a) {
+      if (!b.has(s)) continue
+      const held = related.get(s) ?? new Set<string>()
+      held.add(line.a)
+      held.add(line.b)
+      related.set(s, held)
+    }
+  }
+  const carried = new Set(input.materials.flatMap(m => m.topics.map(t => t.id)))
+
+  return [...subjectSize]
+    .filter(([, n]) => n >= SPROUTING.MIN_TOPICS)
+    .sort(([a, x], [b, y]) => y - x || a.localeCompare(b))
+    .map(([subjectId, size]) => {
+      const members = input.topics.filter(t => t.subjects.includes(subjectId)).map(t => t.id)
+
+      const parts: number[] = []
+      const partner = new Map<string | null, number>()
+      finest.forEach((c, i) => {
+        const mine = makeUp[i].get(subjectId) ?? 0
+        if (mine === 0) return
+        if (mine / c.length >= SPROUTING.WITHIN) {
+          parts.push(mine)
+          return
+        }
+        // Mostly something else: whatever else there is most of.
+        let best: string | null = null
+        let most = -1
+        for (const [label, n] of makeUp[i]) {
+          if (label === subjectId) continue
+          if (n > most || (n === most && String(label) < String(best))) {
+            best = label
+            most = n
+          }
+        }
+        partner.set(best, (partner.get(best) ?? 0) + mine)
+      })
+      parts.sort((a, b) => b - a)
+
+      const own = parts.reduce((a, b) => a + b, 0)
+      const alone = members.filter(id => !communityOf.has(id)).length
+      const bar = SPROUTING.HOLDS * size
+      const verdict: SubjectReading['verdict'] =
+        (parts[0] ?? 0) >= bar ? 'whole'
+          : own >= bar ? 'parts'
+            : alone >= bar ? 'thin'
+              : 'mixed'
+
+      return {
+        subjectId,
+        size,
+        verdict,
+        own,
+        parts,
+        with: [...partner]
+          .map(([id, count]) => ({ subjectId: id, count }))
+          .sort((a, b) => b.count - a.count || String(a.subjectId).localeCompare(String(b.subjectId))),
+        alone,
+        related: related.get(subjectId)?.size ?? 0,
+        withMaterial: members.filter(id => carried.has(id)).length,
+      }
+    })
 }
 
 /**
@@ -411,19 +550,59 @@ export function setAsideSentence(item: Pick<SetAside, 'topicIds' | 'reason' | 'm
   if (item.reason === 'one-resource') {
     return `${topics} that came in on one piece of material and have turned up nowhere else yet. One reading is fertile ground rather than a subject; it sprouts when other material on the same theme joins it.`
   }
+  if (item.reason === 'no-material') {
+    return `${topics} that no material you have saved puts together: they are held only by the relations drawn between them and what their names mean, which is not enough to say they are a subject of their own.`
+  }
   return `${topics} carried by ${item.materials.length} pieces of material that nothing else ties together, so nothing says they are one subject.`
+}
+
+/**
+ * How one subject came out of the reading, as the sheet prints it beside
+ * its name. The counts carry the reasoning; where the reading had little
+ * to go on, it says what would give it more.
+ */
+export function subjectSentence(r: SubjectReading, titleOf: (subjectId: string) => string): string {
+  const of = `of its ${r.size}`
+  const hint = () => {
+    if (r.related * 2 >= r.size && r.withMaterial > 0) return ''
+    const relations = r.related === 0 ? 'None of its topics has' : `Only ${r.related} ${of} topics have`
+    const material = r.withMaterial === 0 ? ' and none has any material,' : ','
+    return ` ${relations} a relation drawn to another of its own${material} so the reading had little but their names to go on. Draw connections on its bed gives it more.`
+  }
+
+  if (r.verdict === 'whole') return `${r.parts[0]} ${of} topics read together, as one.`
+  if (r.verdict === 'parts') {
+    const sizes = r.parts.length === 2 ? `${r.parts[0]} and ${r.parts[1]}` : `${r.parts.slice(0, -1).join(', ')} and ${r.parts[r.parts.length - 1]}`
+    return `Read as ${r.parts.length} sub-themes of ${sizes} topics, each still its own: ${r.own} ${of} in all.`
+  }
+  if (r.verdict === 'thin') return `${r.alone} ${of} topics are tied to nothing the reading kept.${hint()}`
+
+  const went = r.with.slice(0, 2).map(w =>
+    w.subjectId === null ? `${w.count} with loose topics` : `${w.count} with ${titleOf(w.subjectId)}'s`
+  )
+  return `Read together with other topics: ${went.join(', and ')}.${hint()}`
+}
+
+/** A subject's verdict as a word or two, for the sheet's list. */
+export const SUBJECT_VERDICT: Record<SubjectReading['verdict'], string> = {
+  whole: 'Found',
+  parts: 'Found in parts',
+  mixed: 'Read with others',
+  thin: 'Too little to read',
 }
 
 /** How the sheet reports the found-again check. */
 export function foundSentence(found: SproutReading['found']): string | null {
   if (found.of === 0) return null
   const n = found.subjectIds.length
+  const parts = found.inParts?.length ?? 0
+  const inParts = parts === 0 ? '' : parts === n && n === 1 ? ', in parts' : `, ${parts === 1 ? 'one' : parts} of them in parts`
   if (n === found.of) {
     return found.of === 1
-      ? 'Read the same way, the map finds your one subject again.'
-      : `Read the same way, the map finds all ${found.of} of your subjects again.`
+      ? `Read the same way, the map finds your one subject again${inParts}.`
+      : `Read the same way, the map finds all ${found.of} of your subjects again${inParts}.`
   }
-  return `Read the same way, the map finds ${n} of your ${found.of} subjects again.`
+  return `Read the same way, the map finds ${n} of your ${found.of} subjects again${inParts}.`
 }
 
 /** What an unnamed sprout is called until it is named. */

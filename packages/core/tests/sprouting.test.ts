@@ -6,6 +6,8 @@ import {
   jaccard,
   keyOf,
   kindLine,
+  subjectSentence,
+  SUBJECT_VERDICT,
   matchKept,
   setAsideSentence,
   sproutingSentence,
@@ -116,7 +118,7 @@ describe('readSprouts', () => {
   it('finds the subjects already on the map again', () => {
     // The only evidence that the reading can be believed about the
     // topics nobody has filed.
-    expect(reading().found).toEqual({ subjectIds: ['stats', 'web'], of: 2 })
+    expect(reading().found).toEqual({ subjectIds: ['stats', 'web'], of: 2, inParts: [] })
   })
 
   it('reads the same map the same way every time', () => {
@@ -125,7 +127,7 @@ describe('readSprouts', () => {
 
   it('reads nothing into a map with no kinship', () => {
     expect(readSprouts({ topics: [], lines: [], materials: [], marks: [] })).toEqual({
-      sprouts: [], found: { subjectIds: [], of: 0 }, setAside: [],
+      sprouts: [], found: { subjectIds: [], of: 0, inParts: [] }, subjects: [], setAside: [],
     })
   })
 })
@@ -195,9 +197,10 @@ describe('the sentences', () => {
   })
 
   it('reports the found-again check, or nothing where there is nothing to find', () => {
-    expect(foundSentence({ subjectIds: ['a'], of: 3 })).toBe('Read the same way, the map finds 1 of your 3 subjects again.')
-    expect(foundSentence({ subjectIds: ['a', 'b'], of: 2 })).toBe('Read the same way, the map finds all 2 of your subjects again.')
-    expect(foundSentence({ subjectIds: [], of: 0 })).toBeNull()
+    expect(foundSentence({ subjectIds: ['a'], of: 3, inParts: [] })).toBe('Read the same way, the map finds 1 of your 3 subjects again.')
+    expect(foundSentence({ subjectIds: ['a', 'b'], of: 2, inParts: [] })).toBe('Read the same way, the map finds all 2 of your subjects again.')
+    expect(foundSentence({ subjectIds: ['a', 'b'], of: 3, inParts: ['b'] })).toBe('Read the same way, the map finds 2 of your 3 subjects again, one of them in parts.')
+    expect(foundSentence({ subjectIds: [], of: 0, inParts: [] })).toBeNull()
   })
 
   it('holds its bars where the spec sets them', () => {
@@ -283,5 +286,89 @@ describe('setAsideSentence', () => {
   it('says when the material holding a clump has nothing in common', () => {
     expect(setAsideSentence({ topicIds: range('a', 6), reason: 'unjoined', materials: ['r', 's'] }))
       .toBe('6 topics carried by 2 pieces of material that nothing else ties together, so nothing says they are one subject.')
+  })
+})
+
+/**
+ * How each of the reader's own subjects comes out, one scenario per
+ * verdict. The vectors share one large common direction, as gte-small's
+ * do, and differ in a direction per theme.
+ */
+describe('how each subject reads', () => {
+  const vec = (theme: number, own: number) => {
+    const v = new Array(40).fill(0)
+    v[0] = 8
+    v[1 + theme] = 1
+    v[20 + (own % 20)] = 0.3
+    return v
+  }
+  const byId = (r: ReturnType<typeof readSprouts>, id: string) => r.subjects.find(s => s.subjectId === id)!
+
+  it('is whole where one community holds most of it', () => {
+    const r = reading()
+    expect(byId(r, 'web').verdict).toBe('whole')
+    expect(byId(r, 'web').withMaterial).toBe(11)
+  })
+
+  it('is found in parts where it splits into sub-themes of its own', () => {
+    // Twelve topics in three clumps of four, each read together twice,
+    // and nothing between the clumps: three sub-themes, none of them
+    // half the subject, all of them it.
+    const ids = range('s', 12)
+    const topics: KinTopic[] = ids.map((id, i) => ({ id, subjects: ['S'], vector: vec(Math.floor(i / 4), i) }))
+    const materials = [0, 1, 2].flatMap(g => [read(`a${g}`, ...ids.slice(g * 4, g * 4 + 4)), read(`b${g}`, ...ids.slice(g * 4, g * 4 + 4))])
+    const lines = kinship({ topics, materials, marks: [], edges: [] })
+    const r = readSprouts({ topics, lines, materials, marks: [] })
+    expect(byId(r, 'S').verdict).toBe('parts')
+    expect(byId(r, 'S').parts).toEqual([4, 4, 4])
+    expect(r.found.inParts).toEqual(['S'])
+  })
+
+  it('is mixed where it fell in with another subject, and says what was missing', () => {
+    // Two subjects with no material and no relations, whose names mean
+    // much the same thing: the reading has nothing to tell them apart.
+    // A third, unrelated group, as a real map always has: without it the
+    // mean the meaning channel takes out would be A and B's own theme.
+    const a = range('a', 6), b = range('b', 6), c = range('c', 6)
+    const topics: KinTopic[] = [
+      ...a.map((id, i) => ({ id, subjects: ['A'], vector: vec(0, i) })),
+      ...b.map((id, i) => ({ id, subjects: ['B'], vector: vec(0, i + 6) })),
+      ...c.map((id, i) => ({ id, subjects: [], vector: vec(5, i + 12) })),
+    ]
+    const lines = kinship({ topics, materials: [], marks: [], edges: [] })
+    const r = readSprouts({ topics, lines, materials: [], marks: [] })
+    const readA = byId(r, 'A')
+    expect(readA.verdict).toBe('mixed')
+    expect(readA.with[0].subjectId).toBe('B')
+    expect(readA.related).toBe(0)
+    expect(subjectSentence(readA, id => (id === 'B' ? 'System Design' : id)))
+      .toMatch(/^Read together with other topics: \d+ with System Design's\. None of its topics has a relation drawn to another of its own and none has any material, so the reading had little but their names to go on\. Draw connections on its bed gives it more\.$/)
+  })
+
+  it('is thin where most of it is tied to nothing', () => {
+    const ids = range('t', 5)
+    const topics: KinTopic[] = [...ids.map(id => ({ id, subjects: ['T'] })), { id: 'x', subjects: [] }, { id: 'y', subjects: [] }]
+    const lines = kinship({ topics, materials: [read('r', 'x', 'y', 't0')], marks: [], edges: [] })
+    const r = readSprouts({ topics, lines, materials: [read('r', 'x', 'y', 't0')], marks: [] })
+    expect(byId(r, 'T').verdict).toBe('thin')
+    expect(byId(r, 'T').alone).toBeGreaterThanOrEqual(4)
+  })
+
+  it('names every verdict for the list', () => {
+    expect(Object.keys(SUBJECT_VERDICT).sort()).toEqual(['mixed', 'parts', 'thin', 'whole'])
+  })
+
+  it('words whole and parts by their counts', () => {
+    const base = { subjectId: 'S', size: 12, own: 12, with: [], alone: 0, related: 12, withMaterial: 12 }
+    expect(subjectSentence({ ...base, verdict: 'whole', parts: [10] }, id => id)).toBe('10 of its 12 topics read together, as one.')
+    expect(subjectSentence({ ...base, verdict: 'parts', parts: [5, 4, 3] }, id => id))
+      .toBe('Read as 3 sub-themes of 5, 4 and 3 topics, each still its own: 12 of its 12 in all.')
+  })
+})
+
+describe('set aside with no material at all', () => {
+  it('says so, rather than calling it one piece of material', () => {
+    expect(setAsideSentence({ topicIds: range('a', 5), reason: 'no-material', materials: [] }))
+      .toMatch(/^5 topics that no material you have saved puts together/)
   })
 })

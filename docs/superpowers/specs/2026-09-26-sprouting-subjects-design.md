@@ -177,6 +177,28 @@ about the topics nobody has filed.
 
 ---
 
+**Which subjects, and why not** (*amended 2026-09-26, later*). The first
+real map was found at 1 of 3, and a count cannot say which or why. Each
+subject of four topics or more is now read on its own, off the finest
+communities: *found* where one community, mostly it, holds half of it;
+*found in parts* where no one does but at least half of it sits in
+communities that are each mostly it — the reading agrees where its edge
+is and sees sub-themes inside it, so this counts as found; *read with
+others* where most of it fell in with another subject's topics or loose
+ones; *too little to read* where most of it is tied to nothing. The sheet
+lists every subject with its verdict and a sentence of counts, and where
+the reading had little to go on — few relations drawn among its own
+topics, no material — it says so and points at *Draw connections*.
+
+Rebuilt on subjects sown the way the app sows them — 24, 18 and 12
+topics, no material — the reading finds all three while their relations
+stand, and loses the one with none: sowing gives up its relation pass
+first when the clock runs short, and a bed grown by bulk-filing loose
+stock is unplaced, so a subject can reach the reading as names alone,
+and two neighbouring subjects' names are close enough to blend. A clump
+with no material at all is set aside as *no-material* rather than
+miscounted as one piece of it.
+
 ## 5. When a community is a sprouting subject
 
 For each stable community of at least **4** topics:

@@ -80,6 +80,84 @@
   max-width: 62ch;
 }
 
+/* --- How each subject read ----------------------------------------- */
+
+/* Folded under the found-again line it explains: a subject per row, its
+   plate and name, the verdict in the label register -- green where the
+   reading found it, terracotta where it did not -- and the sentence that
+   says why, counts first. */
+.readings {
+  margin: calc(var(--space-2) * -1) 0 var(--space-4);
+  max-width: 62ch;
+}
+
+.readingsHead {
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  cursor: pointer;
+  padding: var(--space-1) 0;
+}
+
+.readingsList {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0 0 0 var(--space-3);
+  border-left: 1px solid var(--rule);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.readingRow {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.readingName {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+  font-size: var(--step--1);
+  font-weight: 600;
+}
+
+.readingName a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+
+.readingName .chip {
+  align-self: center;
+}
+
+.verdictFound,
+.verdictMissed {
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.verdictFound {
+  color: var(--plate-green);
+}
+
+.verdictMissed {
+  color: var(--plate-terracotta);
+}
+
+.readingWhy {
+  margin: 0;
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
 .note {
   font-size: var(--step--1);
   line-height: 1.45;

@@ -16,6 +16,7 @@ import {
   nameStillFits,
   readSprouts,
   setAsideSentence,
+  subjectSentence,
   type Sprout,
   type SproutReading,
 } from '@didactic/core/sprouting'
@@ -491,8 +492,22 @@ function present(map: MapRead, given?: SproutReading & { lines: KinLine[] }): Sp
     }),
   }))
 
+  const subjectReadings: Sprouting['subjectReadings'] = reading.subjects.flatMap(r => {
+    const s = subjectById.get(r.subjectId)
+    return s
+      ? [{
+          subjectId: s.id,
+          title: s.title,
+          colour: s.colour,
+          verdict: r.verdict,
+          sentence: subjectSentence(r, id => subjectById.get(id)?.title ?? 'another subject'),
+        }]
+      : []
+  })
+
   return {
     sprouts,
+    subjectReadings,
     lookedAt,
     kinship: reading.lines.map(l => [l.a, l.b, Math.round(l.weight * 1000) / 1000]),
     found: foundSentence(reading.found),
