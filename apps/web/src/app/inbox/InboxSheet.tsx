@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useTransition } from 'react'
+import { useEffect, useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { didactic } from '@didactic/api'
 import type { LibraryRow } from '@didactic/core/shapes'
@@ -8,6 +8,11 @@ import { ResourceList } from '@/components/ResourceList'
 import styles from './page.module.css'
 
 const api = didactic()
+
+/** How often a sheet with something still being read looks again. */
+const LOOK_AGAIN_MS = 20_000
+/** And for how long, before it leaves the reader to reload. */
+const STOP_LOOKING_MS = 5 * 60_000
 
 const KIND_LABEL: Record<string, string> = {
   article: 'Article',
@@ -36,6 +41,20 @@ export function InboxSheet({ resources }: { resources: LibraryRow[] }) {
   const [error, setError] = useState<string | null>(null)
   const [, startTransition] = useTransition()
   const router = useRouter()
+
+  // Something is still waiting or being read: look again now and then,
+  // so it turns to Filed without a reload. Each look also works the
+  // queue -- see `drainAfter` on the page.
+  const underway = resources.some(r => r.filing === 'waiting' || r.filing === 'reading')
+  useEffect(() => {
+    if (!underway) return
+    const since = Date.now()
+    const timer = setInterval(() => {
+      if (Date.now() - since > STOP_LOOKING_MS) return clearInterval(timer)
+      if (document.visibilityState === 'visible') startTransition(() => router.refresh())
+    }, LOOK_AGAIN_MS)
+    return () => clearInterval(timer)
+  }, [underway, router])
 
   const shown = useMemo(() => {
     const q = term.trim().toLowerCase()

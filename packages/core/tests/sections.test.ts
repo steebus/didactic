@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { lessonSections, outlineFrom, slugFor } from '../src/sections'
+import { headingLines, lessonSections, outlineFrom, rulesNotHeadings, slugFor } from '../src/sections'
 
 describe('slugFor', () => {
   it('names a heading the way a link expects to be written', () => {
@@ -91,10 +91,16 @@ describe('lessonSections', () => {
   })
 
   it('reads an underlined heading, and does not read a rule as one', () => {
-    expect(lessonSections('A title\n=======\n\nProse.\n\nUnder\n-----').map(s => s.level)).toEqual([
+    expect(lessonSections('A title\n=======\n\nProse.\n\nUnder\n--').map(s => s.level)).toEqual([
       1, 2,
     ])
     expect(lessonSections('Prose.\n\n---\n\nMore prose.')).toEqual([])
+  })
+
+  it('reads a rule drawn straight under a paragraph as a rule, not a heading', () => {
+    const body = '## Caching\n\nA common misconception is that a longer TTL helps.\n---\n\n## Next'
+    expect(lessonSections(body).map(s => s.text)).toEqual(['Caching', 'Next'])
+    expect(headingLines(body).map(s => s.text)).toEqual(['Caching', 'Next'])
   })
 
   it('goes no deeper than the three levels worth listing', () => {
@@ -103,5 +109,21 @@ describe('lessonSections', () => {
 
   it('finds nothing in a lesson with no headings', () => {
     expect(lessonSections('Just prose, all the way down.')).toEqual([])
+  })
+})
+
+describe('rulesNotHeadings', () => {
+  it('opens a blank line above a rule that sits under text', () => {
+    expect(rulesNotHeadings('Prose.\n---\nMore.')).toBe('Prose.\n\n---\nMore.')
+  })
+
+  it('leaves a rule that already stands apart, and a short underline, alone', () => {
+    expect(rulesNotHeadings('Prose.\n\n---\n\nMore.')).toBe('Prose.\n\n---\n\nMore.')
+    expect(rulesNotHeadings('Under\n--')).toBe('Under\n--')
+  })
+
+  it('leaves fenced code alone', () => {
+    const body = '```yaml\nkey: 1\n---\n```'
+    expect(rulesNotHeadings(body)).toBe(body)
   })
 })

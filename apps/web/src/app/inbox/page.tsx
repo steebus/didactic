@@ -6,6 +6,10 @@ import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
 import { getPendingTopics } from '@/lib/pending'
+import { drainAfter } from '@/lib/drain'
+
+/** The queue is worked after the page is sent, inside its time. */
+export const maxDuration = 60
 
 
 /**
@@ -31,6 +35,10 @@ export default async function InboxPage() {
     getLibrary(),
     getPendingTopics(),
   ])
+
+  // Something still waiting to be read: read it now, after the page has
+  // gone out, rather than trusting the cron to have been set up.
+  if (resources.some(r => r.filing === 'waiting')) drainAfter()
 
   return (
     <main className={styles.sheet}>

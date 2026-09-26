@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { drainAfter } from '@/lib/drain'
 import { ownerId } from '@/lib/auth'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
@@ -41,6 +42,9 @@ const MAX_BYTES = MAX_PROXIED_BYTES
  * ingestion pipeline can actually read — an image would be filed as
  * proof the app could never open.
  */
+/** The queue is worked after the response, inside this route's time. */
+export const maxDuration = 60
+
 export async function POST(req: Request) {
   const userId = await ownerId()
   if (!userId) return NextResponse.json({ error: 'not signed in' }, { status: 401 })
@@ -109,6 +113,7 @@ export async function POST(req: Request) {
     )
   }
 
+  drainAfter()
   dropCache()
   return NextResponse.json({ id: data.id, title: data.title })
 }

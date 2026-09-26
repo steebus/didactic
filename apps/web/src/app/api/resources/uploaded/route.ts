@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { drainAfter } from '@/lib/drain'
 import { ownerId } from '@/lib/auth'
 import { revalidateTag } from 'next/cache'
 import { ensureOutline, signedSource } from '@/lib/document'
@@ -45,6 +46,7 @@ function dropCache() {
  * one part of this that is not ours.
  */
 export async function POST(req: Request) {
+  const started = Date.now()
   const userId = await ownerId()
   if (!userId) return NextResponse.json({ error: 'not signed in' }, { status: 401 })
 
@@ -191,6 +193,8 @@ export async function POST(req: Request) {
       { status: 202 }
     )
   }
+
+  drainAfter(started)
 
   return NextResponse.json({ id: data.id, title: data.title, outline })
 }

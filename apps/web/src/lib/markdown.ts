@@ -14,6 +14,7 @@
 import { Marked, type Tokens } from 'marked'
 import createDOMPurify from 'dompurify'
 import { LESSON_SCHEME, resolveLesson, type LessonLink } from '@didactic/core/lessonLinks'
+import { rulesNotHeadings } from '@didactic/core/sections'
 import { MATHML_ATTR, MATHML_TAGS, maths } from './maths'
 import {
   SOURCE_SCHEME,
@@ -210,7 +211,13 @@ export function renderMarkdown(
 ): string {
   const DOMPurify = purifier()
 
-  const raw = reader(lessons, sources).parse(markdown, { async: false, gfm: true, breaks: false })
+  // A rule drawn straight under a paragraph would otherwise make the
+  // paragraph an h2 -- on the page and in the contents list.
+  const raw = reader(lessons, sources).parse(rulesNotHeadings(markdown), {
+    async: false,
+    gfm: true,
+    breaks: false,
+  })
   DOMPurify.addHook('afterSanitizeAttributes', node => {
     if (node.tagName === 'A' && node.getAttribute('href')?.startsWith('http')) {
       node.setAttribute('target', '_blank')

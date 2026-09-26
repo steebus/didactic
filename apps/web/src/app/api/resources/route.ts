@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { drainAfter } from '@/lib/drain'
 import { ownerId } from '@/lib/auth'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
@@ -16,6 +17,9 @@ function dropCache() {
   for (const tag of [tags.resources, tags.topics]) revalidateTag(tag, 'max')
 }
 
+
+/** The queue is worked after the response, inside this route's time. */
+export const maxDuration = 60
 
 export async function POST(req: Request) {
   const { url, title, kind, text, topicId, consumed } = await req.json()
@@ -112,6 +116,7 @@ export async function POST(req: Request) {
     )
   }
 
+  drainAfter()
   dropCache()
   return NextResponse.json({ id: data.id, title: data.title })
 }

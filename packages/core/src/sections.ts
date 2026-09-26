@@ -56,6 +56,44 @@ export function slugFor(text: string): string {
 }
 
 /**
+ * The line under a heading written in the underlined form.
+ *
+ * Equals signs make an h1. Dashes make an h2 only when there are one or
+ * two of them: three or more is how every model writing a lesson draws
+ * a rule, and it draws one straight under the last line of a paragraph
+ * as often as not. Markdown reads that as the paragraph being an h2,
+ * and a whole paragraph once landed in a lesson's contents list that
+ * way. `rulesNotHeadings` makes the renderer agree.
+ */
+const UNDERLINE = /^\s{0,3}(=+|-{1,2})\s*$/
+
+/** Three dashes or more, alone on a line: a rule. */
+const RULE = /^\s{0,3}-{3,}\s*$/
+
+/**
+ * Markdown with every run of dashes read as a rule, never as the line
+ * under a heading.
+ *
+ * A blank line goes in above any rule that sits straight under text,
+ * which is what the writer meant and what `lessonSections` already
+ * reads. Fenced code is left as it is. Run over the prose before it is
+ * rendered, so the headings on the page are the headings in the list.
+ */
+export function rulesNotHeadings(markdown: string): string {
+  const lines = markdown.split('\n')
+  const out: string[] = []
+  let fenced = false
+
+  for (const [i, line] of lines.entries()) {
+    if (/^\s{0,3}(```|~~~)/.test(line)) fenced = !fenced
+    else if (!fenced && RULE.test(line) && lines[i - 1]?.trim()) out.push('')
+    out.push(line)
+  }
+
+  return out.join('\n')
+}
+
+/**
  * The headings of a lesson body, in reading order.
  *
  * Only the three levels worth listing: below an h3 a lesson is naming
@@ -88,8 +126,10 @@ export function lessonSections(markdown: string): Section[] {
       }
 
       // The underlined form. Only where there is something above to
-      // underline, or a rule between paragraphs would read as one.
-      const underline = /^\s{0,3}(=+|-+)\s*$/.exec(line)
+      // underline, or a rule between paragraphs would read as one --
+      // and never three dashes or more, which is a rule. See
+      // `rulesNotHeadings`.
+      const underline = UNDERLINE.exec(line)
       if (underline && lines[i - 1]?.trim() && !/^\s{0,3}(#|>|[-*+]\s)/.test(lines[i - 1])) {
         headings.push({
           level: underline[1].startsWith('=') ? 1 : 2,
@@ -136,7 +176,7 @@ export function headingLines(markdown: string): Array<Section & { line: number }
       continue
     }
 
-    const underline = /^\s{0,3}(=+|-+)\s*$/.exec(line)
+    const underline = UNDERLINE.exec(line)
     if (underline && lines[i - 1]?.trim() && !/^\s{0,3}(#|>|[-*+]\s)/.test(lines[i - 1])) {
       found.push({
         level: underline[1].startsWith('=') ? 1 : 2,
