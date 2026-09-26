@@ -219,6 +219,9 @@ export interface LooseTopic {
 export interface HighlightRow extends Highlight {
   lesson: { id: string; title: string } | null
   topic: { id: string; title: string } | null
+  /** Where a mark taken in a resource read in the app came from (053).
+   *  Additive: absent on a mark from a lesson, and from an older server. */
+  resource?: { id: string; title: string } | null
 }
 
 /* --------------------------------------------------------------- topic */

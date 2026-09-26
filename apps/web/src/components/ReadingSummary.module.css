@@ -1,0 +1,107 @@
+/* The whole reading, said back.
+   ---------------------------------------------------------------
+
+   A section at the foot like the others -- the same rule over it, the
+   same title set in the display face -- with the summary's ultramarine
+   carried by the sprig and the rule down the field, so it is told
+   apart from the notes and the garden at a glance. */
+
+.summary {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+  border-top: 2px solid var(--rule-strong);
+  padding-top: var(--space-4);
+}
+
+.summary > * {
+  max-width: 68ch;
+  width: 100%;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.mark {
+  color: var(--plate-ultramarine);
+}
+
+.title {
+  margin: 0;
+  font-size: var(--step-2);
+  font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 40;
+}
+
+.note {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.editor {
+  border-left: 3px solid var(--plate-ultramarine);
+}
+
+.said {
+  padding-left: var(--space-3);
+  border-left: 3px solid var(--plate-ultramarine);
+}
+
+.problem {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--plate-terracotta);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.keep {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--plate-ultramarine);
+  border: none;
+  padding: var(--space-2) var(--space-4);
+  min-height: 2.75rem;
+  cursor: pointer;
+}
+
+.quiet {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: none;
+  border: none;
+  padding: var(--space-2);
+  min-height: 2.75rem;
+  cursor: pointer;
+}
+
+.quiet:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.destructive {
+  border-left: 1px solid var(--rule);
+  padding-left: var(--space-3);
+}
+
+.keep:focus-visible,
+.quiet:focus-visible {
+  outline: 2px solid var(--plate-terracotta);
+  outline-offset: 2px;
+}

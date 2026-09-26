@@ -375,6 +375,11 @@ export function ClozeCard({
                   ...(cloze.lesson
                     ? [{ href: `/lesson/${cloze.lesson.id}`, label: cloze.lesson.title }]
                     : []),
+                  // Cut from something read in the app rather than a
+                  // lesson (053): the trail ends at that instead.
+                  ...(cloze.resource
+                    ? [{ href: `/resources/${cloze.resource.id}`, label: cloze.resource.title }]
+                    : []),
                 ]}
               />
             )}

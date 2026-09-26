@@ -43,8 +43,13 @@ export async function POST(req: Request) {
   const quote = text(body.quote)
   const note = text(body.note)
   const lessonId = text(body.lessonId)
+  const resourceId = text(body.resourceId)
 
-  if (!lessonId) return NextResponse.json({ error: 'lessonId is required' }, { status: 400 })
+  // Taken in a lesson, or -- since 053 -- in a resource read in the app.
+  // One of the two.
+  if (!lessonId === !resourceId) {
+    return NextResponse.json({ error: 'lessonId or resourceId is required' }, { status: 400 })
+  }
   // A mark with no passage is a note on the lesson as a whole, which is
   // a real thing to want: the thought a lesson leaves you with is not
   // always about one of its sentences. What it cannot be is empty --
@@ -64,7 +69,8 @@ export async function POST(req: Request) {
   try {
     const result = await createHighlight(supabaseAdmin(), {
       userId,
-      lessonId,
+      lessonId: lessonId || null,
+      resourceId: resourceId || null,
       quote,
       prefix: text(body.prefix) || null,
       note: note || null,

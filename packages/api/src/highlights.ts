@@ -3,7 +3,10 @@ import type { HighlightRow } from '@didactic/core/shapes'
 import type { Highlight } from '@didactic/core/types'
 
 export interface NewHighlight {
-  lessonId: string
+  /** Where it was taken: a lesson, or -- since 053 -- a resource read
+   *  in the app. One of the two. */
+  lessonId?: string
+  resourceId?: string
   /**
    * Empty for a note on the lesson as a whole, which is a real thing to
    * want: the thought a lesson leaves you with is not always about one

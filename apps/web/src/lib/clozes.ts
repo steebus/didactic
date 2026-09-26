@@ -392,7 +392,7 @@ export async function dueClozes(
   }
 
   const { data } = await query
-  return shuffled((data ?? []) as unknown as ClozeCard[])
+  return shuffled(await withResources(db, (data ?? []) as unknown as ClozeCard[]))
 }
 
 /**
@@ -426,7 +426,9 @@ export async function randomCloze(
 
   const chosen = pool[Math.floor(Math.random() * pool.length)].id as string
   const { data } = await db.from('clozes').select(CARD_COLUMNS).eq('id', chosen).single()
-  return (data ?? null) as unknown as ClozeCard | null
+  if (!data) return null
+  const [card] = await withResources(db, [data as unknown as ClozeCard])
+  return card
 }
 
 /**
@@ -450,6 +452,49 @@ export async function clozesIn(
     .eq('lesson_id', lessonId)
     .order('created_at', { ascending: true })
   return (data ?? []) as unknown as ClozeCard[]
+}
+
+/**
+ * Every card cut from one resource read in the app, oldest first -- the
+ * resource's own `clozesIn`, for the same two uses.
+ */
+export async function clozesInResource(
+  db: SupabaseClient,
+  userId: string,
+  resourceId: string
+): Promise<ClozeCard[]> {
+  const { data, error } = await db
+    .from('clozes')
+    .select(CARD_COLUMNS)
+    .eq('user_id', userId)
+    .eq('resource_id', resourceId)
+    .order('created_at', { ascending: true })
+  // Before 053 there is no such column, and no such card either.
+  if (error) return []
+  return withResources(db, (data ?? []) as unknown as ClozeCard[])
+}
+
+/**
+ * Say which resource a card was cut from, where it was not a lesson.
+ *
+ * A second read rather than a join in `CARD_COLUMNS`: the embed would
+ * name a relation that does not exist until 053 has run, and the web
+ * build and the migration are not one transaction -- so for the minutes
+ * between them every due list would fail rather than lack a caption.
+ * Asked only when some card in hand has a resource at all, which on
+ * most sittings is none.
+ */
+async function withResources(db: SupabaseClient, cards: ClozeCard[]): Promise<ClozeCard[]> {
+  const ids = [...new Set(cards.map(c => c.resource_id).filter((id): id is string => Boolean(id)))]
+  if (ids.length === 0) return cards
+
+  const { data } = await db.from('resources').select('id, title').in('id', ids)
+  const titles = new Map((data ?? []).map(r => [r.id as string, r.title as string]))
+  return cards.map(c =>
+    c.resource_id && titles.has(c.resource_id)
+      ? { ...c, resource: { id: c.resource_id, title: titles.get(c.resource_id)! } }
+      : c
+  )
 }
 
 /**

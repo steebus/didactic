@@ -77,6 +77,7 @@ interface Offer {
  */
 export function Highlighter({
   lessonId,
+  resourceId,
   existing,
   clozes = [],
   onChanged,
@@ -84,7 +85,12 @@ export function Highlighter({
   deskWithin,
   children,
 }: {
-  lessonId: string
+  /**
+   * What is being read: a lesson, or a resource read in the app (053).
+   * Exactly one. Everything kept here is kept against it.
+   */
+  lessonId?: string
+  resourceId?: string
   existing: Mark[]
   /**
    * The passages this lesson is being tended on, drawn in plum under
@@ -122,6 +128,8 @@ export function Highlighter({
   children: React.ReactNode
 }) {
   const holder = useRef<HTMLDivElement>(null)
+  /** What the reading is called in the sheet's own sentences. */
+  const noun = resourceId ? 'reading' : 'lesson'
   const [pending, setPending] = useState<{ quote: string; prefix: string } | null>(null)
   const [offer, setOffer] = useState<Offer | null>(null)
   const [open, setOpen] = useState<{ mark: Mark; at: Spot } | null>(null)
@@ -251,6 +259,11 @@ export function Highlighter({
 
     const range = selection.getRangeAt(0)
     if (!root.contains(range.commonAncestorContainer)) return null
+    // The reader's own writing set into the prose -- a summary under a
+    // heading -- is not the text, and is never offered as a passage.
+    if (insideOwnWriting(range.startContainer) || insideOwnWriting(range.endContainer)) {
+      return null
+    }
 
     const quote = selection.toString().trim()
     if (quote.length < 3) return null
@@ -260,7 +273,7 @@ export function Highlighter({
     const before = document.createRange()
     before.setStart(root, 0)
     before.setEnd(range.startContainer, range.startOffset)
-    const prefix = before.toString().slice(-40)
+    const prefix = textOutsideOwnWriting(before).slice(-40)
 
     const view = { width: window.innerWidth, height: window.innerHeight }
     const rect = range.getBoundingClientRect()
@@ -544,7 +557,8 @@ export function Highlighter({
       // A mark: an entry is written from the running head and never
       // from inside a lesson.
       kind: 'mark',
-      lesson_id: lessonId,
+      lesson_id: lessonId ?? null,
+      resource_id: resourceId ?? null,
       topic_id: null,
       quote: pending.quote,
       // Trimmed the way the server trims it, so the row that comes
@@ -554,7 +568,7 @@ export function Highlighter({
       created_at: now,
       updated_at: now,
     }
-    const written = { lessonId, ...pending, note }
+    const written = { lessonId, resourceId, ...pending, note }
 
     // Drawn and out of the way first. Nothing below is work the reader
     // is waiting on.
@@ -998,9 +1012,9 @@ export function Highlighter({
             type="button"
             className={`${styles.deskNote} ${styles.deskQuiet}`}
             onClick={() => showMarks(!open_)}
-            aria-label="What you have marked in this lesson"
+            aria-label={`What you have marked in this ${noun}`}
             aria-expanded={open_}
-            title="What you have marked in this lesson"
+            title={`What you have marked in this ${noun}`}
           >
             <MarksIcon />
             <span className={styles.deskTally}>{marks.length}</span>
@@ -1010,8 +1024,8 @@ export function Highlighter({
           type="button"
           className={styles.deskNote}
           onClick={noteOnLesson}
-          aria-label="Write a note on this lesson"
-          title="A note on this lesson"
+          aria-label={`Write a note on this ${noun}`}
+          title={`A note on this ${noun}`}
         >
           <NoteIcon />
         </button>
@@ -1026,8 +1040,8 @@ export function Highlighter({
           type="button"
           className={styles.deskNote}
           onClick={() => askAbout(null)}
-          aria-label="Ask about this lesson"
-          title="Ask about this lesson"
+          aria-label={`Ask about this ${noun}`}
+          title={`Ask about this ${noun}`}
         >
           <AskIcon />
         </button>
@@ -1048,7 +1062,7 @@ export function Highlighter({
             type="button"
             className={`${styles.deskNote} ${styles.deskQuiet} ${styles.deskTop}`}
             onClick={toTop}
-            aria-label="Back to the top of the lesson"
+            aria-label={`Back to the top of the ${noun}`}
             title="Back to the top"
           >
             <TopIcon />
@@ -1088,7 +1102,7 @@ export function Highlighter({
         >
           {passages > 0 && `${passages} ${passages === 1 ? 'passage' : 'passages'} marked here`}
           {passages > 0 && notes > 0 && ' · '}
-          {notes > 0 && `${notes} ${notes === 1 ? 'note' : 'notes'} on the lesson`}
+          {notes > 0 && `${notes} ${notes === 1 ? 'note' : 'notes'} on the ${noun}`}
           {/* A mark whose words are no longer in the body cannot be
               drawn. Saying so beats a count that does not match what is
               visibly on the page. */}
@@ -1110,6 +1124,7 @@ export function Highlighter({
         float(
           <MarkList
             marks={inReadingOrder(marks, drawn)}
+            noun={noun}
             leaving={leaving}
             onTravel={travelTo}
             onSave={saveNoteFor}
@@ -1176,7 +1191,7 @@ export function Highlighter({
               {pending.quote ? (
                 <blockquote className={styles.quote}>{pending.quote}</blockquote>
               ) : (
-                <p className={styles.about}>A note on this lesson</p>
+                <p className={styles.about}>A note on this {noun}</p>
               )}
               {opener}
             </div>
@@ -1187,6 +1202,7 @@ export function Highlighter({
             {making && pending.quote ? (
               <ClozeMaker
                 lessonId={lessonId}
+                resourceId={resourceId}
                 quote={pending.quote}
                 prefix={pending.prefix.trim() || null}
                 // Drawn and closed on the press; the row is written
@@ -1209,9 +1225,9 @@ export function Highlighter({
               fill={big}
               value={note}
               onChange={setNote}
-              label={pending.quote ? 'What about this passage' : 'A note on this lesson'}
+              label={pending.quote ? 'What about this passage' : `A note on this ${noun}`}
               placeholder={
-                pending.quote ? 'What about it? (optional)' : 'What the lesson left you with'
+                pending.quote ? 'What about it? (optional)' : `What the ${noun} left you with`
               }
               // Not on a phone: the keyboard would come up over the
               // passage before the reader has decided to write anything.
@@ -1338,7 +1354,7 @@ export function Highlighter({
                   {open.mark.quote ? (
                     <blockquote className={styles.quote}>{open.mark.quote}</blockquote>
                   ) : (
-                    <p className={styles.about}>A note on this lesson</p>
+                    <p className={styles.about}>A note on this {noun}</p>
                   )}
                   {opener}
                 </div>
@@ -1384,6 +1400,38 @@ export function Highlighter({
         )}
     </div>
   )
+}
+
+/** What this component and its neighbours set into the prose for the
+ *  reader's own writing -- a summary under a heading. */
+const OWN_WRITING = '[data-summary-host]'
+
+/** Whether a node sits inside the reader's own writing in the prose. */
+function insideOwnWriting(node: Node): boolean {
+  const element = node instanceof Element ? node : node.parentElement
+  return Boolean(element?.closest(OWN_WRITING))
+}
+
+/**
+ * The text a range covers, leaving out the reader's own writing.
+ *
+ * What a mark's prefix is taken from. The painter searches the prose
+ * with that writing skipped, so a prefix that ran through a summary
+ * under a heading would be a prefix it could never find.
+ */
+function textOutsideOwnWriting(range: Range): string {
+  const root = range.commonAncestorContainer
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT)
+  let text = ''
+  let node: Node | null
+  while ((node = walker.nextNode())) {
+    if (!range.intersectsNode(node) || insideOwnWriting(node)) continue
+    const data = (node as Text).data
+    const from = node === range.startContainer ? range.startOffset : 0
+    const to = node === range.endContainer ? range.endOffset : data.length
+    text += data.slice(from, to)
+  }
+  return text
 }
 
 /**

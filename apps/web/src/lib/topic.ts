@@ -175,7 +175,11 @@ export async function readTopicArea(
           stage: l.stage,
           minutes: l.estimated_minutes ?? null,
           completed_at: l.completed_at ?? null,
-          marks: (lessonMarks ?? []).filter(m => m.lesson_id === l.id).length,
+          // Passages and notes: a summary (053) is counted under the
+          // lesson's own summaries rather than as a mark.
+          marks: (lessonMarks ?? []).filter(
+            m => m.lesson_id === l.id && m.kind !== 'summary'
+          ).length,
           // Generated in the database from the body itself, so the row
           // never carries the prose to say whether there is any.
           has_body: l.has_body ?? false,

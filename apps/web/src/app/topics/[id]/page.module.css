@@ -1314,3 +1314,80 @@
   color: var(--plate-terracotta);
   margin: var(--space-2) 0 0;
 }
+
+/* The reader's own account of a lesson, under its title.
+   ---------------------------------------------------------------
+
+   An experiment: the summary they wrote at the foot of the lesson,
+   printed where the list would otherwise say nothing about what the
+   lesson was. Two lines at most and in the text face, set off by the
+   summary's ultramarine rule, so it reads as their note on the
+   catalogue card rather than as part of the title. */
+.lessonOwn {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  margin-top: 2px;
+  padding-left: var(--space-2);
+  border-left: 2px solid var(--plate-ultramarine);
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  font-style: italic;
+  line-height: 1.45;
+  color: var(--ink-soft);
+}
+
+.lessonOwnLabel {
+  font-style: normal;
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--plate-ultramarine);
+}
+
+/* The way into a lesson's summaries: the sprig, beside the play
+   control and the same size of target. Faint until there is something
+   in it, then held in the summary's ink with the count beside it. */
+.lessonSummaries {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 2.75rem;
+  height: 2.75rem;
+  padding: 0 var(--space-1);
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  opacity: 0.55;
+  cursor: pointer;
+  transition:
+    color var(--dur-state) var(--ease-settle),
+    opacity var(--dur-state) var(--ease-settle);
+}
+
+.lessonSummaries[data-said] {
+  color: var(--plate-ultramarine);
+  opacity: 1;
+}
+
+.lessonSummaries:hover {
+  opacity: 1;
+  color: var(--plate-ultramarine);
+}
+
+.lessonSummaries:focus-visible {
+  outline: 2px solid var(--plate-ultramarine);
+  outline-offset: -4px;
+}
+
+.lessonSummaryTally {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums lining-nums;
+}

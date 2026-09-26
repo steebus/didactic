@@ -134,8 +134,9 @@ export interface LessonPrereq {
   requires_lesson_id: string
 }
 
-/** What a highlight row is: a passage kept, or a page about a week. */
-export type MarkKind = 'mark' | 'diary'
+/** What a highlight row is: a passage kept, a page about a week, or a
+ *  section said back in the reader's own words (053). */
+export type MarkKind = 'mark' | 'diary' | 'summary'
 
 /** A passage marked in a lesson, and what was written about it. */
 export interface Highlight {
@@ -153,6 +154,15 @@ export interface Highlight {
   quote: string
   prefix: string | null
   note: string | null
+  /** The resource this was taken in, where it was read in the app
+   *  rather than a lesson (053). Optional: a row read before the column
+   *  existed has none, and neither does a client that never asks. */
+  resource_id?: string | null
+  /** On a summary, the heading of the section it says back; null for a
+   *  summary of the whole lesson or resource. */
+  section?: string | null
+  /** On a section summary, which heading it is, from nought. */
+  section_at?: number | null
   created_at: string
   updated_at: string
 }

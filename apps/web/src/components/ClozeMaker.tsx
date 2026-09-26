@@ -33,6 +33,7 @@ const api = didactic()
  */
 export function ClozeMaker({
   lessonId,
+  resourceId,
   quote,
   prefix,
   topicId = null,
@@ -40,7 +41,10 @@ export function ClozeMaker({
   onSettled,
   onCancel,
 }: {
-  lessonId: string
+  /** What the passage was chosen out of: a lesson, or a resource read
+   *  in the app (053). Exactly one. */
+  lessonId?: string
+  resourceId?: string
   quote: string
   prefix: string | null
   /** What the lesson teaches, for the draft the page draws at once. */
@@ -125,7 +129,8 @@ export function ClozeMaker({
     const draft: ClozeCard = {
       id: `${UNSAVED}${crypto.randomUUID()}`,
       concept_id: null,
-      lesson_id: lessonId,
+      lesson_id: lessonId ?? null,
+      resource_id: resourceId ?? null,
       topic_id: topicId,
       kind: 'cloze',
       text: quote,
@@ -156,7 +161,7 @@ export function ClozeMaker({
 
     void (async () => {
       const { ok, body, error: failed } = await api.clozes.create({
-        lessonId,
+        ...(resourceId ? { resourceId } : { lessonId: lessonId ?? '' }),
         kind: 'cloze',
         text: quote,
         blank,

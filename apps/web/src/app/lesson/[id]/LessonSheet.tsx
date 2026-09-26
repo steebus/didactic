@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Prose } from '@/components/Prose'
@@ -13,6 +13,11 @@ import { useVoicings } from '@/components/useVoicings'
 import { useWriteLesson } from '@/components/useWriteLesson'
 import { useTendLesson } from '@/components/useTendLesson'
 import { TendLesson } from '@/components/TendLesson'
+import { SectionSummaries } from '@/components/SectionSummaries'
+import { ReadingSummary } from '@/components/ReadingSummary'
+import { useSummaries } from '@/components/useSummaries'
+import { lessonSections } from '@didactic/core/sections'
+import { summaryOf, summaryTally } from '@didactic/core/summaries'
 import { didactic } from '@didactic/api'
 import type { ExposureDepth, Highlight as Mark } from '@didactic/core/types'
 import type { ClozeCard } from '@didactic/core/clozes'
@@ -119,7 +124,33 @@ export default function LessonSheet({
   const [sheetBody, setSheetBody] = useState<HTMLElement | null>(null)
   const [data, setData] = useState<LessonData | null>(initial)
   const [body, setBody] = useState<string | null>(initial.lesson.body)
-  const [highlights, setHighlights] = useState<Mark[]>(initial.highlights ?? [])
+  /**
+   * Everything written while reading, as the lesson read hands it over.
+   *
+   * Marks and summaries arrive as one list because they are one table
+   * (053), and part here: the marks are drawn on the prose, the
+   * summaries are held beside the headings and at the foot. A summary
+   * given to the marking desk would be counted as a note on the lesson.
+   */
+  const [written, setWritten] = useState<Mark[]>(initial.highlights ?? [])
+  const highlights = useMemo(() => written.filter(h => h.kind !== 'summary'), [written])
+  const summarised = useMemo(() => written.filter(h => h.kind === 'summary'), [written])
+  const {
+    summaries,
+    save: saveSummary,
+    remove: removeSummary,
+    problem: summaryProblem,
+  } = useSummaries({ lessonId: id }, summarised)
+  /** The article, as state, for the summaries to stand their presses in
+   *  once it is on the page. */
+  const [reading, setReading] = useState<HTMLElement | null>(null)
+  // Stable, so React hands the node over once rather than taking it back
+  // and giving it again on every render -- which, through the state
+  // above, would be a render that causes another.
+  const holdArticle = useCallback((node: HTMLElement | null) => {
+    article.current = node
+    setReading(node)
+  }, [])
   /**
    * The passages this lesson is being tended on.
    *
@@ -379,7 +410,7 @@ export default function LessonSheet({
         payload = fetched
         setData(payload)
         setBody(payload.lesson.body)
-        setHighlights(payload.highlights ?? [])
+        setWritten(payload.highlights ?? [])
       }
       served.current = null
 
@@ -691,7 +722,7 @@ export default function LessonSheet({
                 an HTML string, so following one would reload the whole
                 document. Read the press and turn the sheet instead. */}
             <article
-              ref={article}
+              ref={holdArticle}
               onClick={e => {
                 const href = pressedLink(e)
                 if (!href) return
@@ -721,6 +752,20 @@ export default function LessonSheet({
                   <Prose markdown={body} lessons={roster.links} sources={roster.sources} />
                 </Answering>
               </Highlighter>
+
+              {/* A press beside each heading, for saying that section
+                  back in the reader's own words. Only on a whole body:
+                  a section still being written has not said its piece
+                  yet. */}
+              {data.lesson.body_finished && (
+                <SectionSummaries
+                  root={reading}
+                  body={body}
+                  summaries={summaries}
+                  onSave={(section, at, note) => saveSummary(section, at, note)}
+                  onRemove={removeSummary}
+                />
+              )}
 
               {/* Quiet, and at the end of the reading rather than the
                   top of it: a lesson worth rewriting is usually one the
@@ -787,6 +832,24 @@ export default function LessonSheet({
               </button>
             )}
           </div>
+        )}
+
+        {/* The whole lesson, said back, once there is a whole lesson to
+            say. Before the material and the garden: it is the end of
+            the reading, and the first thing to do with a lesson just
+            read is to put it into your own words. */}
+        {body && data.lesson.body_finished && (
+          <ReadingSummary
+            summary={summaryOf(summaries, null)}
+            tally={summaryTally(
+              summaries,
+              lessonSections(body).map(section => section.text)
+            )}
+            noun="lesson"
+            onSave={note => saveSummary(null, null, note)}
+            onRemove={removeSummary}
+            problem={summaryProblem}
+          />
         )}
 
         {resources.length > 0 && (

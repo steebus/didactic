@@ -98,6 +98,10 @@ describe('strandOf', () => {
     // is neither a quotation nor an entry.
     expect(strandOf({ kind: 'mark', quote: '' })).toBe('note')
   })
+
+  it('gives a summary its own strand rather than calling it a note', () => {
+    expect(strandOf({ kind: 'summary', quote: '' })).toBe('summary')
+  })
 })
 
 describe('clips', () => {
@@ -191,5 +195,10 @@ describe('tallyOf', () => {
     expect(tallyOf(rows(['mark']))).toBe('1 mark')
     expect(tallyOf(rows(['diary', 'diary']))).toBe('2 entries')
     expect(tallyOf(rows([]))).toBe('')
+  })
+
+  it('counts summaries apart from marks', () => {
+    expect(tallyOf(rows(['mark', 'summary', 'summary']))).toBe('1 mark · 2 summaries')
+    expect(tallyOf(rows(['summary']))).toBe('1 summary')
   })
 })

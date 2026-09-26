@@ -33,7 +33,11 @@ export interface SownClozes {
 }
 
 export interface NewCloze {
-  lessonId: string
+  /** What it is cut from: a lesson, or -- since 053 -- a resource read
+   *  in the app. One of the two. `lessonId` stays the ordinary case,
+   *  and is what every older client sends. */
+  lessonId?: string
+  resourceId?: string
   /**
    * Which shape. Omitted means `cloze`, which is what the maker in the
    * reading sends: it exists to turn a passage the reader selected into
@@ -94,6 +98,9 @@ export const clozes = (api: Api) => {
      *  prose, and what "Tend this lesson" lists to be read over. */
     inLesson: (lessonId: string) =>
       api.get<{ clozes: ClozeCard[] }>('/api/clozes', { mode: 'lesson', lessonId }),
+    /** Every card cut from one resource read in the app (053). */
+    inResource: (resourceId: string) =>
+      api.get<{ clozes: ClozeCard[] }>('/api/clozes', { mode: 'resource', resourceId }),
 
     /** What is waiting. Cheap enough for a nav on every sheet. */
     count: () => api.get<ClozeCount>('/api/clozes/count'),

@@ -1,0 +1,151 @@
+/* Summaries beside the headings.
+   ---------------------------------------------------------------
+
+   The press sits at the end of the heading's own line, small and in the
+   faint ink, and comes up to full ink only when the heading is being
+   looked at -- a heading has to go on reading as a heading, and twelve
+   of them each wearing a button would turn the contents of the lesson
+   into a form. Once a section has been said back the sprig is filled
+   and held in the summary's ultramarine, which is the one thing worth
+   seeing at a glance down a long reading: which parts are done. */
+
+.triggerHost {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: var(--space-2);
+}
+
+.trigger {
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  color: var(--ink-faint);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0.45;
+  transition:
+    opacity var(--dur-state, 160ms) ease,
+    color var(--dur-state, 160ms) ease,
+    border-color var(--dur-state, 160ms) ease;
+}
+
+:is(h1, h2, h3):hover .trigger,
+.trigger:focus-visible,
+.trigger[aria-expanded='true'] {
+  opacity: 1;
+  color: var(--plate-ultramarine);
+}
+
+.trigger:hover {
+  border-color: var(--paper-edge);
+}
+
+.trigger[data-said] {
+  opacity: 0.9;
+  color: var(--plate-ultramarine);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--plate-terracotta);
+  outline-offset: 2px;
+}
+
+/* No hover on a touch screen, so the press is never hidden there: it
+   rests at the weight it would take on hover elsewhere, only quieter. */
+@media (hover: none) {
+  .trigger {
+    opacity: 0.7;
+  }
+}
+
+/* The field, under the heading and ruled off from the prose in the
+   summary's ink, the way a marked passage carries the mustard: this is
+   the reader's writing, set into the text but not part of it. */
+.panel {
+  display: grid;
+  gap: var(--space-2);
+  max-width: 68ch;
+  margin: var(--space-2) 0 var(--space-4);
+  padding: var(--space-3);
+  background: var(--paper-deep);
+  border-left: 3px solid var(--plate-ultramarine);
+  font-family: var(--font-text);
+  font-size: var(--step-0);
+}
+
+.label {
+  margin: 0;
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.editor {
+  background: var(--paper);
+}
+
+.said {
+  color: var(--ink);
+}
+
+.problem {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--plate-terracotta);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.keep {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper);
+  background: var(--plate-ultramarine);
+  border: none;
+  padding: var(--space-2) var(--space-4);
+  min-height: 2.5rem;
+  cursor: pointer;
+}
+
+.quiet {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: none;
+  border: none;
+  padding: var(--space-2);
+  min-height: 2.5rem;
+  cursor: pointer;
+}
+
+.quiet:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.destructive {
+  border-left: 1px solid var(--rule);
+  padding-left: var(--space-3);
+}
+
+.keep:focus-visible,
+.quiet:focus-visible {
+  outline: 2px solid var(--plate-terracotta);
+  outline-offset: 2px;
+}

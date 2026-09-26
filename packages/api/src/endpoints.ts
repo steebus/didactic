@@ -129,6 +129,12 @@ export const ENDPOINTS = {
   'highlights.patch': { name: 'highlights.patch', method: 'PATCH', path: '/api/highlights', invalidates: MARKS },
   'highlights.remove': { name: 'highlights.remove', method: 'DELETE', path: '/api/highlights', invalidates: MARKS },
 
+  /* summaries — a mark of kind 'summary', one per section; the first of
+     a section writes the same light exposure a note does */
+  'summaries.list': { name: 'summaries.list', method: 'GET', path: '/api/summaries', invalidates: [] },
+  'summaries.save': { name: 'summaries.save', method: 'POST', path: '/api/summaries', invalidates: MARKS },
+  'summaries.remove': { name: 'summaries.remove', method: 'DELETE', path: '/api/summaries', invalidates: MARKS },
+
   /* diary — an entry is a mark of kind 'diary'; reading it back writes
      exposures, so it moves the same three tags a mark does */
   'diary.create': { name: 'diary.create', method: 'POST', path: '/api/diary', invalidates: MARKS },

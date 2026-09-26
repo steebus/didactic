@@ -25,9 +25,12 @@ export function MarkList({
   onRemove,
   onClose,
   onGone,
+  noun = 'lesson',
 }: {
   /** Already in reading order. */
   marks: Mark[]
+  /** What the reading is called: a lesson, or a resource read here. */
+  noun?: string
   /** On its way out: it draws itself leaving, and says when it has. */
   leaving?: boolean
   /** Travel to the passage in the lesson. */
@@ -65,7 +68,7 @@ export function MarkList({
   return (
     <aside
       className={leaving ? `${styles.list} ${styles.leaving}` : styles.list}
-      aria-label="What you have marked in this lesson"
+      aria-label={`What you have marked in this ${noun}`}
       // It is gone when it has finished going. Its own animation only:
       // a row inside it flashing is not the list leaving.
       onAnimationEnd={e => {
@@ -84,8 +87,8 @@ export function MarkList({
 
       {marks.length === 0 ? (
         <p className={styles.empty}>
-          Nothing marked in this lesson yet. Select a passage, or write a note on
-          the lesson itself.
+          Nothing marked in this {noun} yet. Select a passage, or write a note on
+          the {noun} itself.
         </p>
       ) : (
         <ol className={styles.marks}>
@@ -101,7 +104,7 @@ export function MarkList({
                   {mark.quote}
                 </button>
               ) : (
-                <p className={styles.about}>A note on this lesson</p>
+                <p className={styles.about}>A note on this {noun}</p>
               )}
 
               {editing === mark.id ? (

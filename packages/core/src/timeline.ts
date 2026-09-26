@@ -97,10 +97,15 @@ export function dayName(date: string, now: Date = new Date()): string {
  * and the sheet has always said so in its own words rather than
  * printing an empty rule where a quote would be.
  */
-export type Strand = 'entry' | 'passage' | 'note'
+export type Strand = 'entry' | 'passage' | 'note' | 'summary'
 
 export function strandOf(row: Pick<Highlight, 'kind' | 'quote'>): Strand {
   if (row.kind === 'diary') return 'entry'
+  // A section said back in the reader's own words (053). Its own strand
+  // rather than a note: a note is a thought the reading left, a summary
+  // is an account of what it said, and a month of study reads
+  // differently when the two can be told apart at a glance.
+  if (row.kind === 'summary') return 'summary'
   return row.quote ? 'passage' : 'note'
 }
 
@@ -139,6 +144,7 @@ export const STRAND_LABEL: Record<Strand, string> = {
   entry: 'Entry',
   passage: 'Passage',
   note: 'Note',
+  summary: 'Summary',
 }
 
 type Row = Pick<Highlight, 'kind' | 'quote' | 'note'>
@@ -196,10 +202,12 @@ export function opens(row: Row): boolean {
  */
 export function tallyOf(rows: Array<Pick<Highlight, 'kind'>>): string {
   const entries = rows.filter(r => r.kind === 'diary').length
-  const marks = rows.length - entries
+  const summaries = rows.filter(r => r.kind === 'summary').length
+  const marks = rows.length - entries - summaries
 
   return [
     marks > 0 ? `${marks} ${marks === 1 ? 'mark' : 'marks'}` : '',
     entries > 0 ? `${entries} ${entries === 1 ? 'entry' : 'entries'}` : '',
+    summaries > 0 ? `${summaries} ${summaries === 1 ? 'summary' : 'summaries'}` : '',
   ].filter(Boolean).join(' · ')
 }

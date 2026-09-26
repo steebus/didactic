@@ -48,7 +48,7 @@ export function paintMarks(
     // nowhere, so walking it would splice the source through the text
     // a passage is searched for. The set formula itself is walked, or a
     // passage running across an equation could never be drawn.
-    skip: '[data-mark],annotation,button,textarea',
+    skip: '[data-mark],annotation,button,textarea,[data-summary-host]',
     dress: (piece, first) => {
       if (noted.has(piece.dataset.mark ?? '')) piece.dataset.noted = 'true'
 

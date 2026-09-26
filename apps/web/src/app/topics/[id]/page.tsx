@@ -37,7 +37,12 @@ export default async function TopicPage({
   const [, area] = await Promise.all([requireOwner(), getTopicArea(id)])
   if (!area) notFound()
 
-  const { topic, subjects, curricula, resources, neighbours, highlights } = area
+  const { topic, subjects, curricula, resources, neighbours } = area
+  // Summaries are marks (053), and have their own place on this sheet:
+  // under each lesson, and in the drawer beside it. The Marked fold is
+  // for passages and notes.
+  const highlights = area.highlights.filter(h => h.kind !== 'summary')
+  const summaries = area.highlights.filter(h => h.kind === 'summary')
   const vague = vagueFigure(topic.ability_confidence)
   const state = stockState(topic.freshness, topic.last_exposure_at)
   const colour = subjects[0]?.colour ?? 'var(--plate-green)'
@@ -162,6 +167,7 @@ export default async function TopicPage({
                     routeId={route.id}
                     goal={route.goal}
                     draft={route.status === 'draft'}
+                    summaries={summaries}
                   />
                 </>
               )}

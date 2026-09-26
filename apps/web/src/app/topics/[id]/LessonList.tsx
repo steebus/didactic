@@ -1,7 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
+import type { Highlight } from '@didactic/core/types'
+import { summaryGist, summaryOf } from '@didactic/core/summaries'
+import { SummaryDrawer } from '@/components/SummaryDrawer'
+import { SummaryIcon } from '@/components/SummaryIcon'
 import { lessonStandings, LESSON_LABEL, LESSON_NOTE } from '@didactic/core/lessonState'
 import type { LessonRow } from '@didactic/core/shapes'
 import { canPlay } from '@didactic/core/voicing'
@@ -34,8 +38,16 @@ export function LessonList({
   routeId,
   goal,
   draft,
+  summaries = [],
 }: {
   lessons: LessonRow[]
+  /**
+   * Every summary written against a lesson under this topic, in any
+   * order. The reader's own account of each lesson is printed under its
+   * title, and all of a lesson's summaries come out of the drawer beside
+   * it.
+   */
+  summaries?: Highlight[]
   routeId: string
   /** What the route is for, printed after the way into it. */
   goal: string | null
@@ -61,6 +73,27 @@ export function LessonList({
   )
 
   const standings = lessonStandings(lessons)
+
+  /** Each lesson's summaries, by lesson. */
+  const byLesson = useMemo(() => {
+    const found = new Map<string, Highlight[]>()
+    for (const summary of summaries) {
+      if (!summary.lesson_id) continue
+      const held = found.get(summary.lesson_id)
+      if (held) held.push(summary)
+      else found.set(summary.lesson_id, [summary])
+    }
+    return found
+  }, [summaries])
+
+  /** The lesson whose summaries are out, and whether they are going. */
+  const [drawer, setDrawer] = useState<{ id: string; leaving: boolean } | null>(null)
+  const drawn = drawer ? lessons.find(l => l.id === drawer.id) : undefined
+  const closeDrawer = useCallback(
+    () => setDrawer(d => (d ? { ...d, leaving: true } : d)),
+    []
+  )
+  const drawerGone = useCallback(() => setDrawer(null), [])
 
   /**
    * Write a lesson from here.
@@ -92,6 +125,11 @@ export function LessonList({
           // this sheet mid-write still shows the lesson as underway.
           const busy = bench.running('writing', lesson.id)
           const asking = confirming === lesson.id
+          const said = byLesson.get(lesson.id) ?? []
+          // The reader's own account of the whole lesson, if they have
+          // written one: printed under the title, where the lesson's own
+          // blurb would otherwise be the only thing said about it.
+          const own = summaryOf(said, null)
 
           return (
             <li key={lesson.id} className={styles.lessonItem}>
@@ -117,6 +155,12 @@ export function LessonList({
                 </span>
                 <span className={styles.lessonBody}>
                   <span className={styles.lessonTitle}>{lesson.title}</span>
+                  {own?.note && (
+                    <span className={styles.lessonOwn}>
+                      <span className={styles.lessonOwnLabel}>In your words</span>{' '}
+                      {summaryGist(own.note)}
+                    </span>
+                  )}
                   <span className={styles.lessonMeta}>
                     {lesson.stage}
                     {lesson.minutes ? ` · about ${lesson.minutes} min` : ''}
@@ -141,6 +185,29 @@ export function LessonList({
                   </span>
                 </span>
               </Link>
+
+              {/* The way to everything said back about this lesson. Only
+                  against one with prose in it: an unwritten lesson has
+                  no sections to have summarised. */}
+              {lesson.has_body && (
+                <button
+                  type="button"
+                  className={styles.lessonSummaries}
+                  data-said={said.length > 0 || undefined}
+                  onClick={() => setDrawer({ id: lesson.id, leaving: false })}
+                  aria-label={
+                    said.length > 0
+                      ? `Your ${said.length} ${said.length === 1 ? 'summary' : 'summaries'} of ${lesson.title}`
+                      : `Summaries of ${lesson.title}`
+                  }
+                  title={said.length > 0 ? 'Your summaries' : 'Nothing summarised yet'}
+                >
+                  <SummaryIcon filled={said.length > 0} size={18} />
+                  {said.length > 0 && (
+                    <span className={styles.lessonSummaryTally}>{said.length}</span>
+                  )}
+                </button>
+              )}
 
               {/* Only against a lesson there is prose to read. An
                   unwritten one has nothing to say, and the control
@@ -220,6 +287,17 @@ export function LessonList({
           )
         })}
       </ol>
+
+      {drawer && drawn && (
+        <SummaryDrawer
+          title={drawn.title}
+          href={`/lesson/${drawn.id}`}
+          summaries={byLesson.get(drawn.id) ?? []}
+          leaving={drawer.leaving}
+          onClose={closeDrawer}
+          onGone={drawerGone}
+        />
+      )}
 
       <p className={styles.routeLink}>
         <Link href={`/curriculum/${routeId}`} className={styles.inlineLink}>

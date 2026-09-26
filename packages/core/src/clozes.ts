@@ -108,7 +108,10 @@ export const FALSE_WORD = 'False'
 export interface Cloze {
   id: string
   concept_id: string | null
-  lesson_id: string
+  /** Null on a card cut from a resource read in the app (053). */
+  lesson_id: string | null
+  /** The resource it was cut from, where it was not a lesson. */
+  resource_id?: string | null
   topic_id: string | null
   /** Which shape this is. Every row written before 046 is a `cloze`. */
   kind: CardKind
@@ -158,6 +161,9 @@ export interface ClozeCard extends Cloze {
   concept: { id: string; name: string; gist: string | null } | null
   lesson: { id: string; title: string } | null
   topic: { id: string; title: string } | null
+  /** Where a card cut from a resource came from. Additive: absent on a
+   *  card from a lesson, and on anything an older server answers. */
+  resource?: { id: string; title: string } | null
 }
 
 /** What is waiting, for a tally in a nav and a notice in a corner. */

@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { ownerId } from '@/lib/auth'
-import { cardColumns, clozesIn, dueClozes, randomCloze, type WritableCard } from '@/lib/clozes'
+import { cardColumns, clozesIn, clozesInResource, dueClozes, randomCloze, type WritableCard } from '@/lib/clozes'
+import { readingOf } from '@/lib/reading'
 import { cardProblem, type CardKind } from '@didactic/core/clozes'
 import { freshMemory } from '@didactic/core/fsrs'
 import { memoryColumns } from '@didactic/core/clozes'
@@ -43,6 +44,14 @@ export async function GET(req: Request) {
       // is an ordinary answer to an ordinary question, and the sheet
       // says so in a sentence rather than in a status code.
       return NextResponse.json({ clozes: cloze ? [cloze] : [] })
+    }
+
+    if (mode === 'resource') {
+      const resourceId = query.get('resourceId')
+      if (!resourceId) {
+        return NextResponse.json({ error: 'resourceId is required' }, { status: 400 })
+      }
+      return NextResponse.json({ clozes: await clozesInResource(db, userId, resourceId) })
     }
 
     if (mode === 'lesson') {
@@ -88,8 +97,13 @@ export async function POST(req: Request) {
   const body = await req.json()
   const said = (v: unknown) => (typeof v === 'string' ? v.trim() : '')
   const lessonId = said(body.lessonId)
+  const resourceId = said(body.resourceId)
 
-  if (!lessonId) return NextResponse.json({ error: 'lessonId is required' }, { status: 400 })
+  // Cut from a lesson, or -- since 053 -- from a resource read in the
+  // app. One of the two; a card from both would be filed twice.
+  if (!lessonId === !resourceId) {
+    return NextResponse.json({ error: 'lessonId or resourceId is required' }, { status: 400 })
+  }
 
   const kind: CardKind = KINDS.includes(body.kind) ? body.kind : 'cloze'
   const card: WritableCard = {
@@ -121,16 +135,16 @@ export async function POST(req: Request) {
   if (problem) return NextResponse.json({ error: problem }, { status: 400 })
 
   const db = supabaseAdmin()
-  const { data: lesson } = await db
-    .from('lessons')
-    .select('id, body, curricula (topic_id)')
-    .eq('id', lessonId)
-    .single()
-  if (!lesson) return NextResponse.json({ error: 'That lesson is not there.' }, { status: 404 })
-
-  const curriculum = lesson.curricula as { topic_id: string } | { topic_id: string }[] | null
-  const topicId = Array.isArray(curriculum) ? curriculum[0]?.topic_id : curriculum?.topic_id
-  const lessonBody = ((lesson.body as string | null) ?? '')
+  const source = resourceId
+    ? await readResourceSource(db, userId, resourceId)
+    : await readLessonSource(db, lessonId)
+  if (!source) {
+    return NextResponse.json(
+      { error: resourceId ? 'That resource is not there.' : 'That lesson is not there.' },
+      { status: 404 }
+    )
+  }
+  const { topicId, body: lessonBody } = source
 
   // An anchor is a promise the painter relies on, so it is checked here
   // rather than taken on trust, and dropped rather than refused: a card
@@ -145,7 +159,10 @@ export async function POST(req: Request) {
     .insert({
       user_id: userId,
       concept_id: null,
-      lesson_id: lessonId,
+      lesson_id: lessonId || null,
+      // Named only where there is one, so a card from a lesson is
+      // written exactly as it always was.
+      ...(resourceId ? { resource_id: resourceId } : {}),
       topic_id: topicId ?? null,
       created_by: 'user',
       // The prefix is taken from the body inside here rather than from
@@ -164,6 +181,36 @@ export async function POST(req: Request) {
 
   dropCache()
   return NextResponse.json({ cloze: written })
+}
+
+/** A lesson's body, and the topic its curriculum teaches. */
+async function readLessonSource(db: ReturnType<typeof supabaseAdmin>, lessonId: string) {
+  const { data: lesson } = await db
+    .from('lessons')
+    .select('id, body, curricula (topic_id)')
+    .eq('id', lessonId)
+    .single()
+  if (!lesson) return null
+
+  const curriculum = lesson.curricula as { topic_id: string } | { topic_id: string }[] | null
+  const topicId = Array.isArray(curriculum) ? curriculum[0]?.topic_id : curriculum?.topic_id
+  return { topicId: topicId ?? null, body: (lesson.body as string | null) ?? '' }
+}
+
+/** A resource's readable body, and the topic it is most about. */
+async function readResourceSource(
+  db: ReturnType<typeof supabaseAdmin>,
+  userId: string,
+  resourceId: string
+) {
+  const reading = await readingOf(db, userId, { resourceId })
+  if (!reading) return null
+  const { data: made } = await db
+    .from('resource_bodies')
+    .select('body')
+    .eq('resource_id', resourceId)
+    .maybeSingle()
+  return { topicId: reading.topicId, body: (made?.body as string | undefined) ?? '' }
 }
 
 /** Whitespace as the prose renders it, not as the markdown stores it. */

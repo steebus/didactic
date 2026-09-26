@@ -145,7 +145,15 @@ export interface StrandGlyph {
   petals: readonly number[]
 }
 
-export const STRAND_GLYPHS: Record<'passage' | 'note' | 'entry', StrandGlyph> = {
+export const STRAND_GLYPHS: Record<'passage' | 'note' | 'entry' | 'summary', StrandGlyph> = {
+  /** A sprig: two leaves on one stem, which is a section said back --
+   *  the reading, carried off in the reader's own growth. */
+  summary: {
+    outline:
+      'M12 11 C 8.6 10.6 6.4 8.2 6.2 4.8 C 9.6 5.2 11.8 7.6 12 11 Z M12 15 C 15.4 14.6 17.6 12.2 17.8 8.8 C 14.4 9.2 12.2 11.6 12 15 Z',
+    detail: ['M12 6 L 12 21.5', 'M12 11 L 8.2 6.8', 'M12 15 L 15.8 10.8'],
+    petals: [],
+  },
   /** A leaf: a sentence kept off something that was read. */
   passage: {
     outline: 'M12 2.5 C 18.5 7 18.5 16.5 12 21.5 C 5.5 16.5 5.5 7 12 2.5 Z',

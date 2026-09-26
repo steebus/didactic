@@ -65,7 +65,7 @@ export function paintClozes(
       // formula was set from, rendered nowhere; the set formula itself
       // is walked, or a cloze cut from a sentence with an equation in
       // it could never be drawn on its own lesson.
-      skip: '[data-cloze],annotation,button,textarea',
+      skip: '[data-cloze],annotation,button,textarea,[data-summary-host]',
       dress: (piece, first) => {
         if (first) {
           piece.tabIndex = 0

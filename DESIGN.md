@@ -2123,6 +2123,28 @@ is ignored on anything that scrolls sideways of its own accord — a plot, a wid
 table — while a selection is being made, while a panel is open, and when the
 travel is more down the page than across it.
 
+### Summaries in the reader's own words
+
+Saying a section back is how it sticks, so every heading carries a way to do
+it, and the foot of the reading asks for the whole. A summary is the reader's
+writing, never the text's, and wears its own ink: **ultramarine**, where a mark
+is mustard and a cloze is plum.
+
+| Part | Treatment |
+| --- | --- |
+| The press | The sprig (`STRAND_GLYPHS.summary`) at the end of the heading's own line, 1.75rem round, `--ink-faint` at 45%, coming to full ultramarine when the heading is hovered or the press has focus. At rest at 70% where there is no hover. Filled and held in ultramarine once the section has been said back. |
+| The field | Straight under the heading, empty until opened so an unopened section takes no more room than it did: `--paper-deep` ground, `3px` ultramarine left rule, `--space-3` inside, 68ch at most. The label register above the note editor; *Keep it* set on ultramarine. |
+| Said back | The same field, holding the summary as note text, with *Rewrite it*, *Remove* (set apart by a rule) and *Close*. |
+| The foot | *In your own words* — a foot section like the others, `2px --rule-strong` over it, the sprig beside a display-face title, and a line saying how many sections have been said back. It comes after the reading and before the material, the garden and *How did you go?* |
+| On the topic sheet | Under a lesson's title, the reader's whole-lesson summary, two lines at most, italic, behind a `2px` ultramarine rule with *In your words* in the label register. The sprig beside the play control opens every summary of that lesson in the marks' drawer — same column, same ground — each under its section's name, which links back to it. |
+
+**Rule — one summary per section.** Writing another replaces the last. The
+point is the reader's current account of the section, not a pile of drafts.
+
+**Rule — the reader's writing is not the text.** The hosts a summary stands in
+are skipped by the mark and cloze painters and refused by the selection, so a
+summary is never searched, marked or tended as part of what it summarises.
+
 ### The note editor
 
 A box you can bold things in, at every size the panel takes.

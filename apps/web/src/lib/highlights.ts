@@ -3,6 +3,7 @@ import { config } from '@didactic/core/config'
 import { recomputeAbility } from './scoring'
 import type { Highlight } from '@didactic/core/types'
 import { tagsIn, type Tag } from '@didactic/core/mentions'
+import { readingOf, type ReadingRef } from './reading'
 
 // The shape moved to `@didactic/core/shapes`, where the phone can name
 // it too; the query that builds it needs a client and the cache, so it
@@ -34,23 +35,34 @@ export async function createHighlight(
   db: SupabaseClient,
   input: {
     userId: string
-    lessonId: string
+    /** Where it was taken: a lesson, or a resource read in the app
+     *  (053). Exactly one. */
+    lessonId?: string | null
+    resourceId?: string | null
     quote: string
     prefix?: string | null
     note?: string | null
   }
 ): Promise<{ highlight: Highlight; abilityBefore: number | null; abilityAfter: number | null }> {
-  const { data: lesson, error: lessonError } = await db.from('lessons')
-    .select('id, title, topic_id, user_id')
-    .eq('id', input.lessonId)
-    .single()
-  if (lessonError || !lesson) throw new Error('That lesson does not exist.')
+  const where: ReadingRef | null = input.resourceId
+    ? { resourceId: input.resourceId }
+    : input.lessonId
+      ? { lessonId: input.lessonId }
+      : null
+  const reading = where ? await readingOf(db, input.userId, where) : null
+  if (!where || !reading) {
+    throw new Error(input.resourceId ? 'That resource does not exist.' : 'That lesson does not exist.')
+  }
 
   const { data: highlight, error } = await db.from('highlights')
     .insert({
       user_id: input.userId,
-      lesson_id: input.lessonId,
-      topic_id: lesson.topic_id,
+      lesson_id: 'lessonId' in where ? where.lessonId : null,
+      // Only named where there is one, so a mark in a lesson is written
+      // exactly as it always was -- including against a database the
+      // column has not reached yet.
+      ...('resourceId' in where ? { resource_id: where.resourceId } : {}),
+      topic_id: reading.topicId,
       quote: input.quote,
       prefix: input.prefix ?? null,
       note: input.note ?? null,
@@ -69,31 +81,31 @@ export async function createHighlight(
     console.error('highlights: could not file what the note names', e)
   }
 
-  // A scaffolding lesson teaches no single topic, so there is nothing
-  // for the mark to count toward.
-  if (!lesson.topic_id) {
+  // A scaffolding lesson teaches no single topic, and a resource not yet
+  // filed is under none, so there is nothing for the mark to count toward.
+  if (!reading.topicId) {
     return { highlight, abilityBefore: null, abilityAfter: null }
   }
 
   const { data: before } = await db.from('topics')
-    .select('ability').eq('id', lesson.topic_id).single()
+    .select('ability').eq('id', reading.topicId).single()
 
   await db.from('exposures').insert({
     user_id: input.userId,
-    topic_id: lesson.topic_id,
+    topic_id: reading.topicId,
     source: 'highlight',
     source_id: highlight.id,
     depth: 'marked',
     ability_delta: config.DEPTH_WEIGHTS.marked,
-    // A mark with no passage is a note on the lesson itself, and the
+    // A mark with no passage is a note on the reading itself, and the
     // ledger should say which of the two happened rather than claim a
     // passage nobody selected.
     reason: input.quote
-      ? `marked a passage in "${lesson.title}"`
-      : `wrote a note on "${lesson.title}"`,
+      ? `marked a passage in "${reading.title}"`
+      : `wrote a note on "${reading.title}"`,
   })
 
-  const after = await recomputeAbility(db, lesson.topic_id)
+  const after = await recomputeAbility(db, reading.topicId)
   return {
     highlight,
     abilityBefore: before ? Number(before.ability) : null,
@@ -217,5 +229,29 @@ export async function searchHighlights(
 
   const { data, error } = await request.order('created_at', { ascending: false }).limit(limit)
   if (error) throw new Error(error.message)
-  return (data ?? []) as unknown as HighlightRow[]
+  return withResourceTitles(db, (data ?? []) as unknown as HighlightRow[])
+}
+
+/**
+ * Say which resource a mark was taken in, where it was not a lesson.
+ *
+ * A second read rather than an embed in `SELECT`, for the reason
+ * `clozes.withResources` gives: the relation only exists once 053 has
+ * run, and a list that failed for the minutes between the build and the
+ * migration would cost the reader every mark they have.
+ */
+export async function withResourceTitles(
+  db: SupabaseClient,
+  rows: HighlightRow[]
+): Promise<HighlightRow[]> {
+  const ids = [...new Set(rows.map(r => r.resource_id).filter((id): id is string => Boolean(id)))]
+  if (ids.length === 0) return rows
+
+  const { data } = await db.from('resources').select('id, title').in('id', ids)
+  const titles = new Map((data ?? []).map(r => [r.id as string, r.title as string]))
+  return rows.map(r =>
+    r.resource_id && titles.has(r.resource_id)
+      ? { ...r, resource: { id: r.resource_id, title: titles.get(r.resource_id)! } }
+      : r
+  )
 }

@@ -14,6 +14,7 @@ import {
   tallyOf,
   STRAND_LABEL,
 } from '@didactic/core/timeline'
+import { summaryLabel } from '@didactic/core/summaries'
 import { NoteEditor } from '@/components/NoteEditor'
 import { NoteText } from '@/components/NoteText'
 import { StrandGlyph } from '@/components/StrandGlyph'
@@ -125,15 +126,31 @@ export function MarkedSheet({
    *  still readable above, and re-filing it against a lesson that no
    *  longer exists would fail at the server. */
   async function putBack() {
-    if (!undo?.lesson_id) return
+    if (!undo) return
+    // Where it was taken, which is what it is put back against.
+    const of = undo.lesson_id
+      ? { lessonId: undo.lesson_id }
+      : undo.resource_id
+        ? { resourceId: undo.resource_id }
+        : null
+    if (!of) return
     setBusy(true)
 
-    const { ok, error: failed } = await api.highlights.create({
-      lessonId: undo.lesson_id,
-      quote: undo.quote,
-      prefix: undo.prefix,
-      note: undo.note,
-    })
+    // A summary goes back as a summary of the same section, not as a
+    // note with nothing quoted.
+    const { ok, error: failed } =
+      undo.kind === 'summary'
+        ? await api.summaries.save(of, {
+            section: undo.section ?? null,
+            sectionAt: undo.section_at ?? null,
+            note: undo.note ?? '',
+          })
+        : await api.highlights.create({
+            ...of,
+            quote: undo.quote,
+            prefix: undo.prefix,
+            note: undo.note,
+          })
     if (ok) {
       setUndo(null)
       startTransition(() => router.refresh())
@@ -216,16 +233,26 @@ export function MarkedSheet({
           the sheet rather than expiring on a timer nobody is watching. */}
       {undo && (
         <p className={styles.undo}>
-          Removed the {strandOf(undo) === 'entry' ? 'entry' : undo.quote ? 'passage' : 'note'}
-          {undo.lesson?.title && (
+          Removed the{' '}
+          {strandOf(undo) === 'entry'
+            ? 'entry'
+            : strandOf(undo) === 'summary'
+              ? 'summary'
+              : undo.quote
+                ? 'passage'
+                : 'note'}
+          {(undo.lesson?.title ?? undo.resource?.title) && (
             <>
-              {' '}from <span className={styles.undoQuote}>{undo.lesson.title}</span>
+              {' '}from{' '}
+              <span className={styles.undoQuote}>
+                {undo.lesson?.title ?? undo.resource?.title}
+              </span>
             </>
           )}
           .{' '}
           {undo.kind === 'diary' ? (
             <span className={styles.undoQuote}>An entry cannot be put back once removed.</span>
-          ) : undo.lesson_id ? (
+          ) : undo.lesson_id || undo.resource_id ? (
             <button type="button" className={styles.quiet} onClick={putBack} disabled={busy}>
               Put it back
             </button>
@@ -311,9 +338,16 @@ export function MarkedSheet({
                               <>
                                 {h.quote ? (
                                   <blockquote className={styles.quote}>{h.quote}</blockquote>
+                                ) : strand === 'summary' ? (
+                                  // Which part of the reading it says
+                                  // back, as the drawer beside a lesson
+                                  // names it.
+                                  <p className={styles.bare}>{summaryLabel(h.section)}</p>
                                 ) : (
                                   !h.note && (
-                                    <p className={styles.bare}>A note on this lesson</p>
+                                    <p className={styles.bare}>
+                                      A note on this {h.resource ? 'reading' : 'lesson'}
+                                    </p>
                                   )
                                 )}
 
@@ -370,9 +404,19 @@ export function MarkedSheet({
                                   {h.lesson.title}
                                 </Link>
                               )}
+                              {/* Taken in something read in the app
+                                  rather than a lesson (053). */}
+                              {!h.lesson && h.resource && (
+                                <Link
+                                  href={`/resources/${h.resource.id}`}
+                                  className={styles.inlineLink}
+                                >
+                                  {h.resource.title}
+                                </Link>
+                              )}
                               {!isEntry && editing !== h.id && (
                                 <>
-                                  {h.lesson && ' · '}
+                                  {(h.lesson || h.resource) && ' · '}
                                   <button
                                     type="button"
                                     className={styles.quiet}
