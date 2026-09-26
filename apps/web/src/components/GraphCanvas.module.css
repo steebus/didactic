@@ -127,6 +127,9 @@
   border-left: 2px solid var(--rule-strong);
   padding: var(--space-4);
   display: grid;
+  /* One column that may shrink below its content, or the widest
+     unbreakable line in the panel sets its width. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
   align-content: start;
   box-shadow: -4px 0 20px rgba(var(--ink-rgb), 0.12);
@@ -246,6 +249,21 @@
   justify-content: space-between;
   gap: var(--space-3);
   align-items: baseline;
+  min-width: 0;
+}
+
+/* The name side of a record row. A resource is often titled by its URL,
+   one word as long as the address: it breaks anywhere and stops at two
+   lines, the full title on hover, rather than widening the panel past
+   the edge of a phone. */
+.record li > :first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .recordDate {

@@ -771,7 +771,7 @@ what is on it is coming up, not unresolved.
 | The name | Display face, italic, `--step-2`; *Not yet named* in `--ink-faint` until it is. |
 | The evidence | Counts first, in `--ink-soft` (`core/sprouting.bindingSentence`). |
 | The topics | A wrapped run of links; the core ones `600`, loose ones followed by *loose* in terracotta small caps. |
-| The material | Behind a `1px` rule, each marked *read* or *unread*. |
+| The material | Behind a `1px` rule, each marked *read* or *unread*; a title that is a URL breaks anywhere and stops at two lines, as fertile ground does, and the entry is a `minmax(0, 1fr)` column so no one line can widen it. |
 | The presses | *Call it* over an italic name field, then *Give it a bed* on the band green and *Not this* in a rule-strong outline. |
 
 **Rule — what was looked at is shown with why.** Under the entries, a dotted
@@ -1414,7 +1414,9 @@ fixed inset parked the top of the planting under it on a phone.
 
 The graph panel is a right rail at `min(24rem, 100%)` on desktop and a bottom
 sheet at `max-height: 72dvh` below `40rem` — a 24rem rail would cover the whole
-bed on a phone.
+bed on a phone. Its one column may shrink below its content, and
+the name side of every record row breaks anywhere and stops at two lines: a
+resource titled by its URL widened the sheet past the edge of the phone.
 
 ---
 

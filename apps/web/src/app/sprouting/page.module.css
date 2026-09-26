@@ -127,6 +127,11 @@
 
 .entry {
   display: grid;
+  /* One column that may shrink below its content: a grid track is as wide
+     as the widest unbreakable thing in it by default, and a resource
+     titled by its URL is one word the length of the address. That widened
+     every part of the entry and pushed the sheet off the side of a phone. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
   padding: var(--space-5) 0;
   border-bottom: 1px solid var(--rule);
@@ -160,6 +165,7 @@
 
 /* Outlined italic: a name nobody has given it yet. */
 .name {
+  overflow-wrap: anywhere;
   font-family: var(--font-display);
   font-style: italic;
   font-size: var(--step-2);
@@ -204,6 +210,11 @@
   font-size: var(--step--1);
 }
 
+.topics li {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .topics a {
   color: inherit;
   text-decoration: underline;
@@ -240,8 +251,21 @@
   color: var(--ink-soft);
 }
 
+.material li {
+  min-width: 0;
+}
+
+/* A resource title is often its URL: break it anywhere and stop at two
+   lines, the full title on hover, as fertile ground on the subjects
+   sheet does. */
 .material a {
   color: inherit;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .read {

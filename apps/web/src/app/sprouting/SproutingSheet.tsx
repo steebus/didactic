@@ -133,7 +133,7 @@ export function SproutingSheet({ initial }: { initial: Sprouting }) {
                     {item.material.map((m, i) => (
                       <span key={m.id}>
                         {i > 0 && ', '}
-                        <Link href={`/resources/${m.id}`}>{m.title}</Link>
+                        <Link href={`/resources/${m.id}`} title={m.title}>{m.title}</Link>
                       </span>
                     ))}
                   </p>
@@ -202,7 +202,7 @@ function Entry({
         <ul className={styles.material}>
           {sprout.material.map(m => (
             <li key={m.id}>
-              <Link href={`/resources/${m.id}`}>{m.title}</Link>
+              <Link href={`/resources/${m.id}`} title={m.title}>{m.title}</Link>
               <span className={styles.read}>{m.read ? 'read' : 'unread'}</span>
             </li>
           ))}

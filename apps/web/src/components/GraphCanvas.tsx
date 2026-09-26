@@ -1306,7 +1306,7 @@ function TopicPanel({
           <ul className={styles.record}>
             {detail.resources.map((r, i) => (
               <li key={i}>
-                <span>{r.resources.title}</span>
+                <span title={r.resources.title}>{r.resources.title}</span>
                 <span className={styles.recordDate}>{r.resources.status}</span>
               </li>
             ))}
@@ -1428,7 +1428,7 @@ function SproutPanel({
           <ul className={styles.record}>
             {sprout.material.map(m => (
               <li key={m.id}>
-                <span>{m.title}</span>
+                <span title={m.title}>{m.title}</span>
                 <span className={styles.recordDate}>{m.read ? 'read' : 'unread'}</span>
               </li>
             ))}
