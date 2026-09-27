@@ -2136,6 +2136,7 @@ components, because working an article is the same work as working a lesson.
 | Filed under | One line in `--ink-soft` above the reading, naming every topic it counts toward. |
 | Nothing to read | Said in the display face's italic, in `--ink-faint`, with the way to read it where it lives. The summary and the foot are still there beneath it. |
 | The foot | *In your own words*, then *Have you read it?* — the lesson's depth buttons: **Read it** first, then *Skimmed it* and *Worked with it*. Once said: *Read*, the date, and what it counted toward. |
+| Asking | From the desk, stacked with the note and marks buttons, as on a lesson. The corner disc steps aside here, as it does on a lesson — one way to ask, not two. The document viewer below it has no desk and keeps the disc. |
 | In the inbox | The row's title is the way in, in the heading's ink with a `--rule` hairline under it that darkens to `--ink` under the pointer. |
 
 ### Summaries in the reader's own words
