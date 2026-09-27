@@ -690,7 +690,7 @@ the most useful thing the plate can say about that topic.
 It was found at display time as the nearest title, and in this embedding model a
 field's titles all sit close — *Hash Functions* is 0.83 from *JavaScript*, as
 near as it is to *Algorithms* — so the queue offered merges nothing had
-proposed. The reading's choice is kept on the queued topic (`058`) and the plate
+proposed. The reading's choice is kept on the queued topic (`059`) and the plate
 beside it is that topic; the nearest title stands in only where there was no
 reading, and says so.
 

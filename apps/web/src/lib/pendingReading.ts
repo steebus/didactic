@@ -35,13 +35,13 @@ export interface Reread {
  *   what ingestion would have done -- and filed where the reading
  *   placed it;
  * - read as one already there, or unsure, it stays, and is asked
- *   against the topic the reading chose, with what it said (`058`).
+ *   against the topic the reading chose, with what it said (`059`).
  *
  * Nothing is merged here. A merge cannot be undone, and the person is
  * looking at the queue: a reading sure they are one thing says so and
  * leaves the press to them.
  *
- * Before 058 there is nowhere to keep what was read, so nothing is: it
+ * Before 059 there is nowhere to keep what was read, so nothing is: it
  * would be read again on every opening.
  */
 export async function rereadPending(db: SupabaseClient, userId: string): Promise<Reread> {

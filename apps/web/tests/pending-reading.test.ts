@@ -8,7 +8,7 @@ import type { JevVerdict } from '@/lib/llm/jev'
  *
  * It used to find the other side itself, as the nearest title, which in
  * this embedding model put "Hash Functions" against "JavaScript". The
- * reading is kept on the topic it queued (058), the queue asks about
+ * reading is kept on the topic it queued (059), the queue asks about
  * that pair, and anything queued on its name alone is read again.
  */
 
@@ -141,9 +141,9 @@ describe('rereadPending', () => {
   })
 
   it('reads nothing before there is a column to keep the reading in', async () => {
-    const before058: Record<string, unknown> = { ...queued('hash', 'Hash Functions') }
-    delete before058.pending_reading
-    const { db } = fakeDb([before058])
+    const before059: Record<string, unknown> = { ...queued('hash', 'Hash Functions') }
+    delete before059.pending_reading
+    const { db } = fakeDb([before059])
     expect(await rereadPending(db, 'u')).toEqual({ released: 0, read: 0, warning: null })
   })
 })

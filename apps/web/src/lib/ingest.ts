@@ -208,7 +208,7 @@ export async function ingestResource(
   const links: Array<{ topic_id: string; relevance: number; summary: string | null }> = []
   const newTopics: Array<Record<string, unknown>> = []
   // Beside `newTopics`, index for index: what the reading said about each
-  // one it queued, kept on the topic once it has an id (058).
+  // one it queued, kept on the topic once it has an id (059).
   const readings: Array<KeptReading | null> = []
   let pendingCount = 0
 
@@ -288,7 +288,7 @@ export async function ingestResource(
   // asks about the pair it was unsure of rather than the nearest title.
   // The commit hands the new topics back in the order they were sent;
   // the title is checked as well, so a mismatch keeps nothing rather
-  // than the wrong thing. Never fatal, and before 058 it keeps nothing:
+  // than the wrong thing. Never fatal, and before 059 it keeps nothing:
   // a topic with no reading is read again when the queue next opens.
   await Promise.all(
     newTopicRefs.map(async (ref: { id: string; title: string }, i: number) => {

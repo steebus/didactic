@@ -1,4 +1,4 @@
--- 058: what the reading said about a topic it queued.
+-- 059: what the reading said about a topic it queued.
 --
 -- The adjudication queue asks whether a newly read topic is one already
 -- on the map. It found the other side of that question itself, when the

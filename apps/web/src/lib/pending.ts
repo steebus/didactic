@@ -34,7 +34,7 @@ export async function getPendingTopics(): Promise<PendingTopic[]> {
 }
 
 export async function readPendingTopics(db: SupabaseClient): Promise<PendingTopic[]> {
-  // Every column, so the kept reading (058) is read where it exists and
+  // Every column, so the kept reading (059) is read where it exists and
   // its absence is no error where it does not: naming it would empty
   // the queue until the migration ran.
   const { data } = await db.from('topics')

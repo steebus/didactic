@@ -249,7 +249,7 @@ export function readingSentence(reading: Pick<Reading, 'because' | 'probability'
 }
 
 /**
- * What is kept of a reading on the topic it queued (`058`): which topic
+ * What is kept of a reading on the topic it queued (`059`): which topic
  * it was asking about, and how it read, so the queue asks about that
  * pair and says why.
  *
@@ -278,7 +278,7 @@ export function keptReading(reading: Reading): KeptReading {
 const BECAUSE: ReadonlySet<string> = new Set(['sure', 'narrow-margin', 'unsure', 'distinct', 'thin', 'empty', 'wrong-scope'])
 
 /** A kept reading as it comes back from the database, or null where the
- *  column is empty, absent (before `058`) or holds something else. */
+ *  column is empty, absent (before `059`) or holds something else. */
 export function readKept(value: unknown): KeptReading | null {
   if (!value || typeof value !== 'object') return null
   const v = value as Record<string, unknown>
