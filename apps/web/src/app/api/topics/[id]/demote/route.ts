@@ -55,18 +55,30 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const target = (ends ?? []).find(t => t.id === into)
 
-  const { data: lessonId, error } = await db.rpc('demote_topic_into', {
-    p_topic: id,
-    p_into: into,
-  })
-
-  if (error) return NextResponse.json({ error: sayWhy(error.message) }, { status: 400 })
+  // Folded with a ledger (062), so it can be unfolded from the target's
+  // sheet. Before 062 there is only the old, one-way demote.
+  let foldId: string | null = null
+  let lessonId: string | null = null
+  const folded = await db.rpc('fold_topic_into', { p_topic: id, p_into: into })
+  if (folded.error?.code === 'PGRST202' || folded.error?.code === '42883') {
+    const demoted = await db.rpc('demote_topic_into', { p_topic: id, p_into: into })
+    if (demoted.error) return NextResponse.json({ error: sayWhy(demoted.error.message) }, { status: 400 })
+    lessonId = demoted.data as string
+  } else if (folded.error) {
+    return NextResponse.json({ error: sayWhy(folded.error.message) }, { status: 400 })
+  } else {
+    foldId = folded.data as string
+    const { data: fold } = await db.from('topic_folds').select('lesson_id').eq('id', foldId).maybeSingle()
+    lessonId = (fold?.lesson_id as string | null) ?? null
+  }
 
   dropCache()
   return NextResponse.json({
     lessonId,
     intoTopicId: into,
     intoTitle: target?.title ?? null,
+    // Additive: the fold, which `POST /api/topics/[id]/unfold` undoes.
+    foldId,
   })
 }
 

@@ -1,5 +1,6 @@
 import { cacheLife, cacheTag } from 'next/cache'
 import { getEffortMap } from './effort'
+import type { FoldedIn } from '@didactic/core/grain'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { tags } from '@didactic/core/tags'
 import { saidFrom, type SaidRow } from '@didactic/core/shelf'
@@ -32,8 +33,28 @@ export async function getTopicArea(topicId: string): Promise<TopicArea | null> {
   // The client is built in here rather than passed in: an argument
   // crossing a `use cache` boundary is serialised, and a Supabase
   // client does not survive that.
-  const [area, effort] = await Promise.all([readTopicArea(supabaseAdmin(), topicId), getEffortMap()])
-  return area && { ...area, effort: effort.topics[topicId] ?? null }
+  const db = supabaseAdmin()
+  const [area, effort, folds] = await Promise.all([readTopicArea(db, topicId), getEffortMap(), foldsInto(db, topicId)])
+  return area && { ...area, effort: effort.topics[topicId] ?? null, folds }
+}
+
+/**
+ * Topics folded into this one's route and not yet unfolded (062). Empty
+ * before the migration: there is nothing to unfold without a ledger.
+ */
+export async function foldsInto(db: SupabaseClient, topicId: string): Promise<FoldedIn[]> {
+  const { data, error } = await db
+    .from('topic_folds')
+    .select('topic_id, snapshot, folded_at')
+    .eq('into_id', topicId)
+    .is('unfolded_at', null)
+    .order('folded_at', { ascending: false })
+  if (error) return []
+  return (data ?? []).map(f => ({
+    topicId: f.topic_id as string,
+    title: ((f.snapshot as { title?: string } | null)?.title ?? 'A folded topic') as string,
+    foldedAt: f.folded_at as string,
+  }))
 }
 
 export async function readTopicArea(

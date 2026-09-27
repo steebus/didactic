@@ -1,5 +1,5 @@
 import type { Api } from './client'
-import type { AskContext, Proposal, AgentWrite } from '@didactic/core/ask'
+import type { AskContext, Proposal, AgentWrite, Accepted } from '@didactic/core/ask'
 
 /** What a turn answers with: what to print, what is offered, and what
  *  was kept without being asked. */
@@ -19,8 +19,11 @@ export const ask = (api: Api) => ({
     api.post<AskAnswer>('/api/ask', body),
   /** Create a topic the agent offered. The only call here that reaches
    *  the map. */
+  /** Accept a proposed topic. It is read against the map first:
+   *  `outcome` says whether it was already there, queued for the
+   *  reader's call, or added. `topicId` is kept for older callers. */
   accept: (id: string, body: { name: string; summary: string }) =>
-    api.post<{ topicId: string }>(`/api/ask/${id}/accept`, body),
+    api.post<Accepted>(`/api/ask/${id}/accept`, body),
   /** Take back a mark or a card the agent kept. Safe to call twice. */
   undo: (id: string, body: { kind: 'mark' | 'card'; writeId: string }) =>
     api.post<{ ok: true }>(`/api/ask/${id}/undo`, body),

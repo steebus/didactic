@@ -20,6 +20,14 @@ vi.mock('next/cache', () => ({ revalidateTag: vi.fn() }))
 // A topic is not written without one, so the double answers instantly
 // rather than reaching for the edge function.
 vi.mock('@/lib/embedding', () => ({ embed: vi.fn(async () => new Array(1536).fill(0)) }))
+// Accepting a topic reads it against the map first. Here the map has
+// nothing near it and the reading does not run, so it is added, as it
+// always was; the three outcomes are pinned in ask-accept.test.ts.
+vi.mock('@/lib/resolver', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/lib/resolver')>()),
+  fetchCandidates: vi.fn(async () => []),
+}))
+vi.mock('@/lib/ingest', () => ({ keyOf: (i: number) => `c${i + 1}`, judge: vi.fn(async () => null) }))
 
 /**
  * A Supabase double that records what it was asked to do.
@@ -247,7 +255,8 @@ describe('accepting a topic', () => {
       { params: Promise.resolve({ id: 'conv-1' }) }
     )
     expect(res.status).toBe(200)
-    expect(await res.json()).toEqual({ topicId: 'topic-9' })
+    // `topicId` is what an older caller reads; `outcome` is additive.
+    expect(await res.json()).toMatchObject({ outcome: 'existing', topicId: 'topic-9' })
     expect(db._inserted.filter(i => i.table === 'topics')).toHaveLength(0)
   })
 })

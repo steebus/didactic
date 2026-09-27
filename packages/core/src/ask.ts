@@ -263,3 +263,28 @@ export function askOrigin(
     ...(c.route === 'lesson' && c.sectionId ? { sectionId: c.sectionId } : {}),
   }
 }
+
+/**
+ * What accepting a proposed topic came to. It is read against the map
+ * first, as a concept from a resource is, so a proposal the reading takes
+ * to be a topic already there opens that one instead of writing a second,
+ * and one it is unsure of joins the queue rather than the map.
+ */
+export type Accepted =
+  | { outcome: 'existing'; topicId: string; title: string }
+  | { outcome: 'queued'; topicId: string }
+  | { outcome: 'added'; topicId: string; filed: number }
+
+/** What the proposal card says once it has been accepted. */
+export function acceptedSentence(accepted: Accepted): string {
+  switch (accepted.outcome) {
+    case 'existing':
+      return `Already on the map as ${accepted.title}.`
+    case 'queued':
+      return 'Close to a topic already on the map, so it is waiting in the inbox for your call.'
+    case 'added':
+      return accepted.filed > 0
+        ? `Added to the map, and filed under ${accepted.filed === 1 ? 'the subject' : `${accepted.filed} subjects`} it reads as belonging to.`
+        : 'Added to the map, filed under nothing yet.'
+  }
+}

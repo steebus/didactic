@@ -1,4 +1,4 @@
-import type { SubjectEffort, TopicEffort } from './grain'
+import type { FoldedIn, PromotedFrom, SubjectEffort, TopicEffort } from './grain'
 import type { FigureEvent } from './figureRecord'
 import type { Filing } from './filingState'
 /**
@@ -310,6 +310,9 @@ export interface TopicArea {
   /** How big it is and how far the reader is from their target on it
    *  (`core/grain`). Additive; absent from a pending topic. */
   effort?: TopicEffort | null
+  /** Topics folded into this one's route, which can be unfolded (062).
+   *  Additive. */
+  folds?: FoldedIn[]
 }
 
 /* ------------------------------------------------------------- subject */
@@ -340,6 +343,9 @@ export interface SubjectArea {
   /** The bed's hours to its target, added up from its topics
    *  (`core/grain`). Additive. */
   effort?: SubjectEffort | null
+  /** The topic this subject was promoted from, where it was; it can be
+   *  put back (062). Additive. */
+  promotedFrom?: PromotedFrom | null
   tree: TopicTreeNode[]
   topics: SubjectTopicRow[]
   /** The boxes this bed is read in, simplest first. Empty is ordinary:

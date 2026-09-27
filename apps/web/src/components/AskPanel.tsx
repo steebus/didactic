@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { didactic } from '@didactic/api'
+import { acceptedSentence } from '@didactic/core/ask'
 import type { AskContext, Proposal, AgentWrite } from '@didactic/core/ask'
 import { Prose } from './Prose'
 import styles from './Ask.module.css'
@@ -187,6 +188,9 @@ function Offered({
   conversationId?: string
 }) {
   const [state, setState] = useState<'offered' | 'adding' | 'added'>('offered')
+  // What accepting it came to: it is read against the map first, and may
+  // turn out to be a topic already there, or a question for the inbox.
+  const [said, setSaid] = useState<string | null>(null)
 
   return (
     <div className={styles.proposal}>
@@ -199,15 +203,17 @@ function Offered({
         onClick={async () => {
           if (!conversationId) return
           setState('adding')
-          const { ok } = await api.ask.accept(conversationId, {
+          const { ok, body } = await api.ask.accept(conversationId, {
             name: proposal.name,
             summary: proposal.summary,
           })
           setState(ok ? 'added' : 'offered')
+          if (ok && body?.outcome) setSaid(acceptedSentence(body))
         }}
       >
-        {state === 'added' ? 'Added to the map' : 'Add this topic'}
+        {state === 'added' ? 'Accepted' : state === 'adding' ? 'Reading it against the map…' : 'Add this topic'}
       </button>
+      {said && <p className={styles.proposalSummary}>{said}</p>}
     </div>
   )
 }

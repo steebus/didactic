@@ -73,6 +73,7 @@ export const ENDPOINTS = {
   'subjects.sow': { name: 'subjects.sow', method: 'POST', path: '/api/subjects', invalidates: SOWING_WIDE },
   'subjects.qualify': { name: 'subjects.qualify', method: 'POST', path: '/api/subjects/qualify', invalidates: [] },
   'subjects.remove': { name: 'subjects.remove', method: 'DELETE', path: '/api/subjects/[id]', invalidates: SUBJECT_DEEP },
+  'subjects.unpromote': { name: 'subjects.unpromote', method: 'POST', path: '/api/subjects/[id]/unpromote', invalidates: [tags.subjects, tags.topics, tags.resources] },
   'subjects.setTarget': { name: 'subjects.setTarget', method: 'PATCH', path: '/api/subjects/[id]', invalidates: SUBJECT_DEEP },
   'subjects.addTopic': { name: 'subjects.addTopic', method: 'POST', path: '/api/subjects/[id]/topics', invalidates: BED },
   'subjects.fileTopic': { name: 'subjects.fileTopic', method: 'POST', path: '/api/subjects/[id]/topics', invalidates: BED },
@@ -94,6 +95,7 @@ export const ENDPOINTS = {
   /* A merge carries the duplicate's marks and cards over to the
      survivor as well (`043`), so the two sheets that print those are
      dropped with the map. */
+  'topics.unfold': { name: 'topics.unfold', method: 'POST', path: '/api/topics/[id]/unfold', invalidates: [tags.subjects, tags.topics, tags.pending, tags.highlights, tags.clozes, tags.resources] },
   'topics.decide': { name: 'topics.decide', method: 'PATCH', path: '/api/topics/pending', invalidates: [tags.pending, tags.topics, tags.subjects, tags.highlights, tags.clozes] },
 
   'resources.add': { name: 'resources.add', method: 'POST', path: '/api/resources', invalidates: MATERIAL },

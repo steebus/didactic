@@ -7,6 +7,7 @@ import { didactic } from '@didactic/api'
 import type { Suggestion } from '@didactic/core/mentionSearch'
 import type { TopicEvidence } from '@didactic/core/shapes'
 import { holdings } from '@didactic/core/adjudication'
+import { foldNote } from '@didactic/core/grain'
 import styles from './page.module.css'
 
 const api = didactic()
@@ -28,9 +29,10 @@ const api = didactic()
  * operation. This block says so rather than hiding the controls, since
  * "why can I not do this" is the question a hidden control provokes.
  *
- * Promoting is additive and reversible. Demoting is not, so it is two
- * presses and the second is only offered once the sheet can say what
- * the first would move — the same shape as grubbing out a bed.
+ * Both can be taken back (062): a promotion from the subject it made,
+ * a fold from the sheet of the topic it went into. Folding still takes
+ * two presses, and the second is only offered once the sheet can say
+ * what the first would move — the same shape as grubbing out a bed.
  */
 export function ChangeLevel({
   topicId,
@@ -221,17 +223,17 @@ export function ChangeLevel({
 
           {target && (
             <>
-              {/* The reckoning. A demote cannot be undone, so the second
-                  press is only offered once the sheet can say what the
-                  first would move. */}
+              {/* The reckoning. The second press is only offered once the
+                  sheet can say what the first would move, and where it
+                  can be taken back (062). */}
               <p className={styles.reckoning}>
                 <strong>{topicTitle}</strong> becomes a lesson in{' '}
                 <strong>{target.title}</strong>’s route. Everything it holds —{' '}
                 {holdings(evidence).toLowerCase()} — moves onto{' '}
                 {target.title} first, so nothing is lost but the name, and the
-                name becomes the lesson’s title. This topic is then removed.
+                name becomes the lesson’s title.
               </p>
-              <p className={styles.blockNote}>This cannot be undone.</p>
+              <p className={styles.blockNote}>{foldNote(target.title)}</p>
             </>
           )}
 

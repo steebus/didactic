@@ -12,6 +12,7 @@ import { DraftCurriculum } from './DraftCurriculum'
 import { LessonList } from './LessonList'
 import { FiledUnder } from './FiledUnder'
 import { ChangeLevel } from './ChangeLevel'
+import { Folds } from './Folds'
 import { GrubOut } from './GrubOut'
 import { FigureRecord } from './FigureRecord'
 import { AddResource } from '@/components/AddResource'
@@ -401,6 +402,8 @@ export default async function TopicPage({
                 carries a route, and the block says why rather than
                 hiding the controls -- "why can I not do this" is the
                 question a hidden control provokes. */}
+            <Folds folds={area.folds ?? []} />
+
             <ChangeLevel
               topicId={topic.id}
               topicTitle={topic.title}

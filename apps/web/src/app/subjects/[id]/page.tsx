@@ -13,6 +13,7 @@ import { ROOT_STAGES } from '@/components/RootsSpecimen'
 import { SubjectBed } from './SubjectBed'
 import { GrubOut } from './GrubOut'
 import { BedTarget } from './BedTarget'
+import { PutBack } from './PutBack'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
 
@@ -151,6 +152,8 @@ export default async function SubjectPage({
                 </p>
               )}
             </section>
+
+            {area.promotedFrom && <PutBack subjectId={subject.id} from={area.promotedFrom} />}
 
             {area.effort && (
               <section className={styles.block}>

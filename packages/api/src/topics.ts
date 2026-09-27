@@ -68,6 +68,9 @@ export interface Demoted {
   lessonId: string
   intoTopicId: string
   intoTitle: string | null
+  /** The fold that undoes it (062); null where the old one-way demote
+   *  ran because 062 had not. Additive. */
+  foldId?: string | null
 }
 
 /** What a bulk delete of loose stock did, and what it declined to do. */
@@ -122,6 +125,9 @@ export const topics = (api: Api) => ({
    */
   demote: (id: string, intoTopicId: string) =>
     api.post<Demoted>(`/api/topics/${id}/demote`, { intoTopicId }),
+  /** Unfold a topic folded into another's route: everything the fold
+   *  moved goes back, and the topic returns with its own id (062). */
+  unfold: (id: string) => api.post<{ topicId: string }>(`/api/topics/${id}/unfold`),
 
   pending: () => api.get<{ pending: PendingTopic[] }>('/api/topics/pending'),
   /** Read the queued topics that were queued on wording alone: the ones

@@ -271,3 +271,14 @@ describe('a bed’s line and a target as a request carries it', () => {
     ])
   })
 })
+
+describe('undoable identity, in words', () => {
+  it('says a fold can be undone, and where', async () => {
+    const { foldNote, UNFOLD_NOTE, unpromoteNote } = await import('../src/grain')
+    expect(foldNote('Probabilistic Data Structures')).toBe(
+      "It leaves the map until it is unfolded from Probabilistic Data Structures's sheet, which puts back everything the fold moved."
+    )
+    expect(UNFOLD_NOTE).toMatch(/unless you have worked it/)
+    expect(unpromoteNote({ topicId: 't', title: 'React' })).toMatch(/^Made by promoting the topic React\./)
+  })
+})

@@ -727,6 +727,8 @@ so, and the only place it can be changed, is in the topic sheet's margin.
 | The picker | A `--paper-deep` select on `1px solid var(--paper-edge)`, then *File it here too* and *Move it here* as outlined controls in the label register. |
 | Its level | *Make it a subject* and *Fold it into a topic*, in the same outlined register, in a block of their own below. |
 | A reckoning | `--paper-deep` behind a `3px` `--plate-terracotta` rule: what a fold would move, before it can be pressed. |
+| Folded in here | On the sheet a fold went into: each folded topic's name and date in `--step--1`, the date in `--ink-faint`, with *Unfold* as the quiet underlined press beside it, then one note saying what unfolding puts back. |
+| Made from a topic | On a subject made by promoting: a margin block saying so and what putting it back does, then *Put it back as a topic* in the grub-out's underlined label register, answered by the grub-out's own pair — *Keep it* as the filled button, the removal outlined in terracotta. |
 
 **Rule — the margin's controls are outlined, not the sheet's ink button.** Two
 ink buttons side by side in a column that narrow read as a dialog, which this
@@ -744,10 +746,13 @@ never disappears.** A topic carrying a route cannot change level, and the block
 prints that sentence where the two buttons would be. A missing control reads as
 a fault, and *why can I not do this* is the question a hidden one provokes.
 
-**Rule — what cannot be undone is costed first.** Folding a topic into another
-is two presses, and the second is only offered once the sheet can state what
-the first would move — the same shape the bed's own grubbing-out uses, in the
-same terracotta.
+**Rule — what moves a topic's identity is costed first, and says where it can
+be taken back.** Folding a topic into another is two presses, and the second is
+only offered once the sheet can state what the first would move — the same
+shape the bed's own grubbing-out uses, in the same terracotta. Where *This
+cannot be undone* stood, the reckoning now says where it can be (`062`): a fold
+from the sheet of the topic it went into, a promotion from the subject it
+made.
 
 ### What was marked, folded shut
 

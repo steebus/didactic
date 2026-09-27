@@ -182,6 +182,9 @@ export const subjects = (api: Api) => ({
   remove: (id: string) => api.del<{ ok: true }>(`/api/subjects/${id}`),
   /** How far to take this subject: 2 to 5 in half steps, or null for
    *  the assumed working knowledge (061). Intent, not evidence. */
+  /** Put a promoted topic back: the subject goes, and each topic it
+   *  rehomed goes back to the home it had (062). */
+  unpromote: (id: string) => api.post<{ topicId: string | null }>(`/api/subjects/${id}/unpromote`),
   setTarget: (id: string, target: number | null) =>
     api.patch<{ ok: true; target_depth: number | null }>(`/api/subjects/${id}`, { target_depth: target }),
   addTopic: (id: string, title: string) =>

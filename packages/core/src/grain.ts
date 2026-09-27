@@ -502,3 +502,34 @@ export function readTarget(value: unknown): number | null | undefined {
   if (typeof value !== 'number' || !Number.isFinite(value)) return undefined
   return value >= 2 && value <= 5 && Number.isInteger(value * 2) ? value : undefined
 }
+
+/* ------------------------------------------- identity, undoable */
+
+/** A topic folded into this one's route (062), which can be unfolded. */
+export interface FoldedIn {
+  /** The folded topic's id, which it gets back when unfolded. */
+  topicId: string
+  title: string
+  foldedAt: string
+}
+
+/** The subject a topic was promoted to, which can be put back (062). */
+export interface PromotedFrom {
+  /** Null where the topic has since gone. */
+  topicId: string | null
+  title: string
+}
+
+/** Said before a fold, where "this cannot be undone" used to be. */
+export function foldNote(into: string): string {
+  return `It leaves the map until it is unfolded from ${into}'s sheet, which puts back everything the fold moved.`
+}
+
+/** Said beside a fold on the sheet it went into. */
+export const UNFOLD_NOTE =
+  'Unfolding puts back everything the fold moved: its material, reading, marks, cards and connections. A lesson the fold made goes too, unless you have worked it; then it stays, teaching the unfolded topic.'
+
+/** Said beside a subject made by promoting a topic. */
+export function unpromoteNote(from: PromotedFrom): string {
+  return `Made by promoting the topic ${from.title}. Putting it back removes this subject and returns every topic it rehomed to the home it had; the topic, its reading and its connections are untouched. Anything filed here since, and nowhere else, becomes loose.`
+}

@@ -1,5 +1,6 @@
 import { cacheLife, cacheTag } from 'next/cache'
 import { getEffortMap } from './effort'
+import type { PromotedFrom } from '@didactic/core/grain'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { computeFreshness, subjectAggregate } from '@didactic/core/scoring'
 import type { CurriculumStatus, Resource } from '@didactic/core/types'
@@ -50,8 +51,28 @@ export async function getSubjectArea(subjectId: string): Promise<SubjectArea | n
   // The client is built in here rather than passed in: an argument
   // crossing a `use cache` boundary is serialised, and a Supabase
   // client does not survive that.
-  const [area, effort] = await Promise.all([readSubjectArea(supabaseAdmin(), subjectId), getEffortMap()])
-  return area && { ...area, effort: effort.subjects[subjectId] ?? null }
+  const db = supabaseAdmin()
+  const [area, effort, promotedFrom] = await Promise.all([
+    readSubjectArea(db, subjectId),
+    getEffortMap(),
+    promotionOf(db, subjectId),
+  ])
+  return area && { ...area, effort: effort.subjects[subjectId] ?? null, promotedFrom }
+}
+
+/**
+ * The topic this subject was promoted from, if it was (062). Null
+ * before the migration, and for a subject that was sown.
+ */
+export async function promotionOf(db: SupabaseClient, subjectId: string): Promise<PromotedFrom | null> {
+  const { data, error } = await db
+    .from('subject_promotions')
+    .select('topic_id, topics(title)')
+    .eq('subject_id', subjectId)
+    .maybeSingle()
+  if (error || !data) return null
+  const topic = data.topics as unknown as { title: string } | null
+  return { topicId: (data.topic_id as string | null) ?? null, title: topic?.title ?? 'a topic since removed' }
 }
 
 export async function readSubjectArea(

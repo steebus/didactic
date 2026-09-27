@@ -270,3 +270,13 @@ describe('where a conversation was begun', () => {
     expect(askOrigin({ route: 'cards' })).toEqual({ kind: 'cards', title: 'Your cards' })
   })
 })
+
+describe('acceptedSentence', () => {
+  it('says which way an accepted proposal went', async () => {
+    const { acceptedSentence } = await import('../src/ask')
+    expect(acceptedSentence({ outcome: 'existing', topicId: 't', title: 'Bloom Filters' })).toBe('Already on the map as Bloom Filters.')
+    expect(acceptedSentence({ outcome: 'queued', topicId: 't' })).toMatch(/waiting in the inbox/)
+    expect(acceptedSentence({ outcome: 'added', topicId: 't', filed: 0 })).toBe('Added to the map, filed under nothing yet.')
+    expect(acceptedSentence({ outcome: 'added', topicId: 't', filed: 2 })).toMatch(/filed under 2 subjects/)
+  })
+})
