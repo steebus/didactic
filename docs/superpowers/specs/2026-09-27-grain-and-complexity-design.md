@@ -49,17 +49,23 @@ the way freshness is, and never stored as a decision.
    same-size question is already asked, by the evaluation model
    (`guardScope`).
 
-6. **Taxonomy anchors are deferred.** Three reasons:
-   - The sources could not be reached from the build environment.
-     OpenAlex now needs an API key, which is free but has to be set in
-     the environment. ACM refuses automated requests.
-   - Research taxonomies fit a learner's topics poorly. "React Hooks"
-     has no honest OpenAlex topic, and ANZSRC and ASCED are too coarse
-     to tell a topic from a lesson.
-   - Anchors would enter a prior whose weights are set by hand anyway.
-
-   They come back as a pilot if a signal is shown to be missing: OpenAlex
-   with a key, ACM CCS for computing, matched as topic sameness is.
+6. **Taxonomy anchors became a shape reading (063).** Tested live
+   with a key: OpenAlex's text classifier placed practitioner topics
+   badly (React Hooks under distributed systems, Bloom filters under
+   clustering) and scored broad topics higher than narrow ones, so the
+   brief's anchor-level rule could not come from it. What did work is
+   searching works for the topic's name in titles and abstracts, within
+   its subjects where that leaves 20 or more (which moves "aperture"
+   from radar to imaging), and grouping the results: the share under
+   the top research topic and subfield, and the share that is software.
+   `core/grain.readShape` reads a tool or practice (software past 0.15;
+   React Hooks 0.33, nothing else past 0.06), a focused specialism (a
+   quarter or more under one topic; Bloom filters, Keynesianism) or a
+   field (under 0.15 per topic while one subfield holds a fifth;
+   JavaScript, web development), and adds a term to C: ×0.80, ×0.90,
+   ×1.35, starting positions to check against the map. The source is
+   never named on screen; the term is worded by what it says about the
+   topic. The static taxonomies and the classifier stay out.
 
 7. **Calibration is deferred, and the brief's method would not work as
    written.** Ability does not respond to effort. An exposure's weight is

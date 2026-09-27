@@ -282,3 +282,31 @@ describe('undoable identity, in words', () => {
     expect(unpromoteNote({ topicId: 't', title: 'React' })).toMatch(/^Made by promoting the topic React\./)
   })
 })
+
+describe('how a topic is written about', () => {
+  it('reads the nine measured topics the way they were measured', async () => {
+    const { readShape } = await import('../src/grain')
+    const r = (works: number, topicShare: number, subfieldShare: number, softwareShare: number) =>
+      readShape({ works, topicShare, subfieldShare, softwareShare })
+    expect(r(70, 0.11, 0.3, 0.33)).toBe('practical')
+    expect(r(5605, 0.32, 0.5, 0)).toBe('focused')
+    expect(r(39006, 0.32, 0.49, 0)).toBe('focused')
+    expect(r(39142, 0.09, 0.24, 0.06)).toBe('broad')
+    expect(r(8545, 0.12, 0.38, 0)).toBe('broad')
+    expect(r(19503, 0.17, 0.39, 0)).toBeNull()
+    expect(r(12, 0.5, 0.5, 0)).toBe('unplaced')
+    expect(readShape(null)).toBeNull()
+  })
+
+  it('adds its term to the figure, says it without naming a source, and nothing when unplaced', async () => {
+    const { inherentHours, contributionLine } = await import('../src/grain')
+    const none = { depth: 0, byReader: 0, byModel: 0 }
+    const broad = inherentHours({ prereq: none, words: 0, shape: 'broad', shaped: true })
+    expect(broad.hours).toBeCloseTo(GRAIN.BASE_HOURS * Math.exp(GRAIN.SHAPE.LOG.broad))
+    expect(contributionLine(broad.contributions[1])).toBe('Written about across many specialisms, as a field is: ×1.35')
+    expect(broad.shaped).toBe(true)
+    const unplaced = inherentHours({ prereq: none, words: 0, shape: 'unplaced', shaped: true })
+    expect(unplaced.contributions).toHaveLength(1)
+    expect(inherentHours({ prereq: none, words: 0 }).shaped).toBe(false)
+  })
+})

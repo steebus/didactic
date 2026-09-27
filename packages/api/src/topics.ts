@@ -127,6 +127,9 @@ export const topics = (api: Api) => ({
     api.post<Demoted>(`/api/topics/${id}/demote`, { intoTopicId }),
   /** Unfold a topic folded into another's route: everything the fold
    *  moved goes back, and the topic returns with its own id (062). */
+  /** Read how a topic is written about, where it has not been (063).
+   *  Nothing about it is shown but the term it adds to the topic's size. */
+  shape: (id: string) => api.post<{ shaped: boolean; changed: boolean }>(`/api/topics/${id}/shape`),
   unfold: (id: string) => api.post<{ topicId: string }>(`/api/topics/${id}/unfold`),
 
   pending: () => api.get<{ pending: PendingTopic[] }>('/api/topics/pending'),

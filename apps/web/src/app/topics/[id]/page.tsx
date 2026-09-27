@@ -13,6 +13,7 @@ import { LessonList } from './LessonList'
 import { FiledUnder } from './FiledUnder'
 import { ChangeLevel } from './ChangeLevel'
 import { Folds } from './Folds'
+import { ReadShape } from './ReadShape'
 import { GrubOut } from './GrubOut'
 import { FigureRecord } from './FigureRecord'
 import { AddResource } from '@/components/AddResource'
@@ -402,6 +403,7 @@ export default async function TopicPage({
                 carries a route, and the block says why rather than
                 hiding the controls -- "why can I not do this" is the
                 question a hidden control provokes. */}
+            {area.effort && !area.effort.inherent.shaped && <ReadShape topicId={topic.id} />}
             <Folds folds={area.folds ?? []} />
 
             <ChangeLevel

@@ -45,6 +45,7 @@ export type Contribution =
   | { signal: 'base'; log: number; hours: number }
   | { signal: 'prereq'; log: number; depth: PrereqDepth }
   | { signal: 'material'; log: number; words: number }
+  | { signal: 'shape'; log: number; shape: Exclude<Shape, 'unplaced'> }
 
 export interface Inherent {
   /** Hours from nothing to ability 3. */
@@ -53,6 +54,48 @@ export interface Inherent {
   logSd: number
   /** Their `log` values sum to `ln(hours)`. */
   contributions: Contribution[]
+  /** Whether how it is written about has been read yet (`readShape`). */
+  shaped?: boolean
+}
+
+/**
+ * How a subject is written about, read from the literature: how much
+ * there is, and how it gathers. Counted where the phrase appears in
+ * titles and abstracts, within the topic's subjects where that leaves
+ * enough to go on. Server-side, and never printed as such.
+ */
+export interface ShapeReading {
+  works: number
+  /** The share of placed works under their single most common research topic. */
+  topicShare: number
+  /** The same, one level up, for the most common subfield. */
+  subfieldShare: number
+  /** The share of works that are software rather than writing. */
+  softwareShare: number
+}
+
+/**
+ * What the reading says about a topic's size.
+ *
+ * - `practical`: written about as software more than as research -- a
+ *   tool or practice, smaller to learn than its name suggests.
+ * - `focused`: most of what is written gathers under one specialism.
+ * - `broad`: spread thin across specialisms while held within one
+ *   field, as a field is.
+ * - `unplaced`: too little written to say.
+ *
+ * Null where the reading is mixed and says nothing either way.
+ */
+export type Shape = 'broad' | 'focused' | 'practical' | 'unplaced'
+
+export function readShape(reading: ShapeReading | null | undefined): Shape | null {
+  if (!reading) return null
+  const s = GRAIN.SHAPE
+  if (reading.works < s.MIN_WORKS) return 'unplaced'
+  if (reading.softwareShare >= s.PRACTICAL_SOFTWARE) return 'practical'
+  if (reading.topicShare >= s.FOCUSED_TOPIC) return 'focused'
+  if (reading.topicShare < s.BROAD_TOPIC && reading.subfieldShare >= s.BROAD_SUBFIELD) return 'broad'
+  return null
 }
 
 /**
@@ -111,7 +154,7 @@ export function prerequisiteDepths(topicIds: readonly string[], edges: readonly 
  * C for one topic, from its signals. `log C` is the base plus one term
  * per signal, and each term is kept.
  */
-export function inherentHours(signals: { prereq: PrereqDepth; words: number }): Inherent {
+export function inherentHours(signals: { prereq: PrereqDepth; words: number; shape?: Shape | null; shaped?: boolean }): Inherent {
   const contributions: Contribution[] = [
     { signal: 'base', log: Math.log(GRAIN.BASE_HOURS), hours: GRAIN.BASE_HOURS },
   ]
@@ -125,8 +168,11 @@ export function inherentHours(signals: { prereq: PrereqDepth; words: number }): 
       words: Math.round(signals.words),
     })
   }
+  if (signals.shape && signals.shape !== 'unplaced') {
+    contributions.push({ signal: 'shape', log: GRAIN.SHAPE.LOG[signals.shape], shape: signals.shape })
+  }
   const log = contributions.reduce((sum, c) => sum + c.log, 0)
-  return { hours: Math.exp(log), logSd: GRAIN.PRIOR_LOG_SD, contributions }
+  return { hours: Math.exp(log), logSd: GRAIN.PRIOR_LOG_SD, contributions, shaped: signals.shaped ?? false }
 }
 
 /** C for every topic on the map. `focusedWords`: words of readable
@@ -135,6 +181,8 @@ export function inherentComplexity(input: {
   topicIds: readonly string[]
   edges: readonly GrainEdge[]
   focusedWords: ReadonlyMap<string, number>
+  /** How each topic is written about, where it has been read. */
+  shapes?: ReadonlyMap<string, ShapeReading>
 }): Map<string, Inherent> {
   const depths = prerequisiteDepths(input.topicIds, input.edges)
   const out = new Map<string, Inherent>()
@@ -142,6 +190,8 @@ export function inherentComplexity(input: {
     out.set(id, inherentHours({
       prereq: depths.get(id) ?? { depth: 0, byReader: 0, byModel: 0 },
       words: input.focusedWords.get(id) ?? 0,
+      shape: readShape(input.shapes?.get(id)),
+      shaped: input.shapes?.has(id) ?? false,
     }))
   }
   return out
@@ -429,7 +479,15 @@ export function contributionLine(c: Contribution): string {
     }
     case 'material':
       return `${c.words.toLocaleString('en-GB')} words written about it alone: ×${factor(c.log)}`
+    case 'shape':
+      return `${SHAPE_LINE[c.shape]}: ×${factor(c.log)}`
   }
+}
+
+const SHAPE_LINE: Record<Exclude<Shape, 'unplaced'>, string> = {
+  broad: 'Written about across many specialisms, as a field is',
+  focused: 'Written about as one focused specialism',
+  practical: 'Written about as a practical tool more than a body of theory',
 }
 
 /** Where the start came from. */

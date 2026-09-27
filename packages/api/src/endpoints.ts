@@ -95,6 +95,7 @@ export const ENDPOINTS = {
   /* A merge carries the duplicate's marks and cards over to the
      survivor as well (`043`), so the two sheets that print those are
      dropped with the map. */
+  'topics.shape': { name: 'topics.shape', method: 'POST', path: '/api/topics/[id]/shape', invalidates: [tags.topics, tags.subjects] },
   'topics.unfold': { name: 'topics.unfold', method: 'POST', path: '/api/topics/[id]/unfold', invalidates: [tags.subjects, tags.topics, tags.pending, tags.highlights, tags.clozes, tags.resources] },
   'topics.decide': { name: 'topics.decide', method: 'PATCH', path: '/api/topics/pending', invalidates: [tags.pending, tags.topics, tags.subjects, tags.highlights, tags.clozes] },
 

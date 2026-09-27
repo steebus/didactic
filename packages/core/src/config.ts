@@ -343,6 +343,25 @@ export const GRAIN = {
   MATERIAL_SCALE: 2500,
   MATERIAL_CAP: 50_000,
 
+  // How a topic is written about (`readShape`), read from titles and
+  // abstracts in the literature. Fewer works than MIN_WORKS says
+  // nothing. A software share past PRACTICAL_SOFTWARE marks a tool or
+  // practice; a top research topic holding FOCUSED_TOPIC of the works, a
+  // specialism; under BROAD_TOPIC while one subfield holds BROAD_SUBFIELD,
+  // a field. Measured on nine topics of a real map -- React Hooks 0.33
+  // software against 0.06 at most elsewhere; Bloom filters and
+  // Keynesianism a third under one topic; JavaScript and web development
+  // a tenth. LOG is each shape's term in log-hours: starting positions,
+  // to be checked against the map before they are trusted.
+  SHAPE: {
+    MIN_WORKS: 20,
+    PRACTICAL_SOFTWARE: 0.15,
+    FOCUSED_TOPIC: 0.25,
+    BROAD_TOPIC: 0.15,
+    BROAD_SUBFIELD: 0.2,
+    LOG: { broad: 0.3, focused: -0.1, practical: -0.22 },
+  },
+
   // The uncertainty of an uncalibrated estimate, on the log scale: a
   // factor of about two either way. Above ABOUT_LOG_SD a figure prints
   // as a guess.

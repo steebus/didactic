@@ -8,6 +8,7 @@ import {
   topicEffort,
   varietiesOf,
   type GrainEdge,
+  type ShapeReading,
   type SubjectEffort,
   type TargetSource,
   type TopicEffort,
@@ -40,7 +41,7 @@ export async function getEffortMap(): Promise<EffortMap> {
 }
 
 export async function readEffortMap(db: SupabaseClient): Promise<EffortMap> {
-  const [topics, edges, memberships, subjects, sowings, links, topicTargets, subjectTargets, bodies] = await Promise.all([
+  const [topics, edges, memberships, subjects, sowings, links, topicTargets, subjectTargets, bodies, shapes] = await Promise.all([
     everyRow<{ id: string; ability: number; ability_confidence: number }>((a, b) =>
       db.from('topics').select('id, ability, ability_confidence').eq('state', 'active').order('id').range(a, b)),
     everyRow<{ from_topic: string; to_topic: string; kind: string; created_by: string }>((a, b) =>
@@ -62,6 +63,9 @@ export async function readEffortMap(db: SupabaseClient): Promise<EffortMap> {
       db.from('subjects').select('id, target_depth').not('target_depth', 'is', null).order('id').range(a, b)),
     everyRow<{ resource_id: string; words: number | null }>((a, b) =>
       db.from('resource_bodies').select('resource_id, words').not('words', 'is', null).order('resource_id').range(a, b)),
+    // How each topic is written about (063). None before the migration.
+    everyRow<{ topic_id: string; works: number; topic_share: number; subfield_share: number; software_share: number }>((a, b) =>
+      db.from('topic_shapes').select('topic_id, works, topic_share, subfield_share, software_share').order('topic_id').range(a, b)),
   ])
 
   return effortFrom({
@@ -74,6 +78,19 @@ export async function readEffortMap(db: SupabaseClient): Promise<EffortMap> {
     topicTargets: new Map(topicTargets.error ? [] : topicTargets.data.map(t => [t.id, Number(t.target_depth)])),
     subjectTargets: new Map(subjectTargets.error ? [] : subjectTargets.data.map(s => [s.id, Number(s.target_depth)])),
     words: new Map(bodies.error ? [] : bodies.data.map(b => [b.resource_id, Number(b.words)])),
+    shapes: new Map(
+      shapes.error
+        ? []
+        : shapes.data.map(r => [
+            r.topic_id,
+            {
+              works: Number(r.works),
+              topicShare: Number(r.topic_share),
+              subfieldShare: Number(r.subfield_share),
+              softwareShare: Number(r.software_share),
+            },
+          ])
+    ),
   })
 }
 
@@ -91,6 +108,7 @@ export function effortFrom(input: {
   topicTargets: ReadonlyMap<string, number>
   subjectTargets: ReadonlyMap<string, number>
   words: ReadonlyMap<string, number>
+  shapes?: ReadonlyMap<string, ShapeReading>
 }): EffortMap {
   const active = new Map(input.topics.map(t => [t.id, t]))
 
@@ -108,7 +126,7 @@ export function effortFrom(input: {
     focusedWords.set(topicIds[0], (focusedWords.get(topicIds[0]) ?? 0) + words)
   }
 
-  const inherent = inherentComplexity({ topicIds: [...active.keys()], edges: input.edges, focusedWords })
+  const inherent = inherentComplexity({ topicIds: [...active.keys()], edges: input.edges, focusedWords, shapes: input.shapes })
 
   const subjectById = new Map(input.subjects.map(s => [s.id, s]))
   const sourcesOf = new Map<string, TargetSource[]>()
