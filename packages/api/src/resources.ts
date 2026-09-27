@@ -16,6 +16,9 @@ export interface AddResource {
   /** Filed as already read. Filing is never an exposure on its own —
    *  the consumed transition is what writes one. */
   consumed?: boolean
+  /** It is about one thing: file it as one topic whatever the reading
+   *  makes of it (060). Left out, the reading decides. */
+  whole?: boolean
 }
 
 /**
@@ -52,6 +55,10 @@ export const resources = (api: Api) => ({
   /** Give a resource still titled by its address its page's own title.
    *  Changes nothing for one that already has a name. */
   retitle: (id: string) => api.post<{ title: string; changed: boolean }>(`/api/resources/${id}/retitle`),
+  /** File it again as one topic or by its parts: read again, with the
+   *  topics only it brought in cleared first. Refused (409) once read. */
+  refile: (id: string, as: 'whole' | 'parts') =>
+    api.post<{ cleared: number; queued: boolean }>(`/api/resources/${id}/refile`, { as }),
   list: () => api.get<{ resources: Resource[] }>('/api/resources'),
   /** A resource opened to be read in the app, its body made on the
    *  first ask (053). Marks and summaries come with it in `written`. */

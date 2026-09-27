@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { didactic } from '@didactic/api'
 import { isPdf, tooLarge, MAX_DOCUMENT_BYTES, NOT_A_PDF } from '@didactic/core/documents'
+import { WHOLE_CHOICE } from '@didactic/core/whole'
 import styles from '@/app/inbox/page.module.css'
 
 const api = didactic()
@@ -38,12 +39,18 @@ export function AddResource({
   const [url, setUrl] = useState('')
   const [title, setTitle] = useState('')
   const [text, setText] = useState('')
+  /** The reader's say that it is about one thing. Not offered for a
+   *  book, which is filed by its title, nor from a topic sheet, where the
+   *  topic it is added to already is the one thing. */
+  const [whole, setWhole] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState<string | null>(null)
   const [, startTransition] = useTransition()
   const router = useRouter()
   const fileInput = useRef<HTMLInputElement>(null)
+
+  const offerWhole = !topicId && (kind === 'article' || kind === 'note')
 
   const ready =
     (kind === 'article' && url.trim()) ||
@@ -113,6 +120,7 @@ export function AddResource({
       url: kind === 'article' ? url.trim() : undefined,
       title: title.trim() || undefined,
       text: kind === 'note' ? text.trim() : undefined,
+      whole: offerWhole && whole ? true : undefined,
     })
 
     // 202 means it saved but the queue refused it, which is not a
@@ -134,6 +142,7 @@ export function AddResource({
     setUrl('')
     setTitle('')
     setText('')
+    setWhole(false)
     startTransition(() => router.refresh())
     setBusy(false)
   }
@@ -232,6 +241,16 @@ export function AddResource({
           </button>
         )}
       </div>
+
+      {/* Most material covers several things and is filed by each. A
+          tutorial on one thing is not, and the reader usually knows
+          which they have in hand before the reading does. */}
+      {offerWhole && (
+        <label className={styles.captureWhole}>
+          <input type="checkbox" checked={whole} onChange={e => setWhole(e.target.checked)} />
+          {WHOLE_CHOICE}
+        </label>
+      )}
 
       {saved && <p className={styles.captureSaved}>{saved}</p>}
       {error && <p className={styles.captureProblem}>{error}</p>}

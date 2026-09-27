@@ -14,6 +14,7 @@ import { judgeWithJev, type JevVerdict } from './llm/jev'
 import { cosineSimilarity } from '@didactic/core/similarity'
 import { config } from '@didactic/core/config'
 import { keptReading, type KeptReading } from '@didactic/core/resolution'
+import { asFiling, conceptsToFile } from '@didactic/core/whole'
 import { extractFromHtml } from './extract/url'
 import { articleBody, keepBody } from './resourceBody'
 import { readDocumentRound } from './document'
@@ -164,8 +165,28 @@ export async function ingestResource(
     }
   }
 
-  // 2. Extract concepts.
-  const { summary, concepts, why } = await extractConcepts(title, text)
+  // 2. Extract concepts, and whether it is about one thing. A piece
+  // about one thing is filed as that one topic rather than by every
+  // concept it touches (`core/whole`); the reader's say, where they
+  // gave one (060), overrules the reading either way.
+  const filing = asFiling(resource.filing)
+  const read = await extractConcepts(title, text, filing)
+  const { summary, why } = read
+  const concepts = conceptsToFile(read.concepts, read.whole, filing)
+
+  // About one thing, and already filed under the one the reader named
+  // when they added it from a topic sheet: that is the one thing. The
+  // reading adds its summary and nothing else.
+  if (concepts.length === 1 && (read.whole || filing === 'whole')) {
+    const { count } = await db
+      .from('resource_topics')
+      .select('topic_id', { count: 'exact', head: true })
+      .eq('resource_id', resourceId)
+    if ((count ?? 0) > 0) {
+      await db.from('resources').update({ summary: summary ?? resource.summary ?? null }).eq('id', resourceId)
+      return { linked: 0, created: 0, pending: 0 }
+    }
+  }
 
   // A reading that found nothing is a failure, and has to say so.
   //

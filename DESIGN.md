@@ -640,6 +640,20 @@ pushed the whole sheet off the side of a phone. The title breaks anywhere
 title on hover; the row and its head carry `min-width: 0` so the grid lets them
 shrink.
 
+### Saying a piece is about one thing
+
+Under the add form's fields, for a link or a note, one checkbox: *It is about
+one thing — file it as one topic*. In the hint's register (`--step--1`,
+`--ink-soft`), the box in `--ink` as its `accent-color`, and the whole line the
+target at `2.75rem` tall, since it is pressed with a thumb on a phone more
+often than with a pointer. Unticked, the reading decides; most material covers
+several things and is filed by each.
+
+**Rule — a correction to the reading is offered where the reading's result is
+printed.** The add form offers the choice before the reading; the resource
+sheet offers the other filing beside the line that says how it was filed, and
+nowhere else.
+
 ### An errand folded away
 
 The inbox holds two errands that are not the same errand: reading what is
@@ -2194,6 +2208,7 @@ components, because working an article is the same work as working a lesson.
 | Band | The title is the page's own; one still wearing its address is given the page's title the first time it is opened. The trail is *Inbox* and the topic it is most about. The figures are *Kind*, *From* (the site, a link out ruled in the band's paper) or *File* (the document viewer), and *State* — which reads *Reading* as soon as it is opened. |
 | Filed under | One line in `--ink-soft` above the reading, naming every topic it counts toward. |
 | Nothing to read | Said in the display face's italic, in `--ink-faint`, with the way to read it where it lives. The summary and the foot are still there beneath it. |
+| How it is filed | Under the *Filed under* line, in `--ink-faint` at `--step--1`: *Filed as one topic.* or *Filed under 5 topics, one for each thing it covers.*, then the press that files it the other way, set as an underlined link in the line (`--rule` underline darkening to `--ink`) because it is a correction rather than the sheet's work. Pressed, the line says it is being read again and what went with the old filing. Not offered once the resource is read into the record. |
 | The article | The page's line breaks are kept as line breaks, so a poem's lines stay lines. Its pop-up notes are set as superscript numbers (¹) where they were, and listed under a rule at the foot beneath a bold *Notes* — a bold line, not a heading, so the contents stay the article's own. |
 | The foot | *In your own words*, then *Have you read it?* — the lesson's depth buttons: **Read it** first, then *Skimmed it* and *Worked with it*. Once said: *Read*, the date, and what it counted toward. |
 | Asking | From the desk, stacked with the note and marks buttons, as on a lesson. The corner disc steps aside here, as it does on a lesson — one way to ask, not two. The document viewer below it has no desk and keeps the disc. |

@@ -23,7 +23,7 @@ function dropCache() {
 export const maxDuration = 60
 
 export async function POST(req: Request) {
-  const { url, title, kind, text, topicId, consumed } = await req.json()
+  const { url, title, kind, text, topicId, consumed, whole } = await req.json()
 
   // Who is writing is settled by the session, never by the request. A
   // client that could name its own owner is a client that could write
@@ -79,7 +79,7 @@ export async function POST(req: Request) {
     }
   }
 
-  const { data, error } = await db.from('resources').insert({
+  const row: Record<string, unknown> = {
     user_id: userId,
     url: trimmedUrl,
     // The address is not a title: until the page's own arrives (ingestion
@@ -95,9 +95,18 @@ export async function POST(req: Request) {
     // count it twice.
     status: consumed ? 'consumed' : 'queued',
     consumed_at: consumed ? new Date().toISOString() : null,
-  }).select('id, title').single()
+  }
+  // The reader's say that it is about one thing (060), sent only when
+  // given. Before the migration there is no column for it, and the row
+  // is kept without it -- the reading decides, as it did before.
+  let { data, error } = await db.from('resources')
+    .insert(whole === true ? { ...row, filing: 'whole' } : row)
+    .select('id, title').single()
+  if (error?.code === 'PGRST204' && whole === true) {
+    ;({ data, error } = await db.from('resources').insert(row).select('id, title').single())
+  }
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error || !data) return NextResponse.json({ error: error?.message ?? 'Could not save that.' }, { status: 500 })
 
   // Added from a topic sheet: the association is stated, not guessed.
   // Ingestion still runs and may find further topics, but this one is

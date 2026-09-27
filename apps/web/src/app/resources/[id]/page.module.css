@@ -34,6 +34,49 @@
   color: var(--ink);
 }
 
+/* How it is filed, under the line that names what it is filed under, and
+   the press that files it the other way -- set as a link in the line
+   rather than a button beside it, because it is a correction, not the
+   work the sheet is for. */
+.filing {
+  margin: 0;
+  max-width: 68ch;
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+}
+
+/* The reading's column sets its parts --space-5 apart; this line belongs
+   to the one above it. */
+.filed + .filing {
+  margin-top: calc(var(--space-4) * -1);
+}
+
+.refile {
+  font: inherit;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  padding: var(--space-2) 0;
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.refile:hover:not(:disabled) {
+  text-decoration-color: var(--ink);
+}
+
+.refile:disabled {
+  color: var(--ink-faint);
+  cursor: default;
+}
+
+.refile:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
 /* Nothing could be brought in. Said plainly, in the sheet's italic, with
    the way to read it elsewhere -- the summary and the foot below still
    work, because the reading still happened. */

@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NO_THINKING } from './thinking'
+import type { Filing } from '@didactic/core/whole'
 
 let client: Anthropic | null = null
 
@@ -38,12 +39,36 @@ const TOOL = {
           required: ['name', 'description', 'relevance'],
         },
       },
+      whole: {
+        type: 'object',
+        description:
+          'Only when the resource is a focused treatment of ONE learnable thing -- a tutorial, explainer or paper whose every part serves understanding that one thing, as a Bloom filter tutorial serves Bloom filters. Name that thing as you would a concept. Leave this out for anything that covers several things, even closely related ones: a survey, a course, a book, a comparison, or an essay ranging over a field.',
+        properties: {
+          name: { type: 'string', description: 'A canonical topic name, e.g. "Bloom Filters".' },
+          description: {
+            type: 'string',
+            description: 'One or two sentences saying what the topic covers, in general terms.',
+          },
+        },
+        required: ['name', 'description'],
+      },
     },
     required: ['summary', 'concepts'],
   },
 }
 
-export async function extractConcepts(title: string, text: string) {
+/** What the reader has said, put to the model as an instruction. */
+function filingNote(filing: Filing): string {
+  if (filing === 'whole') {
+    return '\n\nThe reader has said this resource is about one thing: name it in `whole`.'
+  }
+  if (filing === 'parts') {
+    return '\n\nThe reader has said this resource covers several things: leave `whole` out.'
+  }
+  return ''
+}
+
+export async function extractConcepts(title: string, text: string, filing: Filing = null) {
   const res = await getClient().messages.create({
     model: 'claude-sonnet-5',
     // Room for the long way round.
@@ -65,7 +90,7 @@ export async function extractConcepts(title: string, text: string) {
     tool_choice: { type: 'tool', name: 'record_concepts' },
     messages: [{
       role: 'user',
-      content: `Identify the learnable concepts in this resource. Prefer canonical, reusable subtopic names over phrasings specific to this text - the names are matched against an existing knowledge graph. Describe each one in general terms: the description is read beside the names already on the graph to decide whether it is one of them, and which subject it belongs under.
+      content: `Identify the learnable concepts in this resource. Prefer canonical, reusable subtopic names over phrasings specific to this text - the names are matched against an existing knowledge graph. Describe each one in general terms: the description is read beside the names already on the graph to decide whether it is one of them, and which subject it belongs under. If the whole resource is a focused treatment of one learnable thing, also name that thing in \`whole\`: it is then filed as that one topic rather than by its concepts.${filingNote(filing)}
 
 Title: ${title}
 
@@ -124,11 +149,14 @@ ${text.slice(0, MAX_CHARS)}`,
 export function readConcepts(input: unknown): {
   summary: string | null
   concepts: Array<{ name: string; description: string | null; relevance: number }>
+  /** The one thing a focused piece is about, where the reading said so. */
+  whole: { name: string; description: string | null; relevance: number } | null
 } {
   const held = (input ?? {}) as Record<string, unknown>
 
   return {
     summary: typeof held.summary === 'string' && held.summary.trim() ? held.summary : null,
+    whole: readWhole(held.whole),
     concepts: asArray(held.concepts)
       .map(c => {
         const row = (c ?? {}) as Record<string, unknown>
@@ -202,4 +230,27 @@ function salvage(text: string): unknown[] {
     }
   }
   return found
+}
+
+/**
+ * The one thing, read as carefully as the list is: it can arrive as an
+ * object, as JSON text holding one, or not at all, and a name is the one
+ * part it cannot do without.
+ */
+function readWhole(value: unknown): { name: string; description: string | null; relevance: number } | null {
+  let held = value
+  if (typeof held === 'string') {
+    try {
+      held = JSON.parse(held)
+    } catch {
+      return null
+    }
+  }
+  if (!held || typeof held !== 'object' || Array.isArray(held)) return null
+  const row = held as Record<string, unknown>
+  const name = typeof row.name === 'string' ? row.name.trim() : ''
+  if (!name) return null
+  const description =
+    typeof row.description === 'string' && row.description.trim() ? row.description.trim() : null
+  return { name, description, relevance: 1 }
 }

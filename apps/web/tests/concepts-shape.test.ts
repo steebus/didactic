@@ -110,6 +110,19 @@ describe('readConcepts', () => {
     ])
   })
 
+  it('reads the one thing a focused piece is about, and nothing where none was named', () => {
+    const concepts = [{ name: 'Hash Functions', relevance: 0.6 }]
+    expect(readConcepts({ concepts, whole: { name: ' Bloom Filters ', description: 'A probabilistic set.' } }).whole).toEqual({
+      name: 'Bloom Filters',
+      description: 'A probabilistic set.',
+      relevance: 1,
+    })
+    expect(readConcepts({ concepts, whole: JSON.stringify({ name: 'Bloom Filters' }) }).whole?.name).toBe('Bloom Filters')
+    expect(readConcepts({ concepts }).whole).toBeNull()
+    expect(readConcepts({ concepts, whole: { description: 'no name' } }).whole).toBeNull()
+    expect(readConcepts({ concepts, whole: '{broken' }).whole).toBeNull()
+  })
+
   it('never throws, whatever arrives', () => {
     // This is the boundary where model output becomes app data. One
     // malformed field costs that field, never the resource.

@@ -42,6 +42,9 @@ function mockDb(opts: {
   // with OUT params named id/title shadows those column names in its
   // own body, so the real function returns out_id/out_title.
   created?: Array<{ out_id: string; out_title: string }>
+  /** Links the resource already has before it is read: one the reader
+   *  stated by adding it from a topic sheet. */
+  linked?: number
 }) {
   const inserts: Record<string, unknown[]> = {}
   const updates: Record<string, unknown[]> = {}
@@ -74,7 +77,8 @@ function mockDb(opts: {
         updates[table].push(row)
         return api
       },
-      then: (resolve: (v: unknown) => void) => resolve({ data: [], error: null }),
+      then: (resolve: (v: unknown) => void) =>
+        resolve({ data: [], error: null, count: table === 'resource_topics' ? opts.linked ?? 0 : null }),
     }
     return api
   }
@@ -352,5 +356,58 @@ describe('ingestion reads the descriptions', { timeout: 30_000 }, () => {
 
     expect(result.created).toBe(2)
     expect(result.warnings?.[0]).toMatch(/overloaded/)
+  })
+})
+
+describe('a resource about one thing', { timeout: 30_000 }, () => {
+  const article = { id: 'r1', url: 'https://example.com/bloom', kind: 'article', raw_text: null }
+  const parts = [
+    { name: 'Hash Functions', description: 'Maps input to fixed-size values.', relevance: 0.6 },
+    { name: 'Set Membership Testing', description: 'Whether an element is in a set.', relevance: 0.7 },
+    { name: 'Bloom Filters', description: 'A probabilistic set.', relevance: 0.9 },
+  ]
+  const whole = { name: 'Bloom Filters', description: 'A space-efficient probabilistic set.', relevance: 1 }
+
+  const reading = async (read: { whole: typeof whole | null }) => {
+    const { extractConcepts } = await import('@/lib/llm/concepts')
+    vi.mocked(extractConcepts).mockResolvedValue({ summary: 'About Bloom filters.', concepts: parts, why: '', ...read } as never)
+    return extractConcepts
+  }
+  const filed = (db: ReturnType<typeof mockDb>) =>
+    (db.rpcArgs('commit_ingestion')[0] as { p_new_topics: Array<{ title: string; relevance: number }> }).p_new_topics
+
+  it('is filed as that one topic, not by every concept it touches', async () => {
+    await reading({ whole })
+    const db = mockDb({ resource: article, candidates: [], html })
+    const { ingestResource } = await import('@/lib/ingest')
+    await ingestResource(db as never, 'r1')
+    expect(filed(db).map(t => [t.title, t.relevance])).toEqual([['Bloom Filters', 1]])
+  })
+
+  it('is filed by its parts when the reader said so, whatever the reading thought', async () => {
+    const extract = await reading({ whole })
+    const db = mockDb({ resource: { ...article, filing: 'parts' }, candidates: [], html })
+    const { ingestResource } = await import('@/lib/ingest')
+    await ingestResource(db as never, 'r1')
+    expect(filed(db).map(t => t.title)).toEqual(['Hash Functions', 'Set Membership Testing', 'Bloom Filters'])
+    expect(vi.mocked(extract).mock.calls[0][2]).toBe('parts')
+  })
+
+  it('is filed as one topic when the reader said so, even where the reading named none', async () => {
+    const extract = await reading({ whole: null })
+    const db = mockDb({ resource: { ...article, filing: 'whole' }, candidates: [], html })
+    const { ingestResource } = await import('@/lib/ingest')
+    await ingestResource(db as never, 'r1')
+    expect(filed(db).map(t => t.title)).toEqual(['Bloom Filters'])
+    expect(vi.mocked(extract).mock.calls[0][2]).toBe('whole')
+  })
+
+  it('adds nothing where the reader already filed it under the one topic it is about', async () => {
+    await reading({ whole })
+    const db = mockDb({ resource: article, candidates: [], html, linked: 1 })
+    const { ingestResource } = await import('@/lib/ingest')
+    expect(await ingestResource(db as never, 'r1')).toEqual({ linked: 0, created: 0, pending: 0 })
+    expect(db.rpcArgs('commit_ingestion')).toHaveLength(0)
+    expect(db.updated('resources')).toContainEqual({ summary: 'About Bloom filters.' })
   })
 })

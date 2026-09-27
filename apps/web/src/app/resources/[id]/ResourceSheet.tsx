@@ -10,6 +10,7 @@ import type { ExposureDepth, Highlight as Mark, ResourceStatus } from '@didactic
 import { lessonSections } from '@didactic/core/sections'
 import { summaryOf, summaryTally } from '@didactic/core/summaries'
 import { isPlaceholderTitle } from '@didactic/core/titles'
+import { filingLine, refileAs, refiledSentence, refileLabel } from '@didactic/core/whole'
 import { Prose } from '@/components/Prose'
 import { Highlighter } from '@/components/Highlighter'
 import { Contents } from '@/components/Contents'
@@ -82,6 +83,8 @@ export default function ResourceSheet({ initial }: { initial: ResourceReading })
   const [clozes, setClozes] = useState<ClozeCard[]>([])
   const [garden, setGarden] = useState(0)
   const [title, setTitle] = useState(resource.title)
+  const [refiling, setRefiling] = useState(false)
+  const [refiled, setRefiled] = useState<string | null>(null)
 
   const marks = useMemo(() => written.filter(h => h.kind !== 'summary'), [written])
   const summarised = useMemo(() => written.filter(h => h.kind === 'summary'), [written])
@@ -175,6 +178,25 @@ export default function ResourceSheet({ initial }: { initial: ResourceReading })
     setBusy(false)
   }
 
+  /**
+   * File it the other way: as one topic if it is filed by its parts, by
+   * its parts if it is one topic. Read again rather than rearranged, so
+   * the sheet says so and the new filing arrives with the reading.
+   */
+  async function refile() {
+    const as = refileAs(topics.length)
+    setRefiling(true)
+    setError(null)
+    const { ok, body: answer, error: failed } = await api.resources.refile(id, as)
+    setRefiling(false)
+    if (!ok) {
+      setError(failed ?? 'Could not file it again.')
+      return
+    }
+    setRefiled(refiledSentence(as, answer.cleared))
+    router.refresh()
+  }
+
   const done = status === 'consumed'
   const trail = [
     { href: '/inbox', label: 'Inbox' },
@@ -255,6 +277,23 @@ export default function ResourceSheet({ initial }: { initial: ResourceReading })
                 </span>
               ))}
             </p>
+          )}
+
+          {/* How it is filed, and the press that files it the other way.
+              Gone once it is read: its reading is counted against these
+              topics now. */}
+          {refiled ? (
+            <p className={own.filing}>{refiled}</p>
+          ) : (
+            topics.length > 0 &&
+            !done && (
+              <p className={own.filing}>
+                {filingLine(topics.length)}{' '}
+                <button type="button" className={own.refile} onClick={refile} disabled={refiling}>
+                  {refiling ? 'Filing it again…' : refileLabel(topics.length)}
+                </button>
+              </p>
+            )
           )}
 
           {error && <p className={styles.problem}>{error}</p>}
