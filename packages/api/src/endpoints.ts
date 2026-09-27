@@ -47,6 +47,7 @@ export const ENDPOINTS = {
   'graph.read': { name: 'graph.read', method: 'GET', path: '/api/graph', invalidates: [] },
   'inbox.read': { name: 'inbox.read', method: 'GET', path: '/api/inbox', invalidates: [] },
   'inbox.count': { name: 'inbox.count', method: 'GET', path: '/api/inbox/count', invalidates: [] },
+  'inbox.search': { name: 'inbox.search', method: 'GET', path: '/api/inbox/search', invalidates: [] },
   'books.search': { name: 'books.search', method: 'GET', path: '/api/books/search', invalidates: [] },
   'settings.read': { name: 'settings.read', method: 'GET', path: '/api/settings', invalidates: [] },
   'subjects.list': { name: 'subjects.list', method: 'GET', path: '/api/subjects', invalidates: [] },

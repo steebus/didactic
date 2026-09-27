@@ -61,11 +61,15 @@ export function AskButton() {
   // idea even if it had not: the desk is sticky inside the prose and
   // this is fixed to the viewport, so nothing keeps them together. The
   // panel still mounts from here, because it is the same panel.
-  const onLesson = path.startsWith('/lesson/')
+  //
+  // A resource read in the app has the same desk (053), so it gives way
+  // there too -- but not on its document viewer below it, which has no
+  // desk and would otherwise have no way to ask at all.
+  const onDesk = path.startsWith('/lesson/') || /^\/resources\/[^/]+\/?$/.test(path)
 
   return (
     <>
-      {!onLesson && (
+      {!onDesk && (
         <button
           type="button"
           className={styles.disc}

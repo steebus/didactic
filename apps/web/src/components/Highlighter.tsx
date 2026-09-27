@@ -79,6 +79,7 @@ export function Highlighter({
   lessonId,
   resourceId,
   existing,
+  summaries = [],
   clozes = [],
   onChanged,
   onTended,
@@ -92,6 +93,10 @@ export function Highlighter({
   lessonId?: string
   resourceId?: string
   existing: Mark[]
+  /** What the reader has said back about this reading, pinned above the
+   *  marks in the list beside it. The summaries themselves are written
+   *  and kept by the sheet; this only shows them. */
+  summaries?: Mark[]
   /**
    * The passages this lesson is being tended on, drawn in plum under
    * the prose. Defaults to none, so a caller that has never heard of
@@ -1007,7 +1012,7 @@ export function Highlighter({
   const desk = (
     <div className={styles.desk}>
       <div className={styles.deskStack}>
-        {marks.length > 0 && (
+        {marks.length + summaries.length > 0 && (
           <button
             type="button"
             className={`${styles.deskNote} ${styles.deskQuiet}`}
@@ -1017,7 +1022,7 @@ export function Highlighter({
             title={`What you have marked in this ${noun}`}
           >
             <MarksIcon />
-            <span className={styles.deskTally}>{marks.length}</span>
+            <span className={styles.deskTally}>{marks.length + summaries.length}</span>
           </button>
         )}
         <button
@@ -1125,6 +1130,7 @@ export function Highlighter({
           <MarkList
             marks={inReadingOrder(marks, drawn)}
             noun={noun}
+            summaries={summaries}
             leaving={leaving}
             onTravel={travelTo}
             onSave={saveNoteFor}

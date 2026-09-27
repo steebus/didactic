@@ -1,6 +1,9 @@
 import { edgeKindLabel } from '@didactic/core/graph'
 import Link from 'next/link'
 import { NoteText } from '@/components/NoteText'
+import { SaidBack } from '@/components/SaidBack'
+import { SummaryIcon } from '@/components/SummaryIcon'
+import { summaryLabel } from '@didactic/core/summaries'
 import { notFound } from 'next/navigation'
 import { viabilityFigure, vagueFigure } from '@didactic/core/scoring'
 import { getTopicArea } from '@/lib/topic'
@@ -43,6 +46,12 @@ export default async function TopicPage({
   // for passages and notes.
   const highlights = area.highlights.filter(h => h.kind !== 'summary')
   const summaries = area.highlights.filter(h => h.kind === 'summary')
+  // Pinned at the head of the Marked fold: every summary filed here,
+  // the whole of a reading before its sections.
+  const pinned = [
+    ...summaries.filter(h => !h.section),
+    ...summaries.filter(h => h.section),
+  ]
   const vague = vagueFigure(topic.ability_confidence)
   const state = stockState(topic.freshness, topic.last_exposure_at)
   const colour = subjects[0]?.colour ?? 'var(--plate-green)'
@@ -188,7 +197,7 @@ export default async function TopicPage({
             {/* Marked passages, gathered from whichever lesson they were
                 taken in. A quote is worth keeping past the lesson that
                 happened to contain it. */}
-            {highlights.length > 0 && (
+            {highlights.length + pinned.length > 0 && (
               <section>
                 {/* Folded shut, and it opens on a press.
 
@@ -212,7 +221,14 @@ export default async function TopicPage({
                     <h2 className={styles.sectionTitle}>Marked</h2>
                     <span className={styles.foldNote}>
                       <span className={styles.sectionNote}>
-                        {highlights.length} {highlights.length === 1 ? 'mark' : 'marks'}
+                        {[
+                          highlights.length > 0 &&
+                            `${highlights.length} ${highlights.length === 1 ? 'mark' : 'marks'}`,
+                          pinned.length > 0 &&
+                            `${pinned.length} ${pinned.length === 1 ? 'summary' : 'summaries'}`,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
                       </span>
                       {/* Drawn rather than typed, so it turns on the
                           open rather than being swapped for another
@@ -235,6 +251,39 @@ export default async function TopicPage({
                       </svg>
                     </span>
                   </summary>
+                  {/* What was said back, above what was kept: the
+                      summaries of this topic's lessons and material,
+                      whole first, each naming what it summarises. */}
+                  {pinned.length > 0 && (
+                    <ul className={styles.saidMarks}>
+                      {pinned.map(h => (
+                        <li key={h.id} className={styles.saidMark}>
+                          <p className={styles.saidMarkOf}>
+                            <span className={styles.saidMarkSprig} aria-hidden="true">
+                              <SummaryIcon filled size={14} />
+                            </span>
+                            {summaryLabel(h.section)}
+                            {(h.lesson ?? h.resource) && (
+                              <>
+                                {' · '}
+                                <Link
+                                  href={
+                                    h.lesson
+                                      ? `/lesson/${h.lesson.id}`
+                                      : `/resources/${h.resource!.id}`
+                                  }
+                                  className={styles.inlineLink}
+                                >
+                                  {(h.lesson ?? h.resource)!.title}
+                                </Link>
+                              </>
+                            )}
+                          </p>
+                          {h.note && <NoteText markdown={h.note} className={styles.saidMarkNote} />}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                   <ul className={styles.marks}>
                     {highlights.map(h => (
                       <li key={h.id} className={styles.mark}>
@@ -253,6 +302,13 @@ export default async function TopicPage({
                           <p className={styles.markFrom}>
                             <Link href={`/lesson/${h.lesson.id}`} className={styles.inlineLink}>
                               {h.lesson.title}
+                            </Link>
+                          </p>
+                        )}
+                        {!h.lesson && h.resource && (
+                          <p className={styles.markFrom}>
+                            <Link href={`/resources/${h.resource.id}`} className={styles.inlineLink}>
+                              {h.resource.title}
                             </Link>
                           </p>
                         )}
@@ -277,21 +333,20 @@ export default async function TopicPage({
                 </p>
               ) : (
                 <ul className={styles.material}>
-                  {[...unread, ...read].map(({ resource }) => (
-                    <li key={resource.id} className={styles.materialRow}>
-                      <span className={styles.materialName}>
-                        {resource.url ? (
-                          <a href={resource.url} target="_blank" rel="noreferrer">
-                            {resource.title}
-                          </a>
-                        ) : (
-                          resource.title
-                        )}
-                      </span>
-                      <span className={styles.leaders} aria-hidden="true" />
-                      <span className={styles.materialMeta}>
-                        {resource.kind} · {resource.status}
-                      </span>
+                  {[...unread, ...read].map(({ resource, said }) => (
+                    <li key={resource.id} className={styles.materialItem}>
+                      <div className={styles.materialRow}>
+                        {/* Opened to be read here, where it can be
+                            marked and said back, as the inbox opens it. */}
+                        <span className={styles.materialName}>
+                          <Link href={`/resources/${resource.id}`}>{resource.title}</Link>
+                        </span>
+                        <span className={styles.leaders} aria-hidden="true" />
+                        <span className={styles.materialMeta}>
+                          {resource.kind} · {resource.status}
+                        </span>
+                      </div>
+                      {said && <SaidBack said={said} clip={180} />}
                     </li>
                   ))}
                 </ul>

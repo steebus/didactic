@@ -1,0 +1,57 @@
+/* The reader's own account, set a step above a mark.
+   ---------------------------------------------------------------
+
+   Spans throughout, so it can stand inside a link or a heading's row
+   without breaking the markup it is set into. The step up is made of
+   things the catalogue already uses for weight rather than anything
+   new: the deeper paper of a block, a rule in the summary's ink, and
+   full ink for the words where the row around them is captioned in the
+   soft ink. No colour ground, no card, no size jump. */
+
+.said {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  max-width: 68ch;
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--paper-deep);
+  border-left: 3px solid var(--plate-ultramarine);
+  font-family: var(--font-text);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.sprig {
+  flex: none;
+  margin-top: 0.2em;
+  color: var(--plate-ultramarine);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.label {
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--plate-ultramarine);
+}
+
+.sections {
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.text {
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}

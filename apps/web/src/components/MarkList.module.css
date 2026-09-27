@@ -259,3 +259,67 @@
     }
   }
 }
+
+/* What the reader said back, pinned above the marks.
+   ---------------------------------------------------------------
+
+   The summary's treatment, as everywhere it stands beside marks: the
+   deeper paper, the ultramarine rule and sprig, the reader's words in
+   full ink. It takes only as much of the column as it needs and does
+   not scroll away with the marks under it. */
+.said {
+  flex: none;
+  max-height: 40%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--paper-deep);
+  border-bottom: 1px solid var(--rule);
+  border-left: 3px solid var(--plate-ultramarine);
+}
+
+.saidHead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: var(--space-2) var(--space-3) 0;
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--plate-ultramarine);
+}
+
+.saidSprig {
+  color: var(--plate-ultramarine);
+}
+
+.saidList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.saidRow {
+  padding: var(--space-2) var(--space-3) var(--space-3);
+}
+
+.saidRow + .saidRow {
+  border-top: 1px solid var(--rule);
+}
+
+.saidOf {
+  margin: 0 0 var(--space-1);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.saidNote {
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink);
+}

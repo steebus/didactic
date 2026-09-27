@@ -7,6 +7,8 @@ import { didactic } from '@didactic/api'
 import type { ExposureDepth, Resource, ResourceStatus } from '@didactic/core/types'
 import type { LibraryRow } from '@didactic/core/shapes'
 import { filingPhrase } from '@didactic/core/filingState'
+import { FOUND_IN_LABEL, snippetParts, type ShelfHit } from '@didactic/core/shelf'
+import { SaidBack } from './SaidBack'
 import styles from '@/app/inbox/page.module.css'
 
 const api = didactic()
@@ -20,7 +22,11 @@ const DEPTHS = [
 export function ResourceList({
   resources,
   onRemove,
+  hits,
 }: {
+  /** Where a search found each row, when it was found somewhere the row
+   *  does not print -- its text, a mark, a note. Keyed by resource. */
+  hits?: Map<string, ShelfHit>
   /** The shelf rows, which carry where each one got to in being filed.
    *  A plain `Resource` is still accepted: the filing line simply has
    *  nothing to say about a row that does not carry one. */
@@ -112,6 +118,27 @@ export function ResourceList({
                   {r.title}
                 </Link>
               </h3>
+
+              {/* What the reader said back about it, under the title,
+                  where it is the first thing read about the row. */}
+              {'said' in r && r.said && <SaidBack said={r.said} />}
+
+              {/* Why a search found this row, where the reason is not
+                  on the row: a line of the text, a marked passage, a
+                  note. The matched words are set in the text's own
+                  emphasis. */}
+              {hits?.get(r.id) && (
+                <p className={styles.hit}>
+                  <span className={styles.hitWhere}>{FOUND_IN_LABEL[hits.get(r.id)!.foundIn]}</span>{' '}
+                  <span className={styles.hitText}>
+                    …
+                    {snippetParts(hits.get(r.id)!.snippet).map((part, i) =>
+                      part.hit ? <mark key={i}>{part.text}</mark> : <span key={i}>{part.text}</span>
+                    )}
+                    …
+                  </span>
+                </p>
+              )}
               <div className={styles.rowMeta}>
                 <span className={styles.kind}>{r.kind}</span>
                 {r.url && (

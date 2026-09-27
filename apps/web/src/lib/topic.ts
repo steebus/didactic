@@ -1,6 +1,7 @@
 import { cacheLife, cacheTag } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { tags } from '@didactic/core/tags'
+import { saidFrom, type SaidRow } from '@didactic/core/shelf'
 import type { HighlightRow } from '@didactic/core/shapes'
 import { computeFreshness } from '@didactic/core/scoring'
 import { curriculumProgress } from '@didactic/core/curriculum'
@@ -134,7 +135,16 @@ export async function readTopicArea(
   const namingIds = [...new Set((tagged ?? []).map(t => t.highlight_id as string))]
     .filter(id => !filedEntries.some(h => h.id === id))
 
-  const [{ data: lessons }, { data: neighbourTopics }, { data: namingEntries }] = await Promise.all([
+  const resourceIds = (links ?? [])
+    .map(l => (l.resources as unknown as { id: string } | null)?.id)
+    .filter((id): id is string => Boolean(id))
+
+  const [
+    { data: lessons },
+    { data: neighbourTopics },
+    { data: namingEntries },
+    { data: resourceSummaries },
+  ] = await Promise.all([
     readLessons(),
     neighbourIds.length
       ? db.from('topics').select('id, title').in('id', neighbourIds)
@@ -142,7 +152,26 @@ export async function readTopicArea(
     namingIds.length
       ? db.from('highlights').select('id, note, created_at').eq('kind', 'diary').in('id', namingIds)
       : Promise.resolve({ data: [] as Array<{ id: string; note: string | null; created_at: string }> }),
+    // What was said back about each piece of material filed here, for
+    // the line under its title. Filed under whichever topic the reading
+    // is most about, so it is asked for by resource rather than read off
+    // this topic's marks. An error before 053 is nothing said.
+    resourceIds.length
+      ? db
+          .from('highlights')
+          .select('resource_id, kind, section, note')
+          .eq('kind', 'summary')
+          .in('resource_id', resourceIds)
+      : Promise.resolve({ data: [] as SaidRow[] }),
   ])
+
+  const saidOf = saidFrom((resourceSummaries ?? []) as SaidRow[], 'resource_id')
+  const titleOfResource = new Map(
+    (links ?? []).flatMap(l => {
+      const r = l.resources as unknown as { id: string; title: string } | null
+      return r ? [[r.id, r.title] as const] : []
+    })
+  )
 
   const lessonMarks = highlights ?? []
   const titleById = new Map((neighbourTopics ?? []).map(t => [t.id, t.title]))
@@ -192,11 +221,21 @@ export async function readTopicArea(
         })),
       }
     }),
-    highlights: (highlights ?? []) as unknown as HighlightRow[],
-    resources: (links ?? []).map(l => ({
-      relevance: Number(l.relevance),
-      resource: l.resources as unknown as Resource,
-    })),
+    // A mark taken in a resource read in the app carries its title from
+    // the material filed here, so the fold can say where it came from.
+    highlights: ((highlights ?? []) as unknown as HighlightRow[]).map(h =>
+      h.resource_id && titleOfResource.has(h.resource_id)
+        ? { ...h, resource: { id: h.resource_id, title: titleOfResource.get(h.resource_id)! } }
+        : h
+    ),
+    resources: (links ?? []).map(l => {
+      const resource = l.resources as unknown as Resource
+      return {
+        relevance: Number(l.relevance),
+        resource,
+        said: saidOf.get(resource?.id) ?? null,
+      }
+    }),
     // Where the bed says it goes, for a topic that sits on no bed. The
     // filing block prints it: a topic with five edges into one subject
     // and no membership in it is the shape this whole reading exists

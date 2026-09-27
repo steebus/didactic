@@ -739,6 +739,7 @@ export default function LessonSheet({
               <Highlighter
                 lessonId={id}
                 existing={highlights}
+                summaries={summaries}
                 clozes={clozes}
                 deskWithin={sheetBody}
                 onChanged={() => setRevision(r => r + 1)}

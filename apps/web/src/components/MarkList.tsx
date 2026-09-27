@@ -5,6 +5,8 @@ import type { Highlight as Mark } from '@didactic/core/types'
 import { isUnsaved } from '@didactic/core/marks'
 import { NoteEditor } from './NoteEditor'
 import { NoteText } from './NoteText'
+import { SummaryIcon } from './SummaryIcon'
+import { inSectionOrder, summaryLabel } from '@didactic/core/summaries'
 import styles from './MarkList.module.css'
 
 /**
@@ -26,9 +28,16 @@ export function MarkList({
   onClose,
   onGone,
   noun = 'lesson',
+  summaries = [],
 }: {
   /** Already in reading order. */
   marks: Mark[]
+  /**
+   * What the reader has said back about this reading. Pinned above the
+   * marks, in the summary's treatment: it is the most considered thing
+   * written here, and it is what the marks were on the way to.
+   */
+  summaries?: Mark[]
   /** What the reading is called: a lesson, or a resource read here. */
   noun?: string
   /** On its way out: it draws itself leaving, and says when it has. */
@@ -84,6 +93,25 @@ export function MarkList({
           ✕
         </button>
       </div>
+
+      {summaries.length > 0 && (
+        <section className={styles.said} aria-label="In your own words">
+          <p className={styles.saidHead}>
+            <span className={styles.saidSprig} aria-hidden="true">
+              <SummaryIcon filled size={14} />
+            </span>
+            In your own words
+          </p>
+          <ol className={styles.saidList}>
+            {inSectionOrder(summaries).map(summary => (
+              <li key={summary.id} className={styles.saidRow}>
+                <p className={styles.saidOf}>{summaryLabel(summary.section)}</p>
+                <NoteText markdown={summary.note ?? ''} className={styles.saidNote} />
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
 
       {marks.length === 0 ? (
         <p className={styles.empty}>
