@@ -2,6 +2,7 @@ import { cacheLife, cacheTag } from 'next/cache'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { cosineSimilarity } from '@didactic/core/similarity'
 import { config } from '@didactic/core/config'
+import { readKept, readingSentence, type KeptReading } from '@didactic/core/resolution'
 import { tags } from '@didactic/core/tags'
 import { supabaseAdmin } from './supabase'
 import { EMPTY_EVIDENCE, gatherEvidence } from './evidence'
@@ -33,19 +34,31 @@ export async function getPendingTopics(): Promise<PendingTopic[]> {
 }
 
 export async function readPendingTopics(db: SupabaseClient): Promise<PendingTopic[]> {
+  // Every column, so the kept reading (058) is read where it exists and
+  // its absence is no error where it does not: naming it would empty
+  // the queue until the migration ran.
   const { data } = await db.from('topics')
-    .select('id, title, summary, created_at, embedding')
+    .select('*')
     .eq('state', 'pending')
     .order('created_at', { ascending: false })
 
-  const rows = data ?? []
+  const rows = (data ?? []).map(topic => ({ topic, kept: readKept(topic.pending_reading) }))
 
-  // The nearest match for each, found first and on its own, because
-  // the evidence read below is one query per table over *every* topic
-  // in the queue and it cannot be written until it knows which topics
-  // the queue is actually about.
+  // The other side of each question, found first and on its own,
+  // because the evidence read below is one query per table over *every*
+  // topic in the queue and it cannot be written until it knows which
+  // topics the queue is actually about. The topic the reading was
+  // unsure about where it said; the nearest title only where it never
+  // read one.
   const matched = await Promise.all(
-    rows.map(async topic => ({ topic, nearest: await nearestTo(db, topic) }))
+    rows.map(async ({ topic, kept }) => {
+      const asked = kept?.against ? await askedAbout(db, topic, kept) : null
+      return {
+        topic,
+        reading: asked ? readingSentence(kept!) : null,
+        nearest: asked ?? (await nearestTo(db, topic)),
+      }
+    })
   )
 
   const evidence = await gatherEvidence(
@@ -53,13 +66,14 @@ export async function readPendingTopics(db: SupabaseClient): Promise<PendingTopi
     matched.flatMap(m => [m.topic.id as string, ...(m.nearest ? [m.nearest.id] : [])])
   )
 
-  return matched.map(({ topic, nearest }) => ({
+  return matched.map(({ topic, nearest, reading }) => ({
     id: topic.id,
     title: topic.title,
     summary: topic.summary ?? null,
     created_at: topic.created_at ?? null,
     evidence: evidence.get(topic.id) ?? EMPTY_EVIDENCE,
     nearest: nearest && { ...nearest, evidence: evidence.get(nearest.id) ?? EMPTY_EVIDENCE },
+    reading,
   }))
 }
 
@@ -68,6 +82,36 @@ interface Nearest {
   title: string
   summary: string | null
   similarity: number
+}
+
+const vectorOf = (value: unknown): number[] | null =>
+  typeof value === 'string' ? JSON.parse(value) : Array.isArray(value) ? value : null
+
+/**
+ * The topic the reading was unsure about, if it is still on the map.
+ * One since merged away or thrown out asks about nothing: null, and the
+ * queue falls back to the nearest title as it would for no reading.
+ */
+async function askedAbout(
+  db: SupabaseClient,
+  topic: { embedding: unknown },
+  kept: KeptReading
+): Promise<Nearest | null> {
+  const { data: other } = await db
+    .from('topics')
+    .select('id, title, summary, embedding, state')
+    .eq('id', kept.against!)
+    .maybeSingle()
+  if (!other || other.state !== 'active') return null
+
+  const mine = vectorOf(topic.embedding)
+  const theirs = vectorOf(other.embedding)
+  return {
+    id: other.id as string,
+    title: other.title as string,
+    summary: (other.summary as string | null) ?? null,
+    similarity: mine && theirs ? cosineSimilarity(mine, theirs) : 0,
+  }
 }
 
 /** The closest active topic on the map, where there is one close

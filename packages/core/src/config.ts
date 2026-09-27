@@ -132,6 +132,23 @@ export const config = {
   // direction.
   JEV_DISTINCT: 0.6,
 
+  // What the nearest named topic has to hold of the reading, when "none
+  // of these" leads without winning outright, before the concept is
+  // queued against it rather than created.
+  //
+  // Below JEV_DISTINCT the reading is unsure, and it used to be queued
+  // against whichever named topic came next -- however little the model
+  // gave it. A concept read as 55% "none" with the rest spread thin over
+  // twenty-five candidates was asked about as "Same as JavaScript?",
+  // which is a question the reading never asked. A topic holding less
+  // than a fifth of the distribution is not one it was unsure about.
+  // Only this branch is floored: where a named topic leads, the reading
+  // thinks it is one of them and is unsure which, and that is worth
+  // asking. A starting position from the shape of the decision, not
+  // from rows: a wrong create costs a merge later, a wrong question a
+  // press now.
+  JEV_ASK: 0.2,
+
   // A subject's share of a concept's distribution before the concept is
   // filed under it. Deliberately low, and read off every subject rather
   // than the winner: membership is many-to-many (`012`), and a topic

@@ -50,7 +50,7 @@ export type Reading = ResolutionAction & {
   margin: number
   /** Why it went this way, for the queue to print and for the harness
    *  to count. Not user-facing copy. */
-  because: 'sure' | 'narrow-margin' | 'unsure' | 'distinct' | 'empty' | 'wrong-scope'
+  because: 'sure' | 'narrow-margin' | 'unsure' | 'distinct' | 'thin' | 'empty' | 'wrong-scope'
 }
 
 /**
@@ -122,10 +122,12 @@ export function readDistribution(
     if (top[1] >= config.JEV_DISTINCT) {
       return { action: 'create', probability: top[1], margin, because: 'distinct' }
     }
+    // Unless nothing named is worth asking about: a question is only
+    // worth putting where the reading gave the other side real weight.
     const nearest = entries.find(([id]) => id !== NONE)
-    return nearest
-      ? { action: 'pending', nearestId: nearest[0], probability: nearest[1], margin, because: 'unsure' }
-      : { action: 'create', probability: top[1], margin, because: 'distinct' }
+    if (!nearest) return { action: 'create', probability: top[1], margin, because: 'distinct' }
+    if (nearest[1] < config.JEV_ASK) return { action: 'create', probability: top[1], margin, because: 'thin' }
+    return { action: 'pending', nearestId: nearest[0], probability: nearest[1], margin, because: 'unsure' }
   }
 
   if (top[1] >= config.JEV_LINK) {
@@ -225,7 +227,7 @@ export function readSubjects(
  * it might be that one" is the most useful thing the queue can tell a
  * reader who has to press one of the buttons.
  */
-export function readingSentence(reading: Reading): string {
+export function readingSentence(reading: Pick<Reading, 'because' | 'probability'>): string {
   const pct = Math.round(reading.probability * 100)
 
   switch (reading.because) {
@@ -237,9 +239,54 @@ export function readingSentence(reading: Reading): string {
       return `Read as the same subject matter at ${pct}%, but not at the same scope — one of them is the narrower case, which is an edge rather than a merge.`
     case 'distinct':
       return `Read as its own topic, ${pct}% sure it is none of the ones nearby.`
+    case 'thin':
+      return `Read as its own topic: none of the ones nearby held enough of the reading to ask about.`
     case 'empty':
       return 'Nothing was returned to weigh, so it is left for you.'
     case 'unsure':
       return `Nearest match read at ${pct}%, which is not sure enough either way.`
+  }
+}
+
+/**
+ * What is kept of a reading on the topic it queued (`058`): which topic
+ * it was asking about, and how it read, so the queue asks about that
+ * pair and says why.
+ *
+ * The queue used to find the other side itself, at display time, as
+ * whichever active topic was nearest in wording. That is not the topic
+ * the reading was unsure about -- it may not be a topic the reading was
+ * even shown -- and it is how "Hash Functions" came to be offered as
+ * "Same as JavaScript": two titles 0.83 apart in a model that puts most
+ * of one field above 0.81.
+ */
+export interface KeptReading {
+  /** The topic it is asked against; null where it was released. */
+  against: string | null
+  because: Reading['because']
+  probability: number
+}
+
+export function keptReading(reading: Reading): KeptReading {
+  return {
+    against: reading.action === 'link' ? reading.topicId : reading.action === 'pending' ? reading.nearestId : null,
+    because: reading.because,
+    probability: reading.probability,
+  }
+}
+
+const BECAUSE: ReadonlySet<string> = new Set(['sure', 'narrow-margin', 'unsure', 'distinct', 'thin', 'empty', 'wrong-scope'])
+
+/** A kept reading as it comes back from the database, or null where the
+ *  column is empty, absent (before `058`) or holds something else. */
+export function readKept(value: unknown): KeptReading | null {
+  if (!value || typeof value !== 'object') return null
+  const v = value as Record<string, unknown>
+  if (typeof v.because !== 'string' || !BECAUSE.has(v.because)) return null
+  if (typeof v.probability !== 'number' || !Number.isFinite(v.probability)) return null
+  return {
+    against: typeof v.against === 'string' ? v.against : null,
+    because: v.because as Reading['because'],
+    probability: v.probability,
   }
 }

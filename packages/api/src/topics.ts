@@ -120,6 +120,11 @@ export const topics = (api: Api) => ({
     api.post<Demoted>(`/api/topics/${id}/demote`, { intoTopicId }),
 
   pending: () => api.get<{ pending: PendingTopic[] }>('/api/topics/pending'),
+  /** Read the queued topics that were queued on wording alone: the ones
+   *  that are their own topics leave the queue, the rest are asked
+   *  against the topic the reading chose. */
+  readPending: () =>
+    api.post<{ released: number; read: number; warning: string | null }>('/api/topics/pending/read'),
   /**
    * `filed` rides along on a `confirm`: how many subjects the kept topic
    * was filed under from the bed it sits in. `commit_ingestion` refuses

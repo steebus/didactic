@@ -674,7 +674,9 @@ with, so the two are now set out as a pair of plates.
 | A plate | `--paper-deep`, `--space-3` padding, a `3px` left rule: `--plate-mustard` for the one that has just arrived, `--plate-green` for the one already on the map. |
 | A missing description | Said in `--ink-faint` italic — *No description — there is only the name to go on* — never left as a gap. |
 | What it holds | The beds it sits in, in the label register; then its counts; then up to three of the resources it was drawn from, leadered with an em dash. |
+| The reading | What the reading said about *this pair*, set as the counsel is and above it — *Nearest match read at 40%, which is not sure enough either way.* A pair queued on its name alone says so instead: the other side is then only the nearest title, and the reader is owed that before being asked to merge it. |
 | The counsel | One line about *these two*, at `--step--1` in `--ink`, under both plates. |
+| Reading again | While the queue has what was queued on names read by what it says, one line in the note's register says so; afterwards, what it took out — *One was read as a topic of its own and has gone onto the map.* The rows already there stay put while it runs. |
 | A failed decision | `--plate-terracotta` behind a `3px` rule of the same ink, at the head of the queue. |
 
 **Rule — the two sides are told apart by ink, never by position alone.** On a
@@ -683,6 +685,14 @@ phone one is above the other and position says nothing.
 **Rule — a gap is never left where a fact is missing.** An absent line cannot
 be told from one that failed to load, and *there is only the name to go on* is
 the most useful thing the plate can say about that topic.
+
+**Rule — the other side of the question is the one the reading asked about.**
+It was found at display time as the nearest title, and in this embedding model a
+field's titles all sit close — *Hash Functions* is 0.83 from *JavaScript*, as
+near as it is to *Algorithms* — so the queue offered merges nothing had
+proposed. The reading's choice is kept on the queued topic (`058`) and the plate
+beside it is that topic; the nearest title stands in only where there was no
+reading, and says so.
 
 **Rule — the sheet may raise a question and may never settle one.** The counsel
 line names the asymmetry — a bare name against a topic with history, or two

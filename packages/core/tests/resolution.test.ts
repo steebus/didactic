@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { readDistribution, readSubjects, readingSentence, guardScope, NONE } from '../src/resolution'
+import { readDistribution, readSubjects, readingSentence, guardScope, keptReading, readKept, NONE } from '../src/resolution'
 import { config } from '../src/config'
 
 describe('readDistribution', () => {
@@ -49,6 +49,25 @@ describe('readDistribution', () => {
     // topic to name, so the queue can show the pair.
     const reading = readDistribution(NONE, { [NONE]: 0.45, t1: 0.4, t2: 0.15 })
     expect(reading).toMatchObject({ action: 'pending', nearestId: 't1', because: 'unsure' })
+  })
+
+  it('creates, rather than asking, when the topic behind a weak "none" holds almost nothing', () => {
+    // 55% "none" and the rest spread over the shortlist: the reading was
+    // not unsure about any one of them, so there is no pair to ask about.
+    const reading = readDistribution(NONE, { [NONE]: 0.55, t1: 0.08, t2: 0.07, t3: 0.06, t4: 0.05 })
+    expect(reading).toMatchObject({ action: 'create', because: 'thin' })
+  })
+
+  it('holds the ask floor the config sets', () => {
+    const at = readDistribution(NONE, { [NONE]: 0.5, t1: config.JEV_ASK, t2: 0.1 })
+    const under = readDistribution(NONE, { [NONE]: 0.5, t1: config.JEV_ASK - 0.01, t2: 0.1 })
+    expect(at).toMatchObject({ action: 'pending', nearestId: 't1' })
+    expect(under.action).toBe('create')
+  })
+
+  it('does not floor a named topic that leads: unsure which is still a question', () => {
+    const reading = readDistribution('t1', { t1: 0.18, t2: 0.17, t3: 0.16, [NONE]: 0.1 })
+    expect(reading.action).toBe('pending')
   })
 
   it('refuses to link on a choice with no distribution behind it', () => {
@@ -185,5 +204,30 @@ describe('guardScope', () => {
   it('holds the bar the config sets', () => {
     expect(guardScope(link, { same: config.JEV_SAME_SCOPE - 0.01 }).action).toBe('pending')
     expect(guardScope(link, { same: config.JEV_SAME_SCOPE }).action).toBe('link')
+  })
+})
+
+describe('keptReading and readKept', () => {
+  it('keeps the topic a queued reading was asking about, and reads it back', () => {
+    const kept = keptReading(readDistribution(NONE, { [NONE]: 0.45, t1: 0.4, t2: 0.15 }))
+    expect(kept).toEqual({ against: 't1', because: 'unsure', probability: 0.4 })
+    expect(readKept(JSON.parse(JSON.stringify(kept)))).toEqual(kept)
+  })
+
+  it('keeps a held link against the topic it would have joined, and a create against nothing', () => {
+    const held = guardScope(readDistribution('t1', { t1: 0.95, [NONE]: 0.05 }), { narrower: 1 })
+    expect(keptReading(held).against).toBe('t1')
+    expect(keptReading(readDistribution(NONE, { [NONE]: 0.9, t1: 0.1 })).against).toBeNull()
+  })
+
+  it('reads an empty, absent or unfamiliar column as no reading', () => {
+    expect(readKept(null)).toBeNull()
+    expect(readKept(undefined)).toBeNull()
+    expect(readKept({ because: 'guessed', probability: 0.5 })).toBeNull()
+    expect(readKept({ because: 'unsure', probability: Number.NaN })).toBeNull()
+  })
+
+  it('says a thin reading as its own topic', () => {
+    expect(readingSentence({ because: 'thin', probability: 0.55 })).toMatch(/its own topic/)
   })
 })

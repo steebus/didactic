@@ -13,6 +13,7 @@ import {
 import { judgeWithJev, type JevVerdict } from './llm/jev'
 import { cosineSimilarity } from '@didactic/core/similarity'
 import { config } from '@didactic/core/config'
+import { keptReading, type KeptReading } from '@didactic/core/resolution'
 import { extractFromHtml } from './extract/url'
 import { articleBody, keepBody } from './resourceBody'
 import { readDocumentRound } from './document'
@@ -206,6 +207,9 @@ export async function ingestResource(
 
   const links: Array<{ topic_id: string; relevance: number; summary: string | null }> = []
   const newTopics: Array<Record<string, unknown>> = []
+  // Beside `newTopics`, index for index: what the reading said about each
+  // one it queued, kept on the topic once it has an id (058).
+  const readings: Array<KeptReading | null> = []
   let pendingCount = 0
 
   searched.forEach(({ concept, vector, candidates }, index) => {
@@ -235,6 +239,7 @@ export async function ingestResource(
       })
     } else {
       if (resolution.action === 'pending') pendingCount++
+      readings.push(resolution.action === 'pending' && verdict ? keptReading(verdict.reading) : null)
       newTopics.push({
         title: concept.name,
         slug: slugify(concept.name),
@@ -278,6 +283,21 @@ export async function ingestResource(
     id: c.out_id,
     title: c.out_title,
   }))
+
+  // 4b. What the reading said about each topic it queued, so the queue
+  // asks about the pair it was unsure of rather than the nearest title.
+  // The commit hands the new topics back in the order they were sent;
+  // the title is checked as well, so a mismatch keeps nothing rather
+  // than the wrong thing. Never fatal, and before 058 it keeps nothing:
+  // a topic with no reading is read again when the queue next opens.
+  await Promise.all(
+    newTopicRefs.map(async (ref: { id: string; title: string }, i: number) => {
+      const kept = readings[i]
+      if (!kept || newTopics[i]?.title !== ref.title) return
+      const { error } = await db.from('topics').update({ pending_reading: kept }).eq('id', ref.id)
+      if (error) console.error('ingest: could not keep the reading on a queued topic', error.message)
+    })
+  )
 
   let filedByBed = 0
 
@@ -324,7 +344,7 @@ export async function ingestResource(
   }
 }
 
-const keyOf = (index: number) => `c${index + 1}`
+export const keyOf = (index: number) => `c${index + 1}`
 
 /**
  * Read the concepts' descriptions against the map, or say why not.
@@ -334,7 +354,7 @@ const keyOf = (index: number) => `c${index + 1}`
  * the only trace -- failing a whole resource for want of a second
  * opinion would be the tail wagging the dog.
  */
-async function judge(
+export async function judge(
   db: SupabaseClient,
   input: {
     userId: string

@@ -57,6 +57,7 @@ export const ENDPOINTS = {
   'topics.get': { name: 'topics.get', method: 'GET', path: '/api/topics/[id]', invalidates: [] },
   'topics.area': { name: 'topics.area', method: 'GET', path: '/api/topics/[id]/area', invalidates: [] },
   'topics.pending': { name: 'topics.pending', method: 'GET', path: '/api/topics/pending', invalidates: [] },
+  'topics.readPending': { name: 'topics.readPending', method: 'POST', path: '/api/topics/pending/read', invalidates: [tags.pending, tags.topics, tags.subjects] },
   'topics.loose': { name: 'topics.loose', method: 'GET', path: '/api/topics/loose', invalidates: [] },
   'sprouts.read': { name: 'sprouts.read', method: 'GET', path: '/api/sprouts', invalidates: [] },
   'resources.list': { name: 'resources.list', method: 'GET', path: '/api/resources', invalidates: [] },

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { didactic, type PendingAction } from '@didactic/api'
@@ -11,7 +11,10 @@ import {
   counsel,
   filedUnder,
   holdings,
+  NAME_ONLY,
   overlap,
+  releasedSentence,
+  REREADING,
 } from '@didactic/core/adjudication'
 import styles from '@/app/inbox/page.module.css'
 
@@ -50,6 +53,27 @@ export function PendingQueue({ topics }: { topics: PendingTopic[] }) {
   const [, startTransition] = useTransition()
   const router = useRouter()
 
+  /**
+   * Anything queued on its name alone is read again as the queue opens:
+   * one request, which takes out what is its own topic and asks about
+   * the rest against the topic the reading chose. The rows already here
+   * stay while it runs, each saying it was queued on its name.
+   */
+  const onNameAlone = topics.filter(t => t.reading === null).length
+  const [rereading, setRereading] = useState(onNameAlone > 0)
+  const [released, setReleased] = useState<string | null>(null)
+  const asked = useRef(false)
+  useEffect(() => {
+    if (asked.current || onNameAlone === 0) return
+    asked.current = true
+    void api.topics.readPending().then(({ ok, body }) => {
+      setRereading(false)
+      if (!ok) return
+      setReleased(releasedSentence(body.released))
+      if (body.released > 0 || body.read > 0) startTransition(() => router.refresh())
+    })
+  }, [onNameAlone, router])
+
   function adjudicate(topicId: string, action: PendingAction, mergeInto?: string) {
     setBusy(topicId)
     setError(null)
@@ -71,7 +95,9 @@ export function PendingQueue({ topics }: { topics: PendingTopic[] }) {
   // dropped are keys nothing reads, so nothing prunes them.
   const waiting = topics.filter(t => !decided.includes(t.id))
 
-  if (waiting.length === 0) return null
+  if (waiting.length === 0) {
+    return released ? <p className={styles.decisionsNote}>{released}</p> : null
+  }
 
   return (
     <section className={styles.decisions}>
@@ -91,12 +117,15 @@ export function PendingQueue({ topics }: { topics: PendingTopic[] }) {
       </div>
       <p className={styles.decisionsNote}>
         These came in close enough to something you already have that the app
-        would rather ask than guess. It compares wording, not meaning, so two
-        topics that merely sound alike land here. What each one is holding is
-        set out below — keeping them separate is safe and costs one click to
-        undo later; merging cannot be undone.
+        would rather ask than guess. Each was read against the map by what it
+        says, and the reading was not sure enough to decide alone; what it said
+        is under each pair. What each one is holding is set out below — keeping
+        them separate is safe and costs one click to undo later; merging cannot
+        be undone.
       </p>
 
+      {rereading && <p className={styles.decisionsNote}>{REREADING}</p>}
+      {released && <p className={styles.decisionsNote}>{released}</p>}
       {error && <p className={styles.decisionsProblem}>{error}</p>}
 
       <ul className={styles.pendingList}>
@@ -132,6 +161,9 @@ export function PendingQueue({ topics }: { topics: PendingTopic[] }) {
 
             {topic.nearest && (
               <>
+                {/* What the reading said about this pair, or that there
+                    was no reading and the pair is only the nearest name. */}
+                <p className={styles.counsel}>{topic.reading ?? NAME_ONLY}</p>
                 {/* What these two in particular suggest, rather than the
                     same sentence printed under all twenty-five rows. */}
                 <p className={styles.counsel}>

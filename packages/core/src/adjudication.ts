@@ -214,3 +214,26 @@ export function grubbingOut(evidence: TopicEvidence): { takes: string[]; keeps: 
 
   return { takes, keeps }
 }
+
+/**
+ * Said under a pair that was queued on its name alone.
+ *
+ * When the reading of a concept's description fails, it is queued on
+ * its title's nearness to one already there, and in this embedding
+ * model a field's titles all sit close: "Hash Functions" is as near
+ * "JavaScript" as it is "Algorithms". The pair is then only the nearest
+ * title, and the reader is owed that before being asked to merge it.
+ */
+export const NAME_ONLY =
+  'Queued on its name alone: what it says was not read when it arrived, so the other side is only the nearest title.'
+
+/** Said while the queue has what was queued on names read again. */
+export const REREADING = 'Reading what was queued on its name alone by what it says…'
+
+/** What reading the queue again took out of it, or null for nothing. */
+export function releasedSentence(released: number): string | null {
+  if (released <= 0) return null
+  return released === 1
+    ? 'One was read as a topic of its own and has gone onto the map.'
+    : `${released} were read as topics of their own and have gone onto the map.`
+}

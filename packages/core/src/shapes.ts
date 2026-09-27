@@ -160,6 +160,13 @@ export interface PendingTopic {
     similarity: number
     evidence: TopicEvidence
   } | null
+  /**
+   * What the reading said about this pair, in words
+   * (`core/resolution.readingSentence`). Null where it was queued on
+   * wording alone -- the reading failed or never ran -- and `nearest` is
+   * then only the nearest title, which the queue has read again.
+   */
+  reading: string | null
 }
 
 /* --------------------------------------------------------- loose stock */

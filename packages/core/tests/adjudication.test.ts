@@ -8,6 +8,9 @@ import {
   holdings,
   overlap,
   sharedSubjects,
+  releasedSentence,
+  NAME_ONLY,
+  REREADING,
 } from '../src/adjudication'
 import type { TopicEvidence } from '../src/shapes'
 
@@ -156,5 +159,18 @@ describe('arrived', () => {
 
   it('says so rather than printing Invalid Date', () => {
     expect(arrived('not a date', now)).toBe('undated')
+  })
+})
+
+describe('reading the queue again', () => {
+  it('says what it took out of the queue, and nothing when it took nothing', () => {
+    expect(releasedSentence(0)).toBeNull()
+    expect(releasedSentence(1)).toMatch(/^One was read as a topic of its own/)
+    expect(releasedSentence(3)).toMatch(/^3 were read as topics of their own/)
+  })
+
+  it('owns up to a pair that is only the nearest title', () => {
+    expect(NAME_ONLY).toMatch(/nearest title/)
+    expect(REREADING).toMatch(/by what it says/)
   })
 })
