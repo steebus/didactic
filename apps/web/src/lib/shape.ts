@@ -67,10 +67,34 @@ function top(g: Grouped): { share: number; name: string | null } {
   return { share: best.count / total, name: best.name }
 }
 
+const STOPWORDS = new Set(['a', 'an', 'and', 'as', 'at', 'by', 'for', 'from', 'in', 'into', 'of', 'on', 'or', 'over', 'the', 'to', 'vs', 'versus', 'with'])
+
+/** A name loosened to its words, for one written about in other words:
+ *  "Message Queues & Asynchronous Processing" as its four content words. */
+export function looseOf(phrase: string): string | null {
+  const words = phrase
+    .replace(/[&/\\-]/g, ' ')
+    .split(/\s+/)
+    .map(w => w.replace(/[^\p{L}\p{N}]/gu, ''))
+    .filter(w => w.length > 1 && !STOPWORDS.has(w))
+    .slice(0, 5)
+  return words.length >= 2 ? words.join(' ') : null
+}
+
 /**
- * Read how a phrase is written about. Within its subjects first, because
- * a word like "aperture" belongs to radar in the literature and to
- * photography on this map; alone where the subjects leave too little.
+ * Read how a topic's name is written about.
+ *
+ * The name as a phrase first, then -- for a long name the literature
+ * words differently -- as its words. Each is searched alone and within
+ * its subjects. Alone is trusted where it lands in the same subfield as
+ * within its subjects, held there by a real share: "JavaScript" alone is
+ * where web development is, and its spread there is the point. Within is
+ * taken where alone belongs to another literature: "aperture" alone is
+ * radar, "CSS" alone half medicine. A subject's own name is too general
+ * to recognise its literature by ("system design" is engineering at
+ * large), so the topic's own two searches are compared instead. A name
+ * that fits neither is left unplaced rather than read from the wrong
+ * literature.
  */
 export async function readLiterature(
   phrase: string,
@@ -78,38 +102,68 @@ export async function readLiterature(
   key: string,
   fetchImpl: Fetch = fetch
 ): Promise<LiteratureRead> {
-  const quoted = `"${phrase.replace(/"/g, '')}"`
-  const context = subjects
-    .map(s => phraseOf(s))
-    .filter(s => s && s !== phrase)
-  const tries: Array<string | null> = context.length > 0 ? [context.map(c => `"${c}"`).join(' OR '), null] : [null]
+  const min = GRAIN.SHAPE.MIN_WORKS
+  const held = GRAIN.SHAPE.HOME_SHARE
+  const context = [...new Set(subjects.map(s => phraseOf(s)).filter(s => s && s !== phrase))]
+  const within = context.map(c => `"${c}"`).join(' OR ')
 
-  for (const [i, within] of tries.entries()) {
-    const expr = within ? `${quoted} AND (${within})` : quoted
-    const topics = await grouped(expr, 'primary_topic.id', key, fetchImpl)
-    const read = async (): Promise<LiteratureRead> => {
-      const [subfields, types] = await Promise.all([
-        grouped(expr, 'primary_topic.subfield.id', key, fetchImpl),
-        grouped(expr, 'type', key, fetchImpl),
-      ])
-      const software = types.groups.find(g => g.name === 'software')?.count ?? 0
-      const t = top(topics)
-      const s = top(subfields)
-      return {
-        reading: {
-          works: topics.count,
-          topicShare: round(t.share),
-          subfieldShare: round(s.share),
-          softwareShare: round(topics.count > 0 ? software / topics.count : 0),
-        },
-        context: within ? context.join(' | ') : null,
-        topTopic: t.name,
-        topSubfield: s.name,
-      }
+  const read = async (expr: string, inContext: boolean, topics: Grouped, subfields: Grouped): Promise<LiteratureRead> => {
+    const types = await grouped(expr, 'type', key, fetchImpl)
+    const software = types.groups.find(g => g.name === 'software')?.count ?? 0
+    const t = top(topics)
+    const s = top(subfields)
+    return {
+      reading: {
+        works: topics.count,
+        topicShare: round(t.share),
+        subfieldShare: round(s.share),
+        softwareShare: round(topics.count > 0 ? software / topics.count : 0),
+      },
+      context: inContext ? context.join(' | ') : null,
+      topTopic: t.name,
+      topSubfield: s.name,
     }
-    if (topics.count >= GRAIN.SHAPE.MIN_WORKS || i === tries.length - 1) return read()
   }
-  throw new Error('literature: nothing was tried')
+  const search = (expr: string) =>
+    Promise.all([
+      grouped(expr, 'primary_topic.id', key, fetchImpl),
+      grouped(expr, 'primary_topic.subfield.id', key, fetchImpl),
+    ])
+
+  const loose = looseOf(phrase)
+  const forms = [
+    { expr: `"${phrase.replace(/"/g, '')}"`, exact: true },
+    ...(loose && loose !== phrase ? [{ expr: loose, exact: false }] : []),
+  ]
+  let most = 0
+  for (const form of forms) {
+    const [topics, subfields] = await search(form.expr)
+    most = Math.max(most, topics.count)
+    const alone = top(subfields)
+    const enough = topics.count >= min && alone.share >= held
+
+    if (context.length === 0) {
+      // Nothing to check it against: only the exact phrase is trusted.
+      if (form.exact && enough) return read(form.expr, false, topics, subfields)
+      continue
+    }
+
+    const expr = `${form.expr} AND (${within})`
+    const [ct, cs] = await search(expr)
+    most = Math.max(most, ct.count)
+    const inside = top(cs)
+    if (enough && ct.count > 0 && inside.name === alone.name) return read(form.expr, false, topics, subfields)
+    if (ct.count >= min) return read(expr, true, ct, cs)
+    // Too little within its subjects to compare against: the exact phrase
+    // alone, where it is held firmly in one subfield.
+    if (form.exact && topics.count >= min && alone.share >= 2 * held) return read(form.expr, false, topics, subfields)
+  }
+  return {
+    reading: { works: most, topicShare: 0, subfieldShare: 0, softwareShare: 0 },
+    context: null,
+    topTopic: null,
+    topSubfield: null,
+  }
 }
 
 /**
