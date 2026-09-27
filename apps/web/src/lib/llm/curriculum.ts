@@ -47,9 +47,31 @@ export interface CurriculumBrief {
   /** Topics the graph says come first, so the route does not re-teach
    *  ground the user already holds or skip ground they do not. */
   prerequisiteTopics: Array<{ title: string; ability: number }>
+  /**
+   * How many lessons the route is drafted to (`core/grain.routeBudget`):
+   * what taking the reader from where they are to their target comes to,
+   * at a lesson's worth of effort each. The model writes the lessons and
+   * does not choose how many; it may stray to `low`–`high`, and further
+   * only with a reason, which opens the reasoning. Absent, the old range.
+   */
+  budget?: { lessons: number; low: number; high: number; hours: number; from: number; target: number } | null
 }
 
 const STAGES: LessonStage[] = ['introductory', 'core', 'advanced']
+
+/**
+ * How many lessons to ask for. The budget where there is one: the reader's
+ * distance to their target, which is not the model's to decide, with
+ * room either side and a way past it that has to be argued for.
+ */
+export function lessonCount(budget: CurriculumBrief['budget']): string {
+  if (!budget) return '8 to 16 lessons.'
+  const from = Math.round(budget.from * 10) / 10
+  if (budget.hours <= 0) {
+    return `${budget.lessons} lessons: they are already at the depth they want (${budget.target}), so this is a short route that keeps it rather than one that builds it. Stay between ${budget.low} and ${budget.high}; to go outside that, begin the reasoning with "Budget:" and why, in one sentence.`
+  }
+  return `${budget.lessons} lessons: that is what taking them from ${from} to depth ${budget.target} comes to, about ${Math.round(budget.hours)} hours at a lesson's worth of reading and practice each. Stay between ${budget.low} and ${budget.high}. If the material genuinely needs fewer or more than that, go outside the range and begin the reasoning with "Budget:" and why, in one sentence -- it is shown to the reader beside the route.`
+}
 
 /**
  * How many neighbouring lessons a body is written against.
@@ -161,7 +183,7 @@ ${brief.sources.length
     }`
   : ''}
 
-8 to 16 lessons. Use "requires" to say what must come first: a linear curriculum chains each lesson to the one before, a branching one has several starting points and forks where the material genuinely diverges. Never make a lesson require itself or form a loop.
+${lessonCount(brief.budget)} Use "requires" to say what must come first: a linear curriculum chains each lesson to the one before, a branching one has several starting points and forks where the material genuinely diverges. Never make a lesson require itself or form a loop.
 
 Then write the "reasoning". Every agent that writes a lesson for this course will be shown it and nothing else about how you were thinking, so it is the only chance to say why the shape is what it is rather than leaving each of them to guess separately. Write it to them, not to the reader.`,
     }],

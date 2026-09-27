@@ -307,3 +307,68 @@ export const config = {
 
   FRESHNESS_HALF_LIFE_DAYS: 90,
 } as const
+
+/**
+ * How big a topic is, and how far a reader is from where they want to
+ * take it (`grain.ts`; the design is
+ * `docs/superpowers/specs/2026-09-27-grain-and-complexity-design.md`).
+ *
+ * Here rather than in a table, because the figures are printed by both
+ * apps from pure functions and a constant held in the database would sit
+ * outside them and their tests. Every value is a starting position taken
+ * from the shape of the decision, not yet from rows: nothing has been
+ * calibrated, which is why every figure built on them prints as "about".
+ */
+export const GRAIN = {
+  // Hours for a typical learner to take a topic from nothing to ability
+  // 3, before any signal moves it. About one teaching week: a full-time
+  // study year is roughly 1,200 hours and a university unit roughly
+  // 150, taught over thirteen to fifteen weeks.
+  BASE_HOURS: 10,
+
+  // Each level of prerequisite chain under a topic, as a share of its
+  // log-hours. Five levels at most count: past that the chain says more
+  // about how the map was drawn than about the topic.
+  PREREQ_STEP: 0.1,
+  PREREQ_CAP: 5,
+  // A prerequisite the reader drew or kept counts whole; one only the
+  // model drew counts half. A figure meant to be deterministic should
+  // not rest mostly on a model's say.
+  EDGE_WEIGHT: { user: 1, skeleton: 1, ai: 0.5 } as Record<string, number>,
+
+  // Material written about this topic alone, as `ln(1 + words / SCALE)`
+  // times the step. Fifty thousand words -- a short book -- is as much
+  // as it can say.
+  MATERIAL_STEP: 0.12,
+  MATERIAL_SCALE: 2500,
+  MATERIAL_CAP: 50_000,
+
+  // The uncertainty of an uncalibrated estimate, on the log scale: a
+  // factor of about two either way. Above ABOUT_LOG_SD a figure prints
+  // as a guess.
+  PRIOR_LOG_SD: 0.7,
+  ABOUT_LOG_SD: 0.35,
+
+  // Each level of ability costs this many times the one before. The
+  // closed form of the hours between two levels comes from integrating
+  // r^a, so fractional abilities need no special case.
+  COST_RATIO: 1.8,
+
+  // The effort one lesson carries with its reading and practice.
+  LESSON_HOURS: 1.25,
+
+  // Where a reader is taken to want to go when nobody has said.
+  DEFAULT_TARGET: 3,
+
+  // A topic reads as subject-sized above this many lessons for its span,
+  // and stops once it falls below the second: a band, so a topic on the
+  // line does not flip back and forth.
+  SUBJECT_LIKE_ENTER: 12,
+  SUBJECT_LIKE_LEAVE: 10,
+
+  // The lessons a drafted route is asked for, whatever the budget says,
+  // and how far the model may stray from it with a reason.
+  BUDGET_MIN: 3,
+  BUDGET_MAX: 24,
+  BUDGET_SLACK: 0.2,
+} as const

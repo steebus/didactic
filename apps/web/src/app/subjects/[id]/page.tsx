@@ -2,6 +2,7 @@ import { EDITION_DATE as DATE } from '@didactic/core/copy'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { viabilityFigure, vagueFigure } from '@didactic/core/scoring'
+import { GRAIN } from '@didactic/core/config'
 import { getSubjectArea } from '@/lib/subject'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
 import { SheetNav } from '@/components/SheetNav'
@@ -11,6 +12,7 @@ import { routeProgress, aggregateRoutes } from '@didactic/core/progress'
 import { ROOT_STAGES } from '@/components/RootsSpecimen'
 import { SubjectBed } from './SubjectBed'
 import { GrubOut } from './GrubOut'
+import { BedTarget } from './BedTarget'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
 
@@ -83,6 +85,23 @@ export default async function SubjectPage({
               <span className={styles.figureLabel}>Condition</span>
               <span className={styles.figureValue}>{STOCK_LABEL[state]}</span>
             </span>
+            {area.effort && area.effort.topics > 0 && (
+              <span className={styles.figure}>
+                <span className={styles.figureLabel}>
+                  To depth {area.effort.target ?? GRAIN.DEFAULT_TARGET}
+                </span>
+                <span className={`${styles.figureValue} ${area.effort.about ? styles.vague : ''}`}>
+                  {area.effort.lessons === 0 ? (
+                    'reached'
+                  ) : (
+                    <>
+                      {area.effort.about && <span className={styles.about}>about </span>}
+                      {Math.round(area.effort.hours)} h
+                    </>
+                  )}
+                </span>
+              </span>
+            )}
           </div>
 
           {/* The other reading of the same bed. The outline below is
@@ -132,6 +151,13 @@ export default async function SubjectPage({
                 </p>
               )}
             </section>
+
+            {area.effort && (
+              <section className={styles.block}>
+                <h2 className={styles.blockTitle}>To your target</h2>
+                <BedTarget subjectId={subject.id} effort={area.effort} />
+              </section>
+            )}
 
             {sowing && (
               <section className={styles.block}>

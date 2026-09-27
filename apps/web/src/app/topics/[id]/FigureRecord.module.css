@@ -51,6 +51,12 @@
   color: var(--paper);
 }
 
+/* An estimate nothing has checked: set as the viability guess is. */
+.guess {
+  font-style: italic;
+  opacity: 0.8;
+}
+
 .about {
   font-family: var(--font-text);
   font-size: var(--step--1);
@@ -167,6 +173,86 @@
   font-size: var(--step--2);
   padding-top: var(--space-2);
   border-top: 1px dotted var(--rule);
+}
+
+/* The effort account: where it came from, term by term. */
+.terms {
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--step--1);
+}
+
+.contributions {
+  margin: var(--space-1) 0 0;
+  padding: 0 0 0 var(--space-3);
+  list-style: none;
+  display: grid;
+  gap: 2px;
+  border-left: 1px solid var(--rule);
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* The target, set where its effect is read. Each level is a press in
+   the label register, the chosen one inked. */
+.aim {
+  display: grid;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px dotted var(--rule);
+}
+
+.aimLabel {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.level {
+  font: inherit;
+  font-size: var(--step--1);
+  min-height: 2.25rem;
+  padding: var(--space-1) var(--space-3);
+  color: var(--ink);
+  background: none;
+  border: 1px solid var(--rule);
+  cursor: pointer;
+}
+
+.level:hover:not(:disabled) {
+  border-color: var(--ink);
+}
+
+.level[aria-pressed='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.level:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.level:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.problem {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--plate-terracotta);
 }
 
 /* On a phone the date drops under the reason, so the reason keeps the

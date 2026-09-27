@@ -90,8 +90,13 @@ export async function keepBody(
   source: BodySource
 ) {
   const row = { resource_id: resource.id, user_id: resource.user_id, body, source }
-  let { error } = await db.from('resource_bodies').upsert({ ...row, made_with: IMPORTER })
-  // Before 057 there is no column for the stamp: keep the body without it.
+  // Its length in words (061), which is how much has been written about
+  // a topic when this is the only thing filed under it.
+  const words = body.split(/\s+/).filter(Boolean).length
+  let { error } = await db.from('resource_bodies').upsert({ ...row, made_with: IMPORTER, words })
+  // Before 061 there is no column for the count, and before 057 none for
+  // the stamp: keep the body with what the table can hold.
+  if (error?.code === 'PGRST204') ({ error } = await db.from('resource_bodies').upsert({ ...row, made_with: IMPORTER }))
   if (error?.code === 'PGRST204') ({ error } = await db.from('resource_bodies').upsert(row))
   if (error) console.error('resource body: could not keep it', error.message)
 }

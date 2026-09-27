@@ -3,6 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { ownerId } from '@/lib/auth'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
+import { readTarget } from '@didactic/core/grain'
 
 /**
  * Drop what this route just changed.
@@ -124,6 +125,43 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
  * figure that no longer exists, and keeping rows that point at nothing
  * would leave the map explaining a number it can no longer show.
  */
+/**
+ * Set how far the reader wants to take this subject (061), or take the
+ * target away. Intent, not evidence: it moves the effort figure on the
+ * bed and on every topic that takes its target from here, and nothing
+ * the app owns.
+ */
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const userId = await ownerId()
+  if (!userId) return NextResponse.json({ error: 'not signed in' }, { status: 401 })
+
+  const { id } = await params
+  const body = (await req.json().catch(() => ({}))) as { target_depth?: unknown }
+  if (body.target_depth === undefined) return NextResponse.json({ error: 'nothing to update' }, { status: 400 })
+  const target = readTarget(body.target_depth)
+  if (target === undefined) {
+    return NextResponse.json({ error: 'target_depth must be 2 to 5 in half steps, or null' }, { status: 400 })
+  }
+
+  const { data, error } = await supabaseAdmin()
+    .from('subjects')
+    .update({ target_depth: target })
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select('id')
+    .maybeSingle()
+  if (error) {
+    const missing = error.code === 'PGRST204' || error.code === '42703'
+    return NextResponse.json(
+      { error: missing ? 'Targets need migration 061, which has not run yet.' : error.message },
+      { status: missing ? 503 : 500 }
+    )
+  }
+  if (!data) return NextResponse.json({ error: 'There is no such subject.' }, { status: 404 })
+  dropCache()
+  return NextResponse.json({ ok: true, target_depth: target })
+}
+
 export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const userId = await ownerId()
   if (!userId) return NextResponse.json({ error: 'not signed in' }, { status: 401 })

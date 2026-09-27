@@ -1,4 +1,5 @@
 import { cacheLife, cacheTag } from 'next/cache'
+import { getEffortMap } from './effort'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { computeFreshness, subjectAggregate } from '@didactic/core/scoring'
 import type { CurriculumStatus, Resource } from '@didactic/core/types'
@@ -49,7 +50,8 @@ export async function getSubjectArea(subjectId: string): Promise<SubjectArea | n
   // The client is built in here rather than passed in: an argument
   // crossing a `use cache` boundary is serialised, and a Supabase
   // client does not survive that.
-  return readSubjectArea(supabaseAdmin(), subjectId)
+  const [area, effort] = await Promise.all([readSubjectArea(supabaseAdmin(), subjectId), getEffortMap()])
+  return area && { ...area, effort: effort.subjects[subjectId] ?? null }
 }
 
 export async function readSubjectArea(

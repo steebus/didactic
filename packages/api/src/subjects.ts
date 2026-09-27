@@ -180,6 +180,10 @@ export const subjects = (api: Api) => ({
   }) => api.post<{ questions: Qualifier[] }>('/api/subjects/qualify', body),
 
   remove: (id: string) => api.del<{ ok: true }>(`/api/subjects/${id}`),
+  /** How far to take this subject: 2 to 5 in half steps, or null for
+   *  the assumed working knowledge (061). Intent, not evidence. */
+  setTarget: (id: string, target: number | null) =>
+    api.patch<{ ok: true; target_depth: number | null }>(`/api/subjects/${id}`, { target_depth: target }),
   addTopic: (id: string, title: string) =>
     api.post<TopicAdded>(`/api/subjects/${id}/topics`, { title }),
 

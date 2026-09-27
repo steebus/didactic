@@ -886,6 +886,32 @@ out what the reader wrote reads as the entry having been lost.
 
 Still not a modal: nothing is dimmed and nothing is trapped (see the composer).
 
+### Effort to target → a third figure, and what it would take
+
+A third figure in the band, **To target**, beside *Viability* and
+*Condition*: the reader's hours from where they are to where they want the
+topic (`core/grain`), as `14 h`, `4.5 h`, `<1 h`, or *reached*. It is pressed
+like the other two and unrolls the same slip, titled *What it would take*:
+
+| Part | Treatment |
+| --- | --- |
+| The standing | The sentence: *About 14 hours to depth 4 from where you are, about 12 lessons.* |
+| The terms | Where the target came from, where the reader starts and why (their figure, their roots, or a blend of the two while the figure is unsure), and the topic's own size, with each term under it (`1px` `--rule` at its left, `tabular-nums`) as a factor: *A prerequisite chain 2 links long under it (1 drawn by you, 1 by the model, counted half): ×1.16*. Then its varieties, where it has any, and how big it reads. |
+| Take it to | The target, set here: the four levels as presses in the label register, `1px` `--rule`, the chosen one inked (`--ink` ground, `--paper` text), and *Follow its subjects* once the topic has a target of its own. |
+| The key | The cost curve in one line, under the dotted rule. |
+| The caveat | Nothing has checked the estimate yet, so it could be half or twice as much. |
+
+**Rule — an estimate nothing has checked prints as a guess.** Until effort is
+calibrated every such figure carries *about*, in italic and faded, in the band
+and in the sentence (PRODUCT principle 4). The subject band prints its bed's
+figure the same way.
+
+**Rule — a target is set where its effect is read.** On the topic, in the
+account of what it would take; on the subject, in the margin block *To your
+target*, which says what the bed comes to and offers the same four presses.
+Pressing the chosen level again clears it back to the assumed working
+knowledge.
+
 ### Freshness → hatch density, plus a word, plus a label
 
 `StockBar` renders an SVG bar whose **hatch density** carries state. Fill length

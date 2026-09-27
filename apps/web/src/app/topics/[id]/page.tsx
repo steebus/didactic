@@ -124,6 +124,8 @@ export default async function TopicPage({
           condition={STOCK_LABEL[state]}
           lastTended={topic.last_exposure_at}
           record={area.record}
+          effort={area.effort ?? null}
+          topicId={topic.id}
         />
       </header>
       <div className={styles.headRule} />

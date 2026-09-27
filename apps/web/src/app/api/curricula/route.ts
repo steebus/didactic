@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server'
+import { routeBudget } from '@didactic/core/grain'
+import { getEffortMap } from '@/lib/effort'
 import { supabaseAdmin } from '@/lib/supabase'
 import { proposeCurriculum } from '@/lib/llm/curriculum'
 import { openPlan, qualifiersForTopic } from '@/lib/learningPlan'
@@ -74,6 +76,7 @@ export async function POST(req: Request) {
         title: t.title,
         ability: Number(t.ability),
       })),
+      budget: await budgetFor(topicId),
     })
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e)
@@ -181,4 +184,19 @@ export async function POST(req: Request) {
       ? 'The draft looped back on itself, so the ordering was left out. Set it yourself, or draft again.'
       : null,
   })
+}
+
+/**
+ * The lessons a route through this topic is drafted to: the reader's
+ * hours to their target (`core/grain`), a lesson's worth each. Never
+ * fatal -- without it the drafter keeps its old range.
+ */
+async function budgetFor(topicId: string) {
+  try {
+    const effort = (await getEffortMap()).topics[topicId]
+    if (!effort) return null
+    return { ...routeBudget(effort.lessons), hours: effort.hours, from: effort.start.level, target: effort.target.level }
+  } catch {
+    return null
+  }
 }

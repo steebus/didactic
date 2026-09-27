@@ -1,3 +1,4 @@
+import type { SubjectEffort, TopicEffort } from './grain'
 import type { FigureEvent } from './figureRecord'
 import type { Filing } from './filingState'
 /**
@@ -306,6 +307,9 @@ export interface TopicArea {
    *  they came from stops mattering quickly; the topic is what makes
    *  them worth keeping. */
   highlights: HighlightRow[]
+  /** How big it is and how far the reader is from their target on it
+   *  (`core/grain`). Additive; absent from a pending topic. */
+  effort?: TopicEffort | null
 }
 
 /* ------------------------------------------------------------- subject */
@@ -333,6 +337,9 @@ export interface Sowing {
 
 export interface SubjectArea {
   subject: Subject
+  /** The bed's hours to its target, added up from its topics
+   *  (`core/grain`). Additive. */
+  effort?: SubjectEffort | null
   tree: TopicTreeNode[]
   topics: SubjectTopicRow[]
   /** The boxes this bed is read in, simplest first. Empty is ordinary:

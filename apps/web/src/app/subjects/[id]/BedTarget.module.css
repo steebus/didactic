@@ -1,0 +1,52 @@
+/* The bed's target, in the margin: its effort as a sentence, then the
+   levels as presses in the label register, the chosen one inked. The
+   same presses the topic's own account offers (FigureRecord). */
+
+.line {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.level {
+  font: inherit;
+  font-size: var(--step--1);
+  min-height: 2.25rem;
+  padding: var(--space-1) var(--space-3);
+  color: var(--ink);
+  background: none;
+  border: 1px solid var(--rule);
+  cursor: pointer;
+}
+
+.level:hover:not(:disabled) {
+  border-color: var(--ink);
+}
+
+.level[aria-pressed='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+
+.level:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.level:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.problem {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--plate-terracotta);
+}

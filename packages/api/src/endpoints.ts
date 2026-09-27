@@ -73,6 +73,7 @@ export const ENDPOINTS = {
   'subjects.sow': { name: 'subjects.sow', method: 'POST', path: '/api/subjects', invalidates: SOWING_WIDE },
   'subjects.qualify': { name: 'subjects.qualify', method: 'POST', path: '/api/subjects/qualify', invalidates: [] },
   'subjects.remove': { name: 'subjects.remove', method: 'DELETE', path: '/api/subjects/[id]', invalidates: SUBJECT_DEEP },
+  'subjects.setTarget': { name: 'subjects.setTarget', method: 'PATCH', path: '/api/subjects/[id]', invalidates: SUBJECT_DEEP },
   'subjects.addTopic': { name: 'subjects.addTopic', method: 'POST', path: '/api/subjects/[id]/topics', invalidates: BED },
   'subjects.fileTopic': { name: 'subjects.fileTopic', method: 'POST', path: '/api/subjects/[id]/topics', invalidates: BED },
   'subjects.fileTopics': { name: 'subjects.fileTopics', method: 'POST', path: '/api/subjects/[id]/topics', invalidates: BED },

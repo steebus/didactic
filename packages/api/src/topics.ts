@@ -9,6 +9,10 @@ export interface TopicPatch {
   primary_subject_id?: string | null
   add_subject_ids?: string[]
   remove_subject_ids?: string[]
+  /** How far to take this topic, over its subjects' target: 2 to 5 in
+   *  half steps, or null to follow its subjects again (061). Intent,
+   *  not evidence. */
+  target_depth?: number | null
 }
 
 /**

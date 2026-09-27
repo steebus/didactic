@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { readTarget } from '@didactic/core/grain'
 import { supabaseAdmin } from '@/lib/supabase'
 import { computeFreshness } from '@didactic/core/scoring'
 import { ownerId } from '@/lib/auth'
@@ -99,6 +100,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (body.title !== undefined) patch.title = body.title
   if (body.summary !== undefined) patch.summary = body.summary
   if (body.primary_subject_id !== undefined) patch.primary_subject_id = body.primary_subject_id
+  // Where the reader wants to take it (061). Intent, not evidence: it
+  // moves the effort figure and nothing the app owns.
+  if (body.target_depth !== undefined) {
+    const target = readTarget(body.target_depth)
+    if (target === undefined) {
+      return NextResponse.json({ error: 'target_depth must be 2 to 5 in half steps, or null' }, { status: 400 })
+    }
+    patch.target_depth = target
+  }
 
   // Filing a topic under another subject is additive: it does not move
   // out of the ones it is already in. Removal is its own action.

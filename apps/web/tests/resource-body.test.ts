@@ -71,7 +71,7 @@ describe('readableBody', () => {
     const got = await readableBody(db, { ...base, kind: 'note', raw_text: 'Pasted words.' })
     expect(got).toEqual({ body: 'Pasted words.', source: 'note' })
     expect(kept).toEqual([
-      { resource_id: 'r', user_id: 'u', body: 'Pasted words.', source: 'note', made_with: IMPORTER },
+      { resource_id: 'r', user_id: 'u', body: 'Pasted words.', source: 'note', made_with: IMPORTER, words: 2 },
     ])
   })
 

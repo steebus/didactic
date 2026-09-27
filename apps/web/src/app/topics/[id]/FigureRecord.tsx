@@ -2,8 +2,25 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useRouter } from 'next/navigation'
+import { didactic } from '@didactic/api'
 import { impactLabel, type FigureEvent } from '@didactic/core/figureRecord'
+import {
+  contributionLine,
+  COST_LINE,
+  effortFigure,
+  effortSentence,
+  sayHours,
+  spanLine,
+  startLine,
+  TARGET_LABEL,
+  TARGET_LEVELS,
+  targetLine,
+  type TopicEffort,
+} from '@didactic/core/grain'
 import styles from './FigureRecord.module.css'
+
+const api = didactic()
 
 const DAY = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' })
 const LONG = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -25,13 +42,20 @@ export function FigureRecord({
   condition,
   lastTended,
   record,
+  effort,
+  topicId,
 }: {
   viability: { figure: number; vague: boolean }
   condition: string
   lastTended: string | null
   record: FigureEvent[]
+  /** How far the reader is from their target (`core/grain`). Absent on
+   *  a topic still waiting in the queue. */
+  effort?: TopicEffort | null
+  topicId?: string
 }) {
-  const [open, setOpen] = useState(false)
+  /** Which account is unrolled: the figure's record, or the effort. */
+  const [open, setOpen] = useState<null | 'record' | 'effort'>(null)
   const [place, setPlace] = useState<{ top: number; left: number; width: number } | null>(null)
   const figuresRef = useRef<HTMLDivElement>(null)
   const slipRef = useRef<HTMLDivElement>(null)
@@ -70,17 +94,17 @@ export function FigureRecord({
   }, [])
 
   useEffect(() => {
-    if (!open) return
+    if (open === null) return
     measure()
     window.addEventListener('resize', measure)
     return () => window.removeEventListener('resize', measure)
   }, [open, measure])
 
   useEffect(() => {
-    if (!open) return
+    if (open === null) return
     const shut = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
-      setOpen(false)
+      setOpen(null)
       openerRef.current?.focus()
     }
     // A press anywhere but the slip or the figures rolls it up. The
@@ -89,7 +113,7 @@ export function FigureRecord({
     const away = (e: PointerEvent) => {
       const target = e.target as Node
       if (slipRef.current?.contains(target) || figuresRef.current?.contains(target)) return
-      setOpen(false)
+      setOpen(null)
     }
     document.addEventListener('keydown', shut)
     document.addEventListener('pointerdown', away)
@@ -99,9 +123,9 @@ export function FigureRecord({
     }
   }, [open])
 
-  const press = (e: React.MouseEvent<HTMLButtonElement>) => {
+  const press = (which: 'record' | 'effort', e: React.MouseEvent<HTMLButtonElement>) => {
     openerRef.current = e.currentTarget
-    setOpen(was => !was)
+    setOpen(was => (was === which ? null : which))
   }
 
   return (
@@ -110,8 +134,8 @@ export function FigureRecord({
         <button
           type="button"
           className={styles.figure}
-          onClick={press}
-          aria-expanded={open}
+          onClick={e => press('record', e)}
+          aria-expanded={open === 'record'}
           aria-controls="figure-record"
         >
           <span className={styles.figureLabel}>Viability</span>
@@ -123,13 +147,28 @@ export function FigureRecord({
         <button
           type="button"
           className={styles.figure}
-          onClick={press}
-          aria-expanded={open}
+          onClick={e => press('record', e)}
+          aria-expanded={open === 'record'}
           aria-controls="figure-record"
         >
           <span className={styles.figureLabel}>Condition</span>
           <span className={styles.figureValue}>{condition}</span>
         </button>
+        {effort && (
+          <button
+            type="button"
+            className={styles.figure}
+            onClick={e => press('effort', e)}
+            aria-expanded={open === 'effort'}
+            aria-controls="figure-record"
+          >
+            <span className={styles.figureLabel}>To target</span>
+            <span className={`${styles.figureValue} ${effort.about ? styles.guess : ''}`}>
+              {effort.about && effort.lessons > 0 && <span className={styles.about}>about </span>}
+              {effortFigure(effort)}
+            </span>
+          </button>
+        )}
       </div>
 
       {open && place && createPortal(
@@ -138,9 +177,13 @@ export function FigureRecord({
           ref={slipRef}
           className={styles.slip}
           role="region"
-          aria-label="Why this figure"
+          aria-label={open === 'effort' ? 'What it would take' : 'Why this figure'}
           style={{ top: place.top, left: place.left, width: place.width }}
         >
+          {open === 'effort' && effort ? (
+            <EffortAccount effort={effort} topicId={topicId} />
+          ) : (
+          <>
           <h2 className={styles.title}>Why this figure</h2>
           <p className={styles.standing}>
             Viability {viability.vague ? 'about ' : ''}{viability.figure}
@@ -182,8 +225,92 @@ export function FigureRecord({
           {viability.vague && (
             <p className={styles.caveat}>Not much to go on yet — this figure is a guess.</p>
           )}
+          </>
+          )}
         </div>,
         document.body
+      )}
+    </>
+  )
+}
+
+/**
+ * What it would take to get this topic where the reader wants it, and
+ * why the app thinks so: the target and where it came from, where the
+ * reader starts, the topic's own size term by term, and its varieties.
+ * The target is set here, because this is where its effect is read.
+ */
+function EffortAccount({ effort, topicId }: { effort: TopicEffort; topicId?: string }) {
+  const router = useRouter()
+  const [busy, setBusy] = useState(false)
+  const [problem, setProblem] = useState<string | null>(null)
+  const span = spanLine(effort)
+  const own = effort.target.from === 'topic' ? effort.target.level : null
+
+  async function aim(target: number | null) {
+    if (!topicId) return
+    setBusy(true)
+    setProblem(null)
+    const { ok, error } = await api.topics.patch(topicId, { target_depth: target })
+    setBusy(false)
+    if (!ok) {
+      setProblem(error ?? 'Could not set that.')
+      return
+    }
+    router.refresh()
+  }
+
+  return (
+    <>
+      <h2 className={styles.title}>What it would take</h2>
+      <p className={styles.standing}>{effortSentence(effort)}</p>
+
+      <ul className={styles.terms}>
+        <li>{targetLine(effort.target)}</li>
+        <li>{startLine(effort, effort.target.subject?.title)}</li>
+        <li>
+          Its own size: {effort.about ? 'about ' : ''}{sayHours(effort.inherent.hours)} to take it from nothing to 3.
+          <ul className={styles.contributions}>
+            {effort.inherent.contributions.map(c => (
+              <li key={c.signal}>{contributionLine(c)}</li>
+            ))}
+          </ul>
+        </li>
+        {span && <li>{span}</li>}
+      </ul>
+
+      {topicId && (
+        <div className={styles.aim}>
+          <span className={styles.aimLabel}>Take it to</span>
+          <div className={styles.levels} role="group" aria-label="Target depth for this topic">
+            {TARGET_LEVELS.map(level => (
+              <button
+                key={level}
+                type="button"
+                className={styles.level}
+                aria-pressed={own === level}
+                disabled={busy}
+                onClick={() => aim(level)}
+              >
+                {level} · {TARGET_LABEL[level]}
+              </button>
+            ))}
+            {own !== null && (
+              <button type="button" className={styles.level} disabled={busy} onClick={() => aim(null)}>
+                Follow its subjects
+              </button>
+            )}
+          </div>
+          {problem && <p className={styles.problem}>{problem}</p>}
+        </div>
+      )}
+
+      <p className={styles.key}>{COST_LINE}</p>
+      {effort.about && (
+        <p className={styles.caveat}>
+          Nothing has checked this yet: it is estimated from how deep the topic&rsquo;s prerequisites run and how much
+          has been written about it, and could be half or twice as much.
+        </p>
       )}
     </>
   )
