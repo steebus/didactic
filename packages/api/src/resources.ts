@@ -49,6 +49,9 @@ export interface Filed {
 }
 
 export const resources = (api: Api) => ({
+  /** Give a resource still titled by its address its page's own title.
+   *  Changes nothing for one that already has a name. */
+  retitle: (id: string) => api.post<{ title: string; changed: boolean }>(`/api/resources/${id}/retitle`),
   list: () => api.get<{ resources: Resource[] }>('/api/resources'),
   /** A resource opened to be read in the app, its body made on the
    *  first ask (053). Marks and summaries come with it in `written`. */

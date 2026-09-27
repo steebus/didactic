@@ -113,6 +113,7 @@ the phone's query cache.
 | PATCH | `/api/resources/[id]` | status, depth | resources, topics, subjects | The consumed transition writes the exposure. |
 | DELETE | `/api/resources/[id]` | — | resources, topics | |
 | POST | `/api/resources/[id]/merge` | mergeId | resources, topics | Moves exposures; cannot be undone. |
+| POST | `/api/resources/[id]/retitle` | — | resources, topics | **Additive.** A resource still titled by its address (`core/titles.isPlaceholderTitle`) is given the title its page carries; answers `{ title, changed }`, and `changed: false` with the title it has for one already named, one that is not an article, or a page that says nothing better. One page fetch at most. The reader asks it when it opens a resource wearing a stand-in. `POST /api/resources` with no title now stores `urlTitle(url)` rather than the URL itself: still a string, shorter. |
 | POST | `/api/curricula` | topicId, goal?, sourceResourceIds? | topics | Drafts with the agent. `curricula.draftAndOpen` composes this with `curricula.get` and `lessons.writeWhole` — draft a route through a topic and write its first lesson — so neither front end has to know the work does not fit in one request. |
 | PATCH | `/api/curricula/[id]` | action, title, goal, shape, status, lessonOrder, prereqs | topics | Approve, reshape, archive. |
 | DELETE | `/api/curricula/[id]` | — | topics | |

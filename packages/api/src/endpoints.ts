@@ -100,6 +100,7 @@ export const ENDPOINTS = {
   'resources.patch': { name: 'resources.patch', method: 'PATCH', path: '/api/resources/[id]', invalidates: [tags.resources, tags.topics, tags.subjects] },
   'resources.remove': { name: 'resources.remove', method: 'DELETE', path: '/api/resources/[id]', invalidates: [tags.resources, tags.topics, tags.subjects] },
   'resources.merge': { name: 'resources.merge', method: 'POST', path: '/api/resources/[id]/merge', invalidates: MATERIAL },
+  'resources.retitle': { name: 'resources.retitle', method: 'POST', path: '/api/resources/[id]/retitle', invalidates: MATERIAL },
 
   'curricula.create': { name: 'curricula.create', method: 'POST', path: '/api/curricula', invalidates: [tags.topics] },
   'curricula.patch': { name: 'curricula.patch', method: 'PATCH', path: '/api/curricula/[id]', invalidates: [tags.topics] },

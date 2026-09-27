@@ -9,6 +9,7 @@ import type { ResourceReading } from '@didactic/core/shapes'
 import type { ExposureDepth, Highlight as Mark, ResourceStatus } from '@didactic/core/types'
 import { lessonSections } from '@didactic/core/sections'
 import { summaryOf, summaryTally } from '@didactic/core/summaries'
+import { isPlaceholderTitle } from '@didactic/core/titles'
 import { Prose } from '@/components/Prose'
 import { Highlighter } from '@/components/Highlighter'
 import { Contents } from '@/components/Contents'
@@ -80,6 +81,7 @@ export default function ResourceSheet({ initial }: { initial: ResourceReading })
   const [written, setWritten] = useState<Mark[]>(initial.written)
   const [clozes, setClozes] = useState<ClozeCard[]>([])
   const [garden, setGarden] = useState(0)
+  const [title, setTitle] = useState(resource.title)
 
   const marks = useMemo(() => written.filter(h => h.kind !== 'summary'), [written])
   const summarised = useMemo(() => written.filter(h => h.kind === 'summary'), [written])
@@ -113,6 +115,21 @@ export default function ResourceSheet({ initial }: { initial: ResourceReading })
       if (!ok) setStatus('queued')
     })
   }, [id, resource.status])
+
+  /**
+   * A resource still wearing its address as a name is given the one its
+   * page carries -- saved before ingestion kept it -- the first time it
+   * is opened. Nothing waits on it; a page that says nothing better
+   * leaves the stand-in, which is short enough to set.
+   */
+  const named = useRef(false)
+  useEffect(() => {
+    if (named.current || !isPlaceholderTitle(resource.title, resource.url)) return
+    named.current = true
+    void api.resources.retitle(id).then(({ ok, body: payload }) => {
+      if (ok && payload.changed) setTitle(payload.title)
+    })
+  }, [id, resource.title, resource.url])
 
   // The passages this reading is tended on, for the plum under its
   // prose. Its own read, so a garden that cannot be reached costs the
@@ -170,7 +187,7 @@ export default function ResourceSheet({ initial }: { initial: ResourceReading })
       <div className={styles.rail} data-shown={pastHead || undefined}>
         <div className={styles.railInner}>
           <Crumbs className={styles.railCrumbs} trail={trail} />
-          <p className={styles.railTitle}>{resource.title}</p>
+          <p className={styles.railTitle}>{title}</p>
         </div>
       </div>
 
@@ -183,7 +200,7 @@ export default function ResourceSheet({ initial }: { initial: ResourceReading })
           <div className={styles.headRow}>
             <div>
               <Crumbs className={styles.eyebrow} trail={trail} />
-              <h1 className={styles.title}>{resource.title}</h1>
+              <h1 className={styles.title}>{title}</h1>
             </div>
           </div>
 

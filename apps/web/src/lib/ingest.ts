@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
+import { isPlaceholderTitle } from '@didactic/core/titles'
 import { extractConcepts } from './llm/concepts'
 import { proposeEdges } from './llm/edges'
 import { fileWhatTheBedIsSureOf } from './filing'
@@ -126,6 +127,17 @@ export async function ingestResource(
       const extracted = extractFromHtml(await res.text(), resource.url)
       title = extracted.title
       text = extracted.text
+
+      // The page's own title, kept. It was read here and used for the
+      // reading and never written back, so every article went on being
+      // called by its address. Only over a stand-in: a title somebody
+      // typed stands.
+      if (
+        isPlaceholderTitle(resource.title, resource.url) &&
+        !isPlaceholderTitle(extracted.title, resource.url)
+      ) {
+        await db.from('resources').update({ title: extracted.title.trim() }).eq('id', resourceId)
+      }
 
       // The page is in hand, so the reader's copy of it is made now
       // rather than fetched again on first open. Not worth failing a

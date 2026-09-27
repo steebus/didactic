@@ -280,9 +280,19 @@ a:hover {
    inputs rather than hypothetical ones.
 
    overflow-wrap only breaks a word that would otherwise overflow, so
-   ordinary prose is untouched. */
+   ordinary prose is untouched.
+
+   `anywhere`, not `break-word`. The two wrap alike in a plain block, but
+   `break-word` leaves a word's full width in the element's min-content
+   size, and a grid track or flex item is never narrower than that. So
+   every sheet laid out in a grid or a row -- which is nearly all of
+   them -- still grew to the width of the longest URL on it, one sheet at
+   a time: the subjects sheet, sprouting, the bed's panel, then the reader
+   at 1153px in a 390px viewport, its fixed rail knocked off to the side.
+   `anywhere` counts the break in min-content too, so no word can widen
+   anything, wherever it is printed. */
 body {
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
 }
 
 /* --- Reading with the notes open beside it ------------------------ */
