@@ -415,6 +415,31 @@ export interface Sprouting {
   unembedded: number
   /** Whether decisions can be kept yet: false until `052` has run. */
   keeps: boolean
+  /**
+   * How each of the reader's subjects large enough to be found came out
+   * of the subject-blind reading, largest first
+   * (`core/sprouting.SubjectReading`, worded by `subjectSentence`).
+   * Additive: `found` says how many; this says which, and why not.
+   */
+  subjectReadings: Array<{
+    subjectId: string
+    title: string
+    colour: string
+    verdict: 'whole' | 'parts' | 'together' | 'mixed' | 'thin'
+    sentence: string
+  }>
+  /**
+   * Clumps the reading looked at and did not offer, with why
+   * (`core/sprouting.SetAside`, worded by `setAsideSentence`). Additive:
+   * the answer to "nothing is sprouting, but I can see a clump".
+   */
+  lookedAt: Array<{
+    key: string
+    reason: 'one-resource' | 'unjoined' | 'no-material'
+    sentence: string
+    topics: Array<{ id: string; title: string }>
+    material: Array<{ id: string; title: string; read: boolean }>
+  }>
 }
 
 /* ------------------------------------------------------ resource reading */

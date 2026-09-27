@@ -84,6 +84,15 @@ export const KINSHIP = {
   CHANNELS: { material: 1, marks: 1, stated: 0.6, meaning: 0.5 },
   /** Lines kept per topic, and meaning neighbours looked at per topic. */
   NEAREST: 8,
+  /**
+   * How fast shared material becomes a certain tie: the material score is
+   * `1 − e^(−EVIDENCE × e)`, where `e` sums `s × rel × rel / (n − 1)` over
+   * the resources a pair shares. One short read article joining two
+   * topics is most of a tie (0.86 at full relevance); one essay that
+   * files nine topics gives each of its 36 pairs an eighth of that
+   * evidence, and about 0.15.
+   */
+  EVIDENCE: 2,
 } as const
 
 type Channel = 'material' | 'marks' | 'stated' | 'meaning'
@@ -136,48 +145,56 @@ export function kinship(input: KinshipInput): KinLine[] {
 }
 
 /**
- * Material: cosine between two topics' occurrence vectors over the
- * resources, shrunk by how many resources they actually share.
+ * Material: how much of the reader's material puts two topics together,
+ * damped for topics that are in everything.
  *
- * Each entry is `s × relevance / √(n − 1)`: `s` is 1 read and `UNREAD`
- * unread, and `n` is how many topics the resource carries, so one long
- * article joining eight topics counts for less per pair than a short
- * one joining two. Cosine damps hubs: a topic in fifty resources and one
- * in two, sharing both, score 0.2 rather than 1. The shrinkage `k/(k+1)`
- * halves a pair seen together once, which is one article's say-so.
+ * Two parts, multiplied. The evidence is `e = Σ s × rel_i × rel_j /
+ * (n − 1)` over the resources the pair shares -- `s` is 1 read and
+ * `UNREAD` unread, `n` how many topics the resource carries -- saturated
+ * as `1 − e^(−EVIDENCE × e)`. Dividing by `n − 1` is what stops one long
+ * essay from welding every topic it filed to every other: it filed nine,
+ * so it says each pair belongs together an eighth as loudly as a short
+ * piece joining two. Without it every article became a clique of 0.5s
+ * that no kinship with any other article could outweigh, and two essays
+ * on one theme read as two separate one-article clumps -- which is how a
+ * reader's Emerson and Twain, both on conformity, never sprouted.
+ *
+ * The damping is the cosine between the two topics' occurrence vectors
+ * over the resources: a topic in fifty resources and one in two, sharing
+ * both, score 0.2 rather than 1, so a hub cannot join everything.
  */
 function materialChannel(
   materials: readonly KinMaterial[],
   ids: ReadonlySet<string>
 ): Array<[string, string, number]> {
   const norm = new Map<string, number>()
-  const dot = new Map<string, { a: string; b: string; sum: number; shared: number }>()
+  const dot = new Map<string, { a: string; b: string; sum: number; evidence: number }>()
 
   for (const material of materials) {
     const present = dedupe(material.topics.filter(t => ids.has(t.id)))
     if (present.length === 0) continue
     const s = material.read ? 1 : KINSHIP.UNREAD
-    const spread = Math.sqrt(Math.max(1, present.length - 1))
-    const entries = present.map(t => ({ id: t.id, v: (s * clamp01(t.relevance)) / spread }))
+    const others = Math.max(1, present.length - 1)
+    const entries = present.map(t => ({ id: t.id, rel: clamp01(t.relevance), v: (s * clamp01(t.relevance)) / Math.sqrt(others) }))
 
     for (const e of entries) norm.set(e.id, (norm.get(e.id) ?? 0) + e.v * e.v)
     for (let i = 0; i < entries.length; i++) {
       for (let j = i + 1; j < entries.length; j++) {
         const [x, y] = entries[i].id < entries[j].id ? [entries[i], entries[j]] : [entries[j], entries[i]]
         const key = `${x.id}|${y.id}`
-        const acc = dot.get(key) ?? { a: x.id, b: y.id, sum: 0, shared: 0 }
+        const acc = dot.get(key) ?? { a: x.id, b: y.id, sum: 0, evidence: 0 }
         acc.sum += x.v * y.v
-        acc.shared += 1
+        acc.evidence += (s * x.rel * y.rel) / others
         dot.set(key, acc)
       }
     }
   }
 
   const out: Array<[string, string, number]> = []
-  for (const { a, b, sum, shared } of dot.values()) {
+  for (const { a, b, sum, evidence } of dot.values()) {
     const denominator = Math.sqrt((norm.get(a) ?? 0) * (norm.get(b) ?? 0))
     if (denominator === 0) continue
-    out.push([a, b, (sum / denominator) * (shared / (shared + 1))])
+    out.push([a, b, (sum / denominator) * (1 - Math.exp(-KINSHIP.EVIDENCE * evidence))])
   }
   return out
 }

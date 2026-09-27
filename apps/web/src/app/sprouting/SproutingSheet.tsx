@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { didactic } from '@didactic/api'
 import type { Sprouting, SproutView } from '@didactic/core/shapes'
-import { kindLine, UNNAMED } from '@didactic/core/sprouting'
+import { kindLine, SUBJECT_VERDICT, UNNAMED } from '@didactic/core/sprouting'
 import { SproutActions } from '@/components/SproutActions'
 import styles from './page.module.css'
 
@@ -68,6 +68,32 @@ export function SproutingSheet({ initial }: { initial: Sprouting }) {
 
       {sprouting.found && <p className={styles.found}>{sprouting.found}</p>}
 
+      {/* Which subjects, and why not. The count alone says how far to
+          trust the reading; this says where it went wrong and what would
+          give it more to go on. Open when anything was missed. */}
+      {sprouting.subjectReadings.length > 0 && (
+        <details
+          className={styles.readings}
+          open={sprouting.subjectReadings.some(r => r.verdict === 'mixed' || r.verdict === 'thin')}
+        >
+          <summary className={styles.readingsHead}>How each subject read</summary>
+          <ul className={styles.readingsList}>
+            {sprouting.subjectReadings.map(r => (
+              <li key={r.subjectId} className={styles.readingRow}>
+                <p className={styles.readingName}>
+                  <span className={styles.chip} style={{ '--chip': r.colour } as React.CSSProperties} aria-hidden="true" />
+                  <Link href={`/subjects/${r.subjectId}`}>{r.title}</Link>
+                  <span className={r.verdict === 'mixed' || r.verdict === 'thin' ? styles.verdictMissed : styles.verdictFound}>
+                    {SUBJECT_VERDICT[r.verdict]}
+                  </span>
+                </p>
+                <p className={styles.readingWhy}>{r.sentence}</p>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
       {!sprouting.keeps && (
         <p className={styles.note}>
           The reading works, but nothing can be kept yet: the database has
@@ -91,6 +117,7 @@ export function SproutingSheet({ initial }: { initial: Sprouting }) {
         <p className={styles.empty}>
           Nothing is sprouting. As material arrives, any topics it keeps
           putting together outside the subjects you have will come up here.
+          {sprouting.lookedAt.length > 0 && ' What the reading looked at and set aside is below, with why.'}
         </p>
       ) : (
         <ol className={styles.list}>
@@ -106,6 +133,41 @@ export function SproutingSheet({ initial }: { initial: Sprouting }) {
             />
           ))}
         </ol>
+      )}
+
+      {/* The clumps the reading saw and did not offer. A reader looking
+          at the bed can see these; without them, "nothing is sprouting"
+          would read as the reading not having looked. */}
+      {sprouting.lookedAt.length > 0 && (
+        <section className={styles.lookedAt}>
+          <h2 className={styles.lookedAtHead}>Looked at, and set aside</h2>
+          <ul className={styles.lookedAtList}>
+            {sprouting.lookedAt.map(item => (
+              <li key={item.key} className={styles.lookedAtRow}>
+                <p className={styles.lookedAtWhy}>{item.sentence}</p>
+                <p className={styles.lookedAtTopics}>
+                  {item.topics.map((t, i) => (
+                    <span key={t.id}>
+                      {i > 0 && ' · '}
+                      <Link href={`/topics/${t.id}`}>{t.title}</Link>
+                    </span>
+                  ))}
+                </p>
+                {item.material.length > 0 && (
+                  <p className={styles.lookedAtFrom}>
+                    From{' '}
+                    {item.material.map((m, i) => (
+                      <span key={m.id}>
+                        {i > 0 && ', '}
+                        <Link href={`/resources/${m.id}`} title={m.title}>{m.title}</Link>
+                      </span>
+                    ))}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {sprouting.setAside > 0 && (
@@ -166,7 +228,7 @@ function Entry({
         <ul className={styles.material}>
           {sprout.material.map(m => (
             <li key={m.id}>
-              <Link href={`/resources/${m.id}`}>{m.title}</Link>
+              <Link href={`/resources/${m.id}`} title={m.title}>{m.title}</Link>
               <span className={styles.read}>{m.read ? 'read' : 'unread'}</span>
             </li>
           ))}

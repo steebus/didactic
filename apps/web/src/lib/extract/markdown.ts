@@ -24,14 +24,49 @@ import { JSDOM } from 'jsdom'
  */
 export function htmlToMarkdown(html: string, baseUrl: string): string {
   const { document } = new JSDOM(`<body>${html}</body>`, { url: baseUrl }).window
-  return blocks(document.body, { base: baseUrl, depth: 0 }).trim()
+  const ctx: Context = { base: baseUrl, depth: 0, notes: [] }
+  const body = blocks(document.body, ctx).trim()
+  if (ctx.notes.length === 0) return body
+  // A bold line rather than a heading: the reader lists headings as the
+  // article's sections, and its notes are not one.
+  const notes = ctx.notes.map((note, i) => `${i + 1}. ${note}`).join('\n')
+  return `${body}\n\n---\n\n**Notes**\n\n${notes}`
 }
+
+/**
+ * Bumped whenever the importer changes what it makes of a page, so an
+ * article kept by an older one is made again when it is next opened
+ * (`resourceBody.ts`). 2: line breaks kept, and pop-up notes numbered.
+ */
+export const IMPORTER = 2
+
+/**
+ * The attribute a pop-up note travels in, from the page as fetched
+ * (`./url`) to here, where it becomes a numbered note.
+ */
+export const NOTE_ATTR = 'data-didactic-note'
 
 interface Context {
   base: string
   /** How deep in lists we are, for the indent of a nested one. */
   depth: number
+  /** The article's notes so far, shared by every level, in reading order. */
+  notes: string[]
 }
+
+/**
+ * A `<br>`, while the text around it is still being tidied.
+ *
+ * Markdown's own hard break is two spaces before the newline, and the
+ * tidy that collapses a page's runs of spaces took one of them away --
+ * so every line of a poem ran into the next. The line separator
+ * survives the tidy, `escapeText` never lets one through from the page,
+ * and `paragraphs` settles each into a break that cannot be collapsed.
+ */
+const BREAK = '\u2028'
+
+/** Superscript digits, for a note's number in the text. */
+const SUPERSCRIPT = '⁰¹²³⁴⁵⁶⁷⁸⁹'
 
 const DROPPED = new Set([
   'script', 'style', 'noscript', 'iframe', 'object', 'embed', 'form', 'input',
@@ -50,8 +85,8 @@ function blocks(parent: Element, ctx: Context): string {
   let inline = ''
 
   const flush = () => {
-    const text = inline.replace(/[ \t]+/g, ' ').trim()
-    if (text) parts.push(asParagraph(text))
+    const text = paragraphs(inline)
+    if (text) parts.push(text)
     inline = ''
   }
 
@@ -95,14 +130,16 @@ function block(el: Element, tag: string, ctx: Context): string {
     case 'dd':
     case 'summary':
     case 'figcaption': {
-      const text = inlineChildren(el, ctx).replace(/[ \t]+/g, ' ').trim()
-      if (!text) return ''
-      return tag === 'figcaption' ? `*${text}*` : asParagraph(text)
+      if (tag === 'figcaption') {
+        const text = oneLine(inlineChildren(el, ctx))
+        return text ? `*${text}*` : ''
+      }
+      return paragraphs(inlineChildren(el, ctx))
     }
     case 'hr':
       return '---'
     case 'pre': {
-      const code = (el.textContent ?? '').replace(/\n+$/, '')
+      const code = preformatted(el).replace(/\n+$/, '')
       if (!code.trim()) return ''
       const fence = code.includes('```') ? '~~~' : '```'
       // Never a word after the fence: the reader lifts ```chart and its
@@ -188,18 +225,29 @@ function inlineChildren(el: Element, ctx: Context): string {
 function inlineOf(el: Element, ctx: Context): string {
   const tag = el.tagName.toLowerCase()
   const inner = () => inlineChildren(el, ctx)
+  // Emphasis or a link can hold a line break but not a paragraph break,
+  // which would leave its markers stranded on either side.
+  const run = () => inner().replace(/\s*\u2028\s*/g, BREAK).trim()
+
+  const note = el.getAttribute(NOTE_ATTR)?.replace(/\s+/g, ' ').trim()
+  if (note) {
+    const n = ctx.notes.push(asParagraph(escapeText(note)))
+    const text = inner()
+    const trailing = /\s*$/.exec(text)?.[0] ?? ''
+    return `${text.slice(0, text.length - trailing.length)}${superscript(n)}${trailing}`
+  }
 
   switch (tag) {
     case 'br':
-      return '  \n'
+      return BREAK
     case 'strong':
     case 'b': {
-      const text = inner().trim()
+      const text = run()
       return text ? `**${text}**` : ''
     }
     case 'em':
     case 'i': {
-      const text = inner().trim()
+      const text = run()
       return text ? `*${text}*` : ''
     }
     case 'code': {
@@ -209,7 +257,7 @@ function inlineOf(el: Element, ctx: Context): string {
       return `${tick}${code}${tick}`
     }
     case 'a': {
-      const text = inner().trim()
+      const text = run()
       const href = absolute(el.getAttribute('href'), ctx.base)
       if (!text) return ''
       return href ? `[${text}](${href})` : text
@@ -250,19 +298,65 @@ function escapeText(text: string): string {
   return text.replace(/\s+/g, ' ').replace(/([\\`*_[\]<>$|~])/g, '\\$1')
 }
 
-/** An inline run on one line, for a heading or a table cell. */
+/** An inline run on one line, for a heading or a table cell. A line
+ *  break is a space here: `\s` takes the line separator too. */
 function oneLine(text: string): string {
   return text.replace(/\s+/g, ' ').trim()
 }
 
 /**
- * A run of text set as a paragraph.
+ * An inline run as prose: one line break kept as a hard break, two or
+ * more as a new paragraph, and any at either end let go.
+ *
+ * The hard break is markdown's backslash before the newline rather than
+ * its two spaces, because nothing that tidies whitespace can take it
+ * away. Every line is checked as a paragraph's first would be: a line
+ * inside a paragraph that begins "# " is a heading all the same.
+ */
+function paragraphs(text: string): string {
+  return text
+    .replace(/[ \t]+/g, ' ')
+    .split(/ ?\u2028(?: ?\u2028)+ ?/)
+    .map(paragraph =>
+      paragraph
+        .split(BREAK)
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map(asParagraph)
+        .join('\\\n')
+    )
+    .filter(Boolean)
+    .join('\n\n')
+}
+
+/** A preformatted block's text, a `<br>` in it read as the newline it
+ *  shows as. */
+function preformatted(el: Element): string {
+  let text = ''
+  for (const node of Array.from(el.childNodes)) {
+    if (node.nodeType === 3) text += node.textContent ?? ''
+    else if (node.nodeType === 1) {
+      const child = node as Element
+      text += child.tagName.toLowerCase() === 'br' ? '\n' : preformatted(child)
+    }
+  }
+  return text
+}
+
+function superscript(n: number): string {
+  return String(n).replace(/\d/g, d => SUPERSCRIPT[Number(d)])
+}
+
+/**
+ * A run of text set as a paragraph, or as one line of one.
  *
  * One that happens to begin like a heading or a list -- "# of users",
- * "- and then", "2. Next" -- is still a paragraph, so the syntax it
- * would otherwise be read as is escaped. `*` and `>` already are.
+ * "- and then", "2. Next", "3) and" -- or is only a rule of dashes or
+ * equals signs, which under a line makes it a heading, is still prose,
+ * so the syntax it would otherwise be read as is escaped. `*` and `>`
+ * already are.
  */
 function asParagraph(text: string): string {
-  if (/^#{1,6}(\s|$)/.test(text) || /^[-+](\s|$)/.test(text)) return `\\${text}`
-  return text.replace(/^(\d+)\.(\s|$)/, '$1\\.$2')
+  if (/^#{1,6}(\s|$)/.test(text) || /^[-+](\s|$)/.test(text) || /^(-+|=+)$/.test(text)) return `\\${text}`
+  return text.replace(/^(\d+)([.)])(\s|$)/, '$1\\$2$3')
 }

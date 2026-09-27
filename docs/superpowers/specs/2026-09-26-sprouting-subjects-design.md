@@ -117,7 +117,7 @@ reads `topic_subjects`:
 
 | Channel | Source | Score | Weight |
 | --- | --- | --- | --- |
-| Material | `resource_topics` | Cosine between the two topics' occurrence vectors over resources. Each entry is `s × relevance / √(n−1)`: `s` is 1 for read material and 0.5 for unread, and `n` is how many topics the resource carries, so one long article counts for less per pair. Multiplied by `k/(k+1)` for `k` shared resources, so a pair seen together once scores half. | 1.0 |
+| Material | `resource_topics` | Evidence `e = Σ s × rel_i × rel_j / (n−1)` over the resources a pair shares (`s` is 1 read, 0.5 unread; `n` is how many topics the resource carries), saturated as `1 − e^(−2e)`, times the cosine between the two topics' occurrence vectors for hub damping. One short read article joining two topics is 0.86; each pair of a nine-topic essay is about 0.2. *Amended 2026-09-26, later: this replaced cosine × `k/(k+1)`, which gave every pair of a long essay 0.5 — see §5.* | 1.0 |
 | Marks | a mark's own topic plus every topic its note names | `1 − e^(−count)` over the marks joining the pair | 1.0 |
 | Stated | `edges` | The strongest weight between the pair, either direction | 0.6 |
 | Meaning | `topics.kin_embedding`, falling back to `embedding` | Cosine after subtracting the mean vector, kept only for each topic's 8 nearest; negative is 0 | 0.5 |
@@ -177,6 +177,36 @@ about the topics nobody has filed.
 
 ---
 
+**Which subjects, and why not** (*amended 2026-09-26, later*). The first
+real map was found at 1 of 3, and a count cannot say which or why. Each
+subject of four topics or more is now read on its own, off the finest
+communities: *found* where one community, mostly it, holds half of it;
+*found in parts* where no one does but at least half of it sits in
+communities that are each mostly it — the reading agrees where its edge
+is and sees sub-themes inside it, so this counts as found; *read with
+others* where most of it fell in with another subject's topics or loose
+ones; *too little to read* where most of it is tied to nothing. And
+*found together* where most of it sits among another of the reader's
+subjects' topics: web development and system design are close, and a
+reading that draws no line between them has got neither wrong, so this
+counts as found too. By the same token a clump that is mostly two of the
+reader's own subjects, holding at least half of one of them, is those
+subjects side by side and is never offered as a sprout — it was, as an
+*across* sprout, until the reader pointed out the two belong together. A
+bridge is a few topics from each, and still sprouts. The sheet
+lists every subject with its verdict and a sentence of counts, and where
+the reading had little to go on — few relations drawn among its own
+topics, no material — it says so and points at *Draw connections*.
+
+Rebuilt on subjects sown the way the app sows them — 24, 18 and 12
+topics, no material — the reading finds all three while their relations
+stand, and loses the one with none: sowing gives up its relation pass
+first when the clock runs short, and a bed grown by bulk-filing loose
+stock is unplaced, so a subject can reach the reading as names alone,
+and two neighbouring subjects' names are close enough to blend. A clump
+with no material at all is set aside as *no-material* rather than
+miscounted as one piece of it.
+
 ## 5. When a community is a sprouting subject
 
 For each stable community of at least **4** topics:
@@ -191,6 +221,33 @@ For each stable community of at least **4** topics:
   - **Across** (a bridge): its topics come from two or more subjects
     without being most of any, e.g. data visualisation drawing on web
     development and statistics. Bridges count.
+
+**Read at more than one grain** (*amended 2026-09-26, later*). The map is read at
+Louvain resolutions 1, 0.7 and 0.5, finest first. A community that fails
+at one grain is carried to the next, on the topics no finer reading has
+accounted for — topics read as a subject found again, or already in a
+sprout, are held out, so coarsening can never swallow a subject. And the
+resources holding a sprout must hang together: two of them are joined by
+sharing one of its topics or by a kinship line of at least 0.15 between
+their topics. Two essays on one theme are joined by what their topics
+mean; a photography article and an economics one are not.
+
+This came from the first real map. Two essays on conformity (Emerson's
+*Self-Reliance*, Twain's *Corn-pone Opinions*) drew as two obvious clumps
+and nothing sprouted: ingestion filed each essay's concepts as its own
+topics, so they shared none, and the old material score welded every pair
+inside each essay at 0.5 — far above the 0.15–0.36 their meanings tied
+them across — so each read as one article's worth. Rebuilt with the real
+gte-small vectors on a map shaped like the reader's, the old reading
+found nothing; this one finds the two essays as one sprout of 16 topics,
+still finds all three existing subjects, and sets a lone photography
+article aside.
+
+**What was set aside is shown.** Every clump of four or more looked at
+and not offered is listed on the sheet with its reason — *one resource*
+or *resources with nothing in common* — unless a coarser grain took it up
+into a sprout. "Nothing is sprouting" otherwise reads as the reading not
+having looked.
 
 Ranked by *cohesion × √size × log₂(1 + resources)*, where cohesion is
 the share of its members' kinship that stays inside it. Each carries its
@@ -266,7 +323,9 @@ and the sheet says so while it runs.
 ### The subjects sheet
 
 A **Sprouting subjects** entry under Loose stock, set as a holding with
-its count, whenever there is at least one open sprout.
+its count — always, even at nought (*amended 2026-09-26, later*: hidden at
+nought, it left the sheet with no way in). The loose stock sheet links to
+it too.
 
 ---
 
@@ -324,3 +383,6 @@ found-again check is what re-measures them.
 | `MIN_MATERIAL` | 2 | Resources that must bind it |
 | `WITHIN` | 0.7 | One subject's share that makes it that subject |
 | `MATCH` / `RENAME` | 0.5 / 0.75 | Jaccard bars for keeping a decision and a name |
+| `EVIDENCE` | 2 | How fast shared material saturates into a tie |
+| `GRAINS` | 1, 0.7, 0.5 | Louvain resolutions read, finest first |
+| `JOIN` | 0.15 | A kinship line this strong joins two resources |

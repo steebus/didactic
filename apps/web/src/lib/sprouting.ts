@@ -15,12 +15,15 @@ import {
   matchKept,
   nameStillFits,
   readSprouts,
+  setAsideSentence,
+  subjectSentence,
   type Sprout,
   type SproutReading,
 } from '@didactic/core/sprouting'
 import type { Sprouting, SproutView } from '@didactic/core/shapes'
 import { tags } from '@didactic/core/tags'
 import { plates } from '@didactic/tokens'
+import { nextPlate } from '@didactic/core/plates'
 import { supabaseAdmin } from './supabase'
 import { embed } from './embedding'
 import { nameTheSprouts, NAMED_PER_CALL } from './llm/sprouts'
@@ -229,8 +232,8 @@ export async function plantTheSprout(
     return { status: 409, body: { error: 'Every topic it held has since been thrown away.' } }
   }
 
-  const { count } = await db.from('subjects').select('id', { count: 'exact', head: true })
-  const colour = plates[(count ?? 0) % plates.length]
+  const { data: inUse } = await db.from('subjects').select('colour').eq('user_id', userId)
+  const colour = nextPlate((inUse ?? []).map(s => s.colour as string), plates)
 
   const { data: subject, error: subjectError } = await db.from('subjects')
     .insert({ user_id: userId, title: name, colour })
@@ -478,8 +481,34 @@ function present(map: MapRead, given?: SproutReading & { lines: KinLine[] }): Sp
     })
   }
 
+  const lookedAt: Sprouting['lookedAt'] = reading.setAside.map(item => ({
+    key: item.key,
+    reason: item.reason,
+    sentence: setAsideSentence(item),
+    topics: item.topicIds.map(id => ({ id, title: byId.get(id)?.title ?? id })),
+    material: item.materials.slice(0, MATERIAL_SHOWN).flatMap(id => {
+      const m = materialById.get(id)
+      return m ? [{ id: m.id, title: m.title, read: m.read }] : []
+    }),
+  }))
+
+  const subjectReadings: Sprouting['subjectReadings'] = reading.subjects.flatMap(r => {
+    const s = subjectById.get(r.subjectId)
+    return s
+      ? [{
+          subjectId: s.id,
+          title: s.title,
+          colour: s.colour,
+          verdict: r.verdict,
+          sentence: subjectSentence(r, id => subjectById.get(id)?.title ?? 'another subject'),
+        }]
+      : []
+  })
+
   return {
     sprouts,
+    subjectReadings,
+    lookedAt,
     kinship: reading.lines.map(l => [l.a, l.b, Math.round(l.weight * 1000) / 1000]),
     found: foundSentence(reading.found),
     setAside,

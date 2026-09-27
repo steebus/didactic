@@ -16,6 +16,8 @@ import {
   type Evidence,
 } from '@/lib/sowing'
 import { isFidelity } from '@didactic/core/documents'
+import { nextPlate } from '@didactic/core/plates'
+import { plates } from '@didactic/tokens'
 
 /**
  * Drop what this route just changed.
@@ -50,8 +52,6 @@ export const maxDuration = 60
  * first time this failed.
  */
 export const BUDGET_MS = 54_000
-
-const PLATE_INKS = ['#b8482a', '#2f5233', '#c8871a', '#2a4a7c', '#6b3550', '#6b7233']
 
 export async function GET() {
   const { data, error } = await supabaseAdmin()
@@ -199,8 +199,11 @@ async function sow(req: Request) {
     readAssessment(map, brief) ?? (await readTheAnswers(brief, deadline))
 
   const db = supabaseAdmin()
-  const { data: existing } = await db.from('subjects').select('id')
-  const colour = PLATE_INKS[(existing?.length ?? 0) % PLATE_INKS.length]
+  // The least used plate, not the next by count: see `core/plates`.
+  // This route held its own copy of the six in a different order from
+  // `@didactic/tokens`, which is half of how subjects came to share one.
+  const { data: existing } = await db.from('subjects').select('colour')
+  const colour = nextPlate((existing ?? []).map(s => s.colour as string), plates)
 
   const { data: row, error: subjectError } = await db.from('subjects')
     .insert({ user_id: userId, title: subject, colour })

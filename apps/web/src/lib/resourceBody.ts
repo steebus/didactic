@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ResourceKind } from '@didactic/core/types'
 import type { BodySource, ReadableBody } from '@didactic/core/shapes'
 import { extractFromHtml } from './extract/url'
-import { htmlToMarkdown } from './extract/markdown'
+import { htmlToMarkdown, IMPORTER } from './extract/markdown'
 
 /**
  * A resource, made readable in the app.
@@ -48,17 +48,38 @@ const WORTH_READING = 200
  */
 export async function readableBody(db: SupabaseClient, resource: ResourceLike): Promise<Readable> {
   // Before 053 there is no table to read, and an error here is the same
-  // as nothing kept: make it, and fail to keep it quietly.
+  // as nothing kept: make it, and fail to keep it quietly. Every column,
+  // so the importer's stamp (057) is read where it exists and its
+  // absence is no error where it does not.
   const { data: kept } = await db
     .from('resource_bodies')
-    .select('body, source')
+    .select('*')
     .eq('resource_id', resource.id)
     .maybeSingle()
-  if (kept?.body) return { body: kept.body as string, source: kept.source as BodySource }
+  const had = kept?.body ? { body: kept.body as string, source: kept.source as BodySource } : null
+  if (had && !outdated(kept)) return had
 
   const made = await makeBody(db, resource)
   if (made.body !== null && made.keep) await keepBody(db, resource, made.body, made.source)
-  return made.body === null ? made : { body: made.body, source: made.source }
+  if (made.body !== null) return { body: made.body, source: made.source }
+  if (!had) return made
+  // An article made by an older importer whose page cannot be read now
+  // keeps what it had -- an old reading is better than none -- and is
+  // stamped as tried, so a page that has gone is not fetched on every
+  // open.
+  await db.from('resource_bodies').update({ made_with: IMPORTER }).eq('resource_id', resource.id)
+  return had
+}
+
+/**
+ * An article kept by an older importer, made again the next time it is
+ * opened so a fix to the importer reaches what was already brought in.
+ * Before 057 there is no stamp, and nothing is outdated: without one,
+ * a body made again could not say so, and would be made on every open.
+ */
+function outdated(kept: Record<string, unknown> | null): boolean {
+  const madeWith = kept?.made_with
+  return kept?.source === 'article' && typeof madeWith === 'number' && madeWith < IMPORTER
 }
 
 /** Keep a body, once. A failure costs only a second making of it. */
@@ -68,9 +89,10 @@ export async function keepBody(
   body: string,
   source: BodySource
 ) {
-  const { error } = await db
-    .from('resource_bodies')
-    .upsert({ resource_id: resource.id, user_id: resource.user_id, body, source })
+  const row = { resource_id: resource.id, user_id: resource.user_id, body, source }
+  let { error } = await db.from('resource_bodies').upsert({ ...row, made_with: IMPORTER })
+  // Before 057 there is no column for the stamp: keep the body without it.
+  if (error?.code === 'PGRST204') ({ error } = await db.from('resource_bodies').upsert(row))
   if (error) console.error('resource body: could not keep it', error.message)
 }
 

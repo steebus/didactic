@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { urlTitle } from '@didactic/core/titles'
 import { supabaseAdmin } from '@/lib/supabase'
 import { drainAfter } from '@/lib/drain'
 import { ownerId } from '@/lib/auth'
@@ -81,7 +82,10 @@ export async function POST(req: Request) {
   const { data, error } = await db.from('resources').insert({
     user_id: userId,
     url: trimmedUrl,
-    title: title ?? trimmedUrl ?? 'Untitled',
+    // The address is not a title: until the page's own arrives (ingestion
+    // writes it), a readable stand-in rather than the raw URL, which
+    // printed as one word as wide as the address on every sheet.
+    title: title ?? (trimmedUrl ? urlTitle(trimmedUrl) : 'Untitled'),
     kind,
     raw_text: text ?? null,
     // Material offered as evidence of what you already hold arrives

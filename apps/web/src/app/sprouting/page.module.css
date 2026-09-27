@@ -80,6 +80,84 @@
   max-width: 62ch;
 }
 
+/* --- How each subject read ----------------------------------------- */
+
+/* Folded under the found-again line it explains: a subject per row, its
+   plate and name, the verdict in the label register -- green where the
+   reading found it, terracotta where it did not -- and the sentence that
+   says why, counts first. */
+.readings {
+  margin: calc(var(--space-2) * -1) 0 var(--space-4);
+  max-width: 62ch;
+}
+
+.readingsHead {
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  cursor: pointer;
+  padding: var(--space-1) 0;
+}
+
+.readingsList {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0 0 0 var(--space-3);
+  border-left: 1px solid var(--rule);
+  display: grid;
+  gap: var(--space-3);
+}
+
+.readingRow {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.readingName {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0 var(--space-2);
+  font-size: var(--step--1);
+  font-weight: 600;
+}
+
+.readingName a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+
+.readingName .chip {
+  align-self: center;
+}
+
+.verdictFound,
+.verdictMissed {
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.verdictFound {
+  color: var(--plate-green);
+}
+
+.verdictMissed {
+  color: var(--plate-terracotta);
+}
+
+.readingWhy {
+  margin: 0;
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
 .note {
   font-size: var(--step--1);
   line-height: 1.45;
@@ -127,6 +205,11 @@
 
 .entry {
   display: grid;
+  /* One column that may shrink below its content: a grid track is as wide
+     as the widest unbreakable thing in it by default, and a resource
+     titled by its URL is one word the length of the address. That widened
+     every part of the entry and pushed the sheet off the side of a phone. */
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-2);
   padding: var(--space-5) 0;
   border-bottom: 1px solid var(--rule);
@@ -160,6 +243,7 @@
 
 /* Outlined italic: a name nobody has given it yet. */
 .name {
+  overflow-wrap: anywhere;
   font-family: var(--font-display);
   font-style: italic;
   font-size: var(--step-2);
@@ -204,6 +288,11 @@
   font-size: var(--step--1);
 }
 
+.topics li {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .topics a {
   color: inherit;
   text-decoration: underline;
@@ -240,8 +329,21 @@
   color: var(--ink-soft);
 }
 
+.material li {
+  min-width: 0;
+}
+
+/* A resource title is often its URL: break it anywhere and stop at two
+   lines, the full title on hover, as fertile ground on the subjects
+   sheet does. */
 .material a {
   color: inherit;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
 }
 
 .read {
@@ -272,4 +374,67 @@
   color: var(--ink-soft);
   text-underline-offset: 3px;
   padding-bottom: var(--space-2);
+}
+
+/* --- Looked at, and set aside ---------------------------------------- */
+
+/* Quieter than the entries: these are reasons, not offers. Set in the
+   label register with a dotted rule, and each clump's topics as a run,
+   so a reader can match them to the clump they saw on the bed. */
+.lookedAt {
+  margin-top: var(--space-6);
+  padding-top: var(--space-3);
+  border-top: 1px dotted var(--rule-strong);
+}
+
+.lookedAtHead {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 var(--space-3);
+}
+
+.lookedAtList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.lookedAtRow {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.lookedAtWhy {
+  margin: 0;
+  font-size: var(--step--1);
+  font-style: italic;
+  color: var(--ink-soft);
+  max-width: 62ch;
+}
+
+.lookedAtTopics,
+.lookedAtFrom {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.lookedAtTopics a,
+.lookedAtFrom a {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+
+.lookedAtFrom {
+  font-size: var(--step--2);
+  letter-spacing: 0.02em;
+  color: var(--ink-faint);
 }

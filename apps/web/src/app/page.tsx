@@ -212,7 +212,7 @@ export default async function Home() {
                   {data.fertile.map(({ resource, topics }) => (
                     <li key={resource.id} className={styles.fertileRow}>
                       <div className={styles.fertileHead}>
-                        <span className={styles.fertileTitle}>{resource.title}</span>
+                        <span className={styles.fertileTitle} title={resource.title}>{resource.title}</span>
                         <span className={styles.fertileKind}>{resource.kind}</span>
                       </div>
                       <p className={styles.fertileTopics}>
@@ -365,12 +365,14 @@ export default async function Home() {
 /**
  * Sprouting subjects, folded behind one entry as loose stock is: set as
  * a holding, sized by its count against the largest bed, with the total
- * where a subject prints its figures. Absent when nothing is sprouting,
- * because an entry saying "none" is a line of the sheet spent on nothing.
+ * where a subject prints its figures.
+ *
+ * Always there, even at nought. It was hidden when nothing was sprouting,
+ * which left the sheet with no door at all -- and "nothing yet" is itself
+ * worth reading, with the reasons the reading set things aside behind it.
  */
 async function SproutingEntry({ largestHolding, index }: { largestHolding: number; index: number }) {
   const { sprouts } = await getSprouting()
-  if (sprouts.length === 0) return null
   const weight = Math.min(1, sprouts.length / largestHolding)
 
   return (
@@ -390,7 +392,11 @@ async function SproutingEntry({ largestHolding, index }: { largestHolding: numbe
             {sprouts.length === 1 ? 'Sprouting subject' : 'Sprouting subjects'}
           </h3>
           <div className={styles.entryMeta}>
-            <span>Topics your material keeps putting together, under no subject yet</span>
+            <span>
+              {sprouts.length === 0
+                ? 'Nothing has come up on its own yet'
+                : 'Topics your material keeps putting together, under no subject yet'}
+            </span>
           </div>
         </div>
 

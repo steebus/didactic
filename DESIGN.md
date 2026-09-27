@@ -257,6 +257,14 @@ recognisably the same green. It is not *exactly* the same green, and that is the
 real cost of this change: a plate is subject identity, so a bed is a slightly
 different colour in the two lights. The alternative is a bed nobody can read.
 
+**Rule — a new subject takes the least used plate** (`core/plates.nextPlate`),
+earliest in `@didactic/tokens.plates` order on a tie: six subjects get six
+plates, a seventh doubles up on the first. Taking the next plate by count
+collided as soon as a subject was thrown away, and the sow and promote paths
+held the six in different orders, so beds came to share an ink — the graph
+drew three subjects in one mustard. `055` put right the ones already made,
+moving only later subjects that shared a plate.
+
 **Two surfaces derived from a plate, because they invert differently.** A band
 and an accent fill are both saturated plates with text reversed out, and after
 dark they part company: the band is *deepened* (`--band-fill`, `#23412a`) and
@@ -317,6 +325,22 @@ display face anywhere.
 
 `body` sets `font-variant-numeric: tabular-nums` globally; figure cells add
 `lining-nums`. Every number in the build is column-safe by default.
+
+**Rule — no word is wider than its column.** `body` sets `overflow-wrap:
+anywhere`, never `break-word`, and every surface inherits it. The two break a
+long word at the same place; they differ in what a grid or flex track is told
+the word needs. `break-word` still reports the whole word as the least its
+column can be, so a URL in a title, a crumb, a note or a list of material
+widened its track, and the track widened the sheet: the reading page was laid
+out 1153px wide on a 390px phone, its rail and foot bar placed against that
+width, off to the side and far below. `anywhere` lets the track shrink to the
+column and breaks the word there. The two-line clamps on the stock list and
+the graph panel stay: they are for length, not width.
+
+A title made from an address is a stand-in, not the address:
+`core/titles.urlTitle` sets it as the host and the last part of the path, at
+most 60 characters (`emersoncentral.com/…/self-reliance`), and the page's own
+title replaces it when ingestion reads the page or the reader first opens it.
 
 ### Ramp
 
@@ -585,9 +609,10 @@ separate head is what stops the entry being read as one more bed.
 
 **Sprouting** follows in the same form: a section head, one `.entry` to
 `/sprouting` on a specimen in `--plate-green`, weighted by the count of open
-sprouting subjects, *Total* over the count. It is absent when nothing is
-sprouting, and streamed in after the rest of the sheet rather than awaited with
-it.
+sprouting subjects, *Total* over the count. It is there even at nought —
+*Nothing has come up on its own yet* — because hidden, it left no way in, and
+nothing sprouting is itself worth reading with the reasons behind it. It is
+streamed in after the rest of the sheet rather than awaited with it.
 
 ### Fertile ground, under the stock list
 
@@ -607,6 +632,13 @@ inside it:
 being made, with the title of the thing read, what it turned out to be
 about, and the one action that answers it, so it takes a full-width row and
 the mustard edge the sheet already uses to mean *this is where the work is*.
+
+**Rule — a title that will not wrap is made to.** A resource's title is often its
+URL when the page gave none, and a URL is one word as wide as it is long: it
+pushed the whole sheet off the side of a phone. The title breaks anywhere
+(`overflow-wrap: anywhere`) and stops at two lines (`line-clamp: 2`), the full
+title on hover; the row and its head carry `min-width: 0` so the grid lets them
+shrink.
 
 ### An errand folded away
 
@@ -751,12 +783,21 @@ what is on it is coming up, not unresolved.
 | --- | --- |
 | The band | `--band-fill` under the mustard `5px` rule, the standfirst counting what has come up (`core/sprouting.sproutingSentence`). |
 | The found-again check | Above the list, `600` weight behind a `3px` green rule: the evidence the reading can be believed, set before anything it vouches for. |
+| How each subject read | Folded under the check (a `details`, open when any subject was missed): each subject's plate chip, name, and verdict in the label register — green *Found* / *Found in parts* / *Found together*, terracotta *Read with others* / *Too little to read* — over a sentence of counts in `--ink-soft` (`core/sprouting.subjectSentence`), behind a `1px` rule. |
 | The kind | Label register in the plate green — *New ground*, or *Across* and the subjects in full, each after a `0.7em` square chip of its plate. |
 | The name | Display face, italic, `--step-2`; *Not yet named* in `--ink-faint` until it is. |
 | The evidence | Counts first, in `--ink-soft` (`core/sprouting.bindingSentence`). |
 | The topics | A wrapped run of links; the core ones `600`, loose ones followed by *loose* in terracotta small caps. |
-| The material | Behind a `1px` rule, each marked *read* or *unread*. |
+| The material | Behind a `1px` rule, each marked *read* or *unread*; a title that is a URL breaks anywhere and stops at two lines, as fertile ground does, and the entry is a `minmax(0, 1fr)` column so no one line can widen it. |
 | The presses | *Call it* over an italic name field, then *Give it a bed* on the band green and *Not this* in a rule-strong outline. |
+
+**Rule — what was looked at is shown with why.** Under the entries, a dotted
+rule and *Looked at, and set aside* in the label register: each clump the
+reading saw and did not offer, its reason in italic `--ink-soft`
+(`core/sprouting.setAsideSentence`), its topics as a run of links, and the
+material it came from in `--ink-faint`. Quieter than an entry: a reason, not an
+offer. Without it, *nothing is sprouting* reads as the reading not having looked
+at the clump the reader can see on the bed.
 
 **Rule — the name is the reader's to settle.** The model's name is where the
 field starts, never a label: whatever is typed is what the subject is called.
@@ -1378,13 +1419,21 @@ Nothing is sown there, so it takes no plate ink and no fill; the one open in the
 panel alone takes a wash of the green at 0.07. A press inside the outline opens
 it.
 
+**Rule — on a phone the sliders stack.** Below `40rem` each slider takes a row
+of its own across the strip — the label in a fixed `7.5rem` column so the tracks
+start level, the track the full remaining width at a `2rem` touch height, the
+figure right-aligned — and *By kinship* and *Reset* share the row under them.
+Five `4.5rem` tracks side by side could not be set with a thumb.
+
 **Rule — the canvas starts below the strip it sits under.** The control strip is
 measured, not guessed, because it wraps to as many rows as the width needs; a
 fixed inset parked the top of the planting under it on a phone.
 
 The graph panel is a right rail at `min(24rem, 100%)` on desktop and a bottom
 sheet at `max-height: 72dvh` below `40rem` — a 24rem rail would cover the whole
-bed on a phone.
+bed on a phone. Its one column may shrink below its content, and
+the name side of every record row breaks anywhere and stops at two lines: a
+resource titled by its URL widened the sheet past the edge of the phone.
 
 ---
 
@@ -2132,9 +2181,10 @@ components, because working an article is the same work as working a lesson.
 
 | Part | Treatment |
 | --- | --- |
-| Band | The trail is *Inbox* and the topic it is most about. The figures are *Kind*, *From* (the site, a link out ruled in the band's paper) or *File* (the document viewer), and *State* — which reads *Reading* as soon as it is opened. |
+| Band | The title is the page's own; one still wearing its address is given the page's title the first time it is opened. The trail is *Inbox* and the topic it is most about. The figures are *Kind*, *From* (the site, a link out ruled in the band's paper) or *File* (the document viewer), and *State* — which reads *Reading* as soon as it is opened. |
 | Filed under | One line in `--ink-soft` above the reading, naming every topic it counts toward. |
 | Nothing to read | Said in the display face's italic, in `--ink-faint`, with the way to read it where it lives. The summary and the foot are still there beneath it. |
+| The article | The page's line breaks are kept as line breaks, so a poem's lines stay lines. Its pop-up notes are set as superscript numbers (¹) where they were, and listed under a rule at the foot beneath a bold *Notes* — a bold line, not a heading, so the contents stay the article's own. |
 | The foot | *In your own words*, then *Have you read it?* — the lesson's depth buttons: **Read it** first, then *Skimmed it* and *Worked with it*. Once said: *Read*, the date, and what it counted toward. |
 | Asking | From the desk, stacked with the note and marks buttons, as on a lesson. The corner disc steps aside here, as it does on a lesson — one way to ask, not two. The document viewer below it has no desk and keeps the disc. |
 | In the inbox | The row's title is the way in, in the heading's ink with a `--rule` hairline under it that darkens to `--ink` under the pointer. |
