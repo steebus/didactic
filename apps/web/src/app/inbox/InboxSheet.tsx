@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { didactic } from '@didactic/api'
 import type { LibraryRow } from '@didactic/core/shapes'
 import { ResourceList } from '@/components/ResourceList'
+import { bestHits, shelfMatches, type ShelfHit } from '@didactic/core/shelf'
 import styles from './page.module.css'
 
 const api = didactic()
@@ -56,19 +57,57 @@ export function InboxSheet({ resources }: { resources: LibraryRow[] }) {
     return () => clearInterval(timer)
   }, [underway, router])
 
-  const shown = useMemo(() => {
-    const q = term.trim().toLowerCase()
-    return resources.filter(r => {
-      if (kind !== 'all' && r.kind !== kind) return false
-      if (!q) return true
-      return (
-        r.title.toLowerCase().includes(q) ||
-        (r.summary ?? '').toLowerCase().includes(q) ||
-        (r.url ?? '').toLowerCase().includes(q) ||
-        r.topics.some(t => t.title.toLowerCase().includes(q))
-      )
-    })
-  }, [resources, term, kind])
+  /**
+   * The search, in two halves.
+   *
+   * What every row already carries -- title, address, the filing
+   * summary, topics, what the reader said back -- is matched here as it
+   * is typed (`core/shelf.shelfMatches`), so the list answers at once.
+   * What only the database holds -- the text of each resource, every
+   * mark, note and section summary written in one -- is asked for a
+   * moment after typing stops, and each row it finds comes back with
+   * where it was found. The list is both: nothing found locally is
+   * held back waiting for the server, and nothing the server found is
+   * missing because its title did not match.
+   */
+  const [found, setFound] = useState<{ for: string; hits: ShelfHit[] } | null>(null)
+  const [looking, setLooking] = useState(false)
+  const query = term.trim()
+
+  useEffect(() => {
+    if (query.length < 2) return
+    let cancelled = false
+    const timer = setTimeout(() => {
+      setLooking(true)
+      void api.inbox.search(query).then(({ ok, body }) => {
+        if (cancelled) return
+        setLooking(false)
+        // A failed search costs only the deeper half: what is on the
+        // rows is still matched, and says so by what it shows.
+        if (ok) setFound({ for: query, hits: body.hits })
+      })
+    }, 300)
+    return () => {
+      cancelled = true
+      clearTimeout(timer)
+    }
+  }, [query])
+
+  // Only the answer to the search now in the box: an answer to an older
+  // one is dropped rather than shown against the wrong words.
+  const hits = useMemo(
+    () => (found && found.for === query ? bestHits(found.hits) : new Map<string, ShelfHit>()),
+    [found, query]
+  )
+
+  const shown = useMemo(
+    () =>
+      resources.filter(r => {
+        if (kind !== 'all' && r.kind !== kind) return false
+        return shelfMatches(r, query) || hits.has(r.id)
+      }),
+    [resources, query, kind, hits]
+  )
 
   const unread = shown.filter(r => r.status === 'queued' || r.status === 'reading')
   const read = shown.filter(r => r.status === 'consumed' || r.status === 'abandoned')
@@ -103,15 +142,23 @@ export function InboxSheet({ resources }: { resources: LibraryRow[] }) {
       {/* The filter only earns its space once there is enough to lose
           something in. Below that it is furniture over a list you can
           already see all of. */}
-      {resources.length > 8 && (
+      {resources.length > 0 && (
         <div className={styles.controls}>
           <input
             className={styles.search}
+            type="search"
             value={term}
             onChange={e => setTerm(e.target.value)}
-            placeholder="Search titles, notes, links and topics"
-            aria-label="Search what you have kept"
+            placeholder="Search titles, topics, the text, your marks and summaries"
+            aria-label="Search everything you have kept, and everything you wrote in it"
           />
+          {query.length >= 2 && (
+            <p className={styles.searching} role="status">
+              {looking
+                ? 'Looking through the text and your marks…'
+                : `${shown.length} ${shown.length === 1 ? 'match' : 'matches'}`}
+            </p>
+          )}
           <div className={styles.kinds} role="group" aria-label="Filter by kind">
             {['all', 'article', 'book', 'pdf', 'note'].map(k => (
               <button
@@ -135,7 +182,7 @@ export function InboxSheet({ resources }: { resources: LibraryRow[] }) {
           <h2 className={styles.sectionTitle}>Unread</h2>
           <span className={styles.sectionNote}>{unread.length} to read</span>
         </div>
-        <ResourceList resources={unread} onRemove={remove} />
+        <ResourceList resources={unread} onRemove={remove} hits={hits} />
       </section>
 
       {read.length > 0 && (
@@ -144,7 +191,7 @@ export function InboxSheet({ resources }: { resources: LibraryRow[] }) {
             <h2 className={styles.sectionTitle}>Read</h2>
             <span className={styles.sectionNote}>{read.length} done with</span>
           </div>
-          <ResourceList resources={read} onRemove={remove} />
+          <ResourceList resources={read} onRemove={remove} hits={hits} />
         </section>
       )}
 

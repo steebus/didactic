@@ -3,7 +3,8 @@
 import { useCallback, useMemo, useState } from 'react'
 import Link from 'next/link'
 import type { Highlight } from '@didactic/core/types'
-import { summaryGist, summaryOf } from '@didactic/core/summaries'
+import { summaryOf } from '@didactic/core/summaries'
+import { SaidBack } from '@/components/SaidBack'
 import { SummaryDrawer } from '@/components/SummaryDrawer'
 import { SummaryIcon } from '@/components/SummaryIcon'
 import { lessonStandings, LESSON_LABEL, LESSON_NOTE } from '@didactic/core/lessonState'
@@ -155,11 +156,14 @@ export function LessonList({
                 </span>
                 <span className={styles.lessonBody}>
                   <span className={styles.lessonTitle}>{lesson.title}</span>
-                  {own?.note && (
-                    <span className={styles.lessonOwn}>
-                      <span className={styles.lessonOwnLabel}>In your words</span>{' '}
-                      {summaryGist(own.note)}
-                    </span>
+                  {/* The same treatment the inbox and the material
+                      give a summary, so it reads as the reader's own
+                      account wherever it is met. */}
+                  {(own?.note || said.length > 0) && (
+                    <SaidBack
+                      said={{ whole: own?.note ?? null, sections: said.filter(x => x.section).length }}
+                      clip={180}
+                    />
                   )}
                   <span className={styles.lessonMeta}>
                     {lesson.stage}

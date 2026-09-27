@@ -377,6 +377,11 @@
   gap: var(--space-2);
 }
 
+/* A piece of material and, under it, what was said back about it. */
+.materialItem {
+  list-style: none;
+}
+
 .materialName {
   font-size: var(--step-0);
 }
@@ -1315,39 +1320,6 @@
   margin: var(--space-2) 0 0;
 }
 
-/* The reader's own account of a lesson, under its title.
-   ---------------------------------------------------------------
-
-   An experiment: the summary they wrote at the foot of the lesson,
-   printed where the list would otherwise say nothing about what the
-   lesson was. Two lines at most and in the text face, set off by the
-   summary's ultramarine rule, so it reads as their note on the
-   catalogue card rather than as part of the title. */
-.lessonOwn {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  overflow: hidden;
-  margin-top: 2px;
-  padding-left: var(--space-2);
-  border-left: 2px solid var(--plate-ultramarine);
-  font-family: var(--font-text);
-  font-size: var(--step--1);
-  font-style: italic;
-  line-height: 1.45;
-  color: var(--ink-soft);
-}
-
-.lessonOwnLabel {
-  font-style: normal;
-  font-size: var(--step--2);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--plate-ultramarine);
-}
-
 /* The way into a lesson's summaries: the sprig, beside the play
    control and the same size of target. Faint until there is something
    in it, then held in the summary's ink with the count beside it. */
@@ -1390,4 +1362,52 @@
   font-size: var(--step--2);
   font-weight: 600;
   font-variant-numeric: tabular-nums lining-nums;
+}
+
+/* Summaries at the head of the Marked fold: the summary's treatment,
+   a step above the marks under them -- the deeper paper, the
+   ultramarine rule and sprig, the reader's words in full ink. */
+.saidMarks {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.saidMark {
+  max-width: 68ch;
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  background: var(--paper-deep);
+  border-left: 3px solid var(--plate-ultramarine);
+}
+
+.saidMarkOf {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin: 0 0 var(--space-1);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--plate-ultramarine);
+}
+
+.saidMarkOf a {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 400;
+}
+
+.saidMarkSprig {
+  display: inline-flex;
+  color: var(--plate-ultramarine);
+}
+
+.saidMarkNote {
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink);
 }

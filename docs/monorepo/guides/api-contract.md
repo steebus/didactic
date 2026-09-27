@@ -62,6 +62,7 @@ the phone's query cache.
 | GET | `/api/graph` | — | `{ topics, edges, resources, lessons, subjects }` | The whole bed in one call, and what the web's canvas reads. It asked `/api/topics` and `/api/subjects` separately and merged them itself until 2.7; both read `getPlanting`, so they cannot drift. |
 | GET | `/api/inbox` | — | `{ pending: PendingTopic[], queued: Resource[] }` | The sheet in one call. `/api/inbox/count` stays separate and stays cheap. |
 | GET | `/api/inbox/count` | — | `{ decisions, waiting, total }` | Counts on an index; cheap enough for a nav. |
+| GET | `/api/inbox/search` | `q` | `{ hits: ShelfHit[] }` (`core/shelf`) | Where a search is found in resources' readable text and in the marks, notes and summaries written in them (058, `search_shelf`), ranked, with the words around each match. Websearch syntax. What a row already carries is matched on the client; this is the half that cannot be. |
 | GET | `/api/subjects` | — | subjects | |
 | GET | `/api/subjects/[id]` | — | subject with topics | |
 | GET | `/api/subjects/[id]/area` | — | `SubjectArea` | The outline's data. 404 when the bed is not there. |

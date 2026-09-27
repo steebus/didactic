@@ -25,6 +25,7 @@ import type {
 } from './types'
 import type { SubjectTopicRow, TopicTreeNode } from './subject'
 import type { TopicGroup } from './groups'
+import type { Said } from './shelf'
 
 /* ---------------------------------------------------------------- home */
 
@@ -116,6 +117,12 @@ export interface LibraryRow extends Resource {
   filing: Filing
   /** Why it could not be read, when that is what happened. */
   filingError: string | null
+  /** What the reader has said back about it: their summary of the
+   *  whole, and how many sections. Additive (053): absent from an older
+   *  server, and null where nothing has been said. */
+  said?: Said | null
+  /** How many passages and notes were kept in it, read in the app. */
+  marks?: number
 }
 
 /* ------------------------------------------------------------- pending */
@@ -274,7 +281,8 @@ export interface TopicArea {
   topic: Topic & { freshness: number }
   subjects: Subject[]
   curricula: CurriculumCard[]
-  resources: Array<{ relevance: number; resource: Resource }>
+  /** `said`: what the reader said back about it (053). Additive. */
+  resources: Array<{ relevance: number; resource: Resource; said?: Said | null }>
   neighbours: TopicNeighbour[]
   /** Where the bed says it goes, for a topic filed under nothing.
    *  Empty for a topic that is filed somewhere, and for one the bed has

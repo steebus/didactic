@@ -309,6 +309,10 @@
   color: var(--plate-plum);
 }
 
+.strand[data-strand='summary'] .specimen {
+  color: var(--plate-ultramarine);
+}
+
 .glyph {
   display: block;
 }
@@ -328,6 +332,26 @@
   /* Held to the measure its own prose is set to, so the ground ends
      where the writing ends rather than running out to the trim. */
   max-width: 68ch;
+}
+
+/* A summary is the most considered thing on the stem: the reader's own
+   account of a whole reading, or of a section of one. It stands on the
+   block's deeper paper behind the summary's ultramarine rule whether
+   it is open or folded -- the step above a mark, made of the same
+   materials the sheet already uses for weight. */
+.strand[data-strand='summary'] .strandBody {
+  background: var(--paper-deep);
+  border-left: 3px solid var(--plate-ultramarine);
+  padding: var(--space-2) var(--space-3);
+  max-width: 68ch;
+}
+
+.strand[data-strand='summary'] .strandLabel {
+  color: var(--plate-ultramarine);
+}
+
+.summaryText[data-strand='summary'] {
+  color: var(--ink);
 }
 
 .strandLabel {

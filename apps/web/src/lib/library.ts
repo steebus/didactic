@@ -7,6 +7,7 @@ import { supabaseAdmin } from './supabase'
 // it too; the query that builds it needs a client and the cache, so it
 // stays here. Re-exported so `@/lib/library` still answers for both.
 import type { LibraryRow } from '@didactic/core/shapes'
+import { saidFrom } from '@didactic/core/shelf'
 import { filingOf, type JobState } from '@didactic/core/filingState'
 
 
@@ -61,7 +62,9 @@ const SAME_THING = 0.6
  *  outside Next's runtime, where `cacheTag` does not exist. */
 export async function getLibrary(): Promise<LibraryRow[]> {
   'use cache'
-  cacheTag(tags.resources, tags.topics)
+  // Marks too: a row prints what was said back about it, and a summary
+  // written in a resource is a mark (053).
+  cacheTag(tags.resources, tags.topics, tags.highlights)
   // Held until a write drops one of the tags above. See the `held`
   // profile in next.config.ts for why nothing here expires on time.
   cacheLife('held')
@@ -73,18 +76,38 @@ export async function getLibrary(): Promise<LibraryRow[]> {
 }
 
 export async function readLibrary(db: SupabaseClient): Promise<LibraryRow[]> {
-  const [{ data: resources }, { data: links }, { data: exposures }, { data: jobs }] =
-    await Promise.all([
-      db.from('resources').select('*').order('added_at', { ascending: false }),
-      db.from('resource_topics').select('resource_id, topics(id, title)'),
-      // Only the source ids matter: this is a "has anything been read out
-      // of it" question, not a count.
-      db.from('exposures').select('source_id').eq('source', 'resource'),
-      // Where each one has got to. Read with the shelf rather than on
-      // demand: the sheet prints a line about every row, and a query per
-      // row would be a round trip per row.
-      db.from('ingestion_jobs').select('resource_id, state, attempts, error'),
-    ])
+  const [
+    { data: resources },
+    { data: links },
+    { data: exposures },
+    { data: jobs },
+    { data: written },
+  ] = await Promise.all([
+    db.from('resources').select('*').order('added_at', { ascending: false }),
+    db.from('resource_topics').select('resource_id, topics(id, title)'),
+    // Only the source ids matter: this is a "has anything been read out
+    // of it" question, not a count. Marked read, or said back whole
+    // (054): either way an exposure rests on it and removing it fails.
+    db.from('exposures').select('source_id').in('source', ['resource', 'summary']),
+    // Where each one has got to. Read with the shelf rather than on
+    // demand: the sheet prints a line about every row, and a query per
+    // row would be a round trip per row.
+    db.from('ingestion_jobs').select('resource_id, state, attempts, error'),
+    // What was written in each resource read in the app (053), for the
+    // summary under its title. Only the columns the row prints from; an
+    // error before 053 is simply nothing written.
+    db
+      .from('highlights')
+      .select('resource_id, kind, section, note')
+      .not('resource_id', 'is', null),
+  ])
+
+  const said = saidFrom(written ?? [], 'resource_id')
+  const marked = new Map<string, number>()
+  for (const w of written ?? []) {
+    if (w.kind === 'summary' || !w.resource_id) continue
+    marked.set(w.resource_id, (marked.get(w.resource_id) ?? 0) + 1)
+  }
 
   const filed = new Map<string, Array<{ id: string; title: string }>>()
   for (const link of links ?? []) {
@@ -115,6 +138,8 @@ export async function readLibrary(db: SupabaseClient): Promise<LibraryRow[]> {
     filing: filingOf({ job: own?.state ?? null, topics: topics.length }),
     filingError: own?.error ?? null,
     readInto: read.has(r.id),
+    said: said.get(r.id) ?? null,
+    marks: marked.get(r.id) ?? 0,
     sameAs: all
       .filter(other => other.id !== r.id && titleOverlap(r.title, other.title) >= SAME_THING)
       .map(other => ({ id: other.id, title: other.title })),

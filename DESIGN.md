@@ -2189,6 +2189,18 @@ components, because working an article is the same work as working a lesson.
 | Asking | From the desk, stacked with the note and marks buttons, as on a lesson. The corner disc steps aside here, as it does on a lesson — one way to ask, not two. The document viewer below it has no desk and keeps the disc. |
 | In the inbox | The row's title is the way in, in the heading's ink with a `--rule` hairline under it that darkens to `--ink` under the pointer. |
 
+### Searching the shelf
+
+The inbox's search box reaches everything the shelf holds: what is printed on
+each row as the reader types, and a moment after they stop, the text of every
+resource and everything written in one.
+
+| Part | Treatment |
+| --- | --- |
+| The box | Always there, above the kinds. Its placeholder names what it searches. |
+| Under it | Once two characters are typed, one quiet line in the label register: *Looking through the text and your marks…* while the deeper half is asked for, then how many rows match. |
+| Why a row matched | Where the match is not on the row itself, one line under the title and the summary: where it was found (*In your summary*, *In a note*, *In a passage you marked*, *In the text*) in the label register, then the words around it in `--ink-soft`, the matched words on a mustard wash — the colour of a marked passage — in `--ink`. The reader's own words are preferred over the text's when a row matched in both. |
+
 ### Summaries in the reader's own words
 
 Saying a section back is how it sticks, so every heading carries a way to do
@@ -2202,7 +2214,9 @@ is mustard and a cloze is plum.
 | The field | Straight under the heading, empty until opened so an unopened section takes no more room than it did: `--paper-deep` ground, `3px` ultramarine left rule, `--space-3` inside, 68ch at most. The label register above the note editor; *Keep it* set on ultramarine. |
 | Said back | The same field, holding the summary as note text, with *Rewrite it*, *Remove* (set apart by a rule) and *Close*. |
 | The foot | *In your own words* — a foot section like the others, `2px --rule-strong` over it, the sprig beside a display-face title, and a line saying how many sections have been said back. It comes after the reading and before the material, the garden and *How did you go?* |
-| On the topic sheet | Under a lesson's title, the reader's whole-lesson summary, two lines at most, italic, behind a `2px` ultramarine rule with *In your words* in the label register. The sprig beside the play control opens every summary of that lesson in the marks' drawer — same column, same ground — each under its section's name, which links back to it. |
+| Said back, beside marks | `SaidBack` wherever a summary is listed next to things kept from the same reading: under an inbox title, under a lesson or a piece of material on the topic sheet. The step above a mark is made of the materials the sheet already uses for weight — the `--paper-deep` ground of a block, a `3px` ultramarine left rule, the sprig, *In your words* in the label register in ultramarine, and the reader's words in `--ink` where the row around them is captioned in `--ink-soft`. No colour ground, no card, no jump in size. Where only sections have been said back it says how many. |
+| Pinned above the marks | In the marks' drawer beside a reading, and at the head of a topic's *Marked* fold, the summaries stand first on the same ground and rule, the whole of a reading before its sections, each naming what it summarises. On the Marked timeline a summary row stands on it whether open or folded, its sprig in ultramarine. |
+| On the topic sheet | The sprig beside a lesson's play control opens every summary of that lesson in the marks' drawer — same column, same ground — each under its section's name, which links back to it. A piece of material's title opens it to be read here. |
 
 **Rule — the reward is said where it is earned.** The foot's note says that
 saying the whole back counts as much as working with it, before anything is

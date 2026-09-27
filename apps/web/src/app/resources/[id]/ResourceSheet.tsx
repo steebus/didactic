@@ -278,6 +278,7 @@ export default function ResourceSheet({ initial }: { initial: ResourceReading })
                 <Highlighter
                   resourceId={id}
                   existing={marks}
+                  summaries={summaries}
                   clozes={clozes}
                   deskWithin={sheetBody}
                   onChanged={() => void reread()}

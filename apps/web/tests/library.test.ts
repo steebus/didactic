@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readLibrary as getLibrary } from '@/lib/library'
 
 /**
- * A stub that answers the three queries getLibrary makes, in whatever
+ * A stub that answers the queries getLibrary makes, in whatever
  * order they resolve. Only the shape matters here: the question under
  * test is which rows are called the same thing.
  */
@@ -15,6 +15,8 @@ function stubDb(resources: Array<Record<string, unknown>>) {
       const chain = {
         select: () => chain,
         eq: () => chain,
+        in: () => chain,
+        not: () => chain,
         order: () => result,
         then: result.then.bind(result),
       }
@@ -83,5 +85,40 @@ describe('near-duplicate resources', () => {
   it('flags nothing when the library holds one thing', async () => {
     const rows = await getLibrary(stubDb([book('a', 'Anything at all')]))
     expect(rows[0].sameAs).toEqual([])
+  })
+})
+
+describe('what was said back, on the shelf', () => {
+  it('prints the whole summary and counts the sections and marks of each row', async () => {
+    const db = {
+      from(table: string) {
+        const rows =
+          table === 'resources'
+            ? [book('a', 'Custody'), book('b', 'Settlement')]
+            : table === 'highlights'
+              ? [
+                  { resource_id: 'a', kind: 'summary', section: null, note: 'The broker holds it.' },
+                  { resource_id: 'a', kind: 'summary', section: 'Who', note: 'The broker.' },
+                  { resource_id: 'a', kind: 'mark', section: null, note: null },
+                ]
+              : []
+        const result = Promise.resolve({ data: rows })
+        const chain = {
+          select: () => chain,
+          eq: () => chain,
+          in: () => chain,
+          not: () => chain,
+          order: () => result,
+          then: result.then.bind(result),
+        }
+        return chain
+      },
+    } as never
+
+    const [a, b] = await getLibrary(db)
+    expect(a.said).toEqual({ whole: 'The broker holds it.', sections: 1 })
+    expect(a.marks).toBe(1)
+    expect(b.said).toBeNull()
+    expect(b.marks).toBe(0)
   })
 })
