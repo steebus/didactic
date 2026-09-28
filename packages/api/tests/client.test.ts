@@ -166,6 +166,9 @@ describe('ENDPOINTS', () => {
       'auth.signOut',
       'subjects.qualify',
       'resources.uploadUrl',
+      // Rewrites one stored answer in a conversation; nothing cached is
+      // built from a conversation's messages.
+      'ask.draw',
     ])
 
     for (const [key, endpoint] of entries) {

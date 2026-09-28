@@ -65,13 +65,11 @@ export interface AskDeps {
   searchMap(query: string): Promise<Array<{ id: string; name: string }>>
   /** Picture files Commons holds under these searches, by name. */
   findPictures?(queries: string[]): Promise<string[]>
-  /** Draw a plate and keep it; its address, or null. Absent when drawing
-   *  is off, and then the tool is not offered. */
-  drawPicture?(subject: string): Promise<{ url: string | null; reason: string | null }>
+  /** Whether a picture may be drawn for an answer. The drawing itself
+   *  happens after the turn (`/api/ask/[id]/draw`); off, the tool is not
+   *  offered. */
+  drawing?: boolean
 }
-
-/** Said under a picture drawn in a conversation. */
-const DRAWN_CREDIT = 'Drawn for this answer'
 
 const FIND_PICTURES: Anthropic.Tool = {
   name: 'find_pictures',
@@ -89,7 +87,7 @@ const FIND_PICTURES: Anthropic.Tool = {
 const DRAW_PICTURE: Anthropic.Tool = {
   name: 'draw_picture',
   description:
-    'Have a picture drawn for this answer, as a hand-inked natural-history plate in pen and watercolour wash. Whenever the reader asks for a drawing; otherwise only when seeing the thing genuinely helps, find_pictures has nothing that shows it, and no block draws it better (a decision is `flow`, an order is `steps`, figures are `chart`, a difference is `compare`). Suits an object, organism, mechanism, apparatus, material, landscape or scene, a cutaway of one, or a physical thing that embodies an idea. It cannot carry words or numbers, so never ask for labels, text, charts or interfaces. Slow -- half a minute -- so once in an answer at most. Returns a `picture` block ready to put in your answer where it belongs; add a caption to it if you like.',
+    'Have a picture drawn for this answer, as a hand-inked natural-history plate in pen and watercolour wash. Whenever the reader asks for a drawing; otherwise only when seeing the thing genuinely helps, find_pictures has nothing that shows it, and no block draws it better (a decision is `flow`, an order is `steps`, figures are `chart`, a difference is `compare`). Suits an object, organism, mechanism, apparatus, material, landscape or scene, a cutaway of one, or a physical thing that embodies an idea. It cannot carry words or numbers, so never ask for labels, text, charts or interfaces. Once in an answer at most. Returns a `picture` block to put in your answer where it belongs, which is drawn after you answer; add a caption to it if you like.',
   input_schema: {
     type: 'object',
     properties: {
@@ -133,7 +131,7 @@ const TOOLS: Anthropic.Tool[] = [
   {
     name: 'propose_topic',
     description:
-      'Offer a new topic for the map. Search first with search_map: if the idea is already there under another name, say so instead of proposing a near-duplicate. Nothing is created until the reader accepts.',
+      'Offer a new topic for the map. Search first with search_map: if the idea is already there under another name, say so instead of proposing a near-duplicate. Nothing is created until the reader accepts, and every call puts a card in front of the reader -- so never call it to say there is nothing to propose, to test it, or with a placeholder: not calling it is how you say that.',
     input_schema: {
       type: 'object',
       properties: {
@@ -220,11 +218,11 @@ export async function askTurn(input: {
       model: 'claude-sonnet-5',
       max_tokens: MAX_TOKENS,
       thinking: NO_THINKING,
-      system: systemPrompt(context, Boolean(deps.drawPicture)),
+      system: systemPrompt(context, Boolean(deps.drawing)),
       tools: [
         ...TOOLS,
         ...(deps.findPictures ? [FIND_PICTURES] : []),
-        ...(deps.drawPicture ? [DRAW_PICTURE] : []),
+        ...(deps.drawing ? [DRAW_PICTURE] : []),
       ],
       messages,
     })
@@ -291,20 +289,21 @@ export async function askTurn(input: {
             : []
           const found = searches.length ? await deps.findPictures(searches) : []
           say(found.length ? found.join('\n') : 'Commons has nothing under those names.')
-        } else if (call.name === 'draw_picture' && deps.drawPicture) {
+        } else if (call.name === 'draw_picture' && deps.drawing) {
           const subject = toolText(given, 'subject')
           const alt = toolText(given, 'alt') || subject
           if (drawn) {
-            say('One drawing an answer; this one was not drawn.')
+            say('One drawing an answer; this one will not be drawn.')
           } else if (!subject) {
             say('Nothing to draw was given.')
           } else {
+            // Not drawn here. A drawing is most of half a minute, and this
+            // turn has one minute for the whole answer; the block goes in
+            // as a commission and the panel has it drawn straight after,
+            // in a request of its own (`/api/ask/[id]/draw`).
             drawn = true
-            const { url, reason } = await deps.drawPicture(subject)
             say(
-              url
-                ? `Drawn. Put this block in your answer where it belongs:\n\n\`\`\`picture\n${JSON.stringify({ url, alt, source: DRAWN_CREDIT, draw: subject }, null, 2)}\n\`\`\``
-                : `It could not be drawn: ${reason}. Tell the reader it failed and, in one short line, why, quoting that reason -- do not say you are unable to draw -- then answer without it.`
+              `It will be drawn as soon as you have answered. Put this block in your answer where the picture belongs, exactly as it is, and write the rest of the answer as though it is there; do not say the tool is down or that you cannot draw:\n\n\`\`\`picture\n${JSON.stringify({ draw: subject, alt }, null, 2)}\n\`\`\``
             )
           }
         } else if (call.name === 'search_map') {

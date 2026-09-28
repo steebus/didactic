@@ -307,30 +307,19 @@ describe('pictures in a conversation', () => {
     expect(told()).toContain('Depth_of_field_diagram.svg')
   })
 
-  it('draws once, and hands back a block ready to place', async () => {
-    const drawPicture = vi.fn(async () => ({ url: 'https://store.example/ask/c1/a.webp', reason: null }))
+  it('places one commission to be drawn after the answer, and no more', async () => {
     create
       .mockResolvedValueOnce(callingTool('draw_picture', { subject: 'a lens', alt: 'A lens' }))
       .mockResolvedValueOnce(callingTool('draw_picture', { subject: 'another', alt: 'Another' }))
-      .mockResolvedValueOnce(answering('Drawn.'))
+      .mockResolvedValueOnce(answering('Here.'))
 
-    await ask(deps({ drawPicture }))
+    await ask(deps({ drawing: true }))
 
     expect(offered()).toContain('draw_picture')
-    expect(drawPicture).toHaveBeenCalledTimes(1)
-    expect(told()).toContain('https://store.example/ask/c1/a.webp')
-    expect(told()).toContain('Drawn for this answer')
+    // The block handed back is a commission, not an address: the drawing
+    // is `/api/ask/[id]/draw`'s, after the turn.
+    expect(told()).toContain('\\"draw\\": \\"a lens\\"')
+    expect(told()).not.toContain('\\"url\\"')
     expect(told()).toContain('One drawing an answer')
-  })
-
-  it('tells the model why a drawing failed, so the reader hears it', async () => {
-    const drawPicture = vi.fn(async () => ({ url: null, reason: 'openai gpt-image-1 403: Your organization must be verified' }))
-    create
-      .mockResolvedValueOnce(callingTool('draw_picture', { subject: 'a flower', alt: 'A flower' }))
-      .mockResolvedValueOnce(answering('It failed.'))
-
-    await ask(deps({ drawPicture }))
-
-    expect(told()).toContain('Your organization must be verified')
   })
 })

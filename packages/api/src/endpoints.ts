@@ -132,6 +132,7 @@ export const ENDPOINTS = {
   'ask.accept': { name: 'ask.accept', method: 'POST', path: '/api/ask/[id]/accept', invalidates: [tags.topics, tags.subjects] },
   'ask.undo': { name: 'ask.undo', method: 'POST', path: '/api/ask/[id]/undo', invalidates: [tags.highlights, tags.clozes] },
   'ask.fold': { name: 'ask.fold', method: 'POST', path: '/api/ask/[id]/fold', invalidates: [tags.topics] },
+  'ask.draw': { name: 'ask.draw', method: 'POST', path: '/api/ask/[id]/draw', invalidates: [] },
 
   'highlights.create': { name: 'highlights.create', method: 'POST', path: '/api/highlights', invalidates: MARKS },
   'highlights.patch': { name: 'highlights.patch', method: 'PATCH', path: '/api/highlights', invalidates: MARKS },

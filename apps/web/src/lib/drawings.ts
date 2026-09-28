@@ -43,8 +43,12 @@ export interface Drawn {
 
 export async function drawPending(
   db: SupabaseClient,
-  lessonId: string,
-  markdown: string
+  /** What the drawings are filed under: a lesson's id, or
+   *  `ask/<conversation>` for an answer's. */
+  folder: string,
+  markdown: string,
+  /** Said under each one. */
+  credit: string = DRAWN_CREDIT
 ): Promise<Drawn> {
   const pending = pendingDrawings(markdown)
   if (pending.length === 0) return { text: markdown, drawn: 0, dropped: 0, reasons: [] }
@@ -53,7 +57,7 @@ export async function drawPending(
   const kept = new Map<number, Kept>()
   await Promise.all(
     asked.map(async block => {
-      kept.set(block.index, await drawAndKeep(db, lessonId, block.draw ?? ''))
+      kept.set(block.index, await drawAndKeep(db, folder, block.draw ?? ''))
     })
   )
 
@@ -63,7 +67,7 @@ export async function drawPending(
     const url = kept.get(block.index)?.url
     if (!url) return null
     drawn += 1
-    return { url, source: DRAWN_CREDIT }
+    return { url, source: credit }
   })
   const reasons = [...new Set([...kept.values()].flatMap(k => (k.reason ? [k.reason] : [])))]
   return { text, drawn, dropped, reasons }

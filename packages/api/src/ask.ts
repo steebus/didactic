@@ -11,6 +11,16 @@ export interface AskAnswer {
   /** Set when the model could not be reached. The conversation is still
    *  kept, and the text says so. */
   warning?: string
+  /** How many pictures the answer asked to have drawn. They print
+   *  nothing until `draw` has been called; absent when there are none. */
+  drawing?: number
+}
+
+/** What drawing an answer's picture comes back with: the answer as it is
+ *  now stored, and why, if the drawing could not be made. */
+export interface AskDrawn {
+  text: string
+  warning?: string
 }
 
 export const ask = (api: Api) => ({
@@ -29,4 +39,7 @@ export const ask = (api: Api) => ({
     api.post<{ ok: true }>(`/api/ask/${id}/undo`, body),
   /** Write the discussion into the lesson it happened in. */
   fold: (id: string) => api.post<{ ok: true; section?: string }>(`/api/ask/${id}/fold`, {}),
+  /** Draw the picture the last answer asked for, and hand back that
+   *  answer with it in. Called when `say` answers with `drawing`. */
+  draw: (id: string) => api.post<AskDrawn>(`/api/ask/${id}/draw`, {}),
 })

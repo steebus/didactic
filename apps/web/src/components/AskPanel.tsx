@@ -32,6 +32,7 @@ export function AskPanel({ context, onClose }: { context: AskContext; onClose: (
   const [conversationId, setConversationId] = useState<string | undefined>()
   const [undone, setUndone] = useState<Set<string>>(new Set())
   const [folded, setFolded] = useState(false)
+  const [drawing, setDrawing] = useState(false)
   const panel = useRef<HTMLDivElement>(null)
   const log = useRef<HTMLDivElement>(null)
 
@@ -69,6 +70,24 @@ export function AskPanel({ context, onClose }: { context: AskContext; onClose: (
           writes: body.writes,
         },
       ])
+      if (body.drawing) {
+        // The answer is already on screen, and its picture prints nothing
+        // until it is drawn. The drawing is its own request -- the turn's
+        // minute has no room for it -- and puts the answer back with the
+        // picture in, or with the reason it could not be made.
+        setDrawing(true)
+        const drawn = await api.ask.draw(body.conversationId)
+        const text = drawn.ok
+          ? drawn.body.text
+          : `${body.text}\n\n*The drawing could not be made: ${drawn.error ?? 'the request failed'}.*`
+        setLines(l => {
+          const next = [...l]
+          const last = next.length - 1
+          if (next[last]?.role === 'assistant') next[last] = { ...next[last], content: text }
+          return next
+        })
+        setDrawing(false)
+      }
     } else {
       setLines(l => [
         ...l,
@@ -139,7 +158,7 @@ export function AskPanel({ context, onClose }: { context: AskContext; onClose: (
           </div>
         ))}
 
-        {busy && <p className={styles.thinking}>Thinking…</p>}
+        {busy && <p className={styles.thinking}>{drawing ? 'Drawing the picture…' : 'Thinking…'}</p>}
       </div>
 
       <div className={styles.composer}>
