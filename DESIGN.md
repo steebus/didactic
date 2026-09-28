@@ -462,7 +462,7 @@ Repeated on all eight surfaces without variation in structure:
 3. The title, at `--step-3` (`--step-4` on home), `line-height` 0.9–0.95,
    `letter-spacing` −0.02 to −0.03em.
 4. A **5px mustard rule** directly beneath the band (`.headRule`), then
-   `margin-bottom: var(--space-5)`. On home the rule carries the reader's
+   `margin-bottom: var(--space-5)`. On home the rule sits flush against the band and carries the reader's
    year (`components/ActivityRule`): it stays put as the ground, and a 2px
    stem a day grows up from it into the foot of the band, up to `1.5rem`
    tall by how full the day was against the reader's own, in the plate of
