@@ -72,6 +72,8 @@ function hrefOf(origin: AskOrigin): string {
   switch (origin.kind) {
     case 'lesson':
       return `/lesson/${origin.id}${origin.sectionId ? `#${origin.sectionId}` : ''}`
+    case 'resource':
+      return `/resources/${origin.id}`
     case 'topic':
       return `/topics/${origin.id}`
     case 'subject':

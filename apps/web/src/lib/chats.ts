@@ -1,5 +1,13 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { askOrigin, isAskContext, type AskContext, type AskOrigin } from '@didactic/core/ask'
+import {
+  askOrigin,
+  isAskContext,
+  type AskContext,
+  type Chat,
+  type ChatSummary,
+} from '@didactic/core/ask'
+
+export type { Chat, ChatMessage, ChatSummary } from '@didactic/core/ask'
 
 /**
  * Reading back the conversations a reader has had.
@@ -9,33 +17,6 @@ import { askOrigin, isAskContext, type AskContext, type AskOrigin } from '@didac
  * time it opened and everything said before that was a row nobody
  * queried. This is the other half of storing them.
  */
-
-/** A conversation as the list prints it. */
-export interface ChatSummary {
-  id: string
-  startedAt: string
-  /** What it was about, as the context recorded it. */
-  context: AskContext
-  /** The reader's first question, which is what names a conversation
-   *  better than any title we could write for it. */
-  opening: string
-  /** How many turns were taken, the reader's and the agent's together. */
-  said: number
-  /** What it left behind: marks and cards kept, topics offered. */
-  kept: { marks: number; cards: number; topics: number }
-  /** Whether it has been written into its lesson. */
-  folded: boolean
-  /** The lesson or topic it hangs off, where there is one. */
-  lessonId: string | null
-  topicId: string | null
-}
-
-/** One message, as the reader of a single conversation prints it. */
-export interface ChatMessage {
-  role: 'user' | 'assistant'
-  content: string
-  createdAt: string
-}
 
 /**
  * Count what a message's `proposals` column recorded.
@@ -62,13 +43,28 @@ function tally(proposals: unknown, into: { marks: number; cards: number; topics:
  * count for each, and a page of twenty conversations should not be
  * twenty round trips to another continent.
  */
-export async function readChats(db: SupabaseClient, userId: string): Promise<ChatSummary[]> {
-  const { data: conversations } = await db
+export async function readChats(
+  db: SupabaseClient,
+  userId: string,
+  /** Only those asked from this page: a lesson, a resource, a topic. */
+  about?: { route: 'lesson' | 'resource' | 'topic' | 'subject'; entityId: string }
+): Promise<ChatSummary[]> {
+  let query = db
     .from('conversations')
     .select('id, started_at, context, lesson_id, topic_id, folded_at')
     .eq('user_id', userId)
     .eq('kind', 'ask')
-    .order('started_at', { ascending: false })
+  if (about) {
+    // A lesson's own column where there is one, since it is set on every
+    // conversation begun from a lesson; the recorded context otherwise.
+    query =
+      about.route === 'lesson'
+        ? query.eq('lesson_id', about.entityId)
+        : about.route === 'topic'
+          ? query.eq('topic_id', about.entityId)
+          : query.eq('context->>route', about.route).eq('context->>entityId', about.entityId)
+  }
+  const { data: conversations } = await query.order('started_at', { ascending: false })
 
   if (!conversations?.length) return []
 
@@ -107,13 +103,6 @@ export async function readChats(db: SupabaseClient, userId: string): Promise<Cha
   })
 }
 
-/** One conversation, read back: what was said, and where it began. */
-export interface Chat {
-  messages: ChatMessage[]
-  /** The lesson, topic or subject it was asked from, where there is one. */
-  origin: AskOrigin | null
-}
-
 /**
  * One conversation, in the order it was had.
  *
@@ -127,7 +116,7 @@ export async function readChat(
 ): Promise<Chat | null> {
   const { data: conversation } = await db
     .from('conversations')
-    .select('id, context, lesson_id, topic_id')
+    .select('id, context, lesson_id, topic_id, folded_at')
     .eq('id', id)
     .eq('user_id', userId)
     .maybeSingle()
@@ -145,6 +134,8 @@ export async function readChat(
     : { route: 'other' }
 
   return {
+    context,
+    folded: Boolean(conversation.folded_at),
     origin: askOrigin(context, {
       lessonId: conversation.lesson_id,
       topicId: conversation.topic_id,

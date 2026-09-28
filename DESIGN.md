@@ -2347,6 +2347,15 @@ point is the reader's current account of the section, not a pile of drafts.
 are skipped by the mark and cloze painters and refused by the selection, so a
 summary is never searched, marked or tended as part of what it summarises.
 
+### The ask panel
+
+| Part | Treatment |
+|---|---|
+| The panel | `--paper-deep`, one step into the stock from the sheet under it, with a `--rule-strong` edge and a deeper shadow: on `--paper` it read as a hole in the lesson rather than something laid over it. The field stays on `--paper`, so the place to type is the lightest thing in it. Comes up `0.75rem` and fades in; leaves the same way down. |
+| *Asked here* | An action link in the head, underlined in mustard, on any page that is one thing with an id — a lesson, a resource read here, a topic, a subject. Opens the page's conversations in a drawer. |
+| The drawer | The marks drawer's column, ground, rule and slide, over the panel: *Asked here* and the count as its title, *New question*, then each conversation — the passage it was asked about in the display face and clamped to two lines, the opening question, and a line of date · questions · what it left · *in the lesson* (`core/ask.chatLine`). The one open in the panel wears the band's green down its edge. Pressing one carries it on in the panel. |
+| *Add this to the lesson* | Says *Adding it to the lesson…* while the discussion is rewritten as prose; then the panel leaves, and only once it has gone is the lesson told, so what went in is shown arriving in place with nothing in front of it. Reads *In the lesson* on a conversation already folded. |
+
 ### The note editor
 
 A box you can bold things in, at every size the panel takes.

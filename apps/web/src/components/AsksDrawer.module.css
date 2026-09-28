@@ -1,0 +1,209 @@
+/* The page's conversations, down the side of it: the marks drawer's
+   column, ground and slide (MarkList.module.css), because it is the
+   same kind of index -- what was made on this page, to go back to. Over
+   the ask panel, which it opens from and hands back to. */
+.drawer {
+  position: fixed;
+  inset: 0 0 0 auto;
+  z-index: 52;
+  width: var(--notes-width, 22rem);
+  max-width: 100vw;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border-left: 1px solid var(--rule-strong);
+  box-shadow: -6px 0 24px rgba(var(--ink-rgb), 0.16);
+  overflow: hidden;
+  animation: slideIn var(--dur-state) var(--ease-settle) both;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(calc(var(--motion-travel) * 1.5rem));
+    opacity: 0;
+  }
+}
+
+.leaving {
+  animation: slideOut var(--dur-state) var(--ease-exit) both;
+  pointer-events: none;
+}
+
+@keyframes slideOut {
+  to {
+    transform: translateX(calc(var(--motion-travel) * 1.5rem));
+    opacity: 0;
+  }
+}
+
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex: none;
+  padding: var(--space-3) var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--rule);
+}
+
+.title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.tally {
+  font-family: var(--font-display);
+  font-size: var(--step-0);
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--ink);
+}
+
+.close {
+  flex: none;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  font-size: var(--step--1);
+  line-height: 1;
+  color: var(--ink-soft);
+  background: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.close:hover {
+  color: var(--ink);
+  border-color: var(--paper-edge);
+}
+
+.close:focus-visible,
+.chat:focus-visible,
+.fresh:focus-visible {
+  outline: 2px solid var(--plate-terracotta);
+  outline-offset: 2px;
+}
+
+/* An action link, as every other one here: underlined in mustard. */
+.fresh {
+  flex: none;
+  align-self: flex-start;
+  margin: var(--space-3) var(--space-3) var(--space-2);
+  padding: 0;
+  font: inherit;
+  font-size: var(--step--1);
+  color: var(--ink);
+  background: none;
+  border: none;
+  text-decoration: underline;
+  text-decoration-color: var(--plate-mustard);
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.fresh:hover {
+  color: var(--plate-terracotta);
+}
+
+.chats {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--rule);
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 0.25rem);
+  width: 100%;
+  padding: var(--space-3);
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  cursor: pointer;
+  transition: background var(--dur-feedback) var(--ease-settle);
+}
+
+.chat:hover {
+  background: var(--paper-deep);
+}
+
+/* The one open in the panel now: the green of the band down its edge. */
+.here {
+  background: var(--paper-deep);
+  box-shadow: inset 3px 0 0 var(--plate-green);
+}
+
+.quote {
+  font-family: var(--font-display);
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  padding-left: var(--space-2);
+  border-left: 2px solid var(--rule);
+}
+
+.opening {
+  font-size: var(--step-0);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.meta {
+  font-size: var(--step--2);
+  color: var(--ink-faint);
+}
+
+.empty {
+  padding: var(--space-4) var(--space-3);
+  font-size: var(--step--1);
+  line-height: 1.5;
+  color: var(--ink-faint);
+  margin: 0;
+}
+
+@media (max-width: 40rem) {
+  .drawer {
+    width: min(22rem, 86vw);
+    box-shadow: -8px 0 28px rgba(var(--ink-rgb), 0.28);
+  }
+
+  @keyframes slideIn {
+    from {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes slideOut {
+    to {
+      transform: translateX(100%);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer,
+  .leaving {
+    animation-duration: 1ms;
+  }
+}

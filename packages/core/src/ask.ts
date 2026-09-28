@@ -14,9 +14,9 @@
 
 import { headingLines } from './sections'
 
-export type AskRoute = 'lesson' | 'topic' | 'subject' | 'cards' | 'other'
+export type AskRoute = 'lesson' | 'resource' | 'topic' | 'subject' | 'cards' | 'other'
 
-const ROUTES: AskRoute[] = ['lesson', 'topic', 'subject', 'cards', 'other']
+const ROUTES: AskRoute[] = ['lesson', 'resource', 'topic', 'subject', 'cards', 'other']
 
 /** The fields that are optional strings, listed once so the guard and
  *  any future writer cannot drift apart. */
@@ -285,7 +285,7 @@ export function groupChats<T extends ChatLike>(
 
 /** Where a conversation was begun, as a sheet heading it names it. */
 export interface AskOrigin {
-  kind: 'lesson' | 'topic' | 'subject' | 'cards'
+  kind: 'lesson' | 'resource' | 'topic' | 'subject' | 'cards'
   /** Absent for the cards, which are one place rather than one thing. */
   id?: string
   /** What it was called then. Falls back to the kind itself. */
@@ -321,6 +321,62 @@ export function askOrigin(
     title: c.title?.trim() || `A ${c.route}`,
     ...(c.route === 'lesson' && c.sectionId ? { sectionId: c.sectionId } : {}),
   }
+}
+
+/* ------------------------------------------------ conversations kept */
+
+/** A conversation as a list prints it. */
+export interface ChatSummary {
+  id: string
+  startedAt: string
+  /** What it was about, as the context recorded it. */
+  context: AskContext
+  /** The reader's first question, which is what names a conversation
+   *  better than any title we could write for it. */
+  opening: string
+  /** How many turns were taken, the reader's and the agent's together. */
+  said: number
+  /** What it left behind: marks and cards kept, topics offered. */
+  kept: { marks: number; cards: number; topics: number }
+  /** Whether it has been written into its lesson. */
+  folded: boolean
+  /** The lesson or topic it hangs off, where there is one. */
+  lessonId: string | null
+  topicId: string | null
+}
+
+/** One message, as the reader of a single conversation prints it. */
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+  createdAt: string
+}
+
+/** One conversation, read back: what was said, and where it began. */
+export interface Chat {
+  messages: ChatMessage[]
+  /** The lesson, topic or subject it was asked from, where there is one. */
+  origin: AskOrigin | null
+  /** Where it was asked, as it stood then -- the chosen passage with it. */
+  context: AskContext
+  /** Whether it has been written into its lesson. */
+  folded: boolean
+}
+
+/**
+ * The line under a conversation in a list of them: how long, what it
+ * left, and whether it went into the lesson. Here so the phone's list
+ * says the same thing about the same conversation.
+ */
+export function chatLine(chat: Pick<ChatSummary, 'said' | 'kept' | 'folded'>): string {
+  const turns = Math.ceil(chat.said / 2)
+  const parts = [`${turns} ${turns === 1 ? 'question' : 'questions'}`]
+  const { marks, cards, topics } = chat.kept
+  if (marks) parts.push(`${marks} ${marks === 1 ? 'mark' : 'marks'}`)
+  if (cards) parts.push(`${cards} ${cards === 1 ? 'card' : 'cards'}`)
+  if (topics) parts.push(`${topics} ${topics === 1 ? 'topic' : 'topics'} offered`)
+  if (chat.folded) parts.push('in the lesson')
+  return parts.join(' · ')
 }
 
 /**

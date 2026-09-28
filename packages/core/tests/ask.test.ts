@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isAskContext, contextPreamble, foldInto, groupChats, askOrigin } from '../src/ask'
+import { isAskContext, contextPreamble, foldInto, groupChats, askOrigin, chatLine } from '../src/ask'
 
 describe('an ask context', () => {
   it('accepts the shape the panel sends', () => {
@@ -318,5 +318,25 @@ describe('acceptedSentence', () => {
     expect(acceptedSentence({ outcome: 'queued', topicId: 't' })).toMatch(/waiting in the inbox/)
     expect(acceptedSentence({ outcome: 'added', topicId: 't', filed: 0 })).toBe('Added to the map, filed under nothing yet.')
     expect(acceptedSentence({ outcome: 'added', topicId: 't', filed: 2 })).toMatch(/filed under 2 subjects/)
+  })
+})
+
+describe('asking from a resource', () => {
+  it('is a place of its own, and can be gone back to', () => {
+    expect(isAskContext({ route: 'resource', entityId: 'r1' })).toBe(true)
+    expect(askOrigin({ route: 'resource', entityId: 'r1', title: 'An article' })).toEqual({
+      kind: 'resource',
+      id: 'r1',
+      title: 'An article',
+    })
+  })
+})
+
+describe('chatLine', () => {
+  it('says how long it went on, what it left, and whether it went in', () => {
+    expect(chatLine({ said: 2, kept: { marks: 0, cards: 0, topics: 0 }, folded: false })).toBe('1 question')
+    expect(chatLine({ said: 6, kept: { marks: 1, cards: 2, topics: 0 }, folded: true })).toBe(
+      '3 questions · 1 mark · 2 cards · in the lesson'
+    )
   })
 })

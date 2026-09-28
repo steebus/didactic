@@ -21,6 +21,7 @@ const READING_LINE = 120
 function routeOf(path: string): { route: AskRoute; entityId?: string } {
   const parts = path.split('/').filter(Boolean)
   if (parts[0] === 'lesson') return { route: 'lesson', entityId: parts[1] }
+  if (parts[0] === 'resources' && parts[1]) return { route: 'resource', entityId: parts[1] }
   if (parts[0] === 'topics') return { route: 'topic', entityId: parts[1] }
   if (parts[0] === 'subjects') return { route: 'subject', entityId: parts[1] }
   if (parts[0] === 'clozes' || parts[0] === 'cards') return { route: 'cards' }

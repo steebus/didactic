@@ -54,10 +54,35 @@
   width: min(26rem, calc(100vw - var(--space-4) * 2));
   max-height: min(32rem, 70vh);
 
-  background: var(--paper);
-  border: 1px solid var(--rule);
+  /* One step into the stock from the sheet it lies on, with the
+     stronger rule: the same --paper as the lesson read as a hole in it
+     rather than something laid over it. */
+  background: var(--paper-deep);
+  border: 1px solid var(--rule-strong);
   border-radius: 0.5rem;
-  box-shadow: 0 4px 24px rgba(var(--ink-rgb), 0.3);
+  box-shadow: 0 6px 28px rgba(var(--ink-rgb), 0.34);
+  animation: panelIn var(--dur-state) var(--ease-settle) both;
+}
+
+@keyframes panelIn {
+  from {
+    transform: translateY(0.75rem);
+    opacity: 0;
+  }
+}
+
+/* Leaves the way it came: down and away. After an add, the lesson shows
+   what went in only once this has gone. */
+.leaving {
+  animation: panelOut var(--dur-state) var(--ease-exit) both;
+  pointer-events: none;
+}
+
+@keyframes panelOut {
+  to {
+    transform: translateY(1rem);
+    opacity: 0;
+  }
 }
 
 /* The sheet is narrow enough that the panel has to dock, at the same
@@ -81,6 +106,32 @@
   justify-content: space-between;
   padding: var(--space-3) var(--space-3) var(--space-2);
   border-bottom: 1px solid var(--rule);
+}
+
+.headActions {
+  display: flex;
+  flex: none;
+  gap: var(--space-3);
+  align-items: baseline;
+}
+
+/* The way to the page's other conversations: an action link, underlined
+   in mustard as every other one is. */
+.shelfButton {
+  padding: 0;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  background: none;
+  border: none;
+  text-decoration: underline;
+  text-decoration-color: var(--plate-mustard);
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.shelfButton:hover {
+  color: var(--plate-terracotta);
 }
 
 .where {

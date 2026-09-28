@@ -5,9 +5,13 @@ import { didactic } from '@didactic/api'
 import { acceptedSentence } from '@didactic/core/ask'
 import type { AskContext, Proposal, AgentWrite } from '@didactic/core/ask'
 import { Prose } from './Prose'
+import { AsksDrawer } from './AsksDrawer'
 import styles from './Ask.module.css'
 
 const api = didactic()
+
+/** The longest the panel's leaving can take; see `leave`. */
+const LEAVE_MS = 400
 
 /**
  * The conversation itself.
@@ -33,6 +37,15 @@ export function AskPanel({ context, onClose }: { context: AskContext; onClose: (
   const [undone, setUndone] = useState<Set<string>>(new Set())
   const [folded, setFolded] = useState(false)
   const [drawing, setDrawing] = useState(false)
+  // Adding to the lesson: the button says so while it is written, the
+  // panel leaves, and only then does the lesson show what went in.
+  const [folding, setFolding] = useState(false)
+  // On its way out, and what to do once it has gone.
+  const [leaving, setLeaving] = useState<null | (() => void)>(null)
+  const [shelf, setShelf] = useState(false)
+  // A conversation picked up from the drawer brings the passage it was
+  // asked about, which may not be the one chosen now.
+  const [quote, setQuote] = useState(context.quote)
   const panel = useRef<HTMLDivElement>(null)
   const log = useRef<HTMLDivElement>(null)
 
@@ -97,6 +110,82 @@ export function AskPanel({ context, onClose }: { context: AskContext; onClose: (
     setBusy(false)
   }
 
+  // The pages whose conversations can be listed: one thing, with an id.
+  const listable =
+    context.entityId &&
+    (context.route === 'lesson' ||
+      context.route === 'resource' ||
+      context.route === 'topic' ||
+      context.route === 'subject')
+      ? { route: context.route, entityId: context.entityId }
+      : null
+
+  /** Close the way it opened, then do what was pressed -- once, on the
+   *  animation's end or, where motion is off and there is no animation
+   *  to end, a moment later regardless. */
+  const left = useRef(false)
+  function leave(then: () => void = onClose) {
+    left.current = false
+    const once = () => {
+      if (left.current) return
+      left.current = true
+      then()
+    }
+    setLeaving(() => once)
+    window.setTimeout(once, LEAVE_MS)
+  }
+
+  /** Carry on a conversation from the drawer. */
+  async function resume(id: string) {
+    setShelf(false)
+    if (id === conversationId) return
+    setBusy(true)
+    const { ok, body } = await api.ask.read(id)
+    if (ok) {
+      setConversationId(id)
+      setLines(body.messages.map(m => ({ role: m.role, content: m.content })))
+      setQuote(body.context.quote)
+      setFolded(body.folded)
+      setUndone(new Set())
+    }
+    setBusy(false)
+  }
+
+  /** Start again on this page, with nothing carried. */
+  function fresh() {
+    setShelf(false)
+    setConversationId(undefined)
+    setLines([])
+    setQuote(context.quote)
+    setFolded(false)
+  }
+
+  /**
+   * Write the conversation into the lesson.
+   *
+   * It takes a few seconds -- the discussion is rewritten as lesson
+   * prose -- and pressing it used to say "Added" at once while nothing
+   * visibly happened. Now the button says it is adding, the panel goes
+   * when it is done, and the lesson is told only after that, so what went
+   * in is shown arriving on a page with nothing in front of it.
+   */
+  async function fold() {
+    if (!conversationId || folding) return
+    setFolding(true)
+    const { ok, body } = await api.ask.fold(conversationId)
+    setFolding(false)
+    if (!ok) return
+    setFolded(true)
+    leave(() => {
+      onClose()
+      // The sheet holds its body in state, so it is told to read it
+      // again, and what went in, so it can show it arriving.
+      window.dispatchEvent(
+        new CustomEvent('didactic:lesson-changed', { detail: { section: body?.section } })
+      )
+    })
+  }
+
   async function undo(write: AgentWrite) {
     if (!conversationId) return
     setUndone(u => new Set(u).add(write.id))
@@ -113,22 +202,43 @@ export function AskPanel({ context, onClose }: { context: AskContext; onClose: (
   }
 
   return (
-    <div ref={panel} className={styles.panel} role="dialog" aria-label="Ask about this">
+    <>
+    <div
+      ref={panel}
+      className={`${styles.panel} ${leaving ? styles.leaving : ''}`}
+      role="dialog"
+      aria-label="Ask about this"
+      onAnimationEnd={e => {
+        if (e.target === e.currentTarget) leaving?.()
+      }}
+    >
       <div className={styles.head}>
         <span className={styles.where}>
-          {context.quote
+          {quote
             ? 'About the passage you chose'
             : context.title
               ? `About ${context.title}`
               : 'Ask about this'}
         </span>
-        <button type="button" className={styles.close} onClick={onClose} aria-label="Close">
-          ✕
-        </button>
+        <span className={styles.headActions}>
+          {listable && (
+            <button
+              type="button"
+              className={styles.shelfButton}
+              onClick={() => setShelf(true)}
+              aria-expanded={shelf}
+            >
+              Asked here
+            </button>
+          )}
+          <button type="button" className={styles.close} onClick={() => leave()} aria-label="Close">
+            ✕
+          </button>
+        </span>
       </div>
 
       <div ref={log} className={styles.log}>
-        {context.quote && <blockquote className={styles.quote}>{context.quote}</blockquote>}
+        {quote && <blockquote className={styles.quote}>{quote}</blockquote>}
 
         {lines.map((line, i) => (
           <div
@@ -184,23 +294,25 @@ export function AskPanel({ context, onClose }: { context: AskContext; onClose: (
         <button
           type="button"
           className={styles.fold}
-          disabled={folded}
-          onClick={async () => {
-            setFolded(true)
-            const { ok, body } = await api.ask.fold(conversationId)
-            if (!ok) setFolded(false)
-            // The sheet holds its body in state, so it is told to read
-            // it again, and what went in, so it can show it arriving.
-            else
-              window.dispatchEvent(
-                new CustomEvent('didactic:lesson-changed', { detail: { section: body?.section } })
-              )
-          }}
+          disabled={folded || folding || busy}
+          aria-busy={folding}
+          onClick={fold}
         >
-          {folded ? 'Added to the lesson' : 'Add this to the lesson'}
+          {folding ? 'Adding it to the lesson…' : folded ? 'In the lesson' : 'Add this to the lesson'}
         </button>
       )}
     </div>
+
+      {shelf && listable && (
+        <AsksDrawer
+          about={listable}
+          current={conversationId}
+          onResume={id => void resume(id)}
+          onFresh={fresh}
+          onClose={() => setShelf(false)}
+        />
+      )}
+    </>
   )
 }
 

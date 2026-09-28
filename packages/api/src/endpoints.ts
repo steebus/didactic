@@ -128,6 +128,8 @@ export const ENDPOINTS = {
 
   'refresher.write': { name: 'refresher.write', method: 'POST', path: '/api/refresher/[topicId]', invalidates: [tags.topics, tags.subjects] },
 
+  'ask.list': { name: 'ask.list', method: 'GET', path: '/api/ask', invalidates: [] },
+  'ask.read': { name: 'ask.read', method: 'GET', path: '/api/ask/[id]', invalidates: [] },
   'ask.say': { name: 'ask.say', method: 'POST', path: '/api/ask', invalidates: [tags.highlights, tags.clozes] },
   'ask.accept': { name: 'ask.accept', method: 'POST', path: '/api/ask/[id]/accept', invalidates: [tags.topics, tags.subjects] },
   'ask.undo': { name: 'ask.undo', method: 'POST', path: '/api/ask/[id]/undo', invalidates: [tags.highlights, tags.clozes] },

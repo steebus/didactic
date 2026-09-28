@@ -1,5 +1,5 @@
 import type { Api } from './client'
-import type { AskContext, Proposal, AgentWrite, Accepted } from '@didactic/core/ask'
+import type { AskContext, Proposal, AgentWrite, Accepted, Chat, ChatSummary } from '@didactic/core/ask'
 
 /** What a turn answers with: what to print, what is offered, and what
  *  was kept without being asked. */
@@ -24,6 +24,11 @@ export interface AskDrawn {
 }
 
 export const ask = (api: Api) => ({
+  /** The conversations had on one page, newest first. */
+  list: (about: { route: 'lesson' | 'resource' | 'topic' | 'subject'; entityId: string }) =>
+    api.get<{ chats: ChatSummary[] }>('/api/ask', about),
+  /** One conversation, read back so it can be carried on. */
+  read: (id: string) => api.get<Chat>(`/api/ask/${id}`),
   /** Say something. Omitting the conversation starts one. */
   say: (body: { conversationId?: string; message: string; context: AskContext }) =>
     api.post<AskAnswer>('/api/ask', body),

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { ownerId } from '@/lib/auth'
 import { askTurn, READ_CEILING, type AskDeps } from '@/lib/llm/ask'
+import { readChats } from '@/lib/chats'
 import { searchCommons, settlePictures } from '@/lib/pictures'
 import { drawingOn } from '@/lib/features'
 import { pendingDrawings } from '@didactic/core/pictures'
@@ -274,4 +275,32 @@ export async function POST(req: Request) {
     writes: turn.writes,
     ...(toDraw ? { drawing: toDraw } : {}),
   })
+}
+
+/** The pages a conversation can be listed by. */
+const LISTED = ['lesson', 'resource', 'topic', 'subject'] as const
+
+/**
+ * The conversations had on one page, newest first.
+ *
+ * What the panel's drawer lists, so any of them can be picked up again.
+ * `?route=lesson&entityId=…` -- a lesson, a resource read in the app, a
+ * topic or a subject; nothing else has one page to hang them off.
+ */
+export async function GET(req: Request) {
+  const userId = await ownerId()
+  if (!userId) return NextResponse.json({ error: 'not signed in' }, { status: 401 })
+
+  const url = new URL(req.url)
+  const route = url.searchParams.get('route')
+  const entityId = url.searchParams.get('entityId')
+  if (!entityId || !LISTED.includes(route as (typeof LISTED)[number])) {
+    return NextResponse.json({ error: 'which page?' }, { status: 400 })
+  }
+
+  const chats = await readChats(supabaseAdmin(), userId, {
+    route: route as (typeof LISTED)[number],
+    entityId,
+  })
+  return NextResponse.json({ chats })
 }
