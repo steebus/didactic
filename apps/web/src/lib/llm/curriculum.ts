@@ -274,7 +274,7 @@ export const ROUNDS_MAX = 6
  * a long lesson never appeared.
  */
 const CARRY_ON =
-  'Carry straight on from exactly where that stops, mid-sentence if that is where it stops. ' +
+  'That stops at the end of a paragraph. Carry straight on with the next one. ' +
   'Do not repeat a word of it, do not summarise it, do not start again, and do not say you are continuing. ' +
   'Write only the rest of the lesson.'
 
@@ -460,8 +460,21 @@ ${blockPromptSection()}`
   // stored is always the complete prose, so a round that never comes
   // leaves a readable lesson rather than a fragment.
   //
-  // Trailing whitespace goes because the next round is asked to carry
-  // on from the last character, and a turn that ends in a space is
-  // refused by the API besides.
-  return { text: (carried ? carried + block.text : block.text).trimEnd(), finished }
+  //
+  // A round that fills up is cut back to its last paragraph break, and
+  // the next one starts a paragraph of its own. Carrying on mid-sentence
+  // is a seam the model cannot see: a new turn starts without the space
+  // the old one was about to write, or with a `## ` it thought it owed,
+  // and "A" + "common misconception…" once reached a reader as one
+  // paragraph-long heading, "## Acommon misconception…". The words cut
+  // off are rewritten by the next round, which costs a paragraph at most.
+  //
+  // Trailing whitespace goes because a turn that ends in a space is
+  // refused by the API.
+  // ponytail: a blank line inside a fenced specimen counts as a break;
+  // skip those if a lesson ever resumes inside one.
+  const whole = carried ? `${carried}\n\n${block.text.trimStart()}` : block.text
+  const cut = whole.lastIndexOf('\n\n')
+  const text = !finished && cut > (carried?.length ?? 0) ? whole.slice(0, cut) : whole
+  return { text: text.trimEnd(), finished }
 }

@@ -108,15 +108,18 @@ describe('a lesson that fits', () => {
 })
 
 describe('a round that fills up', () => {
-  it('hands back what it wrote and says there is more', async () => {
+  it('hands back what it wrote, to its last whole paragraph, and says there is more', async () => {
     finalMessage.mockResolvedValue(
-      said('Performance data is almost always skewed, not', 'max_tokens')
+      said('Latency adds up.\n\nPerformance data is almost always skewed, not', 'max_tokens')
     )
 
-    expect(await write()).toEqual({
-      text: 'Performance data is almost always skewed, not',
-      finished: false,
-    })
+    expect(await write()).toEqual({ text: 'Latency adds up.', finished: false })
+  })
+
+  it('keeps a round with no paragraph break whole rather than losing it', async () => {
+    finalMessage.mockResolvedValue(said('One long paragraph, not', 'max_tokens'))
+
+    expect((await write()).text).toBe('One long paragraph, not')
   })
 
   it('writes only one round, and leaves the next to the caller', async () => {
@@ -131,11 +134,23 @@ describe('a round that fills up', () => {
 })
 
 describe('carrying on from a round that filled up', () => {
-  it('joins the new prose onto the old', async () => {
-    finalMessage.mockResolvedValue(said(' neatly bell-shaped.'))
+  it('joins the new prose onto the old as the next paragraph', async () => {
+    finalMessage.mockResolvedValue(said(' Neatly bell-shaped it is not.'))
 
-    const { text } = await write('Performance data is almost always skewed, not')
-    expect(text).toBe('Performance data is almost always skewed, not neatly bell-shaped.')
+    const { text } = await write('Performance data is almost always skewed.')
+    expect(text).toBe('Performance data is almost always skewed.\n\nNeatly bell-shaped it is not.')
+  })
+
+  it('never glues a paragraph onto a heading marker at the seam', async () => {
+    // A round once stopped after "## A", the next began "common
+    // misconception", and a whole paragraph printed as an h2.
+    finalMessage.mockResolvedValue(said('Caching is everywhere.\n\n## A', 'max_tokens'))
+    const first = await write('# DNS')
+    expect(first.text).toBe('# DNS\n\nCaching is everywhere.')
+
+    finalMessage.mockResolvedValue(said('A common misconception is that TTL helps.'))
+    const { text } = await write(first.text)
+    expect(text).toBe('# DNS\n\nCaching is everywhere.\n\nA common misconception is that TTL helps.')
   })
 
   it('never ends on an assistant turn, which the model refuses', async () => {
@@ -177,8 +192,8 @@ describe('carrying on from a round that filled up', () => {
     // round is asked to carry on from the last character.
     finalMessage.mockResolvedValue(said('more.  \n', 'max_tokens'))
 
-    const { text } = await write('Some prose,')
-    expect(text).toBe('Some prose,more.')
+    const { text } = await write('Some prose.')
+    expect(text).toBe('Some prose.\n\nmore.')
     expect(text).not.toMatch(/\s$/)
   })
 })
