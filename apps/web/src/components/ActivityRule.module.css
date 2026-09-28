@@ -1,0 +1,173 @@
+/* The rule under the masthead. The mustard band is the page's own
+   5px rule, in the place it always was; the year grows up out of it,
+   a stem a day, into the foot of the band above. */
+.rule {
+  --pitch: 4px; /* one day: a 2px stem and its gap */
+  --gap: 3px;
+  --stem: 1.5rem; /* the tallest stem, and how far the strip reaches up */
+  --ground: 5px;
+  position: relative;
+  container-type: inline-size;
+  /* Pulled up by a stem so the rule itself stays where it was. */
+  margin-top: calc(-1 * var(--stem));
+  margin-bottom: calc(var(--space-5) - var(--space-3));
+}
+
+.rule::before {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: var(--stem);
+  height: var(--ground);
+  background: var(--plate-mustard);
+  pointer-events: none;
+}
+
+.scroller {
+  overflow-x: auto;
+  scrollbar-width: none;
+  cursor: pointer;
+  padding: 0 var(--space-5) var(--space-3);
+  outline-offset: 2px;
+  /* A year of cells fills the sheet where it can, and scrolls at the
+     smallest cell that is still a target for the eye where it cannot. */
+  --cell: max(0.8125rem, calc((100cqi - 2 * var(--space-5)) / 54 - var(--gap)));
+}
+
+/* Stems and calendar both end at today, on the right. */
+.scroller > * {
+  margin-left: auto;
+}
+
+.scroller::-webkit-scrollbar {
+  display: none;
+}
+
+.scroller:active {
+  cursor: grabbing;
+}
+
+/* Shut: a stem per day, taller for a fuller day, and the months under
+   the ground. */
+.track {
+  width: max-content;
+}
+
+.ticks {
+  display: flex;
+  align-items: flex-end;
+  gap: calc(var(--pitch) - 2px);
+  height: var(--stem);
+  margin-bottom: var(--ground);
+}
+
+.tick {
+  flex: none;
+  width: 2px;
+  height: 0;
+  border-radius: 1px 1px 0 0;
+}
+
+.tick[data-level='1'] { height: 25%; opacity: 0.55; }
+.tick[data-level='2'] { height: 50%; opacity: 0.7; }
+.tick[data-level='3'] { height: 75%; opacity: 0.85; }
+.tick[data-level='4'] { height: 100%; }
+
+.dates {
+  position: relative;
+  height: 1.125rem;
+}
+
+.date {
+  position: absolute;
+  top: 0.25rem;
+  left: calc(var(--i) * var(--pitch));
+  padding-left: 3px;
+  border-left: 1px solid var(--rule);
+  font-size: var(--step--2);
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+/* Gone rather than faded, so the scroll range is the calendar's; the
+   ground keeps its place. */
+.rule[data-open] .track {
+  display: none;
+}
+
+.rule[data-open] .scroller {
+  padding-top: calc(var(--stem) + var(--ground));
+}
+
+/* Open: the same year as a calendar, a week to a column. */
+.fold {
+  width: max-content;
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--dur-settle) var(--ease-settle);
+}
+
+.rule[data-open] .fold {
+  grid-template-rows: 1fr;
+}
+
+.calendar {
+  overflow: hidden;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.months {
+  position: relative;
+  width: calc(var(--weeks) * (var(--cell) + var(--gap)) - var(--gap));
+  height: 1.25rem;
+  margin-top: var(--space-3);
+}
+
+.month {
+  position: absolute;
+  bottom: 0.25rem;
+  left: calc(var(--col) * (var(--cell) + var(--gap)));
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, var(--cell));
+  grid-auto-columns: var(--cell);
+  gap: var(--gap);
+  padding-bottom: var(--space-2);
+}
+
+.cell {
+  border-radius: 3px;
+  background: var(--paper-deep);
+}
+
+.cell[data-level='1'] { background: color-mix(in srgb, var(--cell-ink) 35%, var(--paper-deep)); }
+.cell[data-level='2'] { background: color-mix(in srgb, var(--cell-ink) 58%, var(--paper-deep)); }
+.cell[data-level='3'] { background: color-mix(in srgb, var(--cell-ink) 80%, var(--paper-deep)); }
+.cell[data-level='4'] { background: var(--cell-ink); }
+
+@media (max-width: 40rem) {
+  .scroller {
+    padding-inline: var(--space-4);
+    --cell: 0.8125rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fold {
+    transition: none;
+  }
+}

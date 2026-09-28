@@ -395,3 +395,28 @@ export const GRAIN = {
   BUDGET_MAX: 24,
   BUDGET_SLACK: 0.2,
 } as const
+
+/**
+ * The activity rule under the home masthead: what a day's work weighs,
+ * how many days it shows and where a day is cut.
+ *
+ * A finished lesson and a resource read are the same size of thing --
+ * a sitting with material -- and everything else is a gesture inside
+ * one. Flashcards weigh half, or a forty-card session would outshine
+ * the lesson it came from.
+ */
+export const ACTIVITY = {
+  WEIGHT: {
+    lesson: 5,
+    read: 5,
+    mark: 1,
+    answer: 1,
+    card: 0.5,
+    added: 0.5,
+  },
+  // 53 weeks, so the grid is always full columns with today in the last.
+  DAYS: 371,
+  // One owner, and the database runs in UTC: a mark made at half past
+  // midnight belongs to the day the reader was living in.
+  TZ: 'Europe/London',
+} as const

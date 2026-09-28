@@ -35,7 +35,7 @@ nothing measurable.
   | Mark | `highlights.created_at` | 1 |
   | Answer or diary entry | `exposures` with source `diary`, or depth `answered` | 1 |
   | Flashcard review | `cloze_reviews.reviewed_at` | 0.5 |
-  | Inbox item added | `resources.created_at` | 0.5 |
+  | Inbox item added | `resources.added_at` | 0.5 |
 
   No other exposure is counted. The ones written when a lesson is finished,
   a resource read or a passage marked would count those events twice, since
@@ -132,3 +132,17 @@ typecheck test` and the web build.
 - Filtering by subject, a legend, or streaks.
 - A per-subject breakdown inside a day, which the title already gives.
 - Anything on the phone app, which does not exist yet.
+
+## Amended during the build
+
+- **The strip is not in `HomeData`.** The home read is cached on the map's
+  tags, and a flashcard review, a mark or an answer drops none of them, so
+  the strip would go stale. `lib/activity.getActivity` is an uncached RPC,
+  streamed in behind the plain rule. `/api/home` returns
+  `{ ...home, activity }`.
+- **The stems grow up, not down**, from the rule into the foot of the band,
+  as plants from the ground. The rule stays exactly where it was.
+- **Month labels sit under the rule**, with the year on January, on the
+  first month shown and on the current month.
+- The inbox kind reads `resources.added_at`, which is the column the table
+  actually has.

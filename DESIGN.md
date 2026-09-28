@@ -462,7 +462,16 @@ Repeated on all eight surfaces without variation in structure:
 3. The title, at `--step-3` (`--step-4` on home), `line-height` 0.9–0.95,
    `letter-spacing` −0.02 to −0.03em.
 4. A **5px mustard rule** directly beneath the band (`.headRule`), then
-   `margin-bottom: var(--space-5)`.
+   `margin-bottom: var(--space-5)`. On home the rule carries the reader's
+   year (`components/ActivityRule`): it stays put as the ground, and a 2px
+   stem a day grows up from it into the foot of the band, up to `1.5rem`
+   tall by how full the day was against the reader's own, in the plate of
+   the subject most of it went to. Month labels sit under the ground in
+   `--step--2` caps, each on a hairline of `--rule`, with the year on
+   January, the first month shown and the current one. Pressing it opens
+   the same year as a calendar: rounded cells a week to a column, empty in
+   `--paper-deep`, filled with the plate mixed into it by level. Sideways
+   it scrolls and opens at today.
 
 Two authorised departures, both data-driven:
 
