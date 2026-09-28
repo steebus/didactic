@@ -6,6 +6,7 @@
   --gap: 3px;
   --stem: 1.5rem; /* the tallest stem, and how far the strip reaches up */
   --ground: 5px;
+  --dates: 1.125rem; /* the month labels under the ground, shut */
   position: relative;
   container-type: inline-size;
   /* Pulled up by a stem so the rule itself stays where it was. */
@@ -91,7 +92,7 @@
 
 .dates {
   position: relative;
-  height: 1.125rem;
+  height: var(--dates);
 }
 
 .date {
@@ -139,7 +140,13 @@
 }
 
 /* Closing folds the calendar away where it stands; the stems come back
-   only once it has gone, so nothing re-scrolls under it mid-fold. */
+   only once it has gone, so nothing re-scrolls under it mid-fold. It
+   folds down to the height of the labels rather than to nothing, so
+   when the shut strip takes its place the sheet below does not move. */
+.rule[data-closing] .fold {
+  min-height: var(--dates);
+}
+
 .rule[data-open]:not([data-closing]) .fold {
   grid-template-rows: 1fr;
 }
