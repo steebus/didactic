@@ -28,5 +28,5 @@ export const ask = (api: Api) => ({
   undo: (id: string, body: { kind: 'mark' | 'card'; writeId: string }) =>
     api.post<{ ok: true }>(`/api/ask/${id}/undo`, body),
   /** Write the discussion into the lesson it happened in. */
-  fold: (id: string) => api.post<{ ok: true }>(`/api/ask/${id}/fold`, {}),
+  fold: (id: string) => api.post<{ ok: true; section?: string }>(`/api/ask/${id}/fold`, {}),
 })

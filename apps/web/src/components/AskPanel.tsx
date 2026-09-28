@@ -168,8 +168,14 @@ export function AskPanel({ context, onClose }: { context: AskContext; onClose: (
           disabled={folded}
           onClick={async () => {
             setFolded(true)
-            const { ok } = await api.ask.fold(conversationId)
+            const { ok, body } = await api.ask.fold(conversationId)
             if (!ok) setFolded(false)
+            // The sheet holds its body in state, so it is told to read
+            // it again, and what went in, so it can show it arriving.
+            else
+              window.dispatchEvent(
+                new CustomEvent('didactic:lesson-changed', { detail: { section: body?.section } })
+              )
           }}
         >
           {folded ? 'Added to the lesson' : 'Add this to the lesson'}

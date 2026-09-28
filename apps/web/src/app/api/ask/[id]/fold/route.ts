@@ -82,14 +82,21 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: 'the model cannot be reached' }, { status: 503 })
   }
 
+  // A fold from a chosen passage is set straight after that passage's
+  // paragraph, mid-section, so it is written to follow on from it: a
+  // heading there would take the rest of the section in under itself.
+  const shape = context.quote
+    ? `It will be set directly after the paragraph holding this passage: "${context.quote}". Write one to three paragraphs that follow on from that paragraph, with no heading.`
+    : 'Begin with a "## " heading.'
+
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   const reply = await client.messages.create({
     model: 'claude-sonnet-5',
     max_tokens: MAX_TOKENS,
     thinking: NO_THINKING,
-    system: `Rewrite a conversation as one section of the lesson it happened in.
+    system: `Rewrite a conversation as part of the lesson it happened in.
 
-Write it as the lesson is written: prose addressed to a reader, not a transcript, with no mention of a conversation, of a question having been asked, or of a tutor. Begin with a "## " heading. Keep only what earns its place.
+Write it as the lesson is written: prose addressed to a reader, not a transcript, with no mention of a conversation, of a question having been asked, or of a tutor. ${shape} Keep only what earns its place.
 
 ${blockPromptSection()}`,
     messages: [{ role: 'user', content: transcript }],
@@ -112,7 +119,7 @@ ${blockPromptSection()}`,
     return NextResponse.json({ error: 'this conversation is already in the lesson' }, { status: 409 })
   }
 
-  const folded = foldInto(lesson.body, context.sectionId, section)
+  const folded = foldInto(lesson.body, context.sectionId, section, context.quote)
   const { error } = await db
     .from('lessons')
     .update({ body: folded })
@@ -123,5 +130,5 @@ ${blockPromptSection()}`,
   await db.from('conversations').update({ folded_at: new Date().toISOString() }).eq('id', id)
 
   dropCache()
-  return NextResponse.json({ ok: true })
+  return NextResponse.json({ ok: true, section })
 }

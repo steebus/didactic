@@ -106,11 +106,27 @@ export function contextPreamble(c: AskContext): string {
  * an odd place is a paragraph to move and a fold landing nowhere is the
  * conversation lost.
  *
+ * A conversation opened from a chosen passage goes closer still: after
+ * the paragraph that holds the passage, because that is the sentence the
+ * question was about. A passage the body no longer holds falls back to
+ * the section.
+ *
  * Pure, and here rather than in the route, so the placement can be
  * tested without a model and the phone folds identically.
  */
-export function foldInto(body: string, sectionId: string | undefined, section: string): string {
+export function foldInto(
+  body: string,
+  sectionId: string | undefined,
+  section: string,
+  quote?: string
+): string {
   const append = () => `${body.trimEnd()}\n\n${section.trim()}\n`
+
+  const at = quote ? afterPassage(body, quote) : -1
+  if (at !== -1) {
+    return `${body.slice(0, at).trimEnd()}\n\n${section.trim()}\n\n${body.slice(at).trimStart()}`
+  }
+
   if (!sectionId) return append()
 
   // One reading of what a heading is, shared with the contents rail.
@@ -133,6 +149,39 @@ export function foldInto(body: string, sectionId: string | undefined, section: s
   const before = lines.slice(0, next.line).join('\n').trimEnd()
   const after = lines.slice(next.line).join('\n')
   return `${before}\n\n${section.trim()}\n\n${after}`
+}
+
+/**
+ * Where the block holding a passage ends, or -1 if the body does not
+ * hold it.
+ *
+ * The passage is what the page printed, so the markdown under it may
+ * carry emphasis or a line break the selection does not; those are
+ * allowed between its characters. A passage inside a fence lands after
+ * the fence, never in it -- the bug `headingLines` exists to prevent.
+ */
+function afterPassage(body: string, quote: string): number {
+  const words = quote.trim().split(/\s+/).filter(Boolean)
+  if (!words.length) return -1
+  const mark = '[*_`~]*'
+  const escape = (c: string) => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const pattern = words.map(w => [...w].map(escape).join(mark)).join(`${mark}\\s+${mark}`)
+  const found = new RegExp(pattern).exec(body)
+  if (!found) return -1
+
+  const end = found.index + found[0].length
+  const lines = body.split('\n')
+  let offset = 0
+  let fenced = false
+  for (const line of lines) {
+    const next = offset + line.length + 1
+    if (/^\s{0,3}(```|~~~)/.test(line)) fenced = !fenced
+    // The first blank line past the passage, outside a fence, is where
+    // its block ends.
+    if (offset >= end && !fenced && !line.trim()) return offset
+    offset = next
+  }
+  return body.length
 }
 
 /**

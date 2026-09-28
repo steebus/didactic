@@ -16,7 +16,7 @@ import { TendLesson } from '@/components/TendLesson'
 import { SectionSummaries } from '@/components/SectionSummaries'
 import { ReadingSummary } from '@/components/ReadingSummary'
 import { useSummaries } from '@/components/useSummaries'
-import { lessonSections } from '@didactic/core/sections'
+import { lessonSections, plain } from '@didactic/core/sections'
 import { summaryOf, summaryTally } from '@didactic/core/summaries'
 import { didactic } from '@didactic/api'
 import type { ExposureDepth, Highlight as Mark } from '@didactic/core/types'
@@ -280,6 +280,40 @@ export default function LessonSheet({
     if (before.current === 'running' && job?.state === 'done') setRevision(r => r + 1)
     before.current = job?.state
   }, [job?.state])
+
+  // A conversation folded into the lesson from the ask panel, which is
+  // mounted from the layout and cannot reach this state any other way.
+  // The page stays where it is: only the body is read again, and the
+  // paragraphs that went in are brought into view and shown arriving.
+  const arriving = useRef<string | null>(null)
+  useEffect(() => {
+    const reread = (e: Event) => {
+      arriving.current = (e as CustomEvent<{ section?: string }>).detail?.section ?? null
+      setRevision(r => r + 1)
+    }
+    window.addEventListener('didactic:lesson-changed', reread)
+    return () => window.removeEventListener('didactic:lesson-changed', reread)
+  }, [])
+
+  useEffect(() => {
+    const section = arriving.current
+    if (!section || !sheetBody || !body) return
+    arriving.current = null
+    // Each block of what went in, by how it opens once printed.
+    const leads = section
+      .split(/\n\s*\n/)
+      .map(block => plain(block.replace(/^\s{0,3}(#{1,6}|[-*+>]|\d+\.)\s+/, '')).slice(0, 32))
+      .filter(Boolean)
+    const landed = Array.from(sheetBody.querySelectorAll<HTMLElement>('[data-prose] > *')).filter(
+      el => leads.some(lead => el.textContent?.trim().startsWith(lead))
+    )
+    landed.forEach((el, i) => {
+      el.style.setProperty('--i', String(i))
+      el.classList.add('arrived')
+      el.addEventListener('animationend', () => el.classList.remove('arrived'), { once: true })
+    })
+    landed[0]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [body, sheetBody])
 
   // A different lesson is a fresh sheet, whatever this one did.
   useEffect(() => {

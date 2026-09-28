@@ -96,6 +96,40 @@ describe('folding a discussion into a lesson', () => {
   })
 })
 
+describe('folding at a chosen passage', () => {
+  const body = [
+    '## Where the time goes',
+    '',
+    'DNS first. The **TLS handshake**: historically two round trips,',
+    'modern versions closer to one.',
+    '',
+    'Then the request goes out.',
+    '',
+    '## Next',
+    '',
+    'More.',
+  ].join('\n')
+
+  it('goes after the paragraph holding the passage, through markup and line breaks', () => {
+    const out = foldInto(body, 'next', 'Added prose.', 'TLS handshake: historically two round trips, modern versions')
+    expect(out.indexOf('closer to one.')).toBeLessThan(out.indexOf('Added prose.'))
+    expect(out.indexOf('Added prose.')).toBeLessThan(out.indexOf('Then the request'))
+  })
+
+  it('falls back to the section when the passage is not in the body', () => {
+    const out = foldInto(body, 'where-the-time-goes', 'Added prose.', 'words that were rewritten')
+    expect(out.indexOf('Then the request')).toBeLessThan(out.indexOf('Added prose.'))
+    expect(out.indexOf('Added prose.')).toBeLessThan(out.indexOf('## Next'))
+  })
+
+  it('lands after a fence, never inside it', () => {
+    const fenced = ['```sh', 'curl example.com', '', 'echo done', '```', '', 'After.'].join('\n')
+    const out = foldInto(fenced, undefined, 'Added prose.', 'curl example.com')
+    expect(out.indexOf('```\n\nAdded prose.')).toBeGreaterThan(-1)
+    expect(out.indexOf('Added prose.')).toBeLessThan(out.indexOf('After.'))
+  })
+})
+
 describe('folding, against what a heading actually is', () => {
   /**
    * The fold once found its own headings with a plain line regex, which
