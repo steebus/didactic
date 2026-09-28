@@ -2,7 +2,7 @@
 import { describe, it, expect } from 'vitest'
 import { htmlToMarkdown } from '@/lib/extract/markdown'
 import { extractFromHtml } from '@/lib/extract/url'
-import { renderMarkdown } from '@/lib/markdown'
+import { ARTICLE_TAGS, renderMarkdown } from '@/lib/markdown'
 import { lessonSections } from '@didactic/core/sections'
 
 /**
@@ -161,5 +161,26 @@ describe('pop-up notes', () => {
   it('escapes a note as prose', () => {
     const out = md('<p><span data-didactic-note="# $5 *each*">cost</span></p>')
     expect(out).toContain('1. \\# \\$5 \\*each\\*')
+  })
+})
+
+describe('an article’s pictures', () => {
+  const pic = '<p>Before.</p><p><img src="/slides/1.png" alt="The first slide"></p>'
+
+  it('prints them, hot-linked and asked for without a referrer', () => {
+    const holder = document.createElement('div')
+    holder.innerHTML = renderMarkdown(md(pic), ARTICLE_TAGS)
+    const img = holder.querySelector('img')!
+    expect(img.getAttribute('src')).toBe('https://example.com/slides/1.png')
+    expect(img.getAttribute('alt')).toBe('The first slide')
+    expect(img.getAttribute('referrerpolicy')).toBe('no-referrer')
+    expect(img.getAttribute('loading')).toBe('lazy')
+  })
+
+  it('leaves them out of a lesson, and keeps src off everything else', () => {
+    expect(printed(pic).querySelector('img')).toBeNull()
+    const holder = document.createElement('div')
+    holder.innerHTML = renderMarkdown('<a href="https://x.test" src="https://y.test">x</a>', ARTICLE_TAGS)
+    expect(holder.querySelector('a')!.hasAttribute('src')).toBe(false)
   })
 })

@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
-import { renderMarkdown } from '@/lib/markdown'
+import { ARTICLE_TAGS, renderMarkdown } from '@/lib/markdown'
 import { parseBlocks } from '@didactic/core/blocks'
 import { lessonRoster, type LessonLink } from '@didactic/core/lessonLinks'
 import { sourceRoster, type SourceLink } from '@didactic/core/sourceLinks'
@@ -28,8 +28,11 @@ export function Prose({
   markdown,
   lessons,
   sources,
+  pictures,
 }: {
   markdown: string
+  /** Print the text's own `![]()` pictures: an article's, never a lesson's (`ARTICLE_TAGS`). */
+  pictures?: boolean
   /**
    * The lessons this one may point at: the rest of its topic, and the
    * topics its subjects hold. A name in the prose that none of these
@@ -57,7 +60,7 @@ export function Prose({
         part.kind === 'block' ? (
           <Block key={i} name={part.name} data={part.data} />
         ) : (
-          <ProseText key={i} markdown={part.text} lessons={roster} sources={shelf} />
+          <ProseText key={i} markdown={part.text} lessons={roster} sources={shelf} pictures={pictures} />
         )
       )}
     </>
@@ -68,14 +71,16 @@ function ProseText({
   markdown,
   lessons,
   sources,
+  pictures,
 }: {
   markdown: string
   lessons: Map<string, LessonLink>
   sources: Map<string, SourceLink>
+  pictures?: boolean
 }) {
   const html = useMemo(
-    () => renderMarkdown(markdown, undefined, lessons, sources),
-    [markdown, lessons, sources]
+    () => renderMarkdown(markdown, pictures ? ARTICLE_TAGS : undefined, lessons, sources),
+    [markdown, lessons, sources, pictures]
   )
 
   return (

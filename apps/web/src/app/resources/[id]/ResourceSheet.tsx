@@ -323,7 +323,7 @@ export default function ResourceSheet({ initial }: { initial: ResourceReading })
                   onChanged={() => void reread()}
                   onTended={() => setGarden(g => g + 1)}
                 >
-                  <Prose markdown={body} />
+                  <Prose markdown={body} pictures />
                 </Highlighter>
 
                 <SectionSummaries

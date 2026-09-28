@@ -100,6 +100,17 @@ export const NOTE_TAGS = [
  */
 export const INLINE_TAGS = ['br', 'strong', 'em', 'del', 'code', ...MATHML_TAGS]
 
+/**
+ * What an article brought in from the web is allowed to be: a lesson's
+ * prose, and the page's own pictures.
+ *
+ * Not a lesson's. A model writing `![]()` is guessing an address, which
+ * is what the `picture` block exists to check; an article's pictures are
+ * addresses the page itself was serving. Hot-linked, never fetched here
+ * -- a picture the site takes down goes from the reading with it.
+ */
+export const ARTICLE_TAGS = [...PROSE_TAGS, 'img']
+
 /** What a link to a lesson that is not there says on hover. */
 export const STUB_NOTE = 'No lesson for this yet'
 
@@ -223,6 +234,17 @@ export function renderMarkdown(
       node.setAttribute('target', '_blank')
       node.setAttribute('rel', 'noreferrer')
     }
+    // Somebody else's picture on somebody else's server: asked for
+    // without saying where from, which is also what gets it past most
+    // hot-link guards, and only once it is near the screen. `src` is
+    // for a picture and nothing else.
+    if (node.tagName === 'IMG') {
+      node.setAttribute('loading', 'lazy')
+      node.setAttribute('decoding', 'async')
+      node.setAttribute('referrerpolicy', 'no-referrer')
+    } else if (node.hasAttribute?.('src')) {
+      node.removeAttribute('src')
+    }
     // What language a specimen is in, and nothing else.
     //
     // `class` has to be admitted for a fenced block to say what it
@@ -246,7 +268,8 @@ export function renderMarkdown(
     // stretches. None can hold a URL, a script or an ink.
     // `class` is admitted only so a specimen can say what language it
     // is in; the hook above throws away every other use of it.
-    ALLOWED_ATTR: ['href', 'title', 'class', ...MATHML_ATTR],
+    // `src` and `alt` reach nothing unless `img` is in `allowed`.
+    ALLOWED_ATTR: ['href', 'title', 'class', 'src', 'alt', ...MATHML_ATTR],
     // Links in generated prose open elsewhere; nothing here should be
     // able to script or reach back into the page.
     ADD_ATTR: ['target', 'rel'],

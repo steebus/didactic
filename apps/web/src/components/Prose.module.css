@@ -252,3 +252,13 @@
 .prose :global(annotation) {
   display: none;
 }
+
+/* An article's own pictures (`ARTICLE_TAGS`): the page's slides and
+   charts, at the measure and never past it, on the plate a lesson's
+   figure sits on. */
+.prose img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--paper-edge);
+}
