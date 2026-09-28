@@ -1,25 +1,29 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import { activityLevel, activityTitle, type ActivityDay } from '@didactic/core/activity'
+import { useLayoutEffect, useRef, useState } from 'react'
+import { activityLevel, activityTitle, calendarLayout, type ActivityDay } from '@didactic/core/activity'
 import styles from './ActivityRule.module.css'
 
 // How far a pointer may travel and still be a press rather than a drag.
 const DRAG_SLOP = 4
 
-const MONTH = new Intl.DateTimeFormat('en-GB', { month: 'short', timeZone: 'UTC' })
-
 /**
- * The rule under the masthead, with the reader's year hung from it.
+ * The rule under the masthead, with the reader's year grown up out of it.
  *
- * Shut, it is the mustard rule it always was, with a stem growing up
- * from it for every day something was done: taller for a fuller day,
- * in the plate of the subject most of it went to, rising into the band. It scrolls sideways -- by
- * touch natively, by mouse through a drag -- and opens at today. A
+ * Shut, it is the mustard rule it always was, with a stem for every day
+ * something was done: taller for a fuller day, in the plate of the
+ * subject most of it went to, rising into the band. It scrolls sideways
+ * -- by touch natively, by mouse through a drag -- and opens at today. A
  * press, as opposed to a drag, opens it into the same year as a
- * calendar: a week to a column, a weekday to a row.
+ * calendar: a weekday to a row, a week to a column, a month to a block.
  *
- * A day is weighed and coloured in `core/activity`; this only draws.
+ * The stems come up in a wave, left to right, whenever the strip is
+ * shown shut; the calendar's cells cascade in the same direction when it
+ * opens. Both waves start at the left edge of what is in view rather
+ * than at the start of the year, so on a phone, scrolled to today, they
+ * are not spent on days off-screen.
+ *
+ * A day is weighed, coloured and placed in `core/activity`; this draws.
  */
 export function ActivityRule({
   days,
@@ -37,38 +41,42 @@ export function ActivityRule({
   cellInk?: string
 }) {
   const [open, setOpen] = useState(false)
+  // Where in view each wave starts: a day index shut, a column open.
+  // Null until measured, and nothing moves until it is.
+  const [start, setStart] = useState<number | null>(null)
   const scroller = useRef<HTMLDivElement>(null)
   const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null)
 
-  // Today is at the right-hand end; open there, and again on unfolding,
-  // since the calendar is a different width from the ticks.
-  useEffect(() => {
+  // Today is at the right-hand end: land there, then find what is first
+  // in view, before paint so the wave never starts from the wrong place.
+  useLayoutEffect(() => {
     const el = scroller.current
-    if (el) el.scrollLeft = el.scrollWidth
+    if (!el) return
+    el.scrollLeft = el.scrollWidth
+    const unit = el.querySelector<HTMLElement>(open ? `.${styles.cell}` : `.${styles.tick}`)
+    const pitch = unit ? unit.offsetWidth + parseFloat(getComputedStyle(unit.parentElement!).columnGap || '0') : 1
+    setStart(Math.max(0, Math.floor(el.scrollLeft / pitch) - 1))
   }, [open])
 
   const scores = days.map(d => d.score)
   const levels = days.map(d => activityLevel(d.score, scores))
+  const layout = calendarLayout(days)
   const plateOf = (d: ActivityDay) => (d.subjectId && colours[d.subjectId]) || 'var(--ink-soft)'
   const stem = (d: ActivityDay) => stemInk ?? plateOf(d)
   const ink = (d: ActivityDay) => cellInk ?? plateOf(d)
-  // The first column starts on whatever weekday the year does; Monday is row one.
-  const offset = days.length ? (new Date(`${days[0].day}T00:00:00Z`).getUTCDay() + 6) % 7 : 0
 
-  // A label at the first of each month. The year rides on January, on
-  // the first month shown and on this one, so whatever slice of the
-  // strip is in view, the year is never far off.
-  const firsts = days.flatMap((d, i) => (d.day.endsWith('-01') ? [i] : []))
-  const months = firsts.map((i, n) => {
-    const date = new Date(`${days[i].day}T00:00:00Z`)
-    const withYear = date.getUTCMonth() === 0 || n === 0 || n === firsts.length - 1
-    return { day: days[i].day, i, label: withYear ? `${MONTH.format(date)} ${date.getUTCFullYear()}` : MONTH.format(date) }
-  })
-
-  const toggle = () => setOpen(o => !o)
+  const toggle = () => {
+    setStart(null)
+    setOpen(o => !o)
+  }
 
   return (
-    <div className={styles.rule} data-open={open || undefined}>
+    <div
+      className={styles.rule}
+      data-open={open || undefined}
+      data-ready={start !== null || undefined}
+      style={{ '--start': start ?? 0, '--cols': layout.cols } as React.CSSProperties}
+    >
       <div
         ref={scroller}
         className={styles.scroller}
@@ -106,21 +114,18 @@ export function ActivityRule({
       >
         <div className={styles.track} aria-hidden>
           <div className={styles.ticks}>
-            {days.map((d, i) => {
-              const level = levels[i]
-              return (
-                <span
-                  key={d.day}
-                  className={styles.tick}
-                  data-level={level}
-                  style={level ? { background: stem(d) } : undefined}
-                  title={level ? activityTitle(d) : undefined}
-                />
-              )
-            })}
+            {days.map((d, i) => (
+              <span
+                key={d.day}
+                className={styles.tick}
+                data-level={levels[i]}
+                style={{ '--i': i, ...(levels[i] ? { background: stem(d) } : null) } as React.CSSProperties}
+                title={levels[i] ? activityTitle(d) : undefined}
+              />
+            ))}
           </div>
           <div className={styles.dates}>
-            {months.map(m => (
+            {layout.months.map(m => (
               <span key={m.day} className={styles.date} style={{ '--i': m.i } as React.CSSProperties}>
                 {m.label}
               </span>
@@ -129,35 +134,33 @@ export function ActivityRule({
         </div>
 
         <div className={styles.fold}>
-          <div
-            className={styles.calendar}
-            aria-hidden={!open}
-            style={{ '--weeks': Math.ceil((days.length + offset) / 7) } as React.CSSProperties}
-          >
+          <div className={styles.calendar} aria-hidden={!open}>
             <div className={styles.months}>
-              {months.map(m => (
-                <span
-                  key={m.day}
-                  className={styles.month}
-                  style={{ '--col': Math.floor((m.i + offset) / 7) } as React.CSSProperties}
-                >
+              {layout.months.map(m => (
+                <span key={m.day} className={styles.month} style={{ '--col': m.col } as React.CSSProperties}>
                   {m.label}
                 </span>
               ))}
             </div>
             <div className={styles.grid}>
-              {days.map((d, i) => (
-                <span
-                  key={d.day}
-                  className={styles.cell}
-                  data-level={levels[i]}
-                  style={{
-                    ...(i === 0 ? { gridRowStart: offset + 1 } : null),
-                    ...(levels[i] ? { '--cell-ink': ink(d) } : null),
-                  } as React.CSSProperties}
-                  title={activityTitle(d)}
-                />
-              ))}
+              {days.map((d, i) => {
+                const { col, row } = layout.cells[i]
+                return (
+                  <span
+                    key={d.day}
+                    className={styles.cell}
+                    data-level={levels[i]}
+                    style={{
+                      gridColumn: col,
+                      gridRow: row,
+                      '--col': col,
+                      '--row': row,
+                      ...(levels[i] ? { '--cell-ink': ink(d) } : null),
+                    } as React.CSSProperties}
+                    title={activityTitle(d)}
+                  />
+                )
+              })}
             </div>
           </div>
         </div>

@@ -100,3 +100,47 @@ export function activityTitle(d: ActivityDay): string {
     .map(k => `${d.counts[k]} ${NOUN[k][d.counts[k] === 1 ? 0 : 1]}`)
   return `${date} · ${parts.length ? parts.join(', ') : 'nothing'}`
 }
+
+const MONTH = new Intl.DateTimeFormat('en-GB', { month: 'short', timeZone: 'UTC' })
+
+export interface CalendarLayout {
+  /** One per day, in the same order: 1-based grid column and row. */
+  cells: Array<{ col: number; row: number }>
+  /** A label at each month's first column. The year rides on January,
+   *  on the first month shown and on the last, so whatever slice of the
+   *  year is in view the year is never far off. */
+  months: Array<{ day: string; i: number; col: number; label: string }>
+  cols: number
+}
+
+/**
+ * Where each day sits in the opened calendar: a weekday to a row,
+ * Monday first, a week to a column, and one empty column between
+ * months so each month reads as its own block. A week that straddles
+ * two months is split between them.
+ */
+export function calendarLayout(days: readonly ActivityDay[]): CalendarLayout {
+  const cells: CalendarLayout['cells'] = []
+  const firsts: Array<{ day: string; i: number; col: number; date: Date }> = []
+  let col = 1
+  days.forEach((d, i) => {
+    const date = new Date(`${d.day}T00:00:00Z`)
+    const row = ((date.getUTCDay() + 6) % 7) + 1
+    const first = date.getUTCDate() === 1
+    if (i > 0) {
+      if (first) col += 2
+      else if (row === 1) col += 1
+    }
+    if (first || i === 0) firsts.push({ day: d.day, i, col, date })
+    cells.push({ col, row })
+  })
+
+  // The span's opening days are only labelled if they are a month's first.
+  const labelled = firsts.filter(f => f.date.getUTCDate() === 1)
+  const months = labelled.map((f, n) => {
+    const withYear = f.date.getUTCMonth() === 0 || n === 0 || n === labelled.length - 1
+    const month = MONTH.format(f.date)
+    return { day: f.day, i: f.i, col: f.col, label: withYear ? `${month} ${f.date.getUTCFullYear()}` : month }
+  })
+  return { cells, months, cols: col }
+}

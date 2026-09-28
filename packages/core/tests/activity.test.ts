@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { activityDays, activityLevel, activityTitle, type ActivityCount } from '../src/activity'
+import { activityDays, activityLevel, activityTitle, calendarLayout, type ActivityCount } from '../src/activity'
 import { ACTIVITY } from '../src/config'
 
 const row = (day: string, kind: ActivityCount['kind'], n = 1, subjectId: string | null = 'a'): ActivityCount =>
@@ -84,5 +84,41 @@ describe('activityTitle', () => {
   it('says so when nothing was done', () => {
     const [d] = activityDays([], '2026-03-12').slice(-1)
     expect(activityTitle(d)).toBe('12 March · nothing')
+  })
+})
+
+describe('calendarLayout', () => {
+  // 2026-06-01 is a Monday; 2026-07-01 a Wednesday.
+  const days = activityDays([], '2026-07-02')
+  const layout = calendarLayout(days)
+  const at = (day: string) => layout.cells[days.findIndex(d => d.day === day)]
+
+  it('puts Monday on row one and Sunday on row seven', () => {
+    expect(at('2026-06-01').row).toBe(1)
+    expect(at('2026-06-07').row).toBe(7)
+  })
+
+  it('starts a new column each Monday inside a month', () => {
+    expect(at('2026-06-08').col).toBe(at('2026-06-01').col + 1)
+    expect(at('2026-06-07').col).toBe(at('2026-06-01').col)
+  })
+
+  it('leaves one empty column between months, even mid-week', () => {
+    expect(at('2026-06-01').col).toBe(at('2026-05-31').col + 2)
+    expect(at('2026-07-01').col).toBe(at('2026-06-30').col + 2)
+    expect(at('2026-07-01').row).toBe(3)
+  })
+
+  it('labels each month at its first column, with the year on January, the first and the last', () => {
+    const june = layout.months.find(m => m.day === '2026-06-01')!
+    expect(june.col).toBe(at('2026-06-01').col)
+    expect(june.label).toBe('Jun')
+    expect(layout.months[0].label).toMatch(/2025$/)
+    expect(layout.months.at(-1)!.label).toBe('Jul 2026')
+    expect(layout.months.find(m => m.day === '2026-01-01')!.label).toBe('Jan 2026')
+  })
+
+  it('counts its columns', () => {
+    expect(layout.cols).toBe(Math.max(...layout.cells.map(c => c.col)))
   })
 })

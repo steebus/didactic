@@ -31,7 +31,7 @@
   outline-offset: 2px;
   /* A year of cells fills the sheet where it can, and scrolls at the
      smallest cell that is still a target for the eye where it cannot. */
-  --cell: max(0.8125rem, calc((100cqi - 2 * var(--space-5)) / 54 - var(--gap)));
+  --cell: max(0.6875rem, calc((100cqi - 2 * var(--space-5)) / var(--cols) - var(--gap)));
 }
 
 /* Stems and calendar both end at today, on the right. */
@@ -66,6 +66,22 @@
   width: 2px;
   height: 0;
   border-radius: 1px 1px 0 0;
+  transform: scaleY(0);
+  transform-origin: bottom;
+}
+
+/* The wave: each stem grows a beat after the one to its left, counted
+   from the first in view. It runs whenever the ticks are shown, since
+   coming back from the calendar re-displays them. */
+.rule[data-ready] .tick {
+  animation: grow var(--dur-settle) var(--ease-settle) forwards;
+  animation-delay: calc(max(0, var(--i) - var(--start)) * 3ms);
+}
+
+@keyframes grow {
+  to {
+    transform: scaleY(1);
+  }
 }
 
 .tick[data-level='1'] { height: 25%; opacity: 0.55; }
@@ -79,6 +95,7 @@
 }
 
 .date {
+  opacity: 0;
   position: absolute;
   top: 0.25rem;
   left: calc(var(--i) * var(--pitch));
@@ -90,6 +107,17 @@
   text-transform: uppercase;
   color: var(--ink-faint);
   white-space: nowrap;
+}
+
+.rule[data-ready] .date {
+  animation: arrive var(--dur-state) var(--ease-settle) forwards;
+  animation-delay: calc(max(0, var(--i) - var(--start)) * 3ms);
+}
+
+@keyframes arrive {
+  to {
+    opacity: 1;
+  }
 }
 
 /* Gone rather than faded, so the scroll range is the calendar's; the
@@ -124,7 +152,7 @@
 
 .months {
   position: relative;
-  width: calc(var(--weeks) * (var(--cell) + var(--gap)) - var(--gap));
+  width: calc(var(--cols) * (var(--cell) + var(--gap)) - var(--gap));
   height: 1.25rem;
   margin-top: var(--space-3);
 }
@@ -132,7 +160,7 @@
 .month {
   position: absolute;
   bottom: 0.25rem;
-  left: calc(var(--col) * (var(--cell) + var(--gap)));
+  left: calc((var(--col) - 1) * (var(--cell) + var(--gap)));
   font-size: var(--step--2);
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -142,7 +170,6 @@
 
 .grid {
   display: grid;
-  grid-auto-flow: column;
   grid-template-rows: repeat(7, var(--cell));
   grid-auto-columns: var(--cell);
   gap: var(--gap);
@@ -159,6 +186,21 @@
 .cell[data-level='3'] { background: color-mix(in srgb, var(--cell-ink) 80%, var(--paper-deep)); }
 .cell[data-level='4'] { background: var(--cell-ink); }
 
+/* The cascade: column by column from the first in view, each column
+   falling top to bottom a touch behind the last. */
+.rule[data-open][data-ready] .cell,
+.rule[data-open][data-ready] .month {
+  animation: rise var(--dur-state) var(--ease-settle) both;
+  animation-delay: calc(max(0, var(--col) - 1 - var(--start)) * 12ms + var(--row, 0) * 16ms);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(-3px) scale(0.6);
+  }
+}
+
 @media (max-width: 40rem) {
   .scroller {
     padding-inline: var(--space-4);
@@ -169,5 +211,20 @@
 @media (prefers-reduced-motion: reduce) {
   .fold {
     transition: none;
+  }
+
+  .tick {
+    transform: none;
+  }
+
+  .date {
+    opacity: 1;
+  }
+
+  .rule[data-ready] .tick,
+  .rule[data-ready] .date,
+  .rule[data-open][data-ready] .cell,
+  .rule[data-open][data-ready] .month {
+    animation: none;
   }
 }

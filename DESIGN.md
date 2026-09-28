@@ -469,9 +469,16 @@ Repeated on all eight surfaces without variation in structure:
    the subject most of it went to. Month labels sit under the ground in
    `--step--2` caps, each on a hairline of `--rule`, with the year on
    January, the first month shown and the current one. Pressing it opens
-   the same year as a calendar: rounded cells a week to a column, empty in
-   `--paper-deep`, filled with the plate mixed into it by level. Sideways
-   it scrolls and opens at today.
+   the same year as a calendar: rounded cells a week to a column, each
+   month its own block with one empty column between (`core/activity.calendarLayout`),
+   empty in `--paper-deep`, filled with the plate mixed into it by level.
+   Sideways it scrolls and opens at today. **It moves in one direction**:
+   shown shut -- on load, and on folding back -- the stems grow up in a
+   wave left to right, `3ms` a day over `--dur-settle`; opened, the cells
+   cascade the same way, `12ms` a column and `16ms` a row. Both waves are
+   counted from the first thing in view, not the first day of the year,
+   so a phone scrolled to today is not kept waiting on days off-screen.
+   Under reduced motion, nothing moves.
 
 Two authorised departures, both data-driven:
 
