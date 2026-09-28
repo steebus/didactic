@@ -282,3 +282,44 @@ describe('when the rounds run out', () => {
     expect(turn.writes.length).toBeGreaterThan(0)
   })
 })
+
+describe('pictures in a conversation', () => {
+  const ask = async (d: AskDeps) => {
+    const { askTurn } = await import('@/lib/llm/ask')
+    return askTurn({ context: { route: 'lesson', entityId: 'l1' }, history: [], message: 'show me', deps: d })
+  }
+  const offered = () => (create.mock.calls[0][0].tools as Array<{ name: string }>).map(t => t.name)
+  /** Everything the model was told, by the end. The loop grows one
+   *  messages array, so the last call sees every tool result. */
+  const told = () => JSON.stringify(create.mock.calls.at(-1)![0].messages)
+
+  it('searches Commons and hands back the names that exist', async () => {
+    const findPictures = vi.fn(async () => ['Depth_of_field_diagram.svg'])
+    create
+      .mockResolvedValueOnce(callingTool('find_pictures', { searches: ['depth of field', 7, ' '] }))
+      .mockResolvedValueOnce(answering('Here.'))
+
+    await ask(deps({ findPictures }))
+
+    expect(offered()).toContain('find_pictures')
+    expect(offered()).not.toContain('draw_picture')
+    expect(findPictures).toHaveBeenCalledWith(['depth of field'])
+    expect(told()).toContain('Depth_of_field_diagram.svg')
+  })
+
+  it('draws once, and hands back a block ready to place', async () => {
+    const drawPicture = vi.fn(async () => 'https://store.example/ask/c1/a.webp')
+    create
+      .mockResolvedValueOnce(callingTool('draw_picture', { subject: 'a lens', alt: 'A lens' }))
+      .mockResolvedValueOnce(callingTool('draw_picture', { subject: 'another', alt: 'Another' }))
+      .mockResolvedValueOnce(answering('Drawn.'))
+
+    await ask(deps({ drawPicture }))
+
+    expect(offered()).toContain('draw_picture')
+    expect(drawPicture).toHaveBeenCalledTimes(1)
+    expect(told()).toContain('https://store.example/ask/c1/a.webp')
+    expect(told()).toContain('Drawn for this answer')
+    expect(told()).toContain('One drawing an answer')
+  })
+})

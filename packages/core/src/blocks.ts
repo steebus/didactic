@@ -225,7 +225,7 @@ export function parseBlocks(markdown: string): ParsedBlock[] {
   const out: ParsedBlock[] = []
   // Split on fenced regions, keeping them. Non-greedy so two blocks in
   // one lesson do not merge into one.
-  const parts = markdown.split(/(^```\w+\n[\s\S]*?\n```$)/m)
+  const parts = unglue(markdown).split(/(^```\w+\n[\s\S]*?\n```$)/m)
 
   for (const part of parts) {
     if (!part) continue
@@ -242,6 +242,21 @@ export function parseBlocks(markdown: string): ParsedBlock[] {
     }
   }
   return out
+}
+
+/**
+ * Part two blocks whose fences were glued together.
+ *
+ * Settling a lesson's pictures once rebuilt the body without the blank
+ * line between two adjacent blocks, so a picture's closing fence and the
+ * next block's opening one came out on one line -- \`\`\`\`\`\`flow --
+ * and neither matched, so both printed as code. Bodies saved that way
+ * are mended here, on read, on both platforms, rather than by rewriting
+ * rows. A closing fence has nothing after it, so six backticks and a
+ * name can only be this.
+ */
+export function unglue(markdown: string): string {
+  return markdown.replace(/^```(```\w+)$/gm, '```\n\n$1')
 }
 
 /**

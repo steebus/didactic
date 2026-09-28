@@ -26,7 +26,7 @@
  * once, when it is written, and read everywhere after that.
  */
 
-import { parseBlocks } from './blocks'
+import { parseBlocks, unglue } from './blocks'
 
 /** The forms of address a picture might be written as. */
 const UPLOAD = /^upload\.wikimedia\.org$/i
@@ -161,8 +161,8 @@ export type Settlement = string | null | undefined | Partial<Omit<PictureBlock, 
  * lesson should not ship a sentence about a picture nobody can see.
  *
  * Everything that is not a picture block is returned byte for byte,
- * including blocks this does not understand -- rewriting prose to fix a
- * figure is a trade nobody asked for.
+ * including the other blocks and the space between them -- rewriting
+ * prose to fix a figure is a trade nobody asked for.
  */
 export function rewritePictures(
   markdown: string,
@@ -172,27 +172,33 @@ export function rewritePictures(
   let fixed = 0
   let dropped = 0
 
-  const text = parseBlocks(markdown)
-    .map(part => {
-      if (part.kind !== 'block') return part.text
-      if (part.name !== 'picture') {
-        return `\`\`\`${part.name}\n${JSON.stringify(part.data, null, 2)}\n\`\`\``
+  // Each picture fence is replaced where it stands, and nothing else is
+  // touched. This used to rebuild the body from `parseBlocks`, which
+  // drops the whitespace-only gap between two blocks -- so a picture
+  // followed straight by a `flow` came back as `\`\`\`\`\`\`flow`,
+  // the closing fence glued to the next opening one, and the flow
+  // printed as its own JSON.
+  const text = unglue(markdown)
+    .replace(/^```(\w+)\n([\s\S]*?)\n```$/gm, (whole, name: string, payload: string) => {
+      if (name !== 'picture') return whole
+      let data: Omit<PictureBlock, 'index'>
+      try {
+        data = (JSON.parse(payload) ?? {}) as Omit<PictureBlock, 'index'>
+      } catch {
+        // Not a block `readPictures` counts, so not one to number.
+        return whole
       }
 
-      const data = (part.data ?? {}) as Omit<PictureBlock, 'index'>
       const settled = settle({ index: index++, ...data })
       if (settled === null) {
         dropped += 1
         return ''
       }
-      if (settled === undefined) {
-        return `\`\`\`picture\n${JSON.stringify(data, null, 2)}\n\`\`\``
-      }
+      if (settled === undefined) return whole
       const next = typeof settled === 'string' ? { ...data, url: settled } : { ...data, ...settled }
       if (next.url !== data.url) fixed += 1
       return `\`\`\`picture\n${JSON.stringify(next, null, 2)}\n\`\`\``
     })
-    .join('')
     // A dropped block leaves the blank lines that were around it.
     .replace(/\n{3,}/g, '\n\n')
 

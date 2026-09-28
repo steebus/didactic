@@ -23,6 +23,56 @@
   margin: var(--space-3) 0 0;
 }
 
+/* --- Picture ---------------------------------------------------- */
+
+/* Printed like a plate (DESIGN.md §8). These classes were named by the
+   component and never written, so a picture printed at the file's own
+   pixel size -- a Commons original is thousands wide, and on a phone it
+   ran off the sheet. Held to the figure's width and to 60vh, whole. */
+.picture {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  max-height: 60vh;
+  object-fit: contain;
+  margin: 0 auto;
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+}
+
+.pictureCaption {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  line-height: 1.5;
+  margin: var(--space-3) 0 0;
+}
+
+.pictureCredit {
+  font-size: var(--step--2);
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.pictureLink {
+  color: inherit;
+  text-decoration-color: var(--plate-mustard);
+  text-underline-offset: 0.2em;
+}
+
+.pictureLink:hover {
+  color: var(--plate-terracotta);
+}
+
+.pictureGone {
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+  font-style: italic;
+  line-height: 1.5;
+  margin: 0;
+}
+
 /* --- Chart ------------------------------------------------------ */
 
 /* A plot has a minimum width below which it is a smear, so on a narrow

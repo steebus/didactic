@@ -66,10 +66,21 @@ export async function drawPending(
   return { text, drawn, dropped }
 }
 
-async function drawAndKeep(db: SupabaseClient, lessonId: string, subject: string): Promise<string | null> {
-  const image = await drawPicture(subject)
+/**
+ * Draw one plate and keep it, answering with its public address.
+ *
+ * `folder` is what it is filed under: the lesson's id for a lesson's
+ * commissions, `ask/<conversation>` for one drawn in a conversation.
+ */
+export async function drawAndKeep(
+  db: SupabaseClient,
+  folder: string,
+  subject: string,
+  signal?: AbortSignal
+): Promise<string | null> {
+  const image = await drawPicture(subject, signal)
   if (!image) return null
-  const path = `${lessonId}/${crypto.randomUUID()}.webp`
+  const path = `${folder}/${crypto.randomUUID()}.webp`
   const { error } = await db.storage.from(BUCKET).upload(path, image.bytes, {
     contentType: image.type,
     // A year: the file at this name never changes, since a new drawing

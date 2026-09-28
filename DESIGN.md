@@ -1736,7 +1736,7 @@ and stippling, flat watercolour washes, on `--paper`, in `--ink`/`--ink-soft`
 and the six plate inks, centred with a margin, and **no lettering of any kind**
 (an image model's lettering is where it visibly fails; what needs naming goes in
 the caption, which is set in type). It has nowhere else to live, so it is kept
-in the public `lesson-drawings` bucket and credited *Drawn for this lesson*. Two
+in the public `lesson-drawings` bucket and credited *Drawn for this lesson* (*Drawn for this answer* when the ask agent drew it, one per answer). Two
 at most a lesson. Until it is drawn a commission prints nothing, and one that
 cannot be drawn is taken out like an address that goes nowhere. Behind the
 `drawnPictures` feature (`web/lib/features.ts`), on by default; off, the writer

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeAll, describe, it, expect, vi, beforeEach } from 'vitest'
 
 /**
  * What a lesson is shown of the reader's library.
@@ -100,8 +100,15 @@ beforeEach(() => {
   generateLessonBody.mockReset().mockResolvedValue({ text: 'The lesson.', finished: true })
 })
 
+// The route pulls in most of the app's server code, and imported cold
+// inside the first test that import shared that test's five seconds --
+// enough to time it out under turbo running every package at once.
+let POST: typeof import('@/app/api/lessons/[id]/body/route').POST
+beforeAll(async () => {
+  ;({ POST } = await import('@/app/api/lessons/[id]/body/route'))
+}, 30_000)
+
 const write = async () => {
-  const { POST } = await import('@/app/api/lessons/[id]/body/route')
   return POST(new Request('http://localhost/api/lessons/les-1/body', { method: 'POST', body: '{}' }), {
     params: Promise.resolve({ id: 'les-1' }),
   })

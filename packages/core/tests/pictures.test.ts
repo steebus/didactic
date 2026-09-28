@@ -8,6 +8,7 @@ import {
   readPictures,
   rewritePictures,
 } from '../src/pictures'
+import { parseBlocks, unglue } from '../src/blocks'
 
 describe('commonsName', () => {
   it('reads the hashed upload path the model invents', () => {
@@ -136,7 +137,8 @@ describe('rewritePictures', () => {
     expect(text).toContain('Some prose.')
     expect(text).toContain('More prose.')
     expect(text).toContain('The end.')
-    expect(text).toContain('"question": "Q"')
+    // Exactly as written, not re-serialised.
+    expect(text).toContain('{"question":"Q","options":[]}')
   })
 
   it('counts nothing as fixed when nothing moved', () => {
@@ -205,7 +207,7 @@ describe('drawings', () => {
 
   it('leaves a picture untouched when settling says nothing', () => {
     const { text, fixed, dropped } = rewritePictures(commissioned, b => (b.draw ? undefined : b.url ?? null))
-    expect(text).toContain('"draw": "A bean seed cut lengthways"')
+    expect(text).toContain('"draw":"A bean seed cut lengthways"')
     expect(fixed).toBe(0)
     expect(dropped).toBe(0)
   })
@@ -219,5 +221,34 @@ describe('drawings', () => {
     expect(text).toContain('"source": "Drawn for this lesson"')
     expect(text).toContain('"draw": "A bean seed cut lengthways"')
     expect(pendingDrawings(text)).toHaveLength(0)
+  })
+})
+
+describe('adjacent blocks', () => {
+  const picture = ['```picture', JSON.stringify({ url: 'https://example.com/a.png', alt: 'A' }), '```'].join('\n')
+  const flow = ['```flow', JSON.stringify({ title: 'F', steps: [{ text: 'Go' }] }), '```'].join('\n')
+
+  /* The lesson that printed its flow as JSON: a picture straight above a
+     flow, settled, came back with the two fences on one line. */
+  it('keeps the gap between a picture and the block after it', () => {
+    const body = `Prose.\n\n${picture}\n\n${flow}\n\nEnd.`
+    const { text } = rewritePictures(body, () => 'https://example.com/b.png')
+    expect(text).not.toContain('``````')
+    expect(parseBlocks(text).filter(p => p.kind === 'block').map(p => (p as { name: string }).name))
+      .toEqual(['picture', 'flow'])
+  })
+
+  it('leaves every other block byte for byte', () => {
+    const body = `Prose.\n\n${flow}\n\n${picture}\n`
+    const { text } = rewritePictures(body, b => b.url ?? null)
+    expect(text.startsWith(`Prose.\n\n${flow}\n\n`)).toBe(true)
+  })
+
+  it('reads a body that was saved glued as the two blocks it was', () => {
+    const glued = `Prose.\n\n${picture}${flow}\n\nEnd.`
+    expect(glued).toContain('``````flow')
+    const names = parseBlocks(glued).flatMap(p => (p.kind === 'block' ? [p.name] : []))
+    expect(names).toEqual(['picture', 'flow'])
+    expect(unglue('```\n```')).toBe('```\n```')
   })
 })

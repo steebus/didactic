@@ -38,6 +38,9 @@ const COMMONS = 'https://commons.wikimedia.org/w/api.php'
 /** Long enough for a slow hop, short enough not to hold up a lesson. */
 const TIMEOUT = 6000
 
+/** The width a picture is asked for at. See `askCommons`. */
+const THUMB_WIDTH = 1280
+
 /** Politeness, and what Wikimedia asks any automated caller to send. */
 const AGENT = 'didactic/1.0 (lesson picture resolution)'
 
@@ -111,6 +114,12 @@ async function askCommons(name: string): Promise<string | null> {
   url.searchParams.set('titles', tries.map(t => `File:${t}`).join('|'))
   url.searchParams.set('prop', 'imageinfo')
   url.searchParams.set('iiprop', 'url')
+  // A rendition no wider than a sheet needs, rather than the original:
+  // a Commons photograph is often thousands of pixels and megabytes,
+  // which a phone downloads whole to print a few hundred wide. 1280 is
+  // one of the widths Wikimedia keeps rendered; for a file smaller than
+  // that, the answer is the original. An SVG comes back as a PNG of it.
+  url.searchParams.set('iiurlwidth', String(THUMB_WIDTH))
   // A file that has been renamed answers under the name it was given.
   url.searchParams.set('redirects', '1')
   url.searchParams.set('format', 'json')
@@ -125,9 +134,9 @@ async function askCommons(name: string): Promise<string | null> {
     const row = page as {
       title?: string
       missing?: boolean
-      imageinfo?: Array<{ url?: string }>
+      imageinfo?: Array<{ url?: string; thumburl?: string }>
     }
-    const at = row.imageinfo?.[0]?.url
+    const at = row.imageinfo?.[0]?.thumburl ?? row.imageinfo?.[0]?.url
     if (row.missing || !row.title || !at) continue
     found.set(row.title.replace(/^File:/, '').replace(/ /g, '_').toLowerCase(), bare(at))
   }

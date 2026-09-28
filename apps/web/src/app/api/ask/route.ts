@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { ownerId } from '@/lib/auth'
 import { askTurn, READ_CEILING, type AskDeps } from '@/lib/llm/ask'
+import { searchCommons, settlePictures } from '@/lib/pictures'
+import { drawAndKeep } from '@/lib/drawings'
+import { drawingOn } from '@/lib/features'
 import { isAskContext } from '@didactic/core/ask'
 import { headingLines } from '@didactic/core/sections'
 import { revalidateTag } from 'next/cache'
@@ -41,6 +44,9 @@ const UNREACHABLE = 'That could not be answered just now. The conversation is ke
  * record: what was said two questions ago is what the next answer needs.
  */
 const HISTORY_KEPT = 20
+
+/** How long a drawing in a conversation may take. See `drawPicture`. */
+const DRAW_TIMEOUT = 30_000
 
 /**
  * How long a question may be.
@@ -212,6 +218,15 @@ export async function POST(req: Request) {
         .limit(10)
       return (data ?? []).map(t => ({ id: t.id, name: t.title }))
     },
+    findPictures: queries => searchCommons(queries),
+    // Half the route's minute at most: the turn still has an answer to
+    // write after it, and a drawing that is not back by then is left out.
+    ...(drawingOn()
+      ? {
+          drawPicture: (subject: string) =>
+            drawAndKeep(db, `ask/${id}`, subject, AbortSignal.timeout(DRAW_TIMEOUT)),
+        }
+      : {}),
   }
 
   let turn
@@ -233,6 +248,14 @@ export async function POST(req: Request) {
       warning: e instanceof Error ? e.message : 'the model could not be reached',
     })
   }
+
+  /* Every picture in the answer, settled before it is kept, exactly as a
+     lesson's are: a Commons name looked up to where the file really is
+     (and at a width a sheet needs), anything that cannot be found taken
+     out. The agent is told to search first; this is what holds when it
+     remembers instead. A fold carries these addresses into the lesson. */
+  const settled = await settlePictures(turn.text)
+  turn = { ...turn, text: settled.text.trim() || turn.text }
 
   await db.from('messages').insert([
     { conversation_id: id, role: 'user', content: message },

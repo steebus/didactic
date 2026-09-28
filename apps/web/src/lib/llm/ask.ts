@@ -63,6 +63,44 @@ export interface AskDeps {
   addCard(question: string, answer: string): Promise<{ id: string }>
   readLesson(section?: string): Promise<string>
   searchMap(query: string): Promise<Array<{ id: string; name: string }>>
+  /** Picture files Commons holds under these searches, by name. */
+  findPictures?(queries: string[]): Promise<string[]>
+  /** Draw a plate and keep it; its address, or null. Absent when drawing
+   *  is off, and then the tool is not offered. */
+  drawPicture?(subject: string): Promise<string | null>
+}
+
+/** Said under a picture drawn in a conversation. */
+const DRAWN_CREDIT = 'Drawn for this answer'
+
+const FIND_PICTURES: Anthropic.Tool = {
+  name: 'find_pictures',
+  description:
+    'Search Wikimedia Commons for pictures, by file name. Use before showing any picture: an address you remember will almost always be wrong and is taken out. Give two to four short searches in the plainest name for the thing -- "TLS handshake", "bean seed", "depth of field" -- two or three words each, since every word must appear in the file name. Returns names of files that exist; to show one, write a `picture` block whose url is https://commons.wikimedia.org/wiki/File: followed by the name exactly as returned. Judge each by its name and pass over any that do not show what is needed.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      searches: { type: 'array', items: { type: 'string' }, description: 'Two to four short searches.' },
+    },
+    required: ['searches'],
+  },
+}
+
+const DRAW_PICTURE: Anthropic.Tool = {
+  name: 'draw_picture',
+  description:
+    'Have a picture drawn for this answer, as a hand-inked natural-history plate in pen and watercolour wash. Only when seeing the thing genuinely helps, find_pictures has nothing that shows it, and no block draws it better (a decision is `flow`, an order is `steps`, figures are `chart`, a difference is `compare`). Suits an object, organism, mechanism, apparatus, material, landscape or scene, a cutaway of one, or a physical thing that embodies an idea. It cannot carry words or numbers, so never ask for labels, text, charts or interfaces. Slow -- half a minute -- so once in an answer at most. Returns a `picture` block ready to put in your answer where it belongs; add a caption to it if you like.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      subject: {
+        type: 'string',
+        description: 'Plainly, what the drawing shows: the thing, what it is doing, from which angle, cut open or whole.',
+      },
+      alt: { type: 'string', description: 'What the picture shows, for someone who cannot see it.' },
+    },
+    required: ['subject', 'alt'],
+  },
 }
 
 const TOOLS: Anthropic.Tool[] = [
@@ -126,12 +164,14 @@ const TOOLS: Anthropic.Tool[] = [
   },
 ]
 
-function systemPrompt(context: AskContext): string {
+function systemPrompt(context: AskContext, drawing: boolean): string {
   return `You are a tutor inside a learning app, answering a reader who is in the middle of their own material.
 
 ${contextPreamble(context)}
 
 Answer the question they actually asked, at the length it deserves -- a sentence where a sentence does, and no throat-clearing. You are talking to one person about something in front of both of you, so do not restate what they can see.
+
+Show a picture where seeing the thing helps: find it with find_pictures rather than remembering an address${drawing ? ', or have one drawn with draw_picture where nothing exists' : ''}.
 
 Keep what is worth keeping: a mark when a passage should be findable again, a card when something should be asked again in a week. Do it rather than offering to. Propose a topic only when the conversation has genuinely opened one the map does not hold, and search first.
 
@@ -173,14 +213,19 @@ export async function askTurn(input: {
   const proposals: Proposal[] = []
   const writes: AgentWrite[] = []
   let text = ''
+  let drawn = false
 
   for (let round = 0; round < ROUNDS; round++) {
     const reply = await getClient().messages.create({
       model: 'claude-sonnet-5',
       max_tokens: MAX_TOKENS,
       thinking: NO_THINKING,
-      system: systemPrompt(context),
-      tools: TOOLS,
+      system: systemPrompt(context, Boolean(deps.drawPicture)),
+      tools: [
+        ...TOOLS,
+        ...(deps.findPictures ? [FIND_PICTURES] : []),
+        ...(deps.drawPicture ? [DRAW_PICTURE] : []),
+      ],
       messages,
     })
 
@@ -239,6 +284,29 @@ export async function askTurn(input: {
         } else if (call.name === 'read_lesson') {
           const section = toolText(given, 'section') || undefined
           say((await deps.readLesson(section)) || 'The lesson has no body yet.')
+        } else if (call.name === 'find_pictures' && deps.findPictures) {
+          const searches = Array.isArray((given as { searches?: unknown }).searches)
+            ? ((given as { searches: unknown[] }).searches.filter(s => typeof s === 'string') as string[])
+                .map(s => s.trim()).filter(Boolean).slice(0, 4)
+            : []
+          const found = searches.length ? await deps.findPictures(searches) : []
+          say(found.length ? found.join('\n') : 'Commons has nothing under those names.')
+        } else if (call.name === 'draw_picture' && deps.drawPicture) {
+          const subject = toolText(given, 'subject')
+          const alt = toolText(given, 'alt') || subject
+          if (drawn) {
+            say('One drawing an answer; this one was not drawn.')
+          } else if (!subject) {
+            say('Nothing to draw was given.')
+          } else {
+            drawn = true
+            const url = await deps.drawPicture(subject)
+            say(
+              url
+                ? `Drawn. Put this block in your answer where it belongs:\n\n\`\`\`picture\n${JSON.stringify({ url, alt, source: DRAWN_CREDIT, draw: subject }, null, 2)}\n\`\`\``
+                : 'It could not be drawn. Answer without it.'
+            )
+          }
         } else if (call.name === 'search_map') {
           const found = await deps.searchMap(toolText(given, 'query'))
           say(
