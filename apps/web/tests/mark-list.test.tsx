@@ -257,9 +257,15 @@ describe('editing and removing from the list', () => {
     // the call is a microtask behind the press. What the answer never
     // does is arrive — the promise above stays pending — so the state
     // below is the page acting without one.
-    await act(async () => {
+    // Removing asks first; the answer is what removes.
+    act(() => {
       Array.from(rows()[0].querySelectorAll('button'))
         .find(b => b.textContent === 'Remove')!
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await act(async () => {
+      Array.from(rows()[0].querySelectorAll('button'))
+        .find(b => b.textContent === 'Yes, remove')!
         .dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
 
@@ -274,9 +280,15 @@ describe('editing and removing from the list', () => {
     render()
     press(tally())
 
-    await act(async () => {
+    // Removing asks first; the answer is what removes.
+    act(() => {
       Array.from(rows()[0].querySelectorAll('button'))
         .find(b => b.textContent === 'Remove')!
+        .dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    })
+    await act(async () => {
+      Array.from(rows()[0].querySelectorAll('button'))
+        .find(b => b.textContent === 'Yes, remove')!
         .dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
 
@@ -308,7 +320,7 @@ describe('what the list holds until the sheet catches up', () => {
   })
 })
 
-describe('asking for the list with a finger', () => {
+describe('pulling the reading aside with a finger', () => {
   // Dispatched on the prose rather than on the document, so the
   // gesture is read off the thing the finger actually landed on.
   const swipe = (from: number, to: number, y = 200, endY = y) => {
@@ -320,6 +332,11 @@ describe('asking for the list with a finger', () => {
         })
       )
       touched().dispatchEvent(
+        Object.assign(new Event('touchmove', { bubbles: true }), {
+          touches: [{ clientX: to, clientY: endY }],
+        })
+      )
+      touched().dispatchEvent(
         Object.assign(new Event('touchend', { bubbles: true }), {
           changedTouches: [{ clientX: to, clientY: endY }],
         })
@@ -327,34 +344,61 @@ describe('asking for the list with a finger', () => {
     })
   }
 
+  /** How far the reading stands aside, from its own transform. */
+  const aside = () => {
+    const moved = container.querySelector<HTMLElement>('[data-narrow]')?.style.transform ?? ''
+    return Number(moved.match(/translateX\((-?[\d.]+)px\)/)?.[1] ?? 0)
+  }
+
   beforeEach(() => {
     narrow = true
   })
 
-  it('opens on a swipe from right to left, and closes on the way back', () => {
+  it('stays aside once pulled past the latch, and goes back on the way back', () => {
     render()
     swipe(320, 120)
-    expect(list()).not.toBeNull()
+    expect(aside()).toBeLessThan(0)
     swipe(120, 320)
-    finishLeaving()
-    expect(list()).toBeNull()
+    expect(aside()).toBe(0)
   })
 
-  it('ignores a swipe that wanders too far down the page', () => {
+  it('leaves a scroll to the page', () => {
     render()
-    swipe(320, 120, 200)
-    expect(list()).not.toBeNull()
-    swipe(120, 320, 200)
-    finishLeaving()
-
-    // A scroll: across a little, down a lot.
-    swipe(320, 220, 100, 400)
-    expect(list()).toBeNull()
+    // Across a little, down a lot.
+    swipe(320, 280, 100, 400)
+    expect(aside()).toBe(0)
   })
 
-  it('ignores a nudge too short to be a swipe', () => {
+  it('springs back from a nudge too short to be a pull', () => {
     render()
     swipe(320, 290)
-    expect(list()).toBeNull()
+    expect(aside()).toBe(0)
+  })
+
+  it('goes back on its own once nothing has touched it for a while', () => {
+    render()
+    swipe(320, 120)
+    expect(aside()).toBeLessThan(0)
+    act(() => {
+      vi.advanceTimersByTime(8000)
+    })
+    expect(aside()).toBe(0)
+  })
+})
+
+describe('removing asks first', () => {
+  it('leaves the mark alone when the answer is to keep it', () => {
+    vi.stubGlobal('fetch', vi.fn().mockReturnValue(new Promise(() => {})))
+    render()
+    press(tally())
+    const before = rows().length
+    const drawn = container.querySelectorAll('mark[data-mark]').length
+    const buttons = () => Array.from(rows()[0].querySelectorAll('button'))
+    press(buttons().find(b => b.textContent === 'Remove')!)
+    expect(rows()[0].textContent).toContain('Are you sure?')
+    press(buttons().find(b => b.textContent === 'Keep it')!)
+    expect(rows().length).toBe(before)
+    expect(container.querySelectorAll('mark[data-mark]').length).toBe(drawn)
+    expect(rows()[0].textContent).not.toContain('Are you sure?')
   })
 })

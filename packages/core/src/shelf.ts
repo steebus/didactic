@@ -179,3 +179,45 @@ export function snippetParts(snippet: string): Array<{ text: string; hit: boolea
   }
   return parts.filter(p => p.text)
 }
+
+/** One topic's shelf in a grouped view: the topic, or null for what is
+ *  filed against none, and its rows in the order they were given. */
+export interface TopicShelf<R> {
+  topic: { id: string; title: string } | null
+  rows: R[]
+}
+
+/**
+ * Rows grouped by what each is most about.
+ *
+ * A resource is filed against as many topics as it touches -- two dozen,
+ * for a broad one -- so it stands once, under its first topic, which the
+ * shelf lists most relevant first. The fullest shelf comes first, ties
+ * by title; what is filed against nothing comes last, since it is the
+ * shelf that most needs attention and the least like the others.
+ */
+export function byTopic<R extends { topics: Array<{ id: string; title: string }> }>(
+  rows: R[]
+): TopicShelf<R>[] {
+  const shelves = new Map<string, TopicShelf<R>>()
+  const loose: R[] = []
+  for (const row of rows) {
+    const topic = row.topics[0]
+    if (!topic) {
+      loose.push(row)
+      continue
+    }
+    const shelf = shelves.get(topic.id)
+    if (shelf) shelf.rows.push(row)
+    else shelves.set(topic.id, { topic: { id: topic.id, title: topic.title }, rows: [row] })
+  }
+  const grouped = [...shelves.values()].sort(
+    (a, b) => b.rows.length - a.rows.length || a.topic!.title.localeCompare(b.topic!.title)
+  )
+  return loose.length ? [...grouped, { topic: null, rows: loose }] : grouped
+}
+
+/** Whether a row is filed against a topic, anywhere in its list. */
+export function filedUnder(row: { topics: Array<{ id: string }> }, topicId: string): boolean {
+  return row.topics.some(t => t.id === topicId)
+}

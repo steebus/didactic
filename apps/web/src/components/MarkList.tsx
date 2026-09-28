@@ -6,6 +6,8 @@ import { isUnsaved } from '@didactic/core/marks'
 import { NoteEditor } from './NoteEditor'
 import { NoteText } from './NoteText'
 import { SummaryIcon } from './SummaryIcon'
+import { ExpandIcon } from './ExpandIcon'
+import { RemoveGate } from './RemoveGate'
 import { inSectionOrder, summaryLabel } from '@didactic/core/summaries'
 import styles from './MarkList.module.css'
 
@@ -29,6 +31,8 @@ export function MarkList({
   onGone,
   noun = 'lesson',
   summaries = [],
+  onFindSummary,
+  onOpenSummary,
 }: {
   /** Already in reading order. */
   marks: Mark[]
@@ -40,6 +44,10 @@ export function MarkList({
   summaries?: Mark[]
   /** What the reading is called: a lesson, or a resource read here. */
   noun?: string
+  /** Travel to the section a summary says back. */
+  onFindSummary?: (summary: Mark) => void
+  /** Open a summary out in the column, where it can be rewritten. */
+  onOpenSummary?: (summary: Mark) => void
   /** On its way out: it draws itself leaving, and says when it has. */
   leaving?: boolean
   /** Travel to the passage in the lesson. */
@@ -103,12 +111,52 @@ export function MarkList({
             In your own words
           </p>
           <ol className={styles.saidList}>
-            {inSectionOrder(summaries).map(summary => (
-              <li key={summary.id} className={styles.saidRow}>
-                <p className={styles.saidOf}>{summaryLabel(summary.section)}</p>
-                <NoteText markdown={summary.note ?? ''} className={styles.saidNote} />
-              </li>
-            ))}
+            {inSectionOrder(summaries).map(summary => {
+              // A section's summary can be travelled to and opened out;
+              // the whole reading's is at the foot, and has neither.
+              const ofSection = summary.section_at != null
+              return (
+                <li key={summary.id} className={styles.saidRow}>
+                  <div className={styles.saidHead}>
+                    {ofSection && onFindSummary ? (
+                      <button
+                        type="button"
+                        className={`${styles.saidOf} ${styles.saidFind}`}
+                        onClick={() => onFindSummary(summary)}
+                        title="Go to this section"
+                      >
+                        {summaryLabel(summary.section)}
+                      </button>
+                    ) : (
+                      <p className={styles.saidOf}>{summaryLabel(summary.section)}</p>
+                    )}
+                    {ofSection && onOpenSummary && (
+                      <button
+                        type="button"
+                        className={styles.saidOpen}
+                        onClick={() => onOpenSummary(summary)}
+                        aria-label={`Open your summary of “${summary.section}”`}
+                        title="Open it out"
+                      >
+                        <ExpandIcon folding={false} />
+                      </button>
+                    )}
+                  </div>
+                  {ofSection && onFindSummary ? (
+                    <button
+                      type="button"
+                      className={styles.saidFindNote}
+                      onClick={() => onFindSummary(summary)}
+                      title="Go to this section"
+                    >
+                      <NoteText markdown={summary.note ?? ''} className={styles.saidNote} />
+                    </button>
+                  ) : (
+                    <NoteText markdown={summary.note ?? ''} className={styles.saidNote} />
+                  )}
+                </li>
+              )
+            })}
           </ol>
         </section>
       )}
@@ -183,13 +231,9 @@ export function MarkList({
                       >
                         {mark.note ? 'Edit note' : 'Add a note'}
                       </button>
-                      <button
-                        type="button"
-                        className={`${styles.quiet} ${styles.destructive}`}
-                        onClick={() => remove(mark.id)}
-                      >
-                        Remove
-                      </button>
+                      <span className={styles.destructive}>
+                        <RemoveGate className={styles.quiet} onRemove={() => remove(mark.id)} />
+                      </span>
                     </div>
                   )}
                   {error && editing === null && <p className={styles.problem}>{error}</p>}

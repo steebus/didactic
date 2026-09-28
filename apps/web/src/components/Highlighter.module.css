@@ -579,10 +579,16 @@
 
 /* --- Reading a mark ---------------------------------------------- */
 
+/* A mark's note, read back in the reader's hand. */
 .reading {
-  font-size: var(--step-0);
-  line-height: 1.5;
+  font-family: var(--font-hand);
+  font-size: var(--step-1);
+  line-height: 1.25;
   margin: 0 0 var(--space-2);
+}
+
+.reading :global(p) {
+  margin: 0;
 }
 
 .unnoted {
@@ -884,4 +890,67 @@
 .backTo:focus-visible {
   outline: 2px solid var(--plate-terracotta);
   outline-offset: 3px;
+}
+
+/* --- Marginalia on a phone --------------------------------------- */
+
+/* The reading can be pulled aside to uncover the margin a phone has no
+   room for: across only -- the up and down stay the browser's -- and
+   easing back into place when it is let go or put back. */
+.holder[data-narrow] {
+  touch-action: pan-y pinch-zoom;
+  transition: transform var(--dur-state) var(--ease-settle);
+}
+
+/* A star in the gutter beside every marked passage, the way a reader
+   stars a line in a book: an asterisk in the reader's hand, large
+   enough to read as a pen mark rather than a footnote. Mustard where
+   the mark carries a note, the same stroke paler where it does not.
+   The whole gutter is the press; the star is only what is drawn in it. */
+.tick {
+  position: absolute;
+  left: calc(-1 * var(--edge));
+  width: var(--edge);
+  height: 1.5em;
+  padding: 0;
+  font-family: var(--font-hand);
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+  color: rgba(var(--plate-mustard-rgb), 0.5);
+  background: none;
+  border: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  /* Tilted a touch, as a hand leaves it. */
+  transform: rotate(-8deg);
+}
+
+.tick[data-noted] {
+  color: var(--plate-mustard);
+}
+
+/* A mark kept in this visit is starred as it is kept: pressed on with a
+   twist and a little overshoot, like a pen coming down. The travel is
+   through --motion-travel, so less motion leaves only the fade. */
+.tick[data-fresh] {
+  animation: penOn 520ms var(--ease-settle) both;
+}
+
+@keyframes penOn {
+  0% {
+    opacity: 0;
+    transform: rotate(calc(-8deg + var(--motion-travel) * -50deg))
+      scale(calc(1 + var(--motion-travel) * 0.9));
+  }
+  55% {
+    opacity: 1;
+    transform: rotate(calc(-8deg + var(--motion-travel) * 10deg))
+      scale(calc(1 - var(--motion-travel) * 0.12));
+  }
+  100% {
+    transform: rotate(-8deg);
+  }
 }

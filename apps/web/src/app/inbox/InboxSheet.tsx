@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { didactic } from '@didactic/api'
 import type { LibraryRow } from '@didactic/core/shapes'
 import { ResourceList } from '@/components/ResourceList'
-import { bestHits, shelfMatches, type ShelfHit } from '@didactic/core/shelf'
+import { bestHits, byTopic, filedUnder, shelfMatches, type ShelfHit } from '@didactic/core/shelf'
 import styles from './page.module.css'
 
 const api = didactic()
@@ -47,6 +47,11 @@ export function InboxSheet({
 }) {
   const [term, setTerm] = useState('')
   const [kind, setKind] = useState<string>('all')
+  /** Shelved by what each is most about, rather than read and unread. */
+  const [grouped, setGrouped] = useState(false)
+  /** Narrowed to one topic: everything filed against it, anywhere in its
+   *  list, not only what it is most about. */
+  const [only, setOnly] = useState<{ id: string; title: string } | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [, startTransition] = useTransition()
@@ -113,9 +118,10 @@ export function InboxSheet({
     () =>
       resources.filter(r => {
         if (kind !== 'all' && r.kind !== kind) return false
+        if (only && !filedUnder(r, only.id)) return false
         return shelfMatches(r, query) || hits.has(r.id)
       }),
-    [resources, query, kind, hits]
+    [resources, query, kind, only, hits]
   )
 
   const unread = shown.filter(r => r.status === 'queued' || r.status === 'reading')
@@ -180,7 +186,29 @@ export function InboxSheet({
                 {k === 'all' ? 'Everything' : KIND_LABEL[k]}
               </button>
             ))}
+            <span className={styles.kindsGap} aria-hidden="true" />
+            <button
+              type="button"
+              className={styles.kind}
+              aria-pressed={grouped}
+              onClick={() => setGrouped(g => !g)}
+            >
+              By topic
+            </button>
           </div>
+          {only && (
+            <p className={styles.narrowed}>
+              Filed under <strong>{only.title}</strong>
+              <button
+                type="button"
+                className={styles.narrowedClear}
+                onClick={() => setOnly(null)}
+                aria-label={`Show everything, not only ${only.title}`}
+              >
+                Show everything
+              </button>
+            </p>
+          )}
         </div>
       )}
 
@@ -188,6 +216,35 @@ export function InboxSheet({
 
       {error && <p className={styles.problem}>{error}</p>}
 
+      {/* Shelved by topic: each resource once, under what it is most
+          about, unread before read. A shelf's head narrows the inbox to
+          that topic, which also finds what only touches it. */}
+      {grouped &&
+        byTopic([...unread, ...read]).map(shelf => (
+          <section key={shelf.topic?.id ?? 'unfiled'}>
+            <div className={styles.sectionHead}>
+              <h2 className={styles.sectionTitle}>{shelf.topic?.title ?? 'Filed against nothing'}</h2>
+              <span className={styles.sectionNote}>
+                {shelf.rows.length}
+                {shelf.topic && !only && (
+                  <>
+                    {' · '}
+                    <button
+                      type="button"
+                      className={styles.shelfOnly}
+                      onClick={() => setOnly(shelf.topic)}
+                    >
+                      only this topic
+                    </button>
+                  </>
+                )}
+              </span>
+            </div>
+            <ResourceList resources={shelf.rows} onRemove={remove} hits={hits} />
+          </section>
+        ))}
+
+      {!grouped && (
       <section>
         <div className={styles.sectionHead}>
           <h2 className={styles.sectionTitle}>Unread</h2>
@@ -195,8 +252,9 @@ export function InboxSheet({
         </div>
         <ResourceList resources={unread} onRemove={remove} hits={hits} />
       </section>
+      )}
 
-      {read.length > 0 && (
+      {!grouped && read.length > 0 && (
         <section>
           <div className={styles.sectionHead}>
             <h2 className={styles.sectionTitle}>Read</h2>

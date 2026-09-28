@@ -94,7 +94,8 @@ describe('SectionSummaries', () => {
     const [custody, settlement] = container.querySelectorAll<HTMLButtonElement>('h1 button, h2 button')
     expect(custody.dataset.said).toBeUndefined()
     expect(settlement.dataset.said).toBe('true')
-    expect(settlement.getAttribute('aria-label')).toMatch(/Your summary of “Settlement”/)
+    // Said back, the sprig shows the summary or puts it away.
+    expect(settlement.getAttribute('aria-label')).toMatch(/your summary of “Settlement”/)
   })
 
   it('opens the field under the heading, and keeps what is written against that section', async () => {
@@ -133,9 +134,9 @@ describe('SectionSummaries', () => {
 
   it('is never read as the text a mark is searched for in', () => {
     mount([summary('Custody', 'The broker holds it.')])
-    // Open the standing summary, so its words are on the page right
-    // after the heading -- the same words as the sentence below.
-    act(() => container.querySelector<HTMLButtonElement>('h1 button')!.click())
+    // A standing summary is written in under its heading, so its words
+    // are on the page right after it -- the same words as the sentence
+    // below.
     expect(container.querySelector('[data-summary-host="panel"]')!.textContent).toContain(
       'The broker holds it.'
     )

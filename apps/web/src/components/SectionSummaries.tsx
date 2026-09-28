@@ -11,7 +11,15 @@ import { NoteText } from './NoteText'
 import { SummaryIcon } from './SummaryIcon'
 import { ExpandIcon } from './ExpandIcon'
 import { useOpenedOut } from './useOpenedOut'
+import { RemoveGate } from './RemoveGate'
 import styles from './SectionSummaries.module.css'
+
+/**
+ * Asks for one section's summary to be opened out in the column, by the
+ * heading's place in the reading: `{ detail: { at } }`. Said on the
+ * window because what asks -- the marks' list -- is another component's.
+ */
+export const OPEN_SUMMARY = 'didactic:open-summary'
 
 /** Where one heading's control and its writing go on the page. */
 interface Host {
@@ -69,6 +77,23 @@ export function SectionSummaries({
   const [hosts, setHosts] = useState<Host[]>([])
   const [open, setOpen] = useState<number | null>(null)
   const [big, openOut] = useOpenedOut()
+  /** Sections whose written summary the reader has put away with the
+   *  sprig. Shown by default: it is the reader's own account, and it
+   *  belongs under the heading it sums up. */
+  const [putAway, setPutAway] = useState<number[]>([])
+
+  // Asked for from elsewhere on the page -- the marks' list opening a
+  // summary out -- by the heading's place in the reading.
+  useEffect(() => {
+    const ask = (e: Event) => {
+      const at = (e as CustomEvent<{ at: number }>).detail?.at
+      if (typeof at !== 'number') return
+      setOpen(at)
+      openOut(true)
+    }
+    window.addEventListener(OPEN_SUMMARY, ask)
+    return () => window.removeEventListener(OPEN_SUMMARY, ask)
+  }, [openOut])
 
   // Open out, the summary takes the notes' column beside the reading,
   // and the sheet gives up the strip it stands in -- the same as a mark.
@@ -166,6 +191,12 @@ export function SectionSummaries({
             open={isOpen}
             big={big}
             onOpenOut={() => openOut(!big)}
+            shown={!putAway.includes(host.at)}
+            onShow={() =>
+              setPutAway(away =>
+                away.includes(host.at) ? away.filter(a => a !== host.at) : [...away, host.at]
+              )
+            }
             noun={noun}
             onToggle={() => setOpen(isOpen ? null : host.at)}
             onClose={() => setOpen(null)}
@@ -184,6 +215,8 @@ function SectionHost({
   open,
   big,
   onOpenOut,
+  shown,
+  onShow,
   noun,
   onToggle,
   onClose,
@@ -196,6 +229,10 @@ function SectionHost({
   /** Open out to the notes' column rather than beside the heading. */
   big: boolean
   onOpenOut: () => void
+  /** Whether the written summary is showing, where there is one. */
+  shown: boolean
+  /** Show it, or put it away. */
+  onShow: () => void
   noun: string
   onToggle: () => void
   onClose: () => void
@@ -234,6 +271,16 @@ function SectionHost({
     ? `Your summary of “${host.section}”`
     : `Summarise “${host.section}” in your own words`
 
+  // The sprig does one thing per state. Nothing written: it opens the
+  // field to write in. Written: it shows the summary in the reader's
+  // hand, or puts it away -- reading and managing are different acts,
+  // and managing is a press on the summary itself.
+  const sprigSays = !said
+    ? label
+    : shown
+    ? `Put away your summary of “${host.section}”`
+    : `Show your summary of “${host.section}”`
+
   return (
     <>
       {createPortal(
@@ -241,12 +288,16 @@ function SectionHost({
           type="button"
           className={styles.trigger}
           data-said={said || undefined}
-          aria-expanded={open}
-          aria-label={label}
-          title={label}
+          aria-expanded={said ? shown : open}
+          aria-label={sprigSays}
+          title={sprigSays}
           onClick={() => {
-            if (!open && !said) begin()
-            else setEditing(false)
+            if (said) {
+              if (open) onClose()
+              onShow()
+              return
+            }
+            if (!open) begin()
             onToggle()
           }}
         >
@@ -255,12 +306,12 @@ function SectionHost({
         host.trigger
       )}
 
-      {/* Where the sheet has margins, the summary stands in the left one
-          beside its section, and pressing it opens it there. Hidden
-          everywhere else by the stylesheet -- the sprig is the way in on
-          a narrow sheet -- and from a screen reader always, since the
-          sprig and the panel already say it. */}
+      {/* The summary, in the reader's hand: under its heading on a phone,
+          in the left margin where the sheet has one. A press opens its
+          card, where it is rewritten or removed. Hidden from a screen
+          reader, which has the sprig and the card to say it. */}
       {said &&
+        shown &&
         !open &&
         createPortal(
           <div className={styles.rest} aria-hidden="true" onClick={onToggle}>
@@ -333,18 +384,17 @@ function SectionHost({
                   >
                     Rewrite it
                   </button>
-                  <button
-                    type="button"
-                    className={`${styles.quiet} ${styles.destructive}`}
-                    disabled={standing ? isUnsaved(standing.id) : false}
-                    onClick={() => {
-                      if (!standing) return
-                      onRemove(standing.id)
-                      onClose()
-                    }}
-                  >
-                    Remove
-                  </button>
+                  <span className={styles.destructive}>
+                    <RemoveGate
+                      className={styles.quiet}
+                      disabled={standing ? isUnsaved(standing.id) : false}
+                      onRemove={() => {
+                        if (!standing) return
+                        onRemove(standing.id)
+                        onClose()
+                      }}
+                    />
+                  </span>
                   <button type="button" className={styles.quiet} onClick={onClose}>
                     Close
                   </button>

@@ -11,6 +11,24 @@
         ],
         "createdAt": "2026-09-17T00:57:53.020Z",
         "reason": "DESIGN.md specifies the left tab for this app's plate language in five places: L499 a plate's 3px left rule, L1050 the check accent's 2px, L1062 the flow step's 3px tab, L1590 a marked passage, L1682 an open entry. Carried forward unchanged from the previous .flowBox; not introduced here."
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "apps/web/src/components/SectionSummaries.module.css"
+        ],
+        "createdAt": "2026-09-28T07:02:44.541Z",
+        "reason": "agent triage: DESIGN.md 'Summaries in the reader's own words' specifies the 3px ultramarine left rule for the summary field and its open-out column"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "apps/web/src/components/MarkList.module.css"
+        ],
+        "createdAt": "2026-09-28T07:02:44.748Z",
+        "reason": "agent triage: DESIGN.md 'Pinned above the marks' specifies summaries on the paper-deep ground with the 3px ultramarine rule; pre-existing, not introduced here"
       }
     ]
   }

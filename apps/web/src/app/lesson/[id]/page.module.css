@@ -1027,3 +1027,11 @@
     grid-column: 1;
   }
 }
+
+/* On a phone the reading can be pulled aside inside the sheet to show
+   the margin (Highlighter), and nothing it moves may widen the page. */
+@media (max-width: 40rem) {
+  .sheet {
+    overflow-x: clip;
+  }
+}

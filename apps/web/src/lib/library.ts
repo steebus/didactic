@@ -84,7 +84,7 @@ export async function readLibrary(db: SupabaseClient): Promise<LibraryRow[]> {
     { data: written },
   ] = await Promise.all([
     db.from('resources').select('*').order('added_at', { ascending: false }),
-    db.from('resource_topics').select('resource_id, topics(id, title)'),
+    db.from('resource_topics').select('resource_id, relevance, topics(id, title)'),
     // Only the source ids matter: this is a "has anything been read out
     // of it" question, not a count. Marked read, or said back whole
     // (054): either way an exposure rests on it and removing it fails.
@@ -109,13 +109,16 @@ export async function readLibrary(db: SupabaseClient): Promise<LibraryRow[]> {
     marked.set(w.resource_id, (marked.get(w.resource_id) ?? 0) + 1)
   }
 
-  const filed = new Map<string, Array<{ id: string; title: string }>>()
+  // Most relevant first: the row's first topic is what it is most about,
+  // which is the topic the shelf groups it under (`core/shelf.byTopic`).
+  const filed = new Map<string, Array<{ id: string; title: string; relevance: number }>>()
   for (const link of links ?? []) {
     const topic = link.topics as unknown as { id: string; title: string } | null
     if (!topic) continue
+    const entry = { ...topic, relevance: Number(link.relevance ?? 0) }
     const list = filed.get(link.resource_id)
-    if (list) list.push(topic)
-    else filed.set(link.resource_id, [topic])
+    if (list) list.push(entry)
+    else filed.set(link.resource_id, [entry])
   }
 
   const read = new Set((exposures ?? []).map(e => e.source_id))
@@ -130,7 +133,9 @@ export async function readLibrary(db: SupabaseClient): Promise<LibraryRow[]> {
   const all = resources ?? []
 
   return all.map(r => {
-    const topics = (filed.get(r.id) ?? []).sort((a, b) => a.title.localeCompare(b.title))
+    const topics = (filed.get(r.id) ?? [])
+      .sort((a, b) => b.relevance - a.relevance || a.title.localeCompare(b.title))
+      .map(({ id, title }) => ({ id, title }))
     const own = job.get(r.id)
     return {
     ...r,

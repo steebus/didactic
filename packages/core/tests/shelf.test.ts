@@ -110,3 +110,34 @@ describe('snippetParts', () => {
     ])
   })
 })
+
+describe('byTopic', () => {
+  const row = (id: string, ...topics: string[]) => ({
+    id,
+    topics: topics.map(t => ({ id: t, title: t.toUpperCase() })),
+  })
+
+  it('stands each row once, under its first topic', async () => {
+    const { byTopic } = await import('../src/shelf')
+    const shelves = byTopic([row('a', 'dns', 'tcp'), row('b', 'tcp'), row('c', 'dns')])
+    expect(shelves.map(s => [s.topic?.id, s.rows.map(r => r.id)])).toEqual([
+      ['dns', ['a', 'c']],
+      ['tcp', ['b']],
+    ])
+  })
+
+  it('puts the fullest shelf first, ties by title, and the unfiled last', async () => {
+    const { byTopic } = await import('../src/shelf')
+    const shelves = byTopic([row('a'), row('b', 'zed'), row('c', 'abc'), row('d', 'zed')])
+    expect(shelves.map(s => s.topic?.id ?? null)).toEqual(['zed', 'abc', null])
+  })
+})
+
+describe('filedUnder', () => {
+  it('finds a topic anywhere in the row, not only first', async () => {
+    const { filedUnder } = await import('../src/shelf')
+    const r = { topics: [{ id: 'dns' }, { id: 'tcp' }] }
+    expect(filedUnder(r, 'tcp')).toBe(true)
+    expect(filedUnder(r, 'tls')).toBe(false)
+  })
+})

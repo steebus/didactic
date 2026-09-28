@@ -26,6 +26,8 @@ import { useOpenedOut } from './useOpenedOut'
 import { useBookmark, useKeptScroll } from './useReadingPlace'
 import { BookmarkIcon } from './BookmarkIcon'
 import { DialIcon } from './DialIcon'
+import { RemoveGate } from './RemoveGate'
+import { OPEN_SUMMARY } from './SectionSummaries'
 import { NoteText } from './NoteText'
 import styles from './Highlighter.module.css'
 
@@ -46,10 +48,16 @@ const SETTLED_MS = 300
  *  with the phone breakpoint the rest of the stylesheets use. */
 const NARROW = '(max-width: 40rem)'
 
-/** How far a finger has to travel across the page, and how straight,
- *  before it counts as asking for the marks rather than as a scroll or
- *  a stray touch while reading. */
-const SWIPE = { far: 60, wander: 45, within: 800 }
+/**
+ * Pulling the page aside on a phone, to read the margin it does not have.
+ *
+ * `latch` is how far a pull has to go before the page stays aside when
+ * the finger lifts; `rest` is how long it stays with nothing touched --
+ * long enough to find a note and press it, and every touch or scroll
+ * starts the wait again. `share` is how much of the screen the margin
+ * takes, leaving a sliver of the reading to tap to put it back.
+ */
+const PULL = { latch: 60, rest: 8000, share: 0.72, most: 288 }
 
 /**
  * The least room either side of the sheet for the notes to stand in
@@ -275,9 +283,11 @@ export function Highlighter({
     )
 
     // Only the first piece of each: a mark broken across a link or a
-    // line of code is painted in several, and is one note.
+    // line of code is painted in several, and is one note. Measured at
+    // every width -- the margin reads them on a wide screen and the
+    // gutter's ticks on a phone.
     const tops: Pinned[] = []
-    if (next) {
+    {
       const seen = new Set<string>()
       root.querySelectorAll<HTMLElement>('mark[data-mark]').forEach(piece => {
         const id = piece.dataset.mark
@@ -1022,52 +1032,132 @@ export function Highlighter({
   }, [columnOpen])
 
 
-  // A finger asking for the marks: a swipe leftward across the reading,
-  // and a swipe back to send them away again. Kept off anything that
-  // scrolls sideways of its own accord -- a wide table, a plot -- and
-  // off a selection being made, which is a drag of its own.
+  // --- Pulling the page aside ---------------------------------------
+
+  /** How far the reading is pulled aside, and how far it can go. */
+  const [pull, setPull] = useState(0)
+  const [pullReach, setPullReach] = useState(PULL.most)
+  /** A finger is on it: it follows without easing. */
+  const [pulling, setPulling] = useState(false)
+  const pullNow = useRef(0)
+  pullNow.current = pull
+
+  // A finger across the reading pulls it aside and shows the marks'
+  // notes in the strip it uncovers, each at its line. Past the latch it
+  // stays when the finger lifts; short of it, it goes back. Pulled back
+  // the same way, or by a tap on the sliver of reading still showing.
+  // With the list open, a swipe back still sends the list away.
+  //
+  // Only across: `touch-action: pan-y` on the reading leaves the up and
+  // down to the browser, so a pull and a scroll never fight over one
+  // finger. Kept off anything that scrolls sideways of its own accord
+  // and off a selection being made.
   useEffect(() => {
     if (!narrow) return
-    let from: { x: number; y: number; at: number; sideways: boolean } | null = null
+    let from: {
+      x: number
+      y: number
+      base: number
+      way: 'across' | 'down' | null
+      inMargin: boolean
+    } | null = null
+    let reach = PULL.most
+    let last = 0
 
     const start = (e: TouchEvent) => {
       if (e.touches.length !== 1) return
+      const target = e.target as Element | null
+      if (!holder.current?.contains(target) || scrollsSideways(target)) return
+      if (pending || open || openCloze || !window.getSelection()?.isCollapsed) return
       const touch = e.touches[0]
+      reach = Math.min(PULL.most, window.innerWidth * PULL.share)
+      setPullReach(reach)
+      last = pullNow.current
       from = {
         x: touch.clientX,
         y: touch.clientY,
-        at: Date.now(),
-        sideways: scrollsSideways(e.target),
+        base: pullNow.current,
+        way: null,
+        inMargin: Boolean(target?.closest(`.${styles.margin}`)),
       }
+    }
+
+    const move = (e: TouchEvent) => {
+      if (!from || from.way === 'down') return
+      const touch = e.touches[0]
+      const dx = touch.clientX - from.x
+      const dy = touch.clientY - from.y
+      if (!from.way) {
+        if (Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.5) from.way = 'across'
+        else if (Math.abs(dy) > 10) from.way = 'down'
+        else return
+        if (from.way === 'down') return
+        setPulling(true)
+      }
+      last = Math.min(reach, Math.max(0, from.base - dx))
+      setPull(last)
     }
 
     const end = (e: TouchEvent) => {
-      const start = from
+      const was = from
       from = null
-      if (!start || start.sideways) return
-      if (pending || open || offer) return
-      if (!window.getSelection()?.isCollapsed) return
-
-      const touch = e.changedTouches[0]
-      if (!touch) return
-      const across = touch.clientX - start.x
-      if (
-        Math.abs(touch.clientY - start.y) > SWIPE.wander ||
-        Date.now() - start.at > SWIPE.within
-      ) {
+      if (!was) return
+      if (was.way === 'across') {
+        setPulling(false)
+        const opening = was.base === 0
+        setPull(opening ? (last > PULL.latch ? reach : 0) : last < reach - PULL.latch ? 0 : reach)
+        // A swipe back with the list open still sends the list away.
+        if (last < was.base) showMarks(false)
         return
       }
-      if (across <= -SWIPE.far) showMarks(true)
-      else if (across >= SWIPE.far) showMarks(false)
+      // A tap on the reading while it is aside puts it back; a tap in
+      // the margin is a note being opened.
+      const touch = e.changedTouches[0]
+      if (
+        was.way === null &&
+        was.base > 0 &&
+        !was.inMargin &&
+        touch &&
+        Math.abs(touch.clientX - was.x) < 8
+      ) {
+        setPull(0)
+      }
     }
 
     document.addEventListener('touchstart', start, { passive: true })
+    document.addEventListener('touchmove', move, { passive: true })
     document.addEventListener('touchend', end, { passive: true })
+    document.addEventListener('touchcancel', end, { passive: true })
     return () => {
       document.removeEventListener('touchstart', start)
+      document.removeEventListener('touchmove', move)
       document.removeEventListener('touchend', end)
+      document.removeEventListener('touchcancel', end)
     }
-  }, [narrow, pending, open, offer])
+  }, [narrow, pending, open, openCloze])
+
+  // Aside, it goes back on its own once nothing has touched it for a
+  // while -- never while a note's panel is open, and every touch or
+  // scroll starts the wait again.
+  const busyWriting = Boolean(pending || open || openCloze)
+  useEffect(() => {
+    if (!pull || pulling || busyWriting) return
+    let timer = window.setTimeout(() => setPull(0), PULL.rest)
+    const again = () => {
+      clearTimeout(timer)
+      timer = window.setTimeout(() => setPull(0), PULL.rest)
+    }
+    document.addEventListener('touchstart', again, { passive: true })
+    window.addEventListener('scroll', again, { passive: true })
+    return () => {
+      clearTimeout(timer)
+      document.removeEventListener('touchstart', again)
+      window.removeEventListener('scroll', again)
+    }
+  }, [pull, pulling, busyWriting])
+
+  // Nothing is pulled aside at a width with margins of its own.
+  const aside = narrow ? pull : 0
 
   /**
    * Go to a marked passage in the reading.
@@ -1090,6 +1180,22 @@ export function Highlighter({
     // says which of the words on it was the one asked for.
     piece.dataset.found = ''
     setTimeout(() => delete piece.dataset.found, 1600)
+  }
+
+  /**
+   * Go to the section a summary says back: its heading, by its place in
+   * the reading, near the top of the window so the summary written under
+   * it is in view too.
+   */
+  function findSummary(summary: Mark) {
+    const root = holder.current
+    if (!root || summary.section_at == null) return
+    const heading = root.querySelectorAll<HTMLElement>(
+      '[data-prose] h1, [data-prose] h2, [data-prose] h3'
+    )[summary.section_at]
+    if (!heading) return
+    if (narrow) showMarks(false)
+    heading.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   /** Save a note against a mark from the list beside the reading. */
@@ -1390,14 +1496,28 @@ export function Highlighter({
       // prose by a component of their own, stand in the other margin
       // by the same measure.
       data-margins={marginalia ? '' : undefined}
+      data-narrow={narrow || undefined}
       style={
-        margin
-          ? ({
-              '--reach-left': `${margin.left}px`,
-              '--reach-right': `${margin.right}px`,
-              '--margin-room': `${margin.room}px`,
-            } as React.CSSProperties)
-          : undefined
+        {
+          // The gutter between the sheet's edge and the prose, at every
+          // width: where the stars and the bookmark's ribbon stand.
+          '--edge': `${edge}px`,
+          ...(margin
+            ? {
+                '--reach-left': `${margin.left}px`,
+                '--reach-right': `${margin.right}px`,
+                '--margin-room': `${margin.room}px`,
+              }
+            : narrow
+            ? {
+                // The strip the pull uncovers, beside the reading.
+                '--reach-right': '0px',
+                '--margin-room': `${pullReach}px`,
+                transform: aside ? `translateX(${-aside}px)` : undefined,
+                transition: pulling ? 'none' : undefined,
+              }
+            : {}),
+        } as Record<string, string | undefined> as React.CSSProperties
       }
     >
       {children}
@@ -1428,13 +1548,44 @@ export function Highlighter({
           />
         )}
 
-      {/* Every mark, down the right-hand margin beside its passage: the
-          note if it has one, the words if not. Quiet until pressed, and
-          pressing one is pressing the passage. A copy of what the
-          painted marks already offer the keyboard and a screen reader,
-          so it is hidden from both. Buttons, which the painters skip,
-          so a note is never searched as part of the text. */}
-      {marginalia && pinned.length > 0 && (
+      {/* Wherever the margin notes are not showing -- the window too
+          narrow for them, or the notes column over them -- a star in the
+          gutter beside every marked passage, filled where it carries a
+          note. Pressing one is pressing the passage. */}
+      {!marginalia &&
+        pinned.map(({ id, top }, i) => {
+          const mark = marks.find(m => m.id === id)
+          if (!mark) return null
+          return (
+            <button
+              // By where it stands, not by id: a mark kept a moment ago
+              // changes id when the server answers, and a new key would
+              // draw its star a second time.
+              key={`${top}:${i}`}
+              type="button"
+              tabIndex={-1}
+              aria-hidden="true"
+              className={styles.tick}
+              data-noted={mark.note ? '' : undefined}
+              // Drawn on only for a mark kept in this visit: the rest were
+              // on the page before it was.
+              data-fresh={kept.some(k => k.id === id) || undefined}
+              style={{ top }}
+              onClick={() => openMark(mark, { top, left: 0, above: false })}
+            >
+              *
+            </button>
+          )
+        })}
+
+      {/* Every mark, down the right-hand margin beside its passage -- or
+          in the strip a phone's pull uncovers: the note if it has one,
+          the words if not. Quiet until pressed, and pressing one is
+          pressing the passage. A copy of what the painted marks already
+          offer the keyboard and a screen reader, so it is hidden from
+          both. Buttons, which the painters skip, so a note is never
+          searched as part of the text. */}
+      {(marginalia || aside > 0) && pinned.length > 0 && (
         <div className={styles.margin} ref={marginNotes} aria-hidden="true">
           {pinned.map(({ id, top }) => {
             const mark = marks.find(m => m.id === id)
@@ -1516,6 +1667,16 @@ export function Highlighter({
             onRemove={removeMark}
             onClose={() => showMarks(false)}
             onGone={listGone}
+            onFindSummary={findSummary}
+            onOpenSummary={summary => {
+              // The column is one strip: the list gives it up to the
+              // summary it was asked to open.
+              showMarks(false)
+              window.dispatchEvent(
+                new CustomEvent(OPEN_SUMMARY, { detail: { at: summary.section_at } })
+              )
+              findSummary(summary)
+            }}
           />
         )}
 
@@ -1766,14 +1927,11 @@ export function Highlighter({
                   >
                     {open.mark.note ? 'Edit note' : 'Add a note'}
                   </button>
-                  <button
-                    type="button"
+                  <RemoveGate
                     className={styles.cancel}
-                    onClick={remove}
+                    onRemove={remove}
                     disabled={isUnsaved(open.mark.id)}
-                  >
-                    Remove
-                  </button>
+                  />
                   <button type="button" className={styles.cancel} onClick={() => setOpen(null)}>
                     Close
                   </button>

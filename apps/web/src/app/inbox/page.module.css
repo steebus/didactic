@@ -1063,3 +1063,52 @@
 .send[open] > :not(summary) {
   margin-top: var(--space-4);
 }
+
+/* --- By topic ---------------------------------------------------- */
+
+/* Set apart from the kinds: they narrow, this rearranges. */
+.kindsGap {
+  width: 1px;
+  align-self: stretch;
+  margin: 0 var(--space-2);
+  background: var(--rule);
+}
+
+/* What the inbox is narrowed to, and the way back to everything. */
+.narrowed {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.narrowed strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.narrowedClear,
+.shelfOnly {
+  padding: 0;
+  font: inherit;
+  color: var(--ink-soft);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule-strong);
+  cursor: pointer;
+}
+
+.narrowedClear:hover,
+.shelfOnly:hover {
+  color: var(--ink);
+  border-bottom-color: var(--plate-terracotta);
+}
+
+.narrowedClear:focus-visible,
+.shelfOnly:focus-visible {
+  outline: 2px solid var(--plate-terracotta);
+  outline-offset: 2px;
+}
