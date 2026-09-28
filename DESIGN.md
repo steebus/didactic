@@ -1589,9 +1589,16 @@ Below that it is longer than what it lists, and it is not printed.
 ### Lesson blocks
 
 A lesson body is markdown, and markdown turns anything that is really a shape or
-a question into a paragraph about one. Six blocks answer that: `chart`, `check`,
-`compare`, `steps`, `flow` and `picture`. Each is a fenced region whose body is
-JSON, lifted out before the markdown is parsed.
+a question into a paragraph about one. The blocks answer that: `chart`, `model`,
+`check`, `blank`, `sort`, `compare`, `steps`, `flow`, `callout` and `picture`.
+Each is a fenced region whose body is JSON, lifted out before the markdown is
+parsed.
+
+A `callout` is an aside: a display-face label over one to three short
+paragraphs, on `--paper-deep` with a 3px `--plate-mustard` rule down its left
+edge, set at `--step-0` so it reads as beside the prose rather than part of it.
+It is what a folded conversation about a chosen passage becomes when it comes
+to a few lines, and the lesson writer may use two or three a lesson.
 
 **Rule — a block reads values, never markup.** The payload is written by a
 model, so it never reaches the HTML pipeline: a component we wrote decides how

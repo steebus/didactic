@@ -262,32 +262,3 @@
   height: auto;
   border: 1px solid var(--paper-edge);
 }
-
-/* A conversation folded into the lesson, arriving in place: it rises
-   in with the sheet's own curve and carries a mustard wash that fades
-   back to paper, so the reader sees what is new without a reload.
-   Set by the lesson sheet, which is why the class is global. */
-.prose > :global(.arrived) {
-  scroll-margin-top: 30vh;
-  animation: arrived calc(var(--dur-settle) * 4) var(--ease-settle) both;
-  animation-delay: calc(var(--i, 0) * 90ms);
-}
-
-@keyframes arrived {
-  0% {
-    opacity: 0;
-    transform: translateY(calc(var(--motion-travel) * 0.375rem));
-    background-color: color-mix(in srgb, var(--plate-mustard) 22%, transparent);
-    box-shadow: 0 0 0 0.4em color-mix(in srgb, var(--plate-mustard) 22%, transparent);
-  }
-  20% {
-    opacity: 1;
-    transform: none;
-    background-color: color-mix(in srgb, var(--plate-mustard) 22%, transparent);
-    box-shadow: 0 0 0 0.4em color-mix(in srgb, var(--plate-mustard) 22%, transparent);
-  }
-  100% {
-    background-color: transparent;
-    box-shadow: 0 0 0 0.4em transparent;
-  }
-}

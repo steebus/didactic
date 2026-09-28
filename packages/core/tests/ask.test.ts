@@ -116,6 +116,12 @@ describe('folding at a chosen passage', () => {
     expect(out.indexOf('Added prose.')).toBeLessThan(out.indexOf('Then the request'))
   })
 
+  it('closes the passage section with a deep dive, rather than splitting it', () => {
+    const out = foldInto(body, 'next', '### Why one trip\n\nAdded prose.', 'TLS handshake: historically')
+    expect(out.indexOf('Then the request')).toBeLessThan(out.indexOf('### Why one trip'))
+    expect(out.indexOf('Added prose.')).toBeLessThan(out.indexOf('## Next'))
+  })
+
   it('falls back to the section when the passage is not in the body', () => {
     const out = foldInto(body, 'where-the-time-goes', 'Added prose.', 'words that were rewritten')
     expect(out.indexOf('Then the request')).toBeLessThan(out.indexOf('Added prose.'))

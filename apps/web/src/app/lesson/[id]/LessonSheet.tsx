@@ -17,6 +17,7 @@ import { SectionSummaries } from '@/components/SectionSummaries'
 import { ReadingSummary } from '@/components/ReadingSummary'
 import { useSummaries } from '@/components/useSummaries'
 import { lessonSections, plain } from '@didactic/core/sections'
+import { parseBlocks } from '@didactic/core/blocks'
 import { summaryOf, summaryTally } from '@didactic/core/summaries'
 import { didactic } from '@didactic/api'
 import type { ExposureDepth, Highlight as Mark } from '@didactic/core/types'
@@ -300,11 +301,18 @@ export default function LessonSheet({
     if (!section || !sheetBody || !body) return
     arriving.current = null
     // Each block of what went in, by how it opens once printed.
-    const leads = section
-      .split(/\n\s*\n/)
+    // A callout opens on its label, or on its text where it has none.
+    const leads = parseBlocks(section)
+      .flatMap(part => {
+        if (part.kind === 'markdown') return part.text.split(/\n\s*\n/)
+        const { label, text } = part.data as { label?: string; text?: string }
+        return part.name === 'callout' ? [label || text || ''] : []
+      })
       .map(block => plain(block.replace(/^\s{0,3}(#{1,6}|[-*+>]|\d+\.)\s+/, '')).slice(0, 32))
       .filter(Boolean)
-    const landed = Array.from(sheetBody.querySelectorAll<HTMLElement>('[data-prose] > *')).filter(
+    const landed = Array.from(
+      sheetBody.querySelectorAll<HTMLElement>('[data-prose] > *, [data-callout]')
+    ).filter(
       el => leads.some(lead => el.textContent?.trim().startsWith(lead))
     )
     landed.forEach((el, i) => {

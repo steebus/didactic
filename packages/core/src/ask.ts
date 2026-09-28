@@ -106,10 +106,13 @@ export function contextPreamble(c: AskContext): string {
  * an odd place is a paragraph to move and a fold landing nowhere is the
  * conversation lost.
  *
- * A conversation opened from a chosen passage goes closer still: after
- * the paragraph that holds the passage, because that is the sentence the
- * question was about. A passage the body no longer holds falls back to
- * the section.
+ * A conversation opened from a chosen passage goes by the passage
+ * instead, because that is the sentence the question was about. A short
+ * fold -- a callout, a paragraph -- is set straight after the paragraph
+ * holding it. One that opens with a heading is a deep dive, and closes
+ * the passage's section rather than landing mid-way through it, where it
+ * would take the rest of that section in under itself. A passage the
+ * body no longer holds falls back to the section.
  *
  * Pure, and here rather than in the route, so the placement can be
  * tested without a model and the phone folds identically.
@@ -122,13 +125,6 @@ export function foldInto(
 ): string {
   const append = () => `${body.trimEnd()}\n\n${section.trim()}\n`
 
-  const at = quote ? afterPassage(body, quote) : -1
-  if (at !== -1) {
-    return `${body.slice(0, at).trimEnd()}\n\n${section.trim()}\n\n${body.slice(at).trimStart()}`
-  }
-
-  if (!sectionId) return append()
-
   // One reading of what a heading is, shared with the contents rail.
   // The fold used to find its own headings with a plain line regex that
   // had no idea what a code fence was: a lesson with a ```sh block whose
@@ -136,38 +132,52 @@ export function foldInto(
   // section *inside* the fence and broke every line after it. A second
   // opinion about what a heading is was the whole of that bug.
   const headings = headingLines(body)
-  const index = headings.findIndex(h => h.id === sectionId)
-  if (index === -1) return append()
 
   // The section ends where the next heading of the same level or
   // shallower begins; a deeper one is still part of it.
-  const here = headings[index]
-  const next = headings.slice(index + 1).find(h => h.level <= here.level)
-  if (!next) return append()
+  const closing = (here: { line: number; level: number }) => {
+    const next = headings.find(h => h.line > here.line && h.level <= here.level)
+    if (!next) return append()
+    const lines = body.split('\n')
+    const before = lines.slice(0, next.line).join('\n').trimEnd()
+    const after = lines.slice(next.line).join('\n')
+    return `${before}\n\n${section.trim()}\n\n${after}`
+  }
 
-  const lines = body.split('\n')
-  const before = lines.slice(0, next.line).join('\n').trimEnd()
-  const after = lines.slice(next.line).join('\n')
-  return `${before}\n\n${section.trim()}\n\n${after}`
+  const passage = quote ? findPassage(body, quote) : null
+  if (passage) {
+    if (/^#{1,6}\s/.test(section.trim())) {
+      const line = body.slice(0, passage.start).split('\n').length - 1
+      const here = headings.filter(h => h.line <= line).pop()
+      return here ? closing(here) : append()
+    }
+    const at = passage.blockEnd
+    return `${body.slice(0, at).trimEnd()}\n\n${section.trim()}\n\n${body.slice(at).trimStart()}`
+  }
+
+  if (!sectionId) return append()
+  const here = headings.find(h => h.id === sectionId)
+  return here ? closing(here) : append()
 }
 
 /**
- * Where the block holding a passage ends, or -1 if the body does not
- * hold it.
+ * Where a passage starts, and where the block holding it ends; null if
+ * the body does not hold it.
  *
  * The passage is what the page printed, so the markdown under it may
  * carry emphasis or a line break the selection does not; those are
- * allowed between its characters. A passage inside a fence lands after
- * the fence, never in it -- the bug `headingLines` exists to prevent.
+ * allowed between its characters. A passage inside a fence ends its
+ * block after the fence, never in it -- the bug `headingLines` exists
+ * to prevent.
  */
-function afterPassage(body: string, quote: string): number {
+function findPassage(body: string, quote: string): { start: number; blockEnd: number } | null {
   const words = quote.trim().split(/\s+/).filter(Boolean)
-  if (!words.length) return -1
+  if (!words.length) return null
   const mark = '[*_`~]*'
   const escape = (c: string) => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   const pattern = words.map(w => [...w].map(escape).join(mark)).join(`${mark}\\s+${mark}`)
   const found = new RegExp(pattern).exec(body)
-  if (!found) return -1
+  if (!found) return null
 
   const end = found.index + found[0].length
   const lines = body.split('\n')
@@ -178,10 +188,10 @@ function afterPassage(body: string, quote: string): number {
     if (/^\s{0,3}(```|~~~)/.test(line)) fenced = !fenced
     // The first blank line past the passage, outside a fence, is where
     // its block ends.
-    if (offset >= end && !fenced && !line.trim()) return offset
+    if (offset >= end && !fenced && !line.trim()) return { start: found.index, blockEnd: offset }
     offset = next
   }
-  return body.length
+  return { start: found.index, blockEnd: body.length }
 }
 
 /**

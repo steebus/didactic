@@ -184,6 +184,15 @@ export const BLOCKS: BlockSpec[] = [
 }`,
   },
   {
+    name: 'callout',
+    when:
+      'something belongs beside the prose rather than in it -- a caveat, a common trap, why this matters, or a short deep dive on one sentence that would break the paragraph if it were written inline. A label of a few words and one to three short paragraphs in `text`, separated by a blank line (\\n\\n); emphasis, code and maths are allowed there, nothing else. Two or three in a lesson at most -- a sheet of boxes is a sheet with nothing standing out',
+    example: `{
+  "label": "Why one round trip is enough",
+  "text": "TLS 1.3 has the client send its half of the key agreement in its very first message, guessing which method the server will accept.\\n\\nWhen the guess is right -- almost always -- the server can answer with its half and start encrypting straight away."
+}`,
+  },
+  {
     name: 'picture',
     when:
       'the thing has to be seen to be understood -- a diagram, a photograph of the object itself. Strongly prefer Wikimedia Commons, and when you do, give the FILE PAGE -- `https://commons.wikimedia.org/wiki/File:Name_of_the_file.svg` -- and not an `upload.wikimedia.org` address. The upload path contains the first characters of the MD5 of the file name, so it cannot be worked out from the name and you will get it wrong; the file page is looked up and turned into the real address before the lesson is saved. Give the file name as exactly as you can remember it, extension included. For anything that is not Wikimedia, only give an address you are confident is real and stable. Every address is checked when the lesson is written and a picture that cannot be found is removed, so a guess costs the lesson the figure: if you are not sure the picture exists, write the paragraph instead',

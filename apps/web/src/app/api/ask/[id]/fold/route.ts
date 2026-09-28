@@ -82,11 +82,12 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: 'the model cannot be reached' }, { status: 503 })
   }
 
-  // A fold from a chosen passage is set straight after that passage's
-  // paragraph, mid-section, so it is written to follow on from it: a
-  // heading there would take the rest of the section in under itself.
+  // A fold from a chosen passage is sized to what was said: a callout
+  // or a paragraph goes straight after the passage (`foldInto`), and a
+  // deep dive opens with a subsection heading, which closes the
+  // passage's section instead of splitting it.
   const shape = context.quote
-    ? `It will be set directly after the paragraph holding this passage: "${context.quote}". Write one to three paragraphs that follow on from that paragraph, with no heading.`
+    ? `It is about this passage: "${context.quote}". Size it to what was actually said. If it comes to a few short paragraphs or fewer, write it as a single \`\`\`callout block and nothing else. If it reads better as part of the prose, write a paragraph or two that follow on from the passage, with no heading. Only if it is a real deep dive, with several parts, begin with a "### " heading.`
     : 'Begin with a "## " heading.'
 
   const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })

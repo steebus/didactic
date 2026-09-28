@@ -9,6 +9,7 @@ import { Compare, type CompareData } from './Compare'
 import { Steps, type StepsData } from './Steps'
 import { Flow, type FlowData } from './Flow'
 import { Picture, type PictureData } from './Picture'
+import { Callout, type CalloutData } from './Callout'
 
 /**
  * One place that turns a parsed block into a component.
@@ -49,6 +50,8 @@ export function Block({ name, data }: { name: string; data: unknown }) {
       return <Steps data={data as StepsData} />
     case 'flow':
       return <Flow data={data as FlowData} />
+    case 'callout':
+      return <Callout data={data as CalloutData} />
     case 'picture':
       return <Picture data={data as PictureData} />
     default:
