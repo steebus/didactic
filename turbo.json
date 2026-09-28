@@ -17,6 +17,7 @@
         "AI_GATEWAY_API_KEY",
         "OPENAI_API_KEY",
         "OPENAI_IMAGE_MODEL",
+        "GATEWAY_IMAGE_MODEL",
         "FEATURE_DRAWN_PICTURES"
       ],
       "inputs": [

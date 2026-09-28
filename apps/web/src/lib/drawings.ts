@@ -37,6 +37,8 @@ export interface Drawn {
   text: string
   drawn: number
   dropped: number
+  /** Why the ones that were not drawn were not, once each. */
+  reasons: string[]
 }
 
 export async function drawPending(
@@ -45,10 +47,10 @@ export async function drawPending(
   markdown: string
 ): Promise<Drawn> {
   const pending = pendingDrawings(markdown)
-  if (pending.length === 0) return { text: markdown, drawn: 0, dropped: 0 }
+  if (pending.length === 0) return { text: markdown, drawn: 0, dropped: 0, reasons: [] }
 
   const asked = pending.slice(0, DRAWINGS_MAX)
-  const kept = new Map<number, string | null>()
+  const kept = new Map<number, Kept>()
   await Promise.all(
     asked.map(async block => {
       kept.set(block.index, await drawAndKeep(db, lessonId, block.draw ?? ''))
@@ -58,12 +60,13 @@ export async function drawPending(
   let drawn = 0
   const { text, dropped } = rewritePictures(markdown, block => {
     if (!pending.some(p => p.index === block.index)) return undefined
-    const url = kept.get(block.index)
+    const url = kept.get(block.index)?.url
     if (!url) return null
     drawn += 1
     return { url, source: DRAWN_CREDIT }
   })
-  return { text, drawn, dropped }
+  const reasons = [...new Set([...kept.values()].flatMap(k => (k.reason ? [k.reason] : [])))]
+  return { text, drawn, dropped, reasons }
 }
 
 /**
@@ -77,10 +80,11 @@ export async function drawAndKeep(
   folder: string,
   subject: string,
   signal?: AbortSignal
-): Promise<string | null> {
+): Promise<Kept> {
   const image = await drawPicture(subject, signal)
-  if (!image) return null
-  const path = `${folder}/${crypto.randomUUID()}.webp`
+  if (!image.ok) return { url: null, reason: image.reason }
+  const extension = EXTENSIONS[image.type] ?? 'png'
+  const path = `${folder}/${crypto.randomUUID()}.${extension}`
   const { error } = await db.storage.from(BUCKET).upload(path, image.bytes, {
     contentType: image.type,
     // A year: the file at this name never changes, since a new drawing
@@ -88,8 +92,19 @@ export async function drawAndKeep(
     cacheControl: '31536000',
   })
   if (error) {
-    console.error('drawings: could not keep the drawing', error.message)
-    return null
+    const reason = `drawn by ${image.via} but could not be kept: ${error.message}`
+    console.error('drawings:', reason)
+    return { url: null, reason }
   }
-  return db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl
+  return { url: db.storage.from(BUCKET).getPublicUrl(path).data.publicUrl, reason: null }
+}
+
+/** A kept drawing's address, or why there is none. */
+export type Kept = { url: string; reason: null } | { url: null; reason: string }
+
+/** What a drawing is saved as, by the type the model answered with. */
+const EXTENSIONS: Record<string, string> = {
+  'image/webp': 'webp',
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
 }

@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { drawingOn, featureOn } from '@/lib/features'
-import { drawingPrompt } from '@/lib/llm/drawing'
+import { drawingPrompt, drawPicture } from '@/lib/llm/drawing'
 import { drawPending, DRAWN_CREDIT, DRAWINGS_MAX } from '@/lib/drawings'
 import { settlePictures } from '@/lib/pictures'
 import { pendingDrawings } from '@didactic/core/pictures'
@@ -11,7 +11,19 @@ import { pendingDrawings } from '@didactic/core/pictures'
  * finished lesson's commissions become.
  */
 
+const { generateImage } = vi.hoisted(() => ({ generateImage: vi.fn() }))
+vi.mock('ai', () => ({ generateImage }))
+
 const original = { fetch: globalThis.fetch, env: { ...process.env } }
+
+/** No way to the gateway, so each test says which way it opens. */
+beforeEach(() => {
+  delete process.env.AI_GATEWAY_API_KEY
+  delete process.env.VERCEL_OIDC_TOKEN
+  delete process.env.VERCEL
+  generateImage.mockReset()
+})
+
 afterEach(() => {
   globalThis.fetch = original.fetch
   process.env = { ...original.env }
@@ -66,6 +78,54 @@ describe('the switch', () => {
     expect(drawingOn()).toBe(false)
     process.env.OPENAI_API_KEY = 'sk-test'
     expect(drawingOn()).toBe(true)
+  })
+
+  it('is on through the gateway alone, which is how Vercel reaches it', () => {
+    delete process.env.FEATURE_DRAWN_PICTURES
+    delete process.env.OPENAI_API_KEY
+    process.env.VERCEL = '1'
+    expect(drawingOn()).toBe(true)
+  })
+})
+
+describe('drawPicture', () => {
+  it('draws through the gateway first', async () => {
+    process.env.AI_GATEWAY_API_KEY = 'gw'
+    process.env.OPENAI_API_KEY = 'sk-test'
+    const asked = drawer()
+    generateImage.mockResolvedValue({ image: { uint8Array: new Uint8Array([1]), mediaType: 'image/webp' } })
+
+    const drawn = await drawPicture('a pea pod')
+
+    expect(drawn).toMatchObject({ ok: true, via: 'gateway openai/gpt-image-1.5' })
+    expect(asked).not.toHaveBeenCalled()
+  })
+
+  it('falls back to OpenAI directly when the gateway refuses', async () => {
+    process.env.AI_GATEWAY_API_KEY = 'gw'
+    process.env.OPENAI_API_KEY = 'sk-test'
+    drawer()
+    generateImage.mockRejectedValue(new Error('model not available'))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const drawn = await drawPicture('a pea pod')
+    expect(drawn).toMatchObject({ ok: true, via: 'openai gpt-image-1' })
+  })
+
+  it('says why, when neither way draws', async () => {
+    process.env.AI_GATEWAY_API_KEY = 'gw'
+    process.env.OPENAI_API_KEY = 'sk-test'
+    globalThis.fetch = vi.fn(async () =>
+      new Response(JSON.stringify({ error: { message: 'Your organization must be verified' } }), { status: 403 })
+    ) as unknown as typeof fetch
+    generateImage.mockRejectedValue(new Error('model not available'))
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+
+    const drawn = await drawPicture('a pea pod')
+    expect(drawn.ok).toBe(false)
+    expect(!drawn.ok && drawn.reason).toBe(
+      'gateway openai/gpt-image-1.5: model not available; openai gpt-image-1 403: Your organization must be verified'
+    )
   })
 })
 

@@ -308,7 +308,7 @@ describe('pictures in a conversation', () => {
   })
 
   it('draws once, and hands back a block ready to place', async () => {
-    const drawPicture = vi.fn(async () => 'https://store.example/ask/c1/a.webp')
+    const drawPicture = vi.fn(async () => ({ url: 'https://store.example/ask/c1/a.webp', reason: null }))
     create
       .mockResolvedValueOnce(callingTool('draw_picture', { subject: 'a lens', alt: 'A lens' }))
       .mockResolvedValueOnce(callingTool('draw_picture', { subject: 'another', alt: 'Another' }))
@@ -321,5 +321,16 @@ describe('pictures in a conversation', () => {
     expect(told()).toContain('https://store.example/ask/c1/a.webp')
     expect(told()).toContain('Drawn for this answer')
     expect(told()).toContain('One drawing an answer')
+  })
+
+  it('tells the model why a drawing failed, so the reader hears it', async () => {
+    const drawPicture = vi.fn(async () => ({ url: null, reason: 'openai gpt-image-1 403: Your organization must be verified' }))
+    create
+      .mockResolvedValueOnce(callingTool('draw_picture', { subject: 'a flower', alt: 'A flower' }))
+      .mockResolvedValueOnce(answering('It failed.'))
+
+    await ask(deps({ drawPicture }))
+
+    expect(told()).toContain('Your organization must be verified')
   })
 })

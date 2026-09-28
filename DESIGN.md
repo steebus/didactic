@@ -1731,7 +1731,7 @@ not drawn at all.
 shows what a lesson needs and no block draws it better (`flow`, `steps`,
 `chart`, `compare` come first), the writer may commission a plate: a `picture`
 with `draw` in place of `url`. It is drawn once, after the writing, by OpenAI's
-image model, as a **natural-history plate** — pen-and-ink linework with hatching
+image model (through the Vercel AI Gateway, then our own key), as a **natural-history plate** — pen-and-ink linework with hatching
 and stippling, flat watercolour washes, on `--paper`, in `--ink`/`--ink-soft`
 and the six plate inks, centred with a margin, and **no lettering of any kind**
 (an image model's lettering is where it visibly fails; what needs naming goes in

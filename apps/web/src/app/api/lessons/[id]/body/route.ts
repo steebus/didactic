@@ -118,7 +118,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         ? {
             warning: `${drawn.dropped} ${
               drawn.dropped === 1 ? 'picture' : 'pictures'
-            } could not be drawn, and ${drawn.dropped === 1 ? 'was' : 'were'} taken out.`,
+            } could not be drawn, and ${drawn.dropped === 1 ? 'was' : 'were'} taken out${
+              drawn.reasons.length ? ` (${drawn.reasons.join('; ')})` : ''
+            }.`,
           }
         : {}),
     })

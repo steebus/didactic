@@ -67,7 +67,7 @@ export interface AskDeps {
   findPictures?(queries: string[]): Promise<string[]>
   /** Draw a plate and keep it; its address, or null. Absent when drawing
    *  is off, and then the tool is not offered. */
-  drawPicture?(subject: string): Promise<string | null>
+  drawPicture?(subject: string): Promise<{ url: string | null; reason: string | null }>
 }
 
 /** Said under a picture drawn in a conversation. */
@@ -89,7 +89,7 @@ const FIND_PICTURES: Anthropic.Tool = {
 const DRAW_PICTURE: Anthropic.Tool = {
   name: 'draw_picture',
   description:
-    'Have a picture drawn for this answer, as a hand-inked natural-history plate in pen and watercolour wash. Only when seeing the thing genuinely helps, find_pictures has nothing that shows it, and no block draws it better (a decision is `flow`, an order is `steps`, figures are `chart`, a difference is `compare`). Suits an object, organism, mechanism, apparatus, material, landscape or scene, a cutaway of one, or a physical thing that embodies an idea. It cannot carry words or numbers, so never ask for labels, text, charts or interfaces. Slow -- half a minute -- so once in an answer at most. Returns a `picture` block ready to put in your answer where it belongs; add a caption to it if you like.',
+    'Have a picture drawn for this answer, as a hand-inked natural-history plate in pen and watercolour wash. Whenever the reader asks for a drawing; otherwise only when seeing the thing genuinely helps, find_pictures has nothing that shows it, and no block draws it better (a decision is `flow`, an order is `steps`, figures are `chart`, a difference is `compare`). Suits an object, organism, mechanism, apparatus, material, landscape or scene, a cutaway of one, or a physical thing that embodies an idea. It cannot carry words or numbers, so never ask for labels, text, charts or interfaces. Slow -- half a minute -- so once in an answer at most. Returns a `picture` block ready to put in your answer where it belongs; add a caption to it if you like.',
   input_schema: {
     type: 'object',
     properties: {
@@ -171,7 +171,7 @@ ${contextPreamble(context)}
 
 Answer the question they actually asked, at the length it deserves -- a sentence where a sentence does, and no throat-clearing. You are talking to one person about something in front of both of you, so do not restate what they can see.
 
-Show a picture where seeing the thing helps: find it with find_pictures rather than remembering an address${drawing ? ', or have one drawn with draw_picture where nothing exists' : ''}.
+Show a picture where seeing the thing helps: find it with find_pictures rather than remembering an address${drawing ? ', or have one drawn with draw_picture where nothing exists. You can draw: when the reader asks you to draw something, draw it with draw_picture, whatever Commons holds' : ''}.
 
 Keep what is worth keeping: a mark when a passage should be findable again, a card when something should be asked again in a week. Do it rather than offering to. Propose a topic only when the conversation has genuinely opened one the map does not hold, and search first.
 
@@ -300,11 +300,11 @@ export async function askTurn(input: {
             say('Nothing to draw was given.')
           } else {
             drawn = true
-            const url = await deps.drawPicture(subject)
+            const { url, reason } = await deps.drawPicture(subject)
             say(
               url
                 ? `Drawn. Put this block in your answer where it belongs:\n\n\`\`\`picture\n${JSON.stringify({ url, alt, source: DRAWN_CREDIT, draw: subject }, null, 2)}\n\`\`\``
-                : 'It could not be drawn. Answer without it.'
+                : `It could not be drawn: ${reason}. Tell the reader it failed and, in one short line, why, quoting that reason -- do not say you are unable to draw -- then answer without it.`
             )
           }
         } else if (call.name === 'search_map') {

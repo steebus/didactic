@@ -11,13 +11,15 @@
  * a lesson is written once, on the web; the phone reads what it made.
  */
 
+import { canDraw } from '@/lib/llm/drawing'
+
 const DEFAULTS = {
   /**
    * Lesson pictures drawn for the lesson, by OpenAI's image model, as a
    * hand-inked natural-history plate in the catalogue's own palette --
    * where Commons has nothing that shows it and no block draws it
-   * better. See `lib/drawings.ts`. Needs `OPENAI_API_KEY` as well: on
-   * with no key is off.
+   * better. See `lib/drawings.ts`. Needs the AI Gateway or
+   * `OPENAI_API_KEY` as well: on with neither is off.
    */
   drawnPictures: true,
 } as const
@@ -35,7 +37,8 @@ export function featureOn(name: Feature): boolean {
   return DEFAULTS[name]
 }
 
-/** Drawing is on only where it can actually happen. */
+/** Drawing is on only where it can actually happen: the gateway, or an
+ *  OpenAI key of our own (`llm/drawing.canDraw`). */
 export function drawingOn(): boolean {
-  return featureOn('drawnPictures') && Boolean(process.env.OPENAI_API_KEY)
+  return featureOn('drawnPictures') && canDraw()
 }
