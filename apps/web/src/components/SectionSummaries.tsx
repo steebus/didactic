@@ -234,6 +234,20 @@ function SectionHost({
         host.trigger
       )}
 
+      {/* Where the sheet has margins, the summary stands in the left one
+          beside its section, and pressing it opens it there. Hidden
+          everywhere else by the stylesheet -- the sprig is the way in on
+          a narrow sheet -- and from a screen reader always, since the
+          sprig and the panel already say it. */}
+      {said &&
+        !open &&
+        createPortal(
+          <div className={styles.rest} aria-hidden="true" onClick={onToggle}>
+            <NoteText markdown={standing?.note ?? ''} className={styles.restText} />
+          </div>,
+          host.panel
+        )}
+
       {open &&
         createPortal(
           <div className={styles.panel} role="group" aria-label={label}>

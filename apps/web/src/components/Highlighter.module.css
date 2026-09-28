@@ -678,3 +678,86 @@
   background: var(--ink);
   color: var(--paper);
 }
+
+/* --- Marginalia -------------------------------------------------- */
+
+/* Where the sheet has empty margins either side of it, every mark
+   stands in the right-hand one, level with its passage: a short rule
+   from the sheet's edge, then the note in agate. Quiet by default --
+   the reading is still the thing on the page -- and pressing one opens
+   the same panel pressing the passage does, in the margin beside it.
+   The measures come from the component (`--reach-right` is how far the
+   sheet's edge stands out from the prose; `--margin-room` the width of
+   the narrower margin). */
+.margin {
+  position: absolute;
+  top: 0;
+  left: calc(100% + var(--reach-right));
+  width: min(20rem, calc(var(--margin-room) - 2 * var(--space-4)));
+  pointer-events: none;
+}
+
+.marginNote {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: grid;
+  grid-template-columns: var(--space-5) 1fr;
+  gap: var(--space-2);
+  padding: 0;
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  line-height: 1.4;
+  text-align: left;
+  color: var(--ink-faint);
+  background: none;
+  border: none;
+  cursor: pointer;
+  pointer-events: auto;
+  user-select: none;
+  opacity: 0.75;
+  transition:
+    opacity var(--dur-state, 160ms) ease,
+    color var(--dur-state, 160ms) ease;
+}
+
+/* The rule that ties the note to the sheet, at the height of its first
+   line. */
+.marginNote::before {
+  content: '';
+  margin-top: 0.7em;
+  border-top: 1px solid var(--rule-strong);
+}
+
+.marginNote:hover {
+  opacity: 1;
+  color: var(--ink-soft);
+}
+
+.marginNote:hover::before {
+  border-top-color: var(--plate-mustard);
+}
+
+/* Four lines at most: the margin is an index to the notes, and the
+   whole of one is a press away. */
+.marginText {
+  max-height: calc(1.4em * 4);
+  overflow: hidden;
+}
+
+.marginText :global(p) {
+  margin: 0;
+}
+
+/* A mark with nothing written about it shows its words, in italic so
+   it is not taken for a note. */
+.marginQuote {
+  font-style: italic;
+}
+
+/* A panel opened in the margin: level with its passage, clear of the
+   sheet by a gap, and no wider than the margin holds. */
+.inMargin {
+  left: calc(100% + var(--reach-right) + var(--space-4));
+  width: min(24rem, calc(var(--margin-room) - 2 * var(--space-4)));
+}

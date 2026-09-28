@@ -149,3 +149,56 @@
   outline: 2px solid var(--plate-terracotta);
   outline-offset: 2px;
 }
+
+/* --- In the margin ----------------------------------------------- */
+
+/* Where the reading has margins either side of it (`[data-margins]`,
+   said by the Highlighter that measured them), a section's summary
+   stands in the left-hand one, beside the section, ruled off under it
+   to the sheet's edge -- and opening it, or writing one, happens there
+   too rather than in the middle of the prose. `--reach-left` is how far
+   the sheet's edge stands out from the prose. */
+.rest {
+  display: none;
+}
+
+:global([data-margins]) .rest {
+  display: block;
+  position: absolute;
+  right: calc(100% + var(--reach-left));
+  width: min(20rem, calc(var(--margin-room) - 2 * var(--space-4)));
+  padding: 0 var(--space-4) var(--space-1) 0;
+  border-bottom: 1px solid var(--rule-strong);
+  font-size: var(--step--1);
+  line-height: 1.4;
+  color: var(--ink-faint);
+  cursor: pointer;
+  user-select: none;
+  opacity: 0.75;
+  transition:
+    opacity var(--dur-state, 160ms) ease,
+    border-color var(--dur-state, 160ms) ease;
+}
+
+:global([data-margins]) .rest:hover {
+  opacity: 1;
+  border-bottom-color: var(--plate-ultramarine);
+}
+
+.restText {
+  max-height: calc(1.4em * 8);
+  overflow: hidden;
+}
+
+.restText :global(p) {
+  margin: 0;
+}
+
+:global([data-margins]) .panel {
+  position: absolute;
+  z-index: 5;
+  right: calc(100% + var(--reach-left) + var(--space-4));
+  width: min(24rem, calc(var(--margin-room) - 2 * var(--space-4)));
+  margin: 0;
+  box-shadow: 0 6px 18px rgba(var(--ink-rgb), 0.18);
+}

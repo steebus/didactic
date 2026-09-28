@@ -52,6 +52,22 @@ const OPENED_OUT = 'didactic:notes-open'
 const SWIPE = { far: 60, wander: 45, within: 800 }
 
 /**
+ * The least room either side of the sheet for the notes to stand in
+ * the margins rather than over the reading. 15rem: less than that and
+ * a note in the margin is a column of three words a line.
+ */
+const MARGIN_MIN = 240
+
+/** Where a panel stands: against a passage, or in the margin beside it. */
+type At = Spot & { margin?: boolean }
+
+/** A mark's first word, down the reading, for its note in the margin. */
+interface Pinned {
+  id: string
+  top: number
+}
+
+/**
  * A passage the reader has selected but not yet kept: the words, the
  * text before them, and the two places something can be put against
  * it -- the floating button, in window coordinates, and the composer,
@@ -62,6 +78,9 @@ interface Offer {
   prefix: string
   pin: { top: number; left: number }
   panel: Spot
+  /** The top of the selection, relative to the prose: where it stands
+   *  in the margin, where there is one. */
+  top: number
 }
 
 /**
@@ -137,7 +156,7 @@ export function Highlighter({
   const noun = resourceId ? 'reading' : 'lesson'
   const [pending, setPending] = useState<{ quote: string; prefix: string } | null>(null)
   const [offer, setOffer] = useState<Offer | null>(null)
-  const [open, setOpen] = useState<{ mark: Mark; at: Spot } | null>(null)
+  const [open, setOpen] = useState<{ mark: Mark; at: At } | null>(null)
   /** The tended passage the reader pressed, and where its card stands. */
   const [openCloze, setOpenCloze] = useState<{ cloze: Card; at: Spot } | null>(null)
   /** Making a cloze out of the passage the composer is holding. */
@@ -151,7 +170,7 @@ export function Highlighter({
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [at, setAt] = useState<Spot | null>(null)
+  const [at, setAt] = useState<At | null>(null)
   /** The marks the page managed to draw, in the order they are read. */
   const [drawn, setDrawn] = useState<string[]>([])
   const [listing, setListing] = useState(false)
@@ -165,6 +184,93 @@ export function Highlighter({
 
   const narrow = useNarrow()
   const [big, setBig] = useState(remembered)
+
+  /**
+   * The room beside the sheet, where there is enough of it for notes.
+   *
+   * Marks and summaries are marginalia, and a wide screen has margins
+   * standing empty either side of the reading. Measured rather than
+   * set by a breakpoint, because the sheet is not the same width on
+   * every page and the notes column takes some of the window when it
+   * is open. `left` and `right` are how far the sheet's edges stand out
+   * from the prose's; `room` is the narrower of the two margins.
+   */
+  const [margin, setMargin] = useState<{ left: number; right: number; room: number } | null>(null)
+  /** Every drawn mark, and how far down the reading it starts. */
+  const [pinned, setPinned] = useState<Pinned[]>([])
+  const marginNotes = useRef<HTMLDivElement>(null)
+
+  const measure = useCallback(() => {
+    const root = holder.current
+    const sheet = root?.closest('main')
+    if (!root || !sheet) return
+    const r = root.getBoundingClientRect()
+    const s = sheet.getBoundingClientRect()
+    const room = Math.min(s.left, document.documentElement.clientWidth - s.right)
+    const next =
+      room >= MARGIN_MIN && !window.matchMedia(NARROW).matches
+        ? {
+            left: Math.round(r.left - s.left),
+            right: Math.round(s.right - r.right),
+            room: Math.round(room),
+          }
+        : null
+    setMargin(m =>
+      m && next && m.left === next.left && m.right === next.right && m.room === next.room ? m : next
+    )
+
+    // Only the first piece of each: a mark broken across a link or a
+    // line of code is painted in several, and is one note.
+    const tops: Pinned[] = []
+    if (next) {
+      const seen = new Set<string>()
+      root.querySelectorAll<HTMLElement>('mark[data-mark]').forEach(piece => {
+        const id = piece.dataset.mark
+        if (!id || seen.has(id)) return
+        seen.add(id)
+        tops.push({ id, top: Math.round(piece.getBoundingClientRect().top - r.top) })
+      })
+    }
+    setPinned(before =>
+      before.length === tops.length &&
+      before.every((p, i) => p.id === tops[i].id && p.top === tops[i].top)
+        ? before
+        : tops
+    )
+  }, [])
+
+  // Anything that moves the prose moves its notes: the window, a
+  // picture arriving, a summary opening under a heading.
+  useEffect(() => {
+    const root = holder.current
+    if (!root) return
+    let frame = 0
+    const soon = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(measure)
+    }
+    window.addEventListener('resize', soon)
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(soon)
+    observer?.observe(root)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('resize', soon)
+      observer?.disconnect()
+    }
+  }, [measure])
+
+  // Notes in the margin stand level with their passage, unless the one
+  // above is still running: then they queue under it, the way notes in
+  // a real margin do. Every render, because a note's height is only
+  // known once it is on the page.
+  useLayoutEffect(() => {
+    let floor = -Infinity
+    marginNotes.current?.querySelectorAll<HTMLElement>('[data-top]').forEach(note => {
+      const top = Math.max(Number(note.dataset.top), floor)
+      note.style.top = `${top}px`
+      floor = top + note.offsetHeight + 8
+    })
+  })
 
   /** Open the notes out, or fold them back, and remember which. */
   function openOut(next: boolean) {
@@ -283,11 +389,13 @@ export function Highlighter({
     const view = { width: window.innerWidth, height: window.innerHeight }
     const rect = range.getBoundingClientRect()
 
+    const box = root.getBoundingClientRect()
     return {
       quote,
       prefix,
       pin: pinSpot(rect, view),
-      panel: panelSpot(rect, root.getBoundingClientRect(), view),
+      panel: panelSpot(rect, box, view),
+      top: Math.round(rect.top - box.top),
     }
   }, [])
 
@@ -306,12 +414,14 @@ export function Highlighter({
       setOffer(null)
       setOpenCloze(null)
       setMaking(verb === 'cloze')
-      setAt(chosen.panel)
+      // Written in the margin beside the passage where there is one,
+      // so the words being written about stay in view.
+      setAt(margin && !listing ? inMargin(chosen.top) : chosen.panel)
       setPending({ quote: chosen.quote, prefix: chosen.prefix })
       setNote('')
       setError(null)
     },
-    []
+    [margin, listing]
   )
 
   /**
@@ -531,14 +641,8 @@ export function Highlighter({
       })),
       (id, where) => {
         const mark = marks.find(h => h.id === id)
-        if (!mark) return
-        setOpen({ mark, at: where })
-        setOpenCloze(null)
-        setPending(null)
-        setOffer(null)
-        setNote(mark.note ?? '')
-        setEditing(false)
-        setError(null)
+        const aside = pinned.find(p => p.id === id)
+        if (mark) openMark(mark, margin && !listing && aside ? inMargin(aside.top) : where)
       }
     )
     // Held by value: the effect runs on every render, and a new array
@@ -548,7 +652,19 @@ export function Highlighter({
         ? before
         : painted
     )
-  }, [marks, tended, children])
+    measure()
+  }, [marks, tended, children, margin, listing, pinned, measure])
+
+  /** Open a mark's panel: pressed in the prose, or in the margin. */
+  function openMark(mark: Mark, where: At) {
+    setOpen({ mark, at: where })
+    setOpenCloze(null)
+    setPending(null)
+    setOffer(null)
+    setNote(mark.note ?? '')
+    setEditing(false)
+    setError(null)
+  }
 
   // --- Writing ---------------------------------------------------
 
@@ -668,12 +784,14 @@ export function Highlighter({
    * to its own place in the flow it lands under the end of the
    * reading, half off the bottom of the window.
    */
-  const docked = (spot: Spot | null) => big || narrow || !spot
+  const docked = (spot: At | null) => big || narrow || !spot
 
   /** Where a panel goes, where it goes anywhere in particular. */
-  const placed = (spot: Spot | null) =>
+  const placed = (spot: At | null) =>
     docked(spot)
       ? undefined
+      : spot!.margin
+      ? { top: spot!.top }
       : {
           top: spot!.top,
           left: spot!.left,
@@ -682,8 +800,16 @@ export function Highlighter({
           transform: spot!.above ? 'translateY(-100%)' : undefined,
         }
 
-  const panelClass = (spot: Spot | null) =>
-    `${styles.composer}${big ? ` ${styles.big}` : docked(spot) ? ` ${styles.docked}` : ''}`
+  const panelClass = (spot: At | null) =>
+    `${styles.composer}${
+      big
+        ? ` ${styles.big}`
+        : docked(spot)
+        ? ` ${styles.docked}`
+        : spot!.margin
+        ? ` ${styles.inMargin}`
+        : ''
+    }`
 
   /**
    * Whether a panel is standing across the foot of the screen.
@@ -832,6 +958,16 @@ export function Highlighter({
     const timer = setTimeout(listGone, 800)
     return () => clearTimeout(timer)
   }, [leaving])
+
+  // The sheet moves over when the column opens or shuts, and a moved
+  // sheet has moved its margins. Measured once it has settled.
+  useEffect(() => {
+    const timer = setTimeout(measure, 450)
+    return () => clearTimeout(timer)
+  }, [columnOpen, measure])
+
+  /** In the margin, and not under the notes column where it is open. */
+  const marginalia = margin && !columnOpen
 
   useEffect(() => {
     if (!columnOpen) return
@@ -996,7 +1132,7 @@ export function Highlighter({
 
   /** A panel stands where it was measured, or hangs off the body when
    *  it is docked to the corner of the screen. */
-  const stand = (node: React.ReactNode, spot: Spot | null) =>
+  const stand = (node: React.ReactNode, spot: At | null) =>
     docked(spot) ? float(node) : node
 
   // A mark with no passage is a note on the lesson: it is never drawn
@@ -1082,8 +1218,55 @@ export function Highlighter({
     host ? createPortal(node, host) : node
 
   return (
-    <div className={styles.holder} ref={holder}>
+    <div
+      className={styles.holder}
+      ref={holder}
+      // Said on the holder so the summaries, which are set into the
+      // prose by a component of their own, stand in the other margin
+      // by the same measure.
+      data-margins={marginalia ? '' : undefined}
+      style={
+        margin
+          ? ({
+              '--reach-left': `${margin.left}px`,
+              '--reach-right': `${margin.right}px`,
+              '--margin-room': `${margin.room}px`,
+            } as React.CSSProperties)
+          : undefined
+      }
+    >
       {children}
+
+      {/* Every mark, down the right-hand margin beside its passage: the
+          note if it has one, the words if not. Quiet until pressed, and
+          pressing one is pressing the passage. A copy of what the
+          painted marks already offer the keyboard and a screen reader,
+          so it is hidden from both. Buttons, which the painters skip,
+          so a note is never searched as part of the text. */}
+      {marginalia && pinned.length > 0 && (
+        <div className={styles.margin} ref={marginNotes} aria-hidden="true">
+          {pinned.map(({ id, top }) => {
+            const mark = marks.find(m => m.id === id)
+            if (!mark || open?.mark.id === id) return null
+            return (
+              <button
+                key={id}
+                type="button"
+                tabIndex={-1}
+                className={styles.marginNote}
+                data-top={top}
+                onClick={() => openMark(mark, inMargin(top))}
+              >
+                {mark.note ? (
+                  <NoteText markdown={mark.note} className={styles.marginText} />
+                ) : (
+                  <span className={`${styles.marginText} ${styles.marginQuote}`}>{mark.quote}</span>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {/* Writing about the lesson rather than about a passage in it.
           Sticky rather than fixed, so it travels down the sheet's own
@@ -1406,6 +1589,11 @@ export function Highlighter({
         )}
     </div>
   )
+}
+
+/** A panel standing in the margin, level with what it is about. */
+function inMargin(top: number): At {
+  return { top, left: 0, above: false, margin: true }
 }
 
 /** What this component and its neighbours set into the prose for the
