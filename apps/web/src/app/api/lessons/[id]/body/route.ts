@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase'
 import { generateLessonBody, ROUNDS_MAX } from '@/lib/llm/curriculum'
 import { settlePictures } from '@/lib/pictures'
+import { picturesForLesson } from '@/lib/llm/pictureSearch'
 import { lessonsWithinReach } from '@/lib/curriculum'
 import { passagesForLesson, unsupportedCitations } from '@/lib/citations'
 import { readPlan, appendEntry } from '@/lib/learningPlan'
@@ -187,6 +188,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     lessonSummary: lesson.summary,
   })
 
+  // Files on Commons this lesson could show, so its pictures are chosen
+  // from what exists rather than remembered. Empty when the search fails.
+  const commons = await picturesForLesson({
+    topicTitle: topic?.title ?? 'this topic',
+    lessonTitle: lesson.title,
+    lessonSummary: lesson.summary,
+  })
+
   let written: { text: string; finished: boolean }
   try {
     written = await generateLessonBody({
@@ -216,6 +225,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       ),
       links,
       passages,
+      pictures: commons,
       plan,
       nearby: dedupe(
         (nearby ?? []).flatMap(r =>

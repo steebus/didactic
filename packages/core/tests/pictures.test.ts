@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { commonsName, nameVariants, readPictures, rewritePictures } from '../src/pictures'
+import { commonsName, nameVariants, offeredPictures, readPictures, rewritePictures } from '../src/pictures'
 
 describe('commonsName', () => {
   it('reads the hashed upload path the model invents', () => {
@@ -145,5 +145,24 @@ describe('rewritePictures', () => {
   it('does not leave a hole where a picture was', () => {
     const { text } = rewritePictures(body, () => null)
     expect(text).not.toMatch(/\n{3,}/)
+  })
+})
+
+describe('offeredPictures', () => {
+  it('keeps pictures, once each, in the order they came, without the prefix', () => {
+    expect(
+      offeredPictures([
+        'File:HTTP cookie exchange.svg',
+        'File:Network defense-in-depth (IA 1094510951).pdf',
+        'File:Nude portrayal of HTTP response status code 303 (52244512070).jpg',
+        'File:http cookie exchange.svg',
+        'File:Ajax request response.svg',
+        'File:Talk.webm',
+      ])
+    ).toEqual(['HTTP cookie exchange.svg', 'Ajax request response.svg'])
+  })
+
+  it('stops at the number asked for', () => {
+    expect(offeredPictures(['File:a.png', 'File:b.png', 'File:c.png'], 2)).toEqual(['a.png', 'b.png'])
   })
 })

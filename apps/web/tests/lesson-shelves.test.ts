@@ -88,6 +88,7 @@ vi.mock('@/lib/supabase', () => ({
 const generateLessonBody = vi.fn()
 vi.mock('@/lib/llm/curriculum', () => ({ generateLessonBody, ROUNDS_MAX: 6 }))
 vi.mock('@/lib/curriculum', () => ({ lessonsWithinReach: async () => [] }))
+vi.mock('@/lib/llm/pictureSearch', () => ({ picturesForLesson: async () => [] }))
 vi.mock('@/lib/citations', () => ({
   passagesForLesson: async () => ({ passages: [] }),
   unsupportedCitations: () => [],

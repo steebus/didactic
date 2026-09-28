@@ -1,6 +1,7 @@
 import {
   commonsName,
   nameVariants,
+  offeredPictures,
   readPictures,
   rewritePictures,
   type PictureBlock,
@@ -123,6 +124,42 @@ async function askCommons(name: string): Promise<string | null> {
   // A redirect answers under its target rather than under what was
   // asked for, so one answer and one question is still an answer.
   return found.size === 1 ? [...found.values()][0] : null
+}
+
+/**
+ * What Commons holds under a few searches, as file names.
+ *
+ * Asked before a lesson is written, so the writer chooses among files
+ * that exist rather than remembering one: a name taken from this list
+ * is a name `askCommons` will find. Titles only -- the writer judges by
+ * the name, which on Commons is usually a description.
+ *
+ * One request per search, together. Commons failing costs the lesson its
+ * shortlist and nothing else; the writer can still remember a picture.
+ */
+export async function searchCommons(queries: string[]): Promise<string[]> {
+  const answers = await Promise.all(
+    queries.map(async query => {
+      const url = new URL(COMMONS)
+      url.searchParams.set('action', 'query')
+      url.searchParams.set('list', 'search')
+      // The file namespace, only pictures and drawings in it, and every
+      // word in the file's name: matched against descriptions too,
+      // "HTTP request response diagram" finds a pig butcher's chart.
+      const words = query.split(/\s+/).map(w => w.replace(/[^\p{L}\p{N}.+#-]/gu, '')).filter(Boolean)
+      url.searchParams.set('srnamespace', '6')
+      url.searchParams.set('srsearch', `${words.map(w => `intitle:${w}`).join(' ')} filetype:bitmap|drawing`)
+      url.searchParams.set('srlimit', '8')
+      url.searchParams.set('format', 'json')
+      url.searchParams.set('formatversion', '2')
+      const body = (await getJson(url.href)) as { query?: { search?: Array<{ title?: string }> } } | null
+      return (body?.query?.search ?? []).flatMap(hit => (hit.title ? [hit.title] : []))
+    })
+  )
+  // Taken a rank at a time across the searches, so the cap on the
+  // shortlist does not spend itself on the first search alone.
+  const ranked = Array.from({ length: 8 }, (_, i) => answers.map(a => a[i])).flat()
+  return offeredPictures(ranked.filter((t): t is string => Boolean(t)))
 }
 
 /**

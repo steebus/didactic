@@ -318,6 +318,11 @@ export async function generateLessonBody(
      *  into the prompt whole: the agent cites what it can see and
      *  nothing else. See `lib/citations.ts`. */
     passages?: CitedPassage[]
+    /** Files that exist on Wikimedia Commons, found by searching for
+     *  what this lesson is about just before it is written. Names a
+     *  `picture` block can use without remembering one. See
+     *  `llm/pictureSearch.ts`. */
+    pictures?: string[]
     /**
      * The course's standing record of why it is shaped as it is and
      * what has been written into it so far (`049`).
@@ -388,7 +393,11 @@ ${here.length || over.length
   : ''}
 
 ${passagePromptSection(input.passages ?? [])}
-
+${input.pictures?.length
+  ? `\nPictures that exist on Wikimedia Commons, found by searching for what this lesson is about. These are real files, so a \`picture\` block pointing at one of them will print: give its file page, \`https://commons.wikimedia.org/wiki/File:\` followed by the name exactly as written here. The search matched words, not meaning, so judge each by its name and pass over any that do not show what the lesson needs. Where one does, prefer it to a picture you remember:\n${
+      input.pictures.map(p => `- ${p}`).join('\n')
+    }\n`
+  : ''}
 Never announce a block or label it in the prose -- no "steps:", no "here is a chart", no "see the table below". Each block prints its own title, so a line introducing one is a line printed twice.
 
 Markdown, and prose rather than an outline. Explain the idea, show one worked example, and finish with something concrete for the reader to go and do. That last part is content, not a summary: it is the one ending this sheet always wants. The reader's contents list is built from your headings, so a lesson of this length wants a handful of them.

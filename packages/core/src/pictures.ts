@@ -177,3 +177,33 @@ export function rewritePictures(
 
   return { text, fixed, dropped }
 }
+
+/* ------------------------------------------------ offered beforehand */
+
+/** Words in a Commons title that keep a file off a lesson's shortlist,
+ *  whatever else it matches. Commons holds everything, and a search on
+ *  "HTTP status codes" really does answer with a nude portrait of 303. */
+const UNFIT = /\b(nude|naked|nudity|porn\w*|sex\w*|erotic\w*|genital\w*|penis|vagina|breasts?|topless)\b/i
+
+/**
+ * Which of a Commons search's titles are worth offering a lesson.
+ *
+ * Pictures only -- a search of the file namespace answers with scanned
+ * PDFs and videos too -- nothing a reader would not want printed in a
+ * lesson, and each name once, without its `File:` prefix. Order is kept:
+ * it is Commons' relevance, and the first few are the ones offered.
+ */
+export function offeredPictures(titles: string[], most = 15): string[] {
+  const picture = new RegExp(`\.(${PICTURE_EXTENSIONS.join('|')})$`, 'i')
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const title of titles) {
+    const name = title.replace(/^File:/i, '').trim()
+    const key = name.toLowerCase()
+    if (!picture.test(name) || UNFIT.test(name.replace(/[_-]/g, ' ')) || seen.has(key)) continue
+    seen.add(key)
+    out.push(name)
+    if (out.length === most) break
+  }
+  return out
+}

@@ -45,9 +45,13 @@
   border-left: 3px solid var(--plate-ultramarine);
 }
 
+/* Said, it is set as a callout is: the deeper paper and the mustard
+   rule, beside the page rather than quoted in it. */
 .said {
-  padding-left: var(--space-3);
-  border-left: 3px solid var(--plate-ultramarine);
+  padding: var(--space-4);
+  background: var(--paper-deep);
+  border-left: 3px solid var(--plate-mustard);
+  line-height: 1.6;
 }
 
 .problem {

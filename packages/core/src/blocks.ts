@@ -195,7 +195,7 @@ export const BLOCKS: BlockSpec[] = [
   {
     name: 'picture',
     when:
-      'the thing has to be seen to be understood -- a diagram, a photograph of the object itself. Strongly prefer Wikimedia Commons, and when you do, give the FILE PAGE -- `https://commons.wikimedia.org/wiki/File:Name_of_the_file.svg` -- and not an `upload.wikimedia.org` address. The upload path contains the first characters of the MD5 of the file name, so it cannot be worked out from the name and you will get it wrong; the file page is looked up and turned into the real address before the lesson is saved. Give the file name as exactly as you can remember it, extension included. For anything that is not Wikimedia, only give an address you are confident is real and stable. Every address is checked when the lesson is written and a picture that cannot be found is removed, so a guess costs the lesson the figure: if you are not sure the picture exists, write the paragraph instead',
+      'the reader would understand faster by seeing it -- a diagram of how the parts connect, a photograph of the object itself, a map, a chart someone has already drawn. Most lessons have at least one place like that; look for it, and use two or three pictures in a lesson where the subject is visual. Strongly prefer Wikimedia Commons, and when you do, give the FILE PAGE -- `https://commons.wikimedia.org/wiki/File:Name_of_the_file.svg` -- and not an `upload.wikimedia.org` address. The upload path contains the first characters of the MD5 of the file name, so it cannot be worked out from the name and you will get it wrong; the file page is looked up and turned into the real address before the lesson is saved. Give the file name as exactly as you can remember it, extension included. For anything that is not Wikimedia, only give an address you are confident is real and stable. Every address is checked when the lesson is written and a picture that cannot be found is removed, so a guess costs the lesson the figure: if you are not sure the picture exists, write the paragraph instead',
     example: `{
   "url": "https://commons.wikimedia.org/wiki/File:Bean_seed_diagram.svg",
   "alt": "A bean seed cut lengthways, with the seed coat, cotyledon, plumule and radicle labelled",
@@ -251,7 +251,7 @@ export function parseBlocks(markdown: string): ParsedBlock[] {
  * offered to the writing agent without a second edit somewhere else.
  */
 export function blockPromptSection(): string {
-  return `You may use these blocks where one genuinely helps. Each is a fenced code block whose body is JSON, exactly in the shape shown. Use them sparingly -- a lesson is still prose, and a block that restates the paragraph above it is worse than no block. Never put markup or HTML in a payload.
+  return `You may use these blocks where one genuinely helps. Each is a fenced code block whose body is JSON, exactly in the shape shown. Use them sparingly -- a lesson is still prose, and a block that restates the paragraph above it is worse than no block. Pictures are the exception: a diagram shows what a paragraph can only describe, so reach for one wherever seeing the thing helps. Never put markup or HTML in a payload.
 
 ${BLOCKS.map(b => `### \`\`\`${b.name}\nUse when ${b.when}.\n\n\`\`\`${b.name}\n${b.example}\n\`\`\``).join('\n\n')}`
 }
