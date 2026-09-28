@@ -1,3 +1,4 @@
+import type { ActivityDay } from '@didactic/core/activity'
 import type { Api } from './client'
 import type { Subject } from '@didactic/core/types'
 import type { SubjectArea, Sowing } from '@didactic/core/shapes'
@@ -166,7 +167,7 @@ export interface SubjectReckoning {
 export const subjects = (api: Api) => ({
   list: () => api.get<{ subjects: Subject[] }>('/api/subjects'),
   get: (id: string) => api.get<SubjectReckoning>(`/api/subjects/${id}`),
-  area: (id: string) => api.get<SubjectArea>(`/api/subjects/${id}/area`),
+  area: (id: string) => api.get<SubjectArea & { activity?: ActivityDay[] }>(`/api/subjects/${id}/area`),
   sowing: (id: string) => api.get<Sowing | null>(`/api/subjects/${id}/sowing`),
 
   sow: (body: SowBody) => api.post<Sown>('/api/subjects', body),

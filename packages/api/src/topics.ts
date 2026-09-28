@@ -1,3 +1,4 @@
+import type { ActivityDay } from '@didactic/core/activity'
 import type { Api } from './client'
 import type { Curriculum, Exposure, Resource, Subject, Topic } from '@didactic/core/types'
 import type { LooseClaim, LooseTopic, PendingTopic, TopicArea } from '@didactic/core/shapes'
@@ -91,7 +92,7 @@ export const topics = (api: Api) => ({
   list: () => api.get<Omit<Planting, 'subjects'>>('/api/topics'),
 
   get: (id: string) => api.get<TopicDetail>(`/api/topics/${id}`),
-  area: (id: string) => api.get<TopicArea>(`/api/topics/${id}/area`),
+  area: (id: string) => api.get<TopicArea & { activity?: ActivityDay[] }>(`/api/topics/${id}/area`),
 
   /** Curation only; never ability. */
   patch: (id: string, body: TopicPatch) => api.patch<{ ok: true }>(`/api/topics/${id}`, body),

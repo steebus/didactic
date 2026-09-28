@@ -15,6 +15,8 @@ import { GrubOut } from './GrubOut'
 import { BedTarget } from './BedTarget'
 import { PutBack } from './PutBack'
 import styles from './page.module.css'
+import { Suspense } from 'react'
+import { ActivityEntry } from '@/components/ActivityEntry'
 import { requireOwner } from '@/lib/auth'
 
 
@@ -113,7 +115,16 @@ export default async function SubjectPage({
           </Link>
         </div>
       </header>
-      <div className={styles.headRule} />
+      {/* The year of this bed, grown up out of the rule; streamed in
+          behind the plain rule. */}
+      <Suspense fallback={<div className={styles.headRule} />}>
+        <ActivityEntry
+          scope={{ subject: subject.id }}
+          plain={<div className={styles.headRule} />}
+          stemInk="var(--paper)"
+          cellInk={subject.colour}
+        />
+      </Suspense>
 
       <div className={styles.body}>
         {/* Tending this bed and nothing else. A subject is the widest

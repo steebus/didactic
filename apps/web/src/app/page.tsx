@@ -8,8 +8,7 @@ import { Emblem, slugify } from '@/components/Emblem'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
 import { SheetNav } from '@/components/SheetNav'
 import { LeaveLine } from '@/components/LeaveLine'
-import { ActivityRule } from '@/components/ActivityRule'
-import { getActivity } from '@/lib/activity'
+import { ActivityEntry } from '@/components/ActivityEntry'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
 import { plate } from '@didactic/tokens'
@@ -51,7 +50,10 @@ export default async function Home() {
       {/* The rule carries the reader's year. It streams in behind the
           plain rule so the stock list never waits on it. */}
       <Suspense fallback={<div className={styles.headRule} />}>
-        <ActivityEntry colours={Object.fromEntries(data.subjects.map(s => [s.id, s.colour]))} />
+        <ActivityEntry
+          plain={<div className={styles.headRule} />}
+          colours={Object.fromEntries(data.subjects.map(s => [s.id, s.colour]))}
+        />
       </Suspense>
 
       <div className={styles.sheetBody}>
@@ -413,11 +415,4 @@ async function SproutingEntry({ largestHolding, index }: { largestHolding: numbe
       </Link>
     </section>
   )
-}
-
-/** The rule under the head, or the plain rule for a reader with no year yet. */
-async function ActivityEntry({ colours }: { colours: Record<string, string> }) {
-  const days = await getActivity()
-  if (!days.length) return <div className={styles.headRule} />
-  return <ActivityRule days={days} colours={colours} />
 }

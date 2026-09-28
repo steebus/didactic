@@ -21,7 +21,21 @@ const MONTH = new Intl.DateTimeFormat('en-GB', { month: 'short', timeZone: 'UTC'
  *
  * A day is weighed and coloured in `core/activity`; this only draws.
  */
-export function ActivityRule({ days, colours }: { days: ActivityDay[]; colours: Record<string, string> }) {
+export function ActivityRule({
+  days,
+  colours = {},
+  stemInk,
+  cellInk,
+}: {
+  days: ActivityDay[]
+  /** Subject id to plate, for a strip that spans subjects. */
+  colours?: Record<string, string>
+  /** One ink for every stem and cell, for a strip inside one subject:
+   *  stems in the band's own lettering, since on a band in the subject's
+   *  plate a stem in that plate would vanish, and cells in the plate. */
+  stemInk?: string
+  cellInk?: string
+}) {
   const [open, setOpen] = useState(false)
   const scroller = useRef<HTMLDivElement>(null)
   const drag = useRef<{ x: number; left: number; moved: boolean } | null>(null)
@@ -35,7 +49,9 @@ export function ActivityRule({ days, colours }: { days: ActivityDay[]; colours: 
 
   const scores = days.map(d => d.score)
   const levels = days.map(d => activityLevel(d.score, scores))
-  const ink = (d: ActivityDay) => (d.subjectId && colours[d.subjectId]) || 'var(--ink-soft)'
+  const plateOf = (d: ActivityDay) => (d.subjectId && colours[d.subjectId]) || 'var(--ink-soft)'
+  const stem = (d: ActivityDay) => stemInk ?? plateOf(d)
+  const ink = (d: ActivityDay) => cellInk ?? plateOf(d)
   // The first column starts on whatever weekday the year does; Monday is row one.
   const offset = days.length ? (new Date(`${days[0].day}T00:00:00Z`).getUTCDay() + 6) % 7 : 0
 
@@ -97,7 +113,7 @@ export function ActivityRule({ days, colours }: { days: ActivityDay[]; colours: 
                   key={d.day}
                   className={styles.tick}
                   data-level={level}
-                  style={level ? { background: ink(d) } : undefined}
+                  style={level ? { background: stem(d) } : undefined}
                   title={level ? activityTitle(d) : undefined}
                 />
               )

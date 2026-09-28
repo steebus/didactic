@@ -23,6 +23,8 @@ import { GardenLine } from '@/components/GardenLine'
 import { BandSpecimen, BandSpecimenCaption } from '@/components/BandSpecimen'
 import { routeProgress } from '@didactic/core/progress'
 import styles from './page.module.css'
+import { Suspense } from 'react'
+import { ActivityEntry } from '@/components/ActivityEntry'
 import { requireOwner } from '@/lib/auth'
 
 
@@ -130,7 +132,16 @@ export default async function TopicPage({
           topicId={topic.id}
         />
       </header>
-      <div className={styles.headRule} />
+      {/* The year of this topic and everything under it, grown up out
+          of the rule; streamed in behind the plain rule. */}
+      <Suspense fallback={<div className={styles.headRule} />}>
+        <ActivityEntry
+          scope={{ topic: id }}
+          plain={<div className={styles.headRule} />}
+          stemInk="var(--paper)"
+          cellInk={colour}
+        />
+      </Suspense>
 
       <div className={styles.body}>
         {/* The narrowest scope: everything this topic's lessons left

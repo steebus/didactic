@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getTopicArea } from '@/lib/topic'
+import { getActivity } from '@/lib/activity'
 import { ownerId } from '@/lib/auth'
 
 /**
@@ -13,8 +14,10 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   if (!userId) return NextResponse.json({ error: 'not signed in' }, { status: 401 })
 
   const { id } = await params
-  const area = await getTopicArea(id)
+  // `activity` is additive, read beside the area rather than in its
+  // cache, for the reason `lib/activity` gives.
+  const [area, activity] = await Promise.all([getTopicArea(id), getActivity({ topic: id })])
   if (!area) return NextResponse.json({ error: 'not found' }, { status: 404 })
 
-  return NextResponse.json(area)
+  return NextResponse.json({ ...area, activity })
 }

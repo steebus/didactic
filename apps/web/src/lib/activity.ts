@@ -15,16 +15,28 @@ const TODAY = new Intl.DateTimeFormat('en-CA', { timeZone: ACTIVITY.TZ })
  * behind a `Suspense` so the stock list never waits on it.
  *
  * Empty on any error, which includes the function not existing yet: a
- * deploy that lands before `064` has run shows the plain rule.
+ * deploy that lands before `064` (or `065`, for a scope) has run shows
+ * the plain rule.
  */
-export async function getActivity(): Promise<ActivityDay[]> {
+export async function getActivity(
+  scope?: { subject: string } | { topic: string }
+): Promise<ActivityDay[]> {
   await connection()
   const today = TODAY.format(new Date())
   const since = new Date(Date.parse(`${today}T00:00:00Z`) - (ACTIVITY.DAYS - 1) * 86_400_000)
     .toISOString()
     .slice(0, 10)
 
-  const { data, error } = await supabaseAdmin().rpc('activity_days', { p_since: since, p_tz: ACTIVITY.TZ })
+  // A subject or topic sheet reads its own ground (065): the subject's
+  // topics, or the topic and everything under it, and their material.
+  const { data, error } = scope
+    ? await supabaseAdmin().rpc('activity_days_in', {
+        p_subject: 'subject' in scope ? scope.subject : null,
+        p_topic: 'topic' in scope ? scope.topic : null,
+        p_since: since,
+        p_tz: ACTIVITY.TZ,
+      })
+    : await supabaseAdmin().rpc('activity_days', { p_since: since, p_tz: ACTIVITY.TZ })
   if (error || !data) return []
 
   const rows = (data as Array<{ day: string; subject_id: string | null; kind: ActivityCount['kind']; n: number }>)
