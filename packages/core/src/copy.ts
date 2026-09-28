@@ -211,6 +211,19 @@ export function roundPhrase(round: number, words: number): string {
 }
 
 /**
+ * What a lesson says while its pictures are being drawn.
+ *
+ * The writing is over by then, so the word count is the whole lesson;
+ * the drawing is a round of its own and takes a good part of a minute,
+ * which is long enough that a reader should know what it is waiting on.
+ */
+export function drawingPhrase(pictures: number, words: number): string {
+  return `Written · about ${words} words · drawing ${
+    pictures === 1 ? 'its picture' : `${pictures} pictures`
+  }`
+}
+
+/**
  * What an opening says the moment the route is back.
  *
  * The first honest thing it can report: the drafting is over, the size

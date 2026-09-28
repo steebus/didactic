@@ -82,6 +82,22 @@ describe('writeWhole', () => {
     expect(asked).toHaveLength(1)
   })
 
+  it('says when it is drawing, and keeps what the writing round warned of', async () => {
+    const asked = replies(
+      round({ round: 3, words: 1400, drawing: 2, warning: '1 picture was named at an address that does not exist, and was taken out.' }),
+      round({ round: 3, words: 1400, done: true })
+    )
+
+    const said: string[] = []
+    const res = await didactic().lessons.writeWhole('les-1', p => said.push(p))
+
+    expect(asked).toHaveLength(2)
+    expect(said).toEqual(['Written · about 1400 words · drawing 2 pictures'])
+    expect(res.body.warnings).toEqual([
+      '1 picture was named at an address that does not exist, and was taken out.',
+    ])
+  })
+
   it('carries the round cap’s warning out with the finished body', async () => {
     replies(round({ done: true, warning: 'The lesson ran long and was stopped where it stands.' }))
 

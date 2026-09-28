@@ -1,5 +1,5 @@
 import type { Api, Result } from './client'
-import { roundPhrase } from '@didactic/core/copy'
+import { drawingPhrase, roundPhrase } from '@didactic/core/copy'
 import type { LessonLink } from '@didactic/core/lessonLinks'
 import type { SourceLink } from '@didactic/core/sourceLinks'
 import type { LessonNeighbours } from '@didactic/core/lessonState'
@@ -122,6 +122,9 @@ export interface Written {
   words: number
   /** Said when a lesson ran past the round cap and was stopped. */
   warning?: string
+  /** How many pictures the next call will draw, when the writing is
+   *  finished and the drawing is not. Absent otherwise. */
+  drawing?: number
 }
 
 /**
@@ -222,11 +225,17 @@ export const lessons = (api: Api) => {
     id: string,
     report: (progress: string) => void = () => {}
   ): Promise<Result<WrittenWhole>> => {
+    // Kept across rounds: the round that finishes the writing can have
+    // something to say (a picture that was not found) and still not be
+    // the last, when there are pictures to draw after it.
+    const warnings: string[] = []
     for (;;) {
       const round = await writeBody(id)
       if (!round.ok) {
         return { ok: false, status: round.status, body: {} as WrittenWhole, error: round.error }
       }
+
+      if (round.body.warning) warnings.push(round.body.warning)
 
       if (round.body.done) {
         return {
@@ -237,12 +246,16 @@ export const lessons = (api: Api) => {
             lessonId: id,
             body: round.body.body,
             rounds: round.body.round,
-            warnings: round.body.warning ? [round.body.warning] : [],
+            warnings,
           },
         }
       }
 
-      report(roundPhrase(round.body.round, round.body.words))
+      report(
+        round.body.drawing
+          ? drawingPhrase(round.body.drawing, round.body.words)
+          : roundPhrase(round.body.round, round.body.words)
+      )
     }
   }
 

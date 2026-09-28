@@ -1727,6 +1727,21 @@ reading, so the request goes out `referrerPolicy="no-referrer"` — the host
 learns that a browser asked, not which page asked. A picture with no `alt` is
 not drawn at all.
 
+**Exception — a picture drawn for the lesson is kept.** Where nothing on Commons
+shows what a lesson needs and no block draws it better (`flow`, `steps`,
+`chart`, `compare` come first), the writer may commission a plate: a `picture`
+with `draw` in place of `url`. It is drawn once, after the writing, by OpenAI's
+image model, as a **natural-history plate** — pen-and-ink linework with hatching
+and stippling, flat watercolour washes, on `--paper`, in `--ink`/`--ink-soft`
+and the six plate inks, centred with a margin, and **no lettering of any kind**
+(an image model's lettering is where it visibly fails; what needs naming goes in
+the caption, which is set in type). It has nowhere else to live, so it is kept
+in the public `lesson-drawings` bucket and credited *Drawn for this lesson*. Two
+at most a lesson. Until it is drawn a commission prints nothing, and one that
+cannot be drawn is taken out like an address that goes nowhere. Behind the
+`drawnPictures` feature (`web/lib/features.ts`), on by default; off, the writer
+is never told it can ask.
+
 **Rule — an address is resolved when the lesson is written, not trusted.** A
 `picture` address is written from a model's memory, and for Wikimedia — which is
 where nearly all of them come from — it is not something any model could get

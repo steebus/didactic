@@ -119,6 +119,16 @@ export interface PictureBlock {
   alt?: string
   caption?: string
   source?: string
+  /**
+   * What to draw, where nothing that exists will do.
+   *
+   * A picture with this and no `url` is a commission rather than an
+   * address: the writer describes the plate and the web has it drawn
+   * once the lesson is finished (`web/lib/drawings`). Until then it has
+   * nothing to print and prints nothing. Kept on the block after it is
+   * drawn, as the record of what was asked for.
+   */
+  draw?: string
 }
 
 /** Every `picture` block in a lesson body, in the order they appear. */
@@ -132,6 +142,13 @@ export function readPictures(markdown: string): PictureBlock[] {
   }
   return out
 }
+
+/**
+ * What settling one picture comes to: the address it should carry, fields
+ * to set on it (a drawing is given its address and its credit together),
+ * `null` to take it out, or `undefined` to leave it exactly as written.
+ */
+export type Settlement = string | null | undefined | Partial<Omit<PictureBlock, 'index'>>
 
 /**
  * Rewrite a lesson's pictures, or take them out.
@@ -149,7 +166,7 @@ export function readPictures(markdown: string): PictureBlock[] {
  */
 export function rewritePictures(
   markdown: string,
-  settle: (block: PictureBlock) => string | null
+  settle: (block: PictureBlock) => Settlement
 ): { text: string; fixed: number; dropped: number } {
   let index = 0
   let fixed = 0
@@ -168,14 +185,33 @@ export function rewritePictures(
         dropped += 1
         return ''
       }
-      if (settled !== data.url) fixed += 1
-      return `\`\`\`picture\n${JSON.stringify({ ...data, url: settled }, null, 2)}\n\`\`\``
+      if (settled === undefined) {
+        return `\`\`\`picture\n${JSON.stringify(data, null, 2)}\n\`\`\``
+      }
+      const next = typeof settled === 'string' ? { ...data, url: settled } : { ...data, ...settled }
+      if (next.url !== data.url) fixed += 1
+      return `\`\`\`picture\n${JSON.stringify(next, null, 2)}\n\`\`\``
     })
     .join('')
     // A dropped block leaves the blank lines that were around it.
     .replace(/\n{3,}/g, '\n\n')
 
   return { text, fixed, dropped }
+}
+
+/* --------------------------------------------------------- drawings */
+
+/** A picture that is still a commission: something to draw and nowhere
+ *  yet to find it. */
+export function isCommission(block: Omit<PictureBlock, 'index'>): boolean {
+  return !block.url?.trim() && typeof block.draw === 'string' && block.draw.trim().length > 0
+}
+
+/** The commissions in a lesson body, in order. Empty for a lesson whose
+ *  pictures are all addresses, which is every lesson written before
+ *  drawing existed. */
+export function pendingDrawings(markdown: string): PictureBlock[] {
+  return readPictures(markdown).filter(isCommission)
 }
 
 /* ------------------------------------------------ offered beforehand */

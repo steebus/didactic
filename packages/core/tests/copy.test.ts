@@ -7,6 +7,7 @@ import {
   OPENINGS,
   labourPhrase,
   roundPhrase,
+  drawingPhrase,
   editionDate,
 } from '../src/copy'
 
@@ -63,6 +64,13 @@ describe('the waiting lists', () => {
     // wrong thing reads as the wrong button.
     expect(READINGS.some(p => /contents|headings|pages|string/i.test(p))).toBe(true)
     for (const phrase of READINGS) expect(LABOURS).not.toContain(phrase)
+  })
+})
+
+describe('drawingPhrase', () => {
+  it('says the writing is done and what is being drawn', () => {
+    expect(drawingPhrase(1, 1400)).toBe('Written · about 1400 words · drawing its picture')
+    expect(drawingPhrase(2, 1400)).toBe('Written · about 1400 words · drawing 2 pictures')
   })
 })
 

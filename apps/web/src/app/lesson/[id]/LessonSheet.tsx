@@ -516,7 +516,11 @@ export default function LessonSheet({
       return
     }
 
-    setBody(payload.body)
+    // The first round starts it again; any after it -- more writing, or
+    // the pictures the writer asked to have drawn -- are the same loop
+    // every other writer drives.
+    const rest = payload.done ? null : await api.lessons.writeWhole(id)
+    setBody(rest?.ok ? rest.body.body : payload.body)
     // So the marks are re-read against the new text and the count
     // beneath it tells the truth about what can still be drawn.
     setRevision(r => r + 1)

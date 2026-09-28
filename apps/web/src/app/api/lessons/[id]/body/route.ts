@@ -3,6 +3,9 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { generateLessonBody, ROUNDS_MAX } from '@/lib/llm/curriculum'
 import { settlePictures } from '@/lib/pictures'
 import { picturesForLesson } from '@/lib/llm/pictureSearch'
+import { drawPending } from '@/lib/drawings'
+import { drawingOn } from '@/lib/features'
+import { pendingDrawings } from '@didactic/core/pictures'
 import { lessonsWithinReach } from '@/lib/curriculum'
 import { passagesForLesson, unsupportedCitations } from '@/lib/citations'
 import { readPlan, appendEntry } from '@/lib/learningPlan'
@@ -85,6 +88,41 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const { data: lesson } = await db.from('lessons').select('*').eq('id', id).single()
   if (!lesson) return NextResponse.json({ error: 'not found' }, { status: 404 })
+
+  const drawing = drawingOn()
+
+  /* The drawing round.
+     -----------------------------------------------------------------
+
+     A finished lesson that still holds commissions -- pictures the
+     writer asked to have drawn -- has them drawn now, in a request of
+     its own: the round that finished the writing had already spent most
+     of its minute. The writing round answered `done: false` to bring
+     the caller back here, and the lesson was readable in the meantime,
+     since a commission prints nothing until it has an address.
+
+     Whatever is not drawn is taken out, so this happens once. */
+  if (lesson.body && lesson.body_finished && !regenerate && drawing
+      && pendingDrawings(lesson.body).length > 0) {
+    const drawn = await drawPending(db, id, lesson.body)
+    const { error } = await db.from('lessons').update({ body: drawn.text }).eq('id', id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    dropCache()
+    return NextResponse.json({
+      body: drawn.text,
+      cached: false,
+      done: true,
+      round: lesson.body_rounds ?? 1,
+      words: words(drawn.text),
+      ...(drawn.dropped
+        ? {
+            warning: `${drawn.dropped} ${
+              drawn.dropped === 1 ? 'picture' : 'pictures'
+            } could not be drawn, and ${drawn.dropped === 1 ? 'was' : 'were'} taken out.`,
+          }
+        : {}),
+    })
+  }
 
   // Finished and not being asked for again: there is nothing to do.
   if (lesson.body && lesson.body_finished && !regenerate) {
@@ -226,6 +264,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       links,
       passages,
       pictures: commons,
+      drawing,
       plan,
       nearby: dedupe(
         (nearby ?? []).flatMap(r =>
@@ -267,8 +306,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
      for a link that dies later, which is a different thing from one
      that was never alive. */
   const pictures = written.finished
-    ? await settlePictures(written.text)
+    ? await settlePictures(written.text, { keepCommissions: drawing })
     : { text: written.text, fixed: 0, dropped: 0 }
+
+  // Pictures the writer asked to have drawn. The lesson is finished and
+  // saved as finished -- it reads, and a commission prints nothing -- but
+  // the caller is told there is more, and its next call is the drawing
+  // round at the top of this route.
+  const toDraw = written.finished && drawing ? pendingDrawings(pictures.text).length : 0
 
   const { error } = await db
     .from('lessons')
@@ -351,7 +396,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // has rather than the one the model handed over.
     body: pictures.text,
     cached: false,
-    done: written.finished,
+    done: written.finished && toDraw === 0,
+    ...(toDraw ? { drawing: toDraw } : {}),
     round,
     words: words(pictures.text),
     ...(notes.length ? { warning: notes.join(' ') } : {}),

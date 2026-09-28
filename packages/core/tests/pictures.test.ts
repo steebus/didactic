@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { commonsName, nameVariants, offeredPictures, readPictures, rewritePictures } from '../src/pictures'
+import {
+  commonsName,
+  isCommission,
+  nameVariants,
+  offeredPictures,
+  pendingDrawings,
+  readPictures,
+  rewritePictures,
+} from '../src/pictures'
 
 describe('commonsName', () => {
   it('reads the hashed upload path the model invents', () => {
@@ -164,5 +172,52 @@ describe('offeredPictures', () => {
 
   it('stops at the number asked for', () => {
     expect(offeredPictures(['File:a.png', 'File:b.png', 'File:c.png'], 2)).toEqual(['a.png', 'b.png'])
+  })
+})
+
+describe('drawings', () => {
+  const commissioned = [
+    'Prose.',
+    '',
+    '```picture',
+    JSON.stringify({ draw: 'A bean seed cut lengthways', alt: 'A bean seed', caption: 'The seed.' }),
+    '```',
+    '',
+    '```picture',
+    JSON.stringify({ url: 'https://example.com/a.png', alt: 'A thing' }),
+    '```',
+    '',
+    'The end.',
+  ].join('\n')
+
+  it('knows a commission from an address', () => {
+    expect(isCommission({ draw: 'A leaf' })).toBe(true)
+    expect(isCommission({ draw: '  ' })).toBe(false)
+    expect(isCommission({ draw: 'A leaf', url: 'https://example.com/leaf.webp' })).toBe(false)
+    expect(isCommission({ url: 'https://example.com/leaf.webp' })).toBe(false)
+  })
+
+  it('finds only the pictures still to be drawn', () => {
+    const pending = pendingDrawings(commissioned)
+    expect(pending).toHaveLength(1)
+    expect(pending[0]).toMatchObject({ index: 0, draw: 'A bean seed cut lengthways' })
+  })
+
+  it('leaves a picture untouched when settling says nothing', () => {
+    const { text, fixed, dropped } = rewritePictures(commissioned, b => (b.draw ? undefined : b.url ?? null))
+    expect(text).toContain('"draw": "A bean seed cut lengthways"')
+    expect(fixed).toBe(0)
+    expect(dropped).toBe(0)
+  })
+
+  it('gives a drawn picture its address and its credit together, and keeps what was asked for', () => {
+    const { text, fixed } = rewritePictures(commissioned, b =>
+      b.draw ? { url: 'https://store.example/drawn.webp', source: 'Drawn for this lesson' } : b.url ?? null
+    )
+    expect(fixed).toBe(1)
+    expect(text).toContain('"url": "https://store.example/drawn.webp"')
+    expect(text).toContain('"source": "Drawn for this lesson"')
+    expect(text).toContain('"draw": "A bean seed cut lengthways"')
+    expect(pendingDrawings(text)).toHaveLength(0)
   })
 })

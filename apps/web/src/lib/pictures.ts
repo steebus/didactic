@@ -1,10 +1,12 @@
 import {
   commonsName,
+  isCommission,
   nameVariants,
   offeredPictures,
   readPictures,
   rewritePictures,
   type PictureBlock,
+  type Settlement,
 } from '@didactic/core/pictures'
 
 /**
@@ -54,20 +56,33 @@ export interface Settled {
  * removed: the block's fallback exists for a link that dies later,
  * which is a different thing from one that was never alive.
  */
-export async function settlePictures(markdown: string): Promise<Settled> {
+export async function settlePictures(
+  markdown: string,
+  /** Leave a picture that asks to be drawn for `lib/drawings` to draw,
+   *  rather than taking it out as an address that goes nowhere. Off
+   *  when drawing is (`features.drawingOn`). */
+  { keepCommissions = false }: { keepCommissions?: boolean } = {}
+): Promise<Settled> {
   const blocks = readPictures(markdown)
   if (blocks.length === 0) return { text: markdown, fixed: 0, dropped: 0 }
 
   // Asked for together rather than one after another: a lesson with
   // four pictures should not take four round trips end to end.
-  const settled = new Map<number, string | null>()
+  const settled = new Map<number, Settlement>()
   await Promise.all(
     blocks.map(async block => {
-      settled.set(block.index, await settleOne(block))
+      settled.set(
+        block.index,
+        isCommission(block) ? (keepCommissions ? undefined : null) : await settleOne(block)
+      )
     })
   )
 
-  return rewritePictures(markdown, block => settled.get(block.index) ?? null)
+  // `undefined` is an answer here -- leave it as written -- so it is not
+  // folded into `null` the way a missing entry is.
+  return rewritePictures(markdown, block =>
+    settled.has(block.index) ? settled.get(block.index) : null
+  )
 }
 
 async function settleOne(block: PictureBlock): Promise<string | null> {

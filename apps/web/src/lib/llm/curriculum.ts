@@ -279,6 +279,25 @@ const CARRY_ON =
   'Write only the rest of the lesson.'
 
 /**
+ * How to ask for a picture to be drawn, told only when drawing is on.
+ *
+ * Held here rather than on the `picture` spec in `core/blocks` because
+ * it is a switch on how the web writes, not part of what a body is
+ * allowed to say: a commission that reaches a reader undrawn prints
+ * nothing, on either platform.
+ */
+const DRAWING_SECTION = `
+A picture can also be drawn for this lesson, where nothing that exists shows what is needed: a \`picture\` block with \`draw\` in place of \`url\`, saying plainly what the drawing shows -- the thing, what it is doing, from which angle, cut open or whole. It is drawn as a hand-inked natural-history plate, pen and wash, so ask for what suits that: an object, organism, mechanism, apparatus, instrument, material, landscape or scene, a cutaway or cross-section of one, or a physical thing that embodies an abstract idea. It cannot carry words or numbers, so never ask for labels, text, a chart, a table, a screen or an interface, and put whatever needs naming in the caption instead. It is not for the shapes the other blocks already draw better: a decision is \`flow\`, an order is \`steps\`, figures are \`chart\`, a difference is \`compare\`. Prefer a real file from Commons where one shows the thing; draw where none does. Two drawings in a lesson at most. Give \`alt\` and \`caption\` as for any picture and leave out \`url\` and \`source\`:
+\`\`\`picture
+{
+  "draw": "A single garden pea pod split open along its seam, five peas inside attached by short stalks, one pea cut in half beside it to show the two cotyledons and the small embryo between them",
+  "alt": "A pea pod opened to show the peas, with one pea cut in half",
+  "caption": "Each pea is a whole plant in waiting: the two halves are its food store, and the speck between them is the plant."
+}
+\`\`\`
+`
+
+/**
  * Write one round of a lesson.
  *
  * Called when the lesson is first opened rather than at generation
@@ -323,6 +342,10 @@ export async function generateLessonBody(
      *  `picture` block can use without remembering one. See
      *  `llm/pictureSearch.ts`. */
     pictures?: string[]
+    /** Whether a `picture` may be commissioned -- described and drawn
+     *  for this lesson -- where nothing that exists shows it. Behind
+     *  `features.drawnPictures`; see `lib/drawings.ts`. */
+    drawing?: boolean
     /**
      * The course's standing record of why it is shaped as it is and
      * what has been written into it so far (`049`).
@@ -398,6 +421,7 @@ ${input.pictures?.length
       input.pictures.map(p => `- ${p}`).join('\n')
     }\n`
   : ''}
+${input.drawing ? DRAWING_SECTION : ''}
 Never announce a block or label it in the prose -- no "steps:", no "here is a chart", no "see the table below". Each block prints its own title, so a line introducing one is a line printed twice.
 
 Markdown, and prose rather than an outline. Explain the idea, show one worked example, and finish with something concrete for the reader to go and do. That last part is content, not a summary: it is the one ending this sheet always wants. The reader's contents list is built from your headings, so a lesson of this length wants a handful of them.
