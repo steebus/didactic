@@ -91,7 +91,7 @@ describe('topics proposed together for one subject', () => {
   }
 
   it('creates a sibling that merely shares the subject vocabulary', () => {
-    const { concept, candidates, embedding, siblings } = sibling(0.87)
+    const { concept, candidates, embedding, siblings } = sibling(0.89)
     expect(resolveConcept(concept, candidates, embedding, siblings).action).toBe('create')
   })
 
@@ -101,7 +101,7 @@ describe('topics proposed together for one subject', () => {
   })
 
   it('holds a stranger to the ordinary bar at the same similarity', () => {
-    const { concept, candidates, embedding } = sibling(0.87)
+    const { concept, candidates, embedding } = sibling(0.89)
     // No sibling set: the same vectors that were fine as siblings must
     // still reach the user when the match is an existing topic.
     expect(resolveConcept(concept, candidates, embedding).action).toBe('pending')

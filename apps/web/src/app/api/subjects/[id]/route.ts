@@ -14,7 +14,7 @@ import { readTarget } from '@didactic/core/grain'
  * milliseconds once.
  */
 function dropCache() {
-  for (const tag of [tags.subjects, tags.topics, tags.resources, tags.highlights]) revalidateTag(tag, 'max')
+  for (const tag of [tags.subjects, tags.topics, tags.resources, tags.highlights]) revalidateTag(tag, { expire: 0 })
 }
 
 

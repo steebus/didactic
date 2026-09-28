@@ -8,7 +8,7 @@ import { plantTheSprout } from '@/lib/sprouting'
 /** A new subject and every topic filed into it: the stock list, the
  *  beds, the topics' own sheets, and the decision. */
 function dropCache() {
-  for (const tag of [tags.subjects, tags.topics, tags.pending]) revalidateTag(tag, 'max')
+  for (const tag of [tags.subjects, tags.topics, tags.pending]) revalidateTag(tag, { expire: 0 })
   revalidateTag(tags.sprouts, { expire: 0 })
 }
 

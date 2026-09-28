@@ -38,7 +38,7 @@ import { tags } from '@didactic/core/tags'
  * to prevent.
  */
 function dropCache() {
-  for (const tag of [tags.plans]) revalidateTag(tag, 'max')
+  for (const tag of [tags.plans]) revalidateTag(tag, { expire: 0 })
 }
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {

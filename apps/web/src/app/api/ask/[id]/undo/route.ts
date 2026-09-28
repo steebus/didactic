@@ -12,7 +12,7 @@ import { tags } from '@didactic/core/tags'
  * by running heads built from these.
  */
 function dropCache(kind: 'mark' | 'card') {
-  revalidateTag(kind === 'mark' ? tags.highlights : tags.clozes, 'max')
+  revalidateTag(kind === 'mark' ? tags.highlights : tags.clozes, { expire: 0 })
 }
 
 /**

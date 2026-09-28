@@ -20,7 +20,7 @@ import { tags } from '@didactic/core/tags'
  */
 /** Drop what taking a claim back just moved. */
 function dropCache() {
-  for (const tag of [tags.highlights, tags.topics, tags.subjects]) revalidateTag(tag, 'max')
+  for (const tag of [tags.highlights, tags.topics, tags.subjects]) revalidateTag(tag, { expire: 0 })
 }
 
 export async function DELETE(

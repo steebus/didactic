@@ -8,7 +8,7 @@ import { rereadPending } from '@/lib/pendingReading'
 /** A released topic is on the map now, and filed; a read one asks a
  *  different question. Every sheet that prints either is re-read. */
 function dropCache() {
-  for (const tag of [tags.pending, tags.topics, tags.subjects]) revalidateTag(tag, 'max')
+  for (const tag of [tags.pending, tags.topics, tags.subjects]) revalidateTag(tag, { expire: 0 })
 }
 
 /** One reading of up to a dozen topics, in parallel requests. */

@@ -7,7 +7,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 /** The subject goes and its topics go back to their homes: every sheet
  *  that draws the map is stale. */
 function dropCache() {
-  for (const tag of [tags.subjects, tags.topics, tags.resources]) revalidateTag(tag, 'max')
+  for (const tag of [tags.subjects, tags.topics, tags.resources]) revalidateTag(tag, { expire: 0 })
 }
 
 /**

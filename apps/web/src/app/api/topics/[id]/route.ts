@@ -16,7 +16,7 @@ import { tags } from '@didactic/core/tags'
  * milliseconds once.
  */
 function dropCache() {
-  for (const tag of [tags.subjects, tags.topics, tags.highlights]) revalidateTag(tag, 'max')
+  for (const tag of [tags.subjects, tags.topics, tags.highlights]) revalidateTag(tag, { expire: 0 })
 }
 
 

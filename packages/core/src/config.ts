@@ -27,8 +27,20 @@ export const config = {
   //
   // Re-measure with scripts/tune-thresholds.ts after the topic set
   // grows; these numbers describe one graph, not the model in general.
+  //
+  // Re-measured 2026-09-28, when the map had grown across fields: the
+  // alien ceiling had risen to 0.875. Eleven concepts queued on their
+  // names alone -- the reading had failed -- and every one was nonsense:
+  // "Multi-agent orchestration" at 0.868 from "Containerization &
+  // Orchestration", "Baked lighting / lightmaps" at 0.856 from "Browser
+  // Rendering Engine", "Algorithmic music composition" at 0.813 from
+  // "Essayistic Voice". So AMBIGUOUS sits above that at 0.88. The cost is
+  // a genuine rename in that band ("CDN Distribution / Content Delivery
+  // Network", 0.852) created apart when the reading cannot run -- two
+  // topics a reader can see are one, against a queue nobody can answer.
+  // With the reading working this band is not what decides at all.
   RESOLVER_MATCH: 0.94,
-  RESOLVER_AMBIGUOUS: 0.81,
+  RESOLVER_AMBIGUOUS: 0.88,
 
   // The same question asked of two topics proposed together for one
   // subject, where the answer has to be different. Everything under

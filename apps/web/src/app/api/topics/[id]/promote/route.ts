@@ -9,7 +9,7 @@ import { tags } from '@didactic/core/tags'
 /** Promoting writes a subject, a fistful of memberships and a new home
  *  for each of them. Every sheet that draws the map is stale after it. */
 function dropCache() {
-  for (const tag of [tags.subjects, tags.topics, tags.pending]) revalidateTag(tag, 'max')
+  for (const tag of [tags.subjects, tags.topics, tags.pending]) revalidateTag(tag, { expire: 0 })
 }
 
 /**

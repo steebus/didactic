@@ -7,7 +7,7 @@ import { shapeTopic, stillShaped } from '@/lib/shape'
 
 /** A topic's size moved, and every sheet printing it. */
 function dropCache() {
-  for (const tag of [tags.topics, tags.subjects]) revalidateTag(tag, 'max')
+  for (const tag of [tags.topics, tags.subjects]) revalidateTag(tag, { expire: 0 })
 }
 
 /** A few grouped searches, one at a time. */

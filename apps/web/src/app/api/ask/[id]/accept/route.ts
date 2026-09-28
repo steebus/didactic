@@ -18,7 +18,7 @@ import { judge, keyOf } from '@/lib/ingest'
  * loose list are built from.
  */
 function dropCache() {
-  for (const tag of [tags.topics, tags.subjects, tags.pending]) revalidateTag(tag, 'max')
+  for (const tag of [tags.topics, tags.subjects, tags.pending]) revalidateTag(tag, { expire: 0 })
 }
 
 /** One embedding, one search, one reading. */

@@ -8,7 +8,7 @@ import { tags } from '@didactic/core/tags'
  *  row. Marks and cards move with it, so their sheets go too. */
 function dropCache() {
   for (const tag of [tags.subjects, tags.topics, tags.pending, tags.highlights, tags.clozes]) {
-    revalidateTag(tag, 'max')
+    revalidateTag(tag, { expire: 0 })
   }
 }
 

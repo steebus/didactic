@@ -14,7 +14,7 @@ import { tags } from '@didactic/core/tags'
  * writes an exposure that moves the topic's figure.
  */
 function dropCache() {
-  for (const tag of [tags.highlights, tags.topics, tags.subjects]) revalidateTag(tag, 'max')
+  for (const tag of [tags.highlights, tags.topics, tags.subjects]) revalidateTag(tag, { expire: 0 })
 }
 
 const text = (v: unknown) => (typeof v === 'string' ? v.trim() : '')

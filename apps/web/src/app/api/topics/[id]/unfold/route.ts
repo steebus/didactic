@@ -8,7 +8,7 @@ import { supabaseAdmin } from '@/lib/supabase'
  *  its marks and cards with it: every sheet that prints them is stale. */
 function dropCache() {
   for (const tag of [tags.subjects, tags.topics, tags.pending, tags.highlights, tags.clozes, tags.resources]) {
-    revalidateTag(tag, 'max')
+    revalidateTag(tag, { expire: 0 })
   }
 }
 

@@ -8,7 +8,7 @@ import { retitleFromPage } from '@/lib/resourceTitle'
 /** A resource's title is printed wherever material is listed: the
  *  library, the topic sheets and, through them, the stock list. */
 function dropCache() {
-  for (const tag of [tags.resources, tags.topics]) revalidateTag(tag, 'max')
+  for (const tag of [tags.resources, tags.topics]) revalidateTag(tag, { expire: 0 })
 }
 
 /** One page fetch, at most. */

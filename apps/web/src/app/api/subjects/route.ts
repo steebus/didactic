@@ -28,7 +28,7 @@ import { plates } from '@didactic/tokens'
  * milliseconds once.
  */
 function dropCache() {
-  for (const tag of [tags.subjects, tags.topics, tags.resources, tags.pending]) revalidateTag(tag, 'max')
+  for (const tag of [tags.subjects, tags.topics, tags.resources, tags.pending]) revalidateTag(tag, { expire: 0 })
 }
 
 

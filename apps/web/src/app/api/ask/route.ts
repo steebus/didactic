@@ -23,8 +23,8 @@ export const maxDuration = 60
  * every running head a re-read for nothing.
  */
 function dropCache() {
-  revalidateTag(tags.highlights, 'max')
-  revalidateTag(tags.clozes, 'max')
+  revalidateTag(tags.highlights, { expire: 0 })
+  revalidateTag(tags.clozes, { expire: 0 })
 }
 
 /** What the reader is told when the model could not be reached. The

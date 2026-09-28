@@ -14,7 +14,7 @@ import { tags } from '@didactic/core/tags'
  * what stuck. What goes stale is the tally in every running head.
  */
 function dropCache() {
-  revalidateTag(tags.clozes, 'max')
+  revalidateTag(tags.clozes, { expire: 0 })
 }
 
 /**

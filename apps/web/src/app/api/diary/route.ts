@@ -13,7 +13,7 @@ import { tags } from '@didactic/core/tags'
  * the topic and subject sheets too.
  */
 function dropCache() {
-  for (const tag of [tags.highlights, tags.topics, tags.subjects]) revalidateTag(tag, 'max')
+  for (const tag of [tags.highlights, tags.topics, tags.subjects]) revalidateTag(tag, { expire: 0 })
 }
 
 /**

@@ -20,7 +20,7 @@ import { tags } from '@didactic/core/tags'
  */
 
 function dropCache() {
-  for (const tag of [tags.clozes, tags.topics]) revalidateTag(tag, 'max')
+  for (const tag of [tags.clozes, tags.topics]) revalidateTag(tag, { expire: 0 })
 }
 
 export async function GET(req: Request) {

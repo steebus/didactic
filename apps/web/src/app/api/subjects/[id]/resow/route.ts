@@ -22,7 +22,7 @@ import { isFidelity } from '@didactic/core/documents'
  *  subject's own sheet is tagged with `subjects` as well as its own id,
  *  so dropping the wide tag takes it with the rest. */
 function dropCache() {
-  for (const tag of [tags.subjects, tags.topics, tags.pending]) revalidateTag(tag, 'max')
+  for (const tag of [tags.subjects, tags.topics, tags.pending]) revalidateTag(tag, { expire: 0 })
 }
 
 /** The same ceiling and the same budget as the first attempt: this is

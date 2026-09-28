@@ -13,7 +13,7 @@ import { tags } from '@didactic/core/tags'
  * every running head prints.
  */
 function dropCache() {
-  revalidateTag(tags.clozes, 'max')
+  revalidateTag(tags.clozes, { expire: 0 })
 }
 
 /**

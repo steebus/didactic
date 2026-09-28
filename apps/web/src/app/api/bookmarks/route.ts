@@ -16,7 +16,7 @@ import { tags } from '@didactic/core/tags'
 
 /** The one tag a bookmark is cached under: the phone's. */
 function dropCache() {
-  revalidateTag(tags.bookmarks, 'max')
+  revalidateTag(tags.bookmarks, { expire: 0 })
 }
 
 const text = (v: unknown) => (typeof v === 'string' ? v : '')

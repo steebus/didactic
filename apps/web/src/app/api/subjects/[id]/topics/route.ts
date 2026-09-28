@@ -17,7 +17,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
  * milliseconds once.
  */
 function dropCache() {
-  for (const tag of [tags.subjects, tags.topics, tags.pending]) revalidateTag(tag, 'max')
+  for (const tag of [tags.subjects, tags.topics, tags.pending]) revalidateTag(tag, { expire: 0 })
 }
 
 

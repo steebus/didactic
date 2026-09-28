@@ -9,7 +9,7 @@ import { refileResource } from '@/lib/refile'
 /** Its links are gone and the topics only it brought in with them: the
  *  shelf, the map, the beds and the queue all print what moved. */
 function dropCache() {
-  for (const tag of [tags.resources, tags.topics, tags.subjects, tags.pending]) revalidateTag(tag, 'max')
+  for (const tag of [tags.resources, tags.topics, tags.subjects, tags.pending]) revalidateTag(tag, { expire: 0 })
 }
 
 /** The queue is worked after the response, inside this route's time. */

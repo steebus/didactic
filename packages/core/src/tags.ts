@@ -10,6 +10,12 @@
  * way in a page and another way in a route does not error -- it just
  * serves yesterday's map, which is the worst outcome for an app whose
  * whole claim is being an honest record.
+ *
+ * Dropped with `revalidateTag(tag, { expire: 0 })`, never `'max'`. Every
+ * write here is the reader's, and they are looking straight at the sheet
+ * that shows it: `'max'` serves that next look the stale copy while it
+ * refreshes behind them, so a resource filed from the inbox was not in
+ * the inbox until a second reload.
  */
 export const tags = {
   /** The stock list, and anything counting subjects or totals. */

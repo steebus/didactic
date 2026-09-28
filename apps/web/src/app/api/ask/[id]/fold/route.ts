@@ -15,7 +15,7 @@ import { tags } from '@didactic/core/tags'
  * topics tag is what carries a rewritten lesson to the reader.
  */
 function dropCache() {
-  revalidateTag(tags.topics, 'max')
+  revalidateTag(tags.topics, { expire: 0 })
 }
 
 /**

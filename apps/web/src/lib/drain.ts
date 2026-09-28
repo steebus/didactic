@@ -63,7 +63,7 @@ export async function drain(started = Date.now()): Promise<void> {
 
   if (worked) {
     for (const tag of [tags.resources, tags.topics, tags.subjects, tags.pending]) {
-      revalidateTag(tag, 'max')
+      revalidateTag(tag, { expire: 0 })
     }
   }
 }

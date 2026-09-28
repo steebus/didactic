@@ -22,7 +22,7 @@ export const maxDuration = 60
 /** Drop what reading an entry back just moved: the entry itself, and
  *  the figures on every topic it wrote against. */
 function dropCache() {
-  for (const tag of [tags.highlights, tags.topics, tags.subjects]) revalidateTag(tag, 'max')
+  for (const tag of [tags.highlights, tags.topics, tags.subjects]) revalidateTag(tag, { expire: 0 })
 }
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {

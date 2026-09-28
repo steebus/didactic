@@ -17,7 +17,7 @@ import { readLesson } from '@/lib/lesson'
  * milliseconds once.
  */
 function dropCache() {
-  for (const tag of [tags.topics, tags.subjects, tags.highlights]) revalidateTag(tag, 'max')
+  for (const tag of [tags.topics, tags.subjects, tags.highlights]) revalidateTag(tag, { expire: 0 })
 }
 
 

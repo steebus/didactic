@@ -66,9 +66,13 @@ export function PendingQueue({ topics }: { topics: PendingTopic[] }) {
   useEffect(() => {
     if (asked.current || onNameAlone === 0) return
     asked.current = true
-    void api.topics.readPending().then(({ ok, body }) => {
+    void api.topics.readPending().then(({ ok, body, error: failed }) => {
       setRereading(false)
-      if (!ok) return
+      // Said, not swallowed: a reading that cannot run leaves every pair
+      // here judged on wording alone, and the reader should know why the
+      // queue is full of things that do not belong together.
+      if (!ok) return setError(`These could not be read again: ${failed ?? 'something went wrong'}.`)
+      if (body.warning) setError(body.warning)
       setReleased(releasedSentence(body.released))
       if (body.released > 0 || body.read > 0) startTransition(() => router.refresh())
     })

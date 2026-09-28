@@ -34,7 +34,7 @@ import { tags } from '@didactic/core/tags'
  */
 function dropCache(subjectId: string) {
   for (const tag of [tags.subject(subjectId), tags.subjects, tags.topics]) {
-    revalidateTag(tag, 'max')
+    revalidateTag(tag, { expire: 0 })
   }
 }
 

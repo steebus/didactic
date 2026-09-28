@@ -9,7 +9,7 @@ import { drawConnections, neighboursOfBed } from '@/lib/sowing'
  *  and the subject's own sheet carries the wide tag as well as its own
  *  id, so the wide drop takes it with the rest. */
 function dropCache() {
-  for (const tag of [tags.subjects, tags.topics]) revalidateTag(tag, 'max')
+  for (const tag of [tags.subjects, tags.topics]) revalidateTag(tag, { expire: 0 })
 }
 
 /** One model call over the whole bed, and a similarity search per
