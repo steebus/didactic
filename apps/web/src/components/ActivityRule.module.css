@@ -74,8 +74,8 @@
    from the first in view. It runs whenever the ticks are shown, since
    coming back from the calendar re-displays them. */
 .rule[data-ready] .tick {
-  animation: grow var(--dur-settle) var(--ease-settle) forwards;
-  animation-delay: calc(max(0, var(--i) - var(--start)) * 3ms);
+  animation: grow calc(var(--dur-settle) / 2) var(--ease-settle) forwards;
+  animation-delay: calc(max(0, var(--i) - var(--start)) * 1.5ms);
 }
 
 @keyframes grow {
@@ -110,8 +110,8 @@
 }
 
 .rule[data-ready] .date {
-  animation: arrive var(--dur-state) var(--ease-settle) forwards;
-  animation-delay: calc(max(0, var(--i) - var(--start)) * 3ms);
+  animation: arrive calc(var(--dur-state) / 2) var(--ease-settle) forwards;
+  animation-delay: calc(max(0, var(--i) - var(--start)) * 1.5ms);
 }
 
 @keyframes arrive {
@@ -135,10 +135,12 @@
   width: max-content;
   display: grid;
   grid-template-rows: 0fr;
-  transition: grid-template-rows var(--dur-settle) var(--ease-settle);
+  transition: grid-template-rows calc(var(--dur-settle) / 2) var(--ease-settle);
 }
 
-.rule[data-open] .fold {
+/* Closing folds the calendar away where it stands; the stems come back
+   only once it has gone, so nothing re-scrolls under it mid-fold. */
+.rule[data-open]:not([data-closing]) .fold {
   grid-template-rows: 1fr;
 }
 
@@ -190,8 +192,8 @@
    falling top to bottom a touch behind the last. */
 .rule[data-open][data-ready] .cell,
 .rule[data-open][data-ready] .month {
-  animation: rise var(--dur-state) var(--ease-settle) both;
-  animation-delay: calc(max(0, var(--col) - 1 - var(--start)) * 12ms + var(--row, 0) * 16ms);
+  animation: rise calc(var(--dur-state) / 2) var(--ease-settle) both;
+  animation-delay: calc(max(0, var(--col) - 1 - var(--start)) * 6ms + var(--row, 0) * 8ms);
 }
 
 @keyframes rise {

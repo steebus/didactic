@@ -19,7 +19,7 @@ const DRAG_SLOP = 4
  *
  * The stems come up in a wave, left to right, whenever the strip is
  * shown shut; the calendar's cells cascade in the same direction when it
- * opens. Both waves start at the left edge of what is in view rather
+ * opens, and it folds away where it stands before the stems return. Both waves start at the left edge of what is in view rather
  * than at the start of the year, so on a phone, scrolled to today, they
  * are not spent on days off-screen.
  *
@@ -41,6 +41,7 @@ export function ActivityRule({
   cellInk?: string
 }) {
   const [open, setOpen] = useState(false)
+  const [closing, setClosing] = useState(false)
   // Where in view each wave starts: a day index shut, a column open.
   // Null until measured, and nothing moves until it is.
   const [start, setStart] = useState<number | null>(null)
@@ -65,15 +66,32 @@ export function ActivityRule({
   const stem = (d: ActivityDay) => stemInk ?? plateOf(d)
   const ink = (d: ActivityDay) => cellInk ?? plateOf(d)
 
-  const toggle = () => {
+  const shut = () => {
+    setClosing(false)
     setStart(null)
-    setOpen(o => !o)
+    setOpen(false)
+  }
+  const toggle = () => {
+    if (closing) return
+    if (!open) {
+      setStart(null)
+      setOpen(true)
+    } else {
+      // Fold first, and shut once the fold has had its time. A timer
+      // rather than `transitionend`, which never arrives in a background
+      // tab or under reduced motion and would leave the strip stuck.
+      const fold = scroller.current?.querySelector<HTMLElement>(`.${styles.fold}`)
+      const ms = fold ? parseFloat(getComputedStyle(fold).transitionDuration) * 1000 : 0
+      setClosing(true)
+      setTimeout(shut, ms)
+    }
   }
 
   return (
     <div
       className={styles.rule}
       data-open={open || undefined}
+      data-closing={closing || undefined}
       data-ready={start !== null || undefined}
       style={{ '--start': start ?? 0, '--cols': layout.cols } as React.CSSProperties}
     >

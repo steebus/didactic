@@ -474,8 +474,9 @@ Repeated on all eight surfaces without variation in structure:
    empty in `--paper-deep`, filled with the plate mixed into it by level.
    Sideways it scrolls and opens at today. **It moves in one direction**:
    shown shut -- on load, and on folding back -- the stems grow up in a
-   wave left to right, `3ms` a day over `--dur-settle`; opened, the cells
-   cascade the same way, `12ms` a column and `16ms` a row. Both waves are
+   wave left to right, `1.5ms` a day over half of `--dur-settle`; opened,
+   the cells cascade the same way, `6ms` a column and `8ms` a row, and on
+   closing the calendar folds away in place before the stems return. Both waves are
    counted from the first thing in view, not the first day of the year,
    so a phone scrolled to today is not kept waiting on days off-screen.
    Under reduced motion, nothing moves.
