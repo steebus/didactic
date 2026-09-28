@@ -9,6 +9,8 @@ import type { Highlight } from '@didactic/core/types'
 import { NoteEditor } from './NoteEditor'
 import { NoteText } from './NoteText'
 import { SummaryIcon } from './SummaryIcon'
+import { ExpandIcon } from './ExpandIcon'
+import { useOpenedOut } from './useOpenedOut'
 import styles from './SectionSummaries.module.css'
 
 /** Where one heading's control and its writing go on the page. */
@@ -66,6 +68,18 @@ export function SectionSummaries({
   const sections = useMemo(() => lessonSections(body), [body])
   const [hosts, setHosts] = useState<Host[]>([])
   const [open, setOpen] = useState<number | null>(null)
+  const [big, openOut] = useOpenedOut()
+
+  // Open out, the summary takes the notes' column beside the reading,
+  // and the sheet gives up the strip it stands in -- the same as a mark.
+  const column = big && open !== null
+  useEffect(() => {
+    if (!column) return
+    document.body.dataset.notes = 'open'
+    return () => {
+      delete document.body.dataset.notes
+    }
+  }, [column])
 
   useEffect(() => {
     if (!root) return
@@ -150,6 +164,8 @@ export function SectionSummaries({
             host={host}
             standing={standing}
             open={isOpen}
+            big={big}
+            onOpenOut={() => openOut(!big)}
             noun={noun}
             onToggle={() => setOpen(isOpen ? null : host.at)}
             onClose={() => setOpen(null)}
@@ -166,6 +182,8 @@ function SectionHost({
   host,
   standing,
   open,
+  big,
+  onOpenOut,
   noun,
   onToggle,
   onClose,
@@ -175,6 +193,9 @@ function SectionHost({
   host: Host
   standing: Highlight | undefined
   open: boolean
+  /** Open out to the notes' column rather than beside the heading. */
+  big: boolean
+  onOpenOut: () => void
   noun: string
   onToggle: () => void
   onClose: () => void
@@ -250,15 +271,33 @@ function SectionHost({
 
       {open &&
         createPortal(
-          <div className={styles.panel} role="group" aria-label={label}>
-            <p className={styles.label}>
-              {said && !writing ? 'In your own words' : `This ${noun} in your own words`}
-            </p>
+          <div
+            className={big ? `${styles.panel} ${styles.big}` : styles.panel}
+            role="group"
+            aria-label={label}
+          >
+            <div className={styles.head}>
+              <p className={styles.label}>
+                {said && !writing ? 'In your own words' : `This ${noun} in your own words`}
+              </p>
+              <button
+                type="button"
+                className={styles.opener}
+                onClick={onOpenOut}
+                aria-label={big ? 'Fold the notes back' : 'Open the notes out'}
+                aria-pressed={big}
+                title={big ? 'Fold the notes back' : 'Open the notes out'}
+              >
+                <ExpandIcon folding={big} />
+              </button>
+            </div>
+            {big && <p className={styles.of}>{host.section}</p>}
 
             {writing ? (
               <>
                 <NoteEditor
                   className={styles.editor}
+                  fill={big}
                   value={draft}
                   onChange={setDraft}
                   label={`A summary of “${host.section}”`}
@@ -313,7 +352,9 @@ function SectionHost({
               </>
             )}
           </div>,
-          host.panel
+          // Open out, it hangs off the body: the column is measured
+          // against the window, not the prose.
+          big ? document.body : host.panel
         )}
     </>
   )

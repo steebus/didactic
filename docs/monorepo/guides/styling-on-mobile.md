@@ -46,6 +46,8 @@ web and px on the phone: `0.95` at 40px is `38`.
 ## §2 Type
 
 Fraunces and Archivo load through `expo-font` from `@expo-google-fonts/*`.
+The web's third face, Caveat (`--font-hand`), sets marks and summaries resting
+in a wide sheet's margins; the phone has no margins, so it does not load it.
 
 **The ceiling, and where it lifts.** React Native cannot set
 `font-variation-settings`, so on the native sheets the `SOFT`, `WONK` and

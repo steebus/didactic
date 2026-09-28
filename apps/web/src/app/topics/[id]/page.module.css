@@ -1124,7 +1124,7 @@
 /* The section folds shut, and opens on a press. It is the last and the
    longest thing on the sheet, and a month of a topic is fifty passages
    between the route and the resources under them. */
-.fold {
+.markedFold {
   /* The head keeps the rule every other section head carries, whether
      the fold is open or shut, so a closed section still reads as a
      section rather than as a stray line. */
@@ -1175,7 +1175,7 @@
     color var(--dur-state) var(--ease-settle);
 }
 
-.fold[open] .foldMark {
+.markedFold[open] .foldMark {
   transform: rotate(180deg);
 }
 
@@ -1188,7 +1188,7 @@
 /* The gap under the head belongs to the open section, not to the shut
    one: a closed fold with a section's worth of space under it reads as
    a section that failed to load. */
-.fold[open] .marks {
+.markedFold[open] .marks {
   margin-top: var(--space-4);
 }
 

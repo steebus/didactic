@@ -236,7 +236,8 @@ describe('editing and removing from the list', () => {
         .dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
 
-    const [url, init] = fetched.mock.calls[0]
+    // The write, not the page asking for its bookmark on the way in.
+    const [url, init] = fetched.mock.calls.find(([u]) => String(u).startsWith('/api/highlights'))!
     expect(url).toBe('/api/highlights')
     expect(init.method).toBe('PATCH')
     expect(JSON.parse(init.body).id).toBe('first')
@@ -262,7 +263,7 @@ describe('editing and removing from the list', () => {
         .dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
 
-    const [, init] = fetched.mock.calls[0]
+    const [, init] = fetched.mock.calls.find(([u]) => String(u).startsWith('/api/highlights'))!
     expect(init.method).toBe('DELETE')
     expect(rows().length).toBe(2)
     expect(container.querySelectorAll('mark[data-mark]').length).toBe(1)

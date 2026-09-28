@@ -231,7 +231,7 @@ export default async function TopicPage({
                     already carries the keyboard, the ARIA and the
                     find-in-page that a hand-rolled one would have to be
                     given. */}
-                <details className={styles.fold}>
+                <details className={styles.markedFold}>
                   <summary className={styles.foldHead}>
                     <h2 className={styles.sectionTitle}>Marked</h2>
                     <span className={styles.foldNote}>

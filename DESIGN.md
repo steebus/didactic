@@ -322,6 +322,10 @@ display face anywhere.
   Titles, figures, prose headings, the viability number.
 - **Archivo** — `--font-text`. Body, tables, all uppercase labels, form controls,
   graph node labels.
+- **Caveat** — `--font-hand`. The reader's own words at rest in the margins, and
+  nowhere else: set a step up (`--step-1`) in `--ink-soft`, because a script face
+  sits small and light on its body. Anything being written, and any panel, stays
+  in Archivo.
 
 `body` sets `font-variant-numeric: tabular-nums` globally; figure cells add
 `lining-nums`. Every number in the build is column-safe by default.
@@ -2274,6 +2278,22 @@ resource and everything written in one.
 | Under it | Once two characters are typed, one quiet line in the label register: *Looking through the text and your marks…* while the deeper half is asked for, then how many rows match. |
 | Why a row matched | Where the match is not on the row itself, one line under the title and the summary: where it was found (*In your summary*, *In a note*, *In a passage you marked*, *In the text*) in the label register, then the words around it in `--ink-soft`, the matched words on a mustard wash — the colour of a marked passage — in `--ink`. The reader's own words are preferred over the text's when a row matched in both. |
 
+### The desk, and where you stopped
+
+The reading's buttons stand at its foot corner **folded behind one press**: a
+square plus in the band fill, carrying the marks' tally while folded. Pressed,
+the rest unfurl upward out of it, the nearest first (35ms apart, travel through
+`--motion-travel`), and the plus turns to a cross; pressed again they go back
+the same way. Folded on every visit. In order from the press: the way to the
+top (when away from it), the bookmark, ask, a note, the marks.
+
+| Part | Treatment |
+| --- | --- |
+| The bookmark's press | The ribbon glyph, outlined while there is none and filled in `--plate-terracotta` once one is down -- the catalogue's flag ink. A press drops it at the middle of the screen, or takes it out if there is one: one per reading. Dragged, it carries a `2px` dashed terracotta line across the reading and drops where the line is let go. |
+| The ribbon | A `0.75rem` strip of terracotta hanging off the sheet's left edge at the line, its foot notched. A mark on the sheet, not a control. |
+| Back to where you stopped | Offered beside the desk on arriving while the ribbon is out of sight: the label register on paper, the quiet button's dress, a filled ribbon before the words. Gone once used or once the ribbon comes into view. |
+| The kept scroll | No surface: the page is put back where it was left on this device, a third of the way down the window. |
+
 ### Summaries in the reader's own words
 
 Saying a section back is how it sticks, so every heading carries a way to do
@@ -2289,7 +2309,7 @@ is mustard and a cloze is plum.
 | The foot | *In your own words* — a foot section like the others, `2px --rule-strong` over it, the sprig beside a display-face title, and a line saying how many sections have been said back. It comes after the reading and before the material, the garden and *How did you go?* |
 | Said back, beside marks | `SaidBack` wherever a summary is listed next to things kept from the same reading: under an inbox title, under a lesson or a piece of material on the topic sheet. The step above a mark is made of the materials the sheet already uses for weight — the `--paper-deep` ground of a block, a `3px` ultramarine left rule, the sprig, *In your words* in the label register in ultramarine, and the reader's words in `--ink` where the row around them is captioned in `--ink-soft`. No colour ground, no card, no jump in size. Where only sections have been said back it says how many. |
 | Pinned above the marks | In the marks' drawer beside a reading, and at the head of a topic's *Marked* fold, the summaries stand first on the same ground and rule, the whole of a reading before its sections, each naming what it summarises. On the Marked timeline a summary row stands on it whether open or folded, its sprig in ultramarine. |
-| In the margins | Where the sheet has at least 15rem of empty margin either side (measured, not a breakpoint), marks and summaries are marginalia. Every summary stands in the **left** margin beside its section: `--step--1` note text in `--ink-faint` at 75%, eight lines at most, ruled off underneath in `1px --rule-strong` out to the sheet's edge, the rule going ultramarine on hover. Every mark stands in the **right** margin level with its passage: a `--space-5` rule from the sheet's edge, then its note (four lines at most), or its words in italic where it has no note; notes that would collide queue under each other. Pressing either opens its usual panel **in that margin** rather than over the prose, and a new mark's composer opens there too. Narrower, or with the notes column open, everything goes back inline. |
+| In the margins | Where the sheet has at least 15rem of empty margin either side (measured, not a breakpoint), marks and summaries are marginalia. Every summary stands in the **left** margin beside its section, in the reader's hand (`--font-hand` at `--step-1`, `--ink-soft` at 75%), eight lines at most, ruled off underneath in `1px --rule-strong` out to the sheet's edge, the rule going ultramarine on hover. Every mark stands in the **right** margin level with its passage: a `--space-5` rule from the sheet's edge, then its note in the same hand (four lines at most), or, where it has no note, its words in Archivo italic at `--step--1` -- the lesson's words, not the reader's; notes that would collide queue under each other. Pressing either opens its usual panel **in that margin** rather than over the prose, and a new mark's composer opens there too. Narrower, or with the notes column open, everything goes back inline. A summary's panel carries the same open-out control a mark's does, and open out it takes the same notes column (one remembered preference for both), naming the section it summarises in the display face since the heading is no longer beside it. |
 | On the topic sheet | The sprig beside a lesson's play control opens every summary of that lesson in the marks' drawer — same column, same ground — each under its section's name, which links back to it. A piece of material's title opens it to be read here. |
 
 **Rule — the reward is said where it is earned.** The foot's note says that

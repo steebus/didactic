@@ -33,6 +33,7 @@
 
   --font-display: var(--font-display-loaded), 'Georgia', serif;
   --font-text: var(--font-text-loaded), 'Helvetica Neue', sans-serif;
+  --font-hand: var(--font-hand-loaded), 'Segoe Print', 'Bradley Hand', cursive;
 
   /* Type scale, catalogue-tight. */
   --step--2: 0.6875rem;

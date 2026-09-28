@@ -30,6 +30,7 @@ import { resources } from './resources'
 import { settings } from './settings'
 import { subjects } from './subjects'
 import { summaries } from './summaries'
+import { bookmarks } from './bookmarks'
 import { sprouts } from './sprouts'
 import { topics } from './topics'
 
@@ -55,6 +56,7 @@ export type { AskAnswer } from './ask'
 export type { Planted } from './sprouts'
 export type { Kept, NewHighlight } from './highlights'
 export type { KeptSummary, NewSummary, SummaryOf } from './summaries'
+export type { BookmarkIn } from './bookmarks'
 export type { DiaryExposure } from './diary'
 export type { ClozeEdit, ClozeScope, NewCloze, SownClozes, Tended } from './clozes'
 export type { PriorResource, Refresher } from './refresher'
@@ -81,6 +83,7 @@ export function didactic(options: ApiOptions = {}) {
     settings: settings(api),
     subjects: subjects(api),
     summaries: summaries(api),
+    bookmarks: bookmarks(api),
     sprouts: sprouts(api),
     topics: topics(api),
   }

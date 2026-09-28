@@ -35,7 +35,16 @@ const KIND_LABEL: Record<string, string> = {
  * came across from the library sheet is what only it could do: finding
  * a row, folding duplicates together, and throwing a thing away.
  */
-export function InboxSheet({ resources }: { resources: LibraryRow[] }) {
+export function InboxSheet({
+  resources,
+  children,
+}: {
+  resources: LibraryRow[]
+  /** What stands between the search and the lists: the queue of topics
+   *  waiting on a decision. Under the search, which is the head of the
+   *  page, and over what it is waiting on. */
+  children?: React.ReactNode
+}) {
   const [term, setTerm] = useState('')
   const [kind, setKind] = useState<string>('all')
   const [busy, setBusy] = useState<string | null>(null)
@@ -174,6 +183,8 @@ export function InboxSheet({ resources }: { resources: LibraryRow[] }) {
           </div>
         </div>
       )}
+
+      {children}
 
       {error && <p className={styles.problem}>{error}</p>}
 

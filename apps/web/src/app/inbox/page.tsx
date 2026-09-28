@@ -51,11 +51,21 @@ export default async function InboxPage() {
       <div className={styles.headRule} />
 
       <div className={styles.body}>
-        <AddResource />
+        {/* Sending something in is an occasional act and the inbox is
+            mostly for reading what came, so the form waits behind a
+            press at the head of the page rather than standing over the
+            search. A `details`: the page is a server component, and
+            the browser's element carries the keyboard and the ARIA. */}
+        <details className={styles.send}>
+          <summary className={styles.sendHead}>
+            <span className={styles.sendPress}>Send it something</span>
+          </summary>
+          <AddResource />
+        </details>
 
-        <PendingQueue topics={pending} />
-
-        <InboxSheet resources={resources} />
+        <InboxSheet resources={resources}>
+          <PendingQueue topics={pending} />
+        </InboxSheet>
       </div>
     </main>
   )

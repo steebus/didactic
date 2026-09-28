@@ -30,6 +30,13 @@
   cursor: pointer;
   padding: 0 var(--space-5) var(--space-3);
   outline-offset: 2px;
+  /* A press on a phone lit the whole rule in the browser's own blue,
+     and a drag across it could select it. It is a control, not text,
+     and it answers a press by opening -- that is its feedback. The
+     keyboard's ring is kept (below). */
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
   /* A year of cells fills the sheet where it can, and scrolls at the
      smallest cell that is still a target for the eye where it cannot. */
   --cell: max(0.6875rem, calc((100cqi - 2 * var(--space-5)) / var(--cols) - var(--gap)));
@@ -236,4 +243,14 @@
   .rule[data-open][data-ready] .month {
     animation: none;
   }
+}
+
+/* Focus from a press is no reason for a ring; focus from the keyboard
+   is. */
+.scroller:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.scroller:focus-visible {
+  outline: 2px solid var(--focus-ink, var(--plate-terracotta));
 }

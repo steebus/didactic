@@ -144,6 +144,11 @@ export const ENDPOINTS = {
   'summaries.save': { name: 'summaries.save', method: 'POST', path: '/api/summaries', invalidates: MARKS },
   'summaries.remove': { name: 'summaries.remove', method: 'DELETE', path: '/api/summaries', invalidates: MARKS },
 
+  /* bookmarks — where the reader stopped, one per reading (066) */
+  'bookmarks.get': { name: 'bookmarks.get', method: 'GET', path: '/api/bookmarks', invalidates: [] },
+  'bookmarks.place': { name: 'bookmarks.place', method: 'POST', path: '/api/bookmarks', invalidates: [tags.bookmarks] },
+  'bookmarks.remove': { name: 'bookmarks.remove', method: 'DELETE', path: '/api/bookmarks', invalidates: [tags.bookmarks] },
+
   /* diary — an entry is a mark of kind 'diary'; reading it back writes
      exposures, so it moves the same three tags a mark does */
   'diary.create': { name: 'diary.create', method: 'POST', path: '/api/diary', invalidates: MARKS },

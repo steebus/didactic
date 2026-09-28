@@ -141,6 +141,9 @@ the phone's query cache.
 | GET | `/api/summaries` | `lessonId` \| `resourceId` | `{ summaries: Highlight[] }` | Every summary written against one reading: marks of kind `summary` (053). |
 | POST | `/api/summaries` | lessonId \| resourceId, section, sectionAt, note | highlights, topics, subjects | Keep a summary of a section (`section` is its heading; null for the whole reading), replacing whatever was said about it. Answers `{ summary, created }`. Refused with 400 by `core/summaries.summaryProblem`. The first of a section writes a `marked` exposure; a rewrite writes none. The whole reading (`section` null) writes an `applied` exposure — as much as working with it — on each topic the reading counts toward, once ever per reading and topic (source `summary`, `054`). |
 | DELETE | `/api/summaries` | id | highlights, topics, subjects | Scoped to the owner and to kind `summary`. The exposure stays, as a removed mark's does. |
+| GET | `/api/bookmarks` | `lessonId` \| `resourceId` | `{ bookmark: Bookmark \| null }` (`core/bookmarks`) | Where the reader stopped in one reading (066): `words`, `prefix`, `at`. |
+| POST | `/api/bookmarks` | lessonId \| resourceId, words, prefix, at | bookmarks | Drop the bookmark, or move it: one per reading, so a write replaces. Refused with 400 without words or with `at` outside 0–1, 404 on a reading the reader does not own. Answers `{ bookmark }`. |
+| DELETE | `/api/bookmarks` | lessonId \| resourceId | bookmarks | Take it out. Nothing there is not an error. |
 | GET | `/api/mentions` | `q` | — | What an `@` in a note could mean: topics and lessons the owner holds, ranked for typing. Empty `q` offers the most recent. |
 | PATCH | `/api/highlights` | id, note | highlights | |
 | DELETE | `/api/highlights` | id | highlights, topics |

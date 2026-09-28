@@ -394,6 +394,25 @@
   pointer-events: auto;
 }
 
+/* The notes open beside the reading move the sheet over (globals.css),
+   and the running head is fixed to the window rather than laid out in
+   the sheet, so it is told to follow: centred on what the column leaves,
+   and no wider than it. Travels with the body's own padding. */
+@media (min-width: 40.0625rem) {
+  .rail {
+    transition:
+      opacity var(--dur-state) var(--ease-settle),
+      transform var(--dur-state) var(--ease-settle),
+      left var(--dur-settle) var(--ease-settle),
+      width var(--dur-settle) var(--ease-settle);
+  }
+
+  :global(body[data-notes='open']) .rail {
+    left: calc((100% - var(--notes-width)) / 2);
+    width: min(var(--lesson-max), 100% - var(--notes-width));
+  }
+}
+
 .railInner {
   display: flex;
   align-items: baseline;

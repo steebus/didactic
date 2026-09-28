@@ -217,6 +217,13 @@
   flex-direction: column;
   align-items: flex-end;
   gap: var(--space-2);
+  /* The folded dial still takes its height above the press, and that
+     space must catch nothing: only a button that is showing takes a
+     press. */
+  pointer-events: none;
+}
+
+.deskStack button {
   pointer-events: auto;
 }
 
@@ -272,33 +279,7 @@
   background: var(--plate-mustard);
 }
 
-/* Back to the head of the sheet.
-
-   Square like everything else -- `DESIGN.md` is absolute about that,
-   and a round button here would be one control inventing a shape the
-   catalogue does not have. What sets it apart from the two above is
-   that it is quieter still: the list's own outline, and no fill until
-   it is reached for.
-
-   It appears and goes, so it fades in rather than arriving -- the two
-   above it are always there and must not appear to move when this one
-   joins them, which is why it is last in the column. */
-.deskTop {
-  animation: deskTopIn var(--dur-state) var(--ease-settle) both;
-  /* No shadow standing it off the page until it is reached for: it is
-     the one button here about the sheet rather than about the lesson. */
-  box-shadow: none;
-  opacity: 0.82;
-  transition:
-    opacity var(--dur-feedback) var(--ease-settle),
-    box-shadow var(--dur-feedback) var(--ease-settle);
-}
-
-.deskTop:hover {
-  opacity: 1;
-  box-shadow: 0 4px 14px rgba(var(--ink-rgb), 0.18);
-}
-
+/* Something arriving beside the desk fades up into place. */
 @keyframes deskTopIn {
   from {
     opacity: 0;
@@ -490,6 +471,8 @@
    the top of the lesson showing so it is clear what is underneath. */
 .big {
   position: fixed;
+  /* Over the running head, which is 20. */
+  z-index: 21;
   inset: 0 0 0 auto;
   width: var(--notes-width);
   max-width: 100vw;
@@ -705,11 +688,13 @@
   grid-template-columns: var(--space-5) 1fr;
   gap: var(--space-2);
   padding: 0;
-  font-family: var(--font-text);
-  font-size: var(--step--1);
-  line-height: 1.4;
+  /* In the reader's hand, and a size up to make up for it: a script
+     face sits small on its body. */
+  font-family: var(--font-hand);
+  font-size: var(--step-1);
+  line-height: 1.2;
   text-align: left;
-  color: var(--ink-faint);
+  color: var(--ink-soft);
   background: none;
   border: none;
   cursor: pointer;
@@ -741,7 +726,7 @@
 /* Four lines at most: the margin is an index to the notes, and the
    whole of one is a press away. */
 .marginText {
-  max-height: calc(1.4em * 4);
+  max-height: calc(1.2em * 4);
   overflow: hidden;
 }
 
@@ -749,10 +734,15 @@
   margin: 0;
 }
 
-/* A mark with nothing written about it shows its words, in italic so
-   it is not taken for a note. */
+/* A mark with nothing written about it shows its words, set in the
+   text face rather than the hand -- they are the lesson's words, not
+   the reader's. */
 .marginQuote {
+  font-family: var(--font-text);
+  font-size: var(--step--1);
   font-style: italic;
+  line-height: 1.4;
+  color: var(--ink-faint);
 }
 
 /* A panel opened in the margin: level with its passage, clear of the
@@ -760,4 +750,138 @@
 .inMargin {
   left: calc(100% + var(--reach-right) + var(--space-4));
   width: min(24rem, calc(var(--margin-room) - 2 * var(--space-4)));
+}
+
+/* The column open beside the reading -- from here or from a summary --
+   stands over the right-hand margin and moves the sheet. */
+:global(body[data-notes='open']) .margin {
+  display: none;
+}
+
+
+/* --- The dial ---------------------------------------------------- */
+
+/* One press stays at the corner; the rest unfurl up out of it, the
+   nearest first, and go back into it the same way. Folded, they are
+   hidden rather than removed, so the order they come out in is the
+   order they stand in -- and `inert` keeps them off the keyboard. */
+.dial {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.dialItem {
+  --lag: calc(var(--i, 0) * 35ms);
+  transition:
+    opacity var(--dur-state) var(--ease-settle) var(--lag),
+    transform var(--dur-state) var(--ease-settle) var(--lag),
+    background var(--dur-feedback) var(--ease-settle),
+    visibility 0s linear 0s;
+}
+
+.dial:not([data-open]) .dialItem {
+  opacity: 0;
+  transform: translateY(calc(var(--motion-travel) * (var(--i, 0) + 1) * 0.75rem)) scale(0.9);
+  visibility: hidden;
+  transition:
+    opacity var(--dur-state) var(--ease-settle),
+    transform var(--dur-state) var(--ease-settle),
+    visibility 0s linear var(--dur-state);
+}
+
+/* The plus turns to a cross while the dial is out. */
+.dialPress {
+  position: relative;
+}
+
+.dialPress svg {
+  transition: transform var(--dur-state) var(--ease-settle);
+}
+
+.dialPress[aria-expanded='true'] svg {
+  transform: rotate(45deg);
+}
+
+/* --- The bookmark ------------------------------------------------ */
+
+/* Its press is also the handle it is dragged off, so a finger dragging
+   it must move it, not the page. Held in terracotta once one is down:
+   the catalogue's flag ink. */
+.deskMark {
+  touch-action: none;
+}
+
+.deskMark[data-set] {
+  color: var(--plate-terracotta);
+}
+
+/* The ribbon: a strip of terracotta hanging off the sheet's left edge at
+   the line it was dropped on, its foot notched. It is a mark on the
+   sheet, not a control, and takes no press. */
+.ribbon {
+  position: absolute;
+  left: calc(-1 * var(--edge) + var(--space-2));
+  width: 0.75rem;
+  height: 1.75rem;
+  margin-top: -0.35rem;
+  background: var(--plate-terracotta);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 72%, 0 100%);
+  pointer-events: none;
+  animation: ribbonIn var(--dur-state) var(--ease-settle) both;
+}
+
+@keyframes ribbonIn {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--motion-travel) * -6px));
+  }
+}
+
+/* Where a dragged bookmark would land, across the reading. */
+.dropLine {
+  position: fixed;
+  z-index: 25;
+  height: 0;
+  border-top: 2px dashed var(--plate-terracotta);
+  pointer-events: none;
+}
+
+/* The way back to the bookmark, offered beside the dial on arriving. In
+   the label register on paper, the quiet button's dress, since it moves
+   the page and writes nothing. */
+.backTo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: flex-end;
+  margin-right: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  min-height: 2.75rem;
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  box-shadow: 0 4px 14px rgba(var(--ink-rgb), 0.18);
+  cursor: pointer;
+  pointer-events: auto;
+  animation: deskTopIn var(--dur-state) var(--ease-settle) both;
+}
+
+.backTo svg {
+  color: var(--plate-terracotta);
+}
+
+.backTo:hover {
+  border-color: var(--plate-terracotta);
+}
+
+.backTo:focus-visible {
+  outline: 2px solid var(--plate-terracotta);
+  outline-offset: 3px;
 }

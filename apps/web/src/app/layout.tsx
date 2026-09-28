@@ -1,6 +1,6 @@
 import { Suspense } from 'react'
 import type { Metadata } from 'next'
-import { Fraunces, Archivo } from 'next/font/google'
+import { Fraunces, Archivo, Caveat } from 'next/font/google'
 import './globals.css'
 import { Bench } from '@/components/Bench'
 import { Player } from '@/components/Player'
@@ -21,6 +21,13 @@ const archivo = Archivo({
   display: 'swap',
 })
 
+// The reader's hand: marks and summaries resting in the margins.
+const caveat = Caveat({
+  subsets: ['latin'],
+  variable: '--font-hand-loaded',
+  display: 'swap',
+})
+
 export const metadata: Metadata = {
   title: 'Didactic',
   description: 'A living map of what you are learning.',
@@ -28,7 +35,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${archivo.variable}`}>
+    <html lang="en" className={`${fraunces.variable} ${archivo.variable} ${caveat.variable}`}>
       <head>
         {/* Stamp the stored choice before the first paint.
 

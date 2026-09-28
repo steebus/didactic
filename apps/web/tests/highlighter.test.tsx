@@ -10,6 +10,7 @@ vi.mock('@didactic/api', () => ({
   didactic: () => ({
     clozes: { create: vi.fn(() => new Promise(() => {})) },
     highlights: { create: vi.fn(() => new Promise(() => {})) },
+    bookmarks: { get: vi.fn(() => new Promise(() => {})) },
   }),
 }))
 

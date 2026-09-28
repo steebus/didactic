@@ -190,6 +190,7 @@ describe('the tokens agree with globals.css', () => {
       // guides/styling-on-mobile.md instead.
       '--font-display',
       '--font-text',
+      '--font-hand',
       // A measurement the bench writes at runtime, not a decision about
       // the design: it says how much room its notices are taking, so
       // the lesson reader's floating buttons can stand on top of them

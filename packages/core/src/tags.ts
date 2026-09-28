@@ -45,4 +45,7 @@ export const tags = {
   /** Sprouting subjects: what was decided about each, and the reading
    *  itself, which is also built from topics, material and marks. */
   sprouts: 'sprouts',
+  /** Where the reader stopped in each reading (066). No web sheet caches
+   *  one -- the page asks for it -- but the phone's query cache does. */
+  bookmarks: 'bookmarks',
 } as const

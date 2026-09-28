@@ -7,8 +7,8 @@
  * `tests/agreement.test.ts` parses that file's `:root` blocks and fails
  * if any `--` property here has drifted from it.
  *
- * Only values a second platform can use live here. `--font-display` and
- * `--font-text` are deliberately absent: they resolve through other
+ * Only values a second platform can use live here. `--font-display`,
+ * `--font-text` and `--font-hand` are deliberately absent: they resolve through other
  * custom properties that the web's font loader sets, which is a
  * rendering concern rather than a token. The faces themselves are named
  * in `guides/styling-on-mobile.md`.

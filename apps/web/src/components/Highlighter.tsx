@@ -22,6 +22,10 @@ import { TopIcon } from './TopIcon'
 import { MarkList } from './MarkList'
 import { UNSAVED, isUnsaved, inReadingOrder } from '@didactic/core/marks'
 import { ExpandIcon } from './ExpandIcon'
+import { useOpenedOut } from './useOpenedOut'
+import { useBookmark, useKeptScroll } from './useReadingPlace'
+import { BookmarkIcon } from './BookmarkIcon'
+import { DialIcon } from './DialIcon'
 import { NoteText } from './NoteText'
 import styles from './Highlighter.module.css'
 
@@ -41,10 +45,6 @@ const SETTLED_MS = 300
 /** The sheet is narrow enough that a panel has to dock. Kept in step
  *  with the phone breakpoint the rest of the stylesheets use. */
 const NARROW = '(max-width: 40rem)'
-
-/** Whether the reader writes with the notes open out. Remembered
- *  because it is how they read, not a thing they choose per mark. */
-const OPENED_OUT = 'didactic:notes-open'
 
 /** How far a finger has to travel across the page, and how straight,
  *  before it counts as asking for the marks rather than as a scroll or
@@ -152,6 +152,15 @@ export function Highlighter({
   children: React.ReactNode
 }) {
   const holder = useRef<HTMLDivElement>(null)
+  /** The same element, as state: the place hooks have to hear when it
+   *  arrives, which a ref's `.current` never tells anyone. */
+  const [reading, setReading] = useState<HTMLDivElement | null>(null)
+  // Stable, or React detaches and re-attaches it on every commit, and
+  // the state it sets re-renders the sheet forever.
+  const holdReading = useCallback((el: HTMLDivElement | null) => {
+    holder.current = el
+    setReading(el)
+  }, [])
   /** What the reading is called in the sheet's own sentences. */
   const noun = resourceId ? 'reading' : 'lesson'
   const [pending, setPending] = useState<{ quote: string; prefix: string } | null>(null)
@@ -182,8 +191,50 @@ export function Highlighter({
   /** Whether the reader has left the head of the sheet. */
   const [awayFromTop, setAwayFromTop] = useState(false)
 
+  /** The desk's buttons out of their press. Folded on every visit. */
+  const [unfurled, setUnfurled] = useState(false)
+
+  // --- Where the reader stopped ------------------------------------
+
+  const of = useMemo(
+    () => (lessonId ? { lessonId } : resourceId ? { resourceId } : null),
+    [lessonId, resourceId]
+  )
+  const place = useBookmark(reading, of)
+  const restored = useKeptScroll(reading, of)
+  /** The bookmark being dragged off its press: where the pointer went
+   *  down, and whether it has travelled far enough to be a drag. */
+  const dragging = useRef<{ x: number; y: number; moved: boolean } | null>(null)
+  /** The line the dragged bookmark would land on, in the window. */
+  const [dragAt, setDragAt] = useState<number | null>(null)
+  const [backOffered, setBackOffered] = useState(false)
+
+  // On arriving -- once the kept scroll has been put back -- offer the
+  // way to the bookmark if it is not already on screen, and withdraw the
+  // offer as soon as it is.
+  const offeredOnce = useRef(false)
+  useEffect(() => {
+    if (restored === null || place.top === null || !reading) return
+    const inView = () => {
+      const y = reading.getBoundingClientRect().top + (place.top ?? 0)
+      return y > 0 && y < window.innerHeight
+    }
+    const look = () => {
+      if (!offeredOnce.current) {
+        offeredOnce.current = true
+        setBackOffered(!inView())
+      } else if (inView()) setBackOffered(false)
+    }
+    const frame = requestAnimationFrame(look)
+    window.addEventListener('scroll', look, { passive: true })
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', look)
+    }
+  }, [restored, place.top, reading])
+
   const narrow = useNarrow()
-  const [big, setBig] = useState(remembered)
+  const [big, openOut] = useOpenedOut()
 
   /**
    * The room beside the sheet, where there is enough of it for notes.
@@ -198,6 +249,9 @@ export function Highlighter({
   const [margin, setMargin] = useState<{ left: number; right: number; room: number } | null>(null)
   /** Every drawn mark, and how far down the reading it starts. */
   const [pinned, setPinned] = useState<Pinned[]>([])
+  /** How far the sheet's left edge stands out from the prose: where the
+   *  bookmark's ribbon hangs. */
+  const [edge, setEdge] = useState(0)
   const marginNotes = useRef<HTMLDivElement>(null)
 
   const measure = useCallback(() => {
@@ -206,6 +260,7 @@ export function Highlighter({
     if (!root || !sheet) return
     const r = root.getBoundingClientRect()
     const s = sheet.getBoundingClientRect()
+    setEdge(Math.round(r.left - s.left))
     const room = Math.min(s.left, document.documentElement.clientWidth - s.right)
     const next =
       room >= MARGIN_MIN && !window.matchMedia(NARROW).matches
@@ -271,17 +326,6 @@ export function Highlighter({
       floor = top + note.offsetHeight + 8
     })
   })
-
-  /** Open the notes out, or fold them back, and remember which. */
-  function openOut(next: boolean) {
-    setBig(next)
-    try {
-      localStorage.setItem(OPENED_OUT, next ? 'yes' : 'no')
-    } catch {
-      // Site data blocked. The preference is not worth an error on the
-      // page; it just will not outlast the session.
-    }
-  }
 
   /** Whether the last thing to touch the page was a finger. It decides
    *  which of the two ways of marking is in play, and a device can be
@@ -1142,73 +1186,194 @@ export function Highlighter({
   const notes = marks.length - passages
   const unplaced = passages - drawn.length
 
-  /** The buttons that stand at the corner of the reading: the way into
-   *  what is already marked, and the way to write about the lesson
-   *  itself. */
+  /** One item of the dial: where it stands counting up from the press
+   *  that unfurls it, which is the order they come out in. */
+  const item = (from: number) => ({ style: { '--i': from } as React.CSSProperties })
+
+  // Counted up from the press, so the one nearest it comes out first.
+  const items = [
+    marks.length + summaries.length > 0 && 'marks',
+    'note',
+    'ask',
+    'bookmark',
+    awayFromTop && 'top',
+  ].filter(Boolean) as string[]
+  const from = (name: string) => items.length - 1 - items.indexOf(name)
+
+  /**
+   * The bookmark's press, which is also the handle it is dragged off.
+   *
+   * A press drops it at the middle of what is on screen, or takes it out
+   * where there is one already -- one per reading. A drag carries a line
+   * across the reading and drops it where the line is let go. Told apart
+   * by how far the pointer travelled, so a press with a shaky thumb is
+   * still a press.
+   */
+  const bookmarkHandle = {
+    onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+      dragging.current = { x: e.clientX, y: e.clientY, moved: false }
+      e.currentTarget.setPointerCapture(e.pointerId)
+    },
+    onPointerMove: (e: React.PointerEvent<HTMLButtonElement>) => {
+      const drag = dragging.current
+      if (!drag) return
+      if (!drag.moved && Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 8) return
+      drag.moved = true
+      setDragAt(e.clientY)
+    },
+    onPointerUp: (e: React.PointerEvent<HTMLButtonElement>) => {
+      const drag = dragging.current
+      dragging.current = null
+      setDragAt(null)
+      if (!drag) return
+      if (drag.moved) place.dropAt(e.clientY)
+      else if (place.bookmark) place.remove()
+      else place.dropHere()
+      setUnfurled(false)
+    },
+    onPointerCancel: () => {
+      dragging.current = null
+      setDragAt(null)
+    },
+    // The keyboard's press arrives as a click with no pointer behind it.
+    onClick: (e: React.MouseEvent<HTMLButtonElement>) => {
+      if (e.detail !== 0) return
+      if (place.bookmark) place.remove()
+      else place.dropHere()
+      setUnfurled(false)
+    },
+  }
+
+  /** The buttons that stand at the corner of the reading, folded behind
+   *  one press: the way into what is already marked, the ways to write
+   *  about the reading, the bookmark, and the way back to the top. */
   const desk = (
     <div className={styles.desk}>
+      {/* Offered on arriving, while the bookmark is out of sight: the
+          way to it, which is not the bookmark's own press -- that one
+          takes it out. Gone once it is used or the ribbon comes into
+          view. */}
+      {backOffered && (
+        <button
+          type="button"
+          className={styles.backTo}
+          onClick={() => {
+            place.goTo()
+            setBackOffered(false)
+          }}
+        >
+          <BookmarkIcon filled />
+          Back to where you stopped
+        </button>
+      )}
+
       <div className={styles.deskStack}>
-        {marks.length + summaries.length > 0 && (
+        <div className={styles.dial} data-open={unfurled || undefined} inert={!unfurled}>
+          {items.includes('marks') && (
+            <button
+              type="button"
+              {...item(from('marks'))}
+              className={`${styles.dialItem} ${styles.deskNote} ${styles.deskQuiet}`}
+              onClick={() => {
+                showMarks(!open_)
+                setUnfurled(false)
+              }}
+              aria-label={`What you have marked in this ${noun}`}
+              aria-expanded={open_}
+              title={`What you have marked in this ${noun}`}
+            >
+              <MarksIcon />
+              <span className={styles.deskTally}>{marks.length + summaries.length}</span>
+            </button>
+          )}
           <button
             type="button"
-            className={`${styles.deskNote} ${styles.deskQuiet}`}
-            onClick={() => showMarks(!open_)}
-            aria-label={`What you have marked in this ${noun}`}
-            aria-expanded={open_}
-            title={`What you have marked in this ${noun}`}
+            {...item(from('note'))}
+            className={`${styles.dialItem} ${styles.deskNote}`}
+            onClick={() => {
+              noteOnLesson()
+              setUnfurled(false)
+            }}
+            aria-label={`Write a note on this ${noun}`}
+            title={`A note on this ${noun}`}
           >
-            <MarksIcon />
+            <NoteIcon />
+          </button>
+
+          {/* The third that writes, and the only one that answers. It
+              sits with the desk rather than in the corner of the window
+              because these are the buttons a reader already reaches for. */}
+          <button
+            type="button"
+            {...item(from('ask'))}
+            className={`${styles.dialItem} ${styles.deskNote}`}
+            onClick={() => {
+              askAbout(null)
+              setUnfurled(false)
+            }}
+            aria-label={`Ask about this ${noun}`}
+            title={`Ask about this ${noun}`}
+          >
+            <AskIcon />
+          </button>
+
+          <button
+            type="button"
+            {...item(from('bookmark'))}
+            className={`${styles.dialItem} ${styles.deskNote} ${styles.deskQuiet} ${styles.deskMark}`}
+            data-set={place.bookmark ? '' : undefined}
+            aria-label={
+              place.bookmark
+                ? 'Take the bookmark out'
+                : 'Bookmark where you are, or drag it onto the page'
+            }
+            title={
+              place.bookmark
+                ? 'Take the bookmark out'
+                : 'Bookmark the middle of the screen -- or drag it to the line'
+            }
+            {...bookmarkHandle}
+          >
+            <BookmarkIcon filled={Boolean(place.bookmark)} />
+          </button>
+
+          {/* The way back to the head of the sheet. It appears and goes,
+              so it takes the end of the dial furthest from the press,
+              where it cannot move the others under the reader's thumb. */}
+          {items.includes('top') && (
+            <button
+              type="button"
+              {...item(from('top'))}
+              className={`${styles.dialItem} ${styles.deskNote} ${styles.deskQuiet}`}
+              onClick={() => {
+                toTop()
+                setUnfurled(false)
+              }}
+              aria-label={`Back to the top of the ${noun}`}
+              title="Back to the top"
+            >
+              <TopIcon />
+            </button>
+          )}
+        </div>
+
+        {/* The one press that stays: the rest unfurl up from it and go
+            back into it. Folded on every visit. While folded it carries
+            the count of what is marked, which the marks' own button
+            carries when it is out. */}
+        <button
+          type="button"
+          className={`${styles.deskNote} ${styles.dialPress}`}
+          onClick={() => setUnfurled(u => !u)}
+          aria-expanded={unfurled}
+          aria-label={unfurled ? 'Put the buttons away' : `This ${noun}'s buttons`}
+          title={unfurled ? 'Put the buttons away' : `Mark, write, ask, bookmark`}
+        >
+          <DialIcon />
+          {!unfurled && marks.length + summaries.length > 0 && (
             <span className={styles.deskTally}>{marks.length + summaries.length}</span>
-          </button>
-        )}
-        <button
-          type="button"
-          className={styles.deskNote}
-          onClick={noteOnLesson}
-          aria-label={`Write a note on this ${noun}`}
-          title={`A note on this ${noun}`}
-        >
-          <NoteIcon />
+          )}
         </button>
-
-        {/* The third that writes, and the only one that answers. It sits
-            with the desk rather than in the corner of the window because
-            on a lesson these are the buttons a reader already reaches
-            for -- a fourth floating somewhere near them is a second
-            arrangement of the same idea, and the two drifted apart at
-            the first width that moved one and not the other. */}
-        <button
-          type="button"
-          className={styles.deskNote}
-          onClick={() => askAbout(null)}
-          aria-label={`Ask about this ${noun}`}
-          title={`Ask about this ${noun}`}
-        >
-          <AskIcon />
-        </button>
-
-        {/* The way back to the head of the sheet, under the two that
-            write. A lesson is the longest reading in the app and its
-            own title, its trail and the way on are all at the top, so
-            the return journey was a scroll the length of everything
-            just read.
-
-            Below the others because it is the one that does nothing to
-            the lesson: the two above put something down, this only
-            moves the page. It is also the one that appears and goes,
-            so it takes the end of the stack where the two that are
-            always there cannot move under the reader's thumb. */}
-        {awayFromTop && (
-          <button
-            type="button"
-            className={`${styles.deskNote} ${styles.deskQuiet} ${styles.deskTop}`}
-            onClick={toTop}
-            aria-label={`Back to the top of the ${noun}`}
-            title="Back to the top"
-          >
-            <TopIcon />
-          </button>
-        )}
       </div>
     </div>
   )
@@ -1220,7 +1385,7 @@ export function Highlighter({
   return (
     <div
       className={styles.holder}
-      ref={holder}
+      ref={holdReading}
       // Said on the holder so the summaries, which are set into the
       // prose by a component of their own, stand in the other margin
       // by the same measure.
@@ -1236,6 +1401,32 @@ export function Highlighter({
       }
     >
       {children}
+
+      {/* The bookmark: a ribbon hanging off the sheet's left edge at the
+          line it was dropped on. The words are what is kept; this is
+          only where they are now. */}
+      {place.top !== null && (
+        <span
+          className={styles.ribbon}
+          style={{ top: place.top, '--edge': `${edge}px` } as React.CSSProperties}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* The line a dragged bookmark would land on, across the reading. */}
+      {dragAt !== null &&
+        reading &&
+        float(
+          <div
+            className={styles.dropLine}
+            style={{
+              top: dragAt,
+              left: reading.getBoundingClientRect().left,
+              width: reading.getBoundingClientRect().width,
+            }}
+            aria-hidden="true"
+          />
+        )}
 
       {/* Every mark, down the right-hand margin beside its passage: the
           note if it has one, the words if not. Quiet until pressed, and
@@ -1275,8 +1466,13 @@ export function Highlighter({
 
           Laid out in `deskWithin` where the caller gave one, because a
           sticky line stops at the end of the box it is in and the box
-          this component owns is the prose. See the prop. */}
-      {!pending && !open && !offer && !openCloze && deskIn(desk, deskWithin)}
+          this component owns is the prose. See the prop.
+
+          It gives way only to a panel docked across the foot, which
+          stands where it does. A panel in the margin, against a
+          passage or open out in the column is somewhere else, and the
+          buttons stay. */}
+      {!offer && !overTheFoot && deskIn(desk, deskWithin)}
 
       {/* The tally under the reading is also the way into the list:
           it is the sentence a reader looks at when they wonder what
@@ -1302,9 +1498,9 @@ export function Highlighter({
           said here rather than in the composer, because the composer
           closed the moment the reader pressed the button -- which is
           the point of closing it. */}
-      {lost && (
+      {(lost || place.problem) && (
         <p className={styles.problem} role="status">
-          {lost}
+          {lost ?? place.problem}
         </p>
       )}
 
@@ -1636,14 +1832,6 @@ function textOutsideOwnWriting(range: Range): string {
  * marked, so there is nothing for it to disagree with. On the server,
  * and anywhere site data is blocked, it is simply no.
  */
-function remembered(): boolean {
-  try {
-    return localStorage.getItem(OPENED_OUT) === 'yes'
-  } catch {
-    return false
-  }
-}
-
 /**
  * Whether the touch landed on something that scrolls sideways itself.
  *
