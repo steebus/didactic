@@ -828,10 +828,23 @@
   zoom: var(--page-zoom);
 }
 
-/* A minus and a plus side by side, as one item of the dial. */
+/* A minus and a plus side by side, as one item of the dial: joined into
+   one piece, sharing the border between them, and centred as a piece on
+   the line the single buttons stand on rather than squared to its right
+   edge. So it stands out past that edge by half of what it is wider --
+   under a rem, which the sheet's gutter holds even on a phone. */
 .sizes {
+  --half: 2.5rem;
   display: flex;
-  gap: var(--space-1);
+  margin-right: calc((2.75rem - (2 * var(--half) - 1px)) / 2);
+}
+
+.sizes button {
+  width: var(--half);
+}
+
+.sizes button + button {
+  margin-left: -1px;
 }
 
 .sizes button:disabled {
