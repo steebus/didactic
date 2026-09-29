@@ -17,6 +17,7 @@ import { ClozeMaker } from './ClozeMaker'
 import { NoteEditor } from './NoteEditor'
 import { NoteIcon } from './NoteIcon'
 import { AskIcon } from './AskIcon'
+import { AskedIcon } from './AskedIcon'
 import { MarksIcon } from './MarksIcon'
 import { TopIcon } from './TopIcon'
 import { MarkList } from './MarkList'
@@ -515,6 +516,13 @@ export function Highlighter({
         detail: chosen ? { quote: chosen.quote, prefix: chosen.prefix } : {},
       })
     )
+  }, [])
+
+  /** The conversations already had on this page: the ask panel, opened
+   *  with its drawer of them out. */
+  const askedHere = useCallback(() => {
+    setOffer(null)
+    window.dispatchEvent(new CustomEvent('didactic:ask', { detail: { shelf: true } }))
   }, [])
 
   /**
@@ -1335,8 +1343,7 @@ export function Highlighter({
 
   // Counted up from the press, so the one nearest it comes out first.
   const items = [
-    marks.length + summaries.length > 0 && 'marks',
-    'note',
+    'marks',
     'ask',
     'bookmark',
     awayFromTop && 'top',
@@ -1413,53 +1420,81 @@ export function Highlighter({
 
       <div className={styles.deskStack}>
         <div className={styles.dial} data-open={unfurled || undefined} inert={!unfurled}>
-          {items.includes('marks') && (
+          {/* Each pair is one idea: the new one on the left, filled,
+              and the list of what is already there on the right, quiet
+              -- the same two weights the desk has always used for
+              adding and for looking. */}
+          <div
+            {...item(from('marks'))}
+            className={`${styles.dialItem} ${styles.pair}`}
+            role="group"
+            aria-label={`Marks on this ${noun}`}
+          >
             <button
               type="button"
-              {...item(from('marks'))}
-              className={`${styles.dialItem} ${styles.deskNote} ${styles.deskQuiet}`}
+              className={styles.deskNote}
+              onClick={() => {
+                noteOnLesson()
+                setUnfurled(false)
+              }}
+              aria-label={`Write a note on this ${noun}`}
+              title={`A note on this ${noun}`}
+            >
+              <NoteIcon />
+            </button>
+            <button
+              type="button"
+              className={`${styles.deskNote} ${styles.deskQuiet}`}
               onClick={() => {
                 showMarks(!open_)
                 setUnfurled(false)
               }}
+              disabled={marks.length + summaries.length === 0}
               aria-label={`What you have marked in this ${noun}`}
               aria-expanded={open_}
               title={`What you have marked in this ${noun}`}
             >
               <MarksIcon />
-              <span className={styles.deskTally}>{marks.length + summaries.length}</span>
+              {marks.length + summaries.length > 0 && (
+                <span className={styles.deskTally}>{marks.length + summaries.length}</span>
+              )}
             </button>
-          )}
-          <button
-            type="button"
-            {...item(from('note'))}
-            className={`${styles.dialItem} ${styles.deskNote}`}
-            onClick={() => {
-              noteOnLesson()
-              setUnfurled(false)
-            }}
-            aria-label={`Write a note on this ${noun}`}
-            title={`A note on this ${noun}`}
-          >
-            <NoteIcon />
-          </button>
+          </div>
 
-          {/* The third that writes, and the only one that answers. It
-              sits with the desk rather than in the corner of the window
-              because these are the buttons a reader already reaches for. */}
-          <button
-            type="button"
+          {/* The pair that answers. It sits with the desk rather than in
+              the corner of the window because these are the buttons a
+              reader already reaches for. */}
+          <div
             {...item(from('ask'))}
-            className={`${styles.dialItem} ${styles.deskNote}`}
-            onClick={() => {
-              askAbout(null)
-              setUnfurled(false)
-            }}
-            aria-label={`Ask about this ${noun}`}
-            title={`Ask about this ${noun}`}
+            className={`${styles.dialItem} ${styles.pair}`}
+            role="group"
+            aria-label={`Questions about this ${noun}`}
           >
-            <AskIcon />
-          </button>
+            <button
+              type="button"
+              className={styles.deskNote}
+              onClick={() => {
+                askAbout(null)
+                setUnfurled(false)
+              }}
+              aria-label={`Ask about this ${noun}`}
+              title={`Ask about this ${noun}`}
+            >
+              <AskIcon />
+            </button>
+            <button
+              type="button"
+              className={`${styles.deskNote} ${styles.deskQuiet}`}
+              onClick={() => {
+                askedHere()
+                setUnfurled(false)
+              }}
+              aria-label={`What has been asked about this ${noun}`}
+              title="Asked here"
+            >
+              <AskedIcon />
+            </button>
+          </div>
 
           <button
             type="button"
@@ -1507,7 +1542,7 @@ export function Highlighter({
               three presses rather than one. */}
           <div
             {...item(from('size'))}
-            className={`${styles.dialItem} ${styles.sizes}`}
+            className={`${styles.dialItem} ${styles.pair}`}
             role="group"
             aria-label={`Size of the ${noun}`}
           >
@@ -1535,9 +1570,9 @@ export function Highlighter({
         </div>
 
         {/* The one press that stays: the rest unfurl up from it and go
-            back into it. Folded on every visit. While folded it carries
-            the count of what is marked, which the marks' own button
-            carries when it is out. */}
+            back into it. Folded on every visit, and plain while folded:
+            the count of what is marked is the marks' own button's to
+            carry, once it is out. */}
         <button
           type="button"
           className={`${styles.deskNote} ${styles.dialPress}`}
@@ -1547,9 +1582,6 @@ export function Highlighter({
           title={unfurled ? 'Put the buttons away' : `Mark, write, ask, bookmark, size`}
         >
           <DialIcon />
-          {!unfurled && marks.length + summaries.length > 0 && (
-            <span className={styles.deskTally}>{marks.length + summaries.length}</span>
-          )}
         </button>
       </div>
     </div>

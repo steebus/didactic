@@ -1,7 +1,9 @@
 /* The page's conversations, down the side of it: the marks drawer's
    column, ground and slide (MarkList.module.css), because it is the
-   same kind of index -- what was made on this page, to go back to. Over
-   the ask panel, which it opens from and hands back to. */
+   same kind of index -- what was made on this page, to go back to. It
+   opens on its own from the desk, moving the sheet over as the marks'
+   list does, or from the ask panel, over which it stands; picking from
+   it opens the panel on that conversation. */
 .drawer {
   position: fixed;
   inset: 0 0 0 auto;

@@ -5,7 +5,6 @@ import { didactic } from '@didactic/api'
 import { acceptedSentence } from '@didactic/core/ask'
 import type { AskContext, Proposal, AgentWrite } from '@didactic/core/ask'
 import { Prose } from './Prose'
-import { AsksDrawer } from './AsksDrawer'
 import styles from './Ask.module.css'
 
 const api = didactic()
@@ -29,10 +28,30 @@ interface Line {
   writes?: AgentWrite[]
 }
 
-export function AskPanel({ context, onClose }: { context: AskContext; onClose: () => void }) {
+export function AskPanel({
+  context,
+  start,
+  shelf = false,
+  onShelf,
+  onConversation,
+  onClose,
+}: {
+  context: AskContext
+  /** A conversation to carry on, picked from the drawer; none is a new
+   *  question. The panel is mounted afresh for each one. */
+  start?: string
+  /** Whether the drawer of what was asked here is out. */
+  shelf?: boolean
+  /** Bring the drawer out; absent where the page has no list to show. */
+  onShelf?: () => void
+  /** Told which conversation this is once it has one, so the drawer can
+   *  mark it. */
+  onConversation?: (id: string | undefined) => void
+  onClose: () => void
+}) {
   const [lines, setLines] = useState<Line[]>([])
   const [draft, setDraft] = useState('')
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusy] = useState(Boolean(start))
   const [conversationId, setConversationId] = useState<string | undefined>()
   const [undone, setUndone] = useState<Set<string>>(new Set())
   const [folded, setFolded] = useState(false)
@@ -42,7 +61,6 @@ export function AskPanel({ context, onClose }: { context: AskContext; onClose: (
   const [folding, setFolding] = useState(false)
   // On its way out, and what to do once it has gone.
   const [leaving, setLeaving] = useState<null | (() => void)>(null)
-  const [shelf, setShelf] = useState(false)
   // A conversation picked up from the drawer brings the passage it was
   // asked about, which may not be the one chosen now.
   const [quote, setQuote] = useState(context.quote)
@@ -59,6 +77,30 @@ export function AskPanel({ context, onClose }: { context: AskContext; onClose: (
       document.documentElement.style.removeProperty('--ask-panel')
     }
   }, [lines.length])
+
+  // A conversation picked from the drawer is read in before anything is
+  // asked of it.
+  useEffect(() => {
+    if (!start) return
+    let live = true
+    void api.ask.read(start).then(({ ok, body }) => {
+      if (!live) return
+      if (ok) {
+        setConversationId(start)
+        setLines(body.messages.map(m => ({ role: m.role, content: m.content })))
+        setQuote(body.context.quote)
+        setFolded(body.folded)
+      }
+      setBusy(false)
+    })
+    return () => {
+      live = false
+    }
+  }, [start])
+
+  useEffect(() => {
+    onConversation?.(conversationId)
+  }, [conversationId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep the newest answer in view.
   useEffect(() => {
@@ -110,16 +152,6 @@ export function AskPanel({ context, onClose }: { context: AskContext; onClose: (
     setBusy(false)
   }
 
-  // The pages whose conversations can be listed: one thing, with an id.
-  const listable =
-    context.entityId &&
-    (context.route === 'lesson' ||
-      context.route === 'resource' ||
-      context.route === 'topic' ||
-      context.route === 'subject')
-      ? { route: context.route, entityId: context.entityId }
-      : null
-
   /** Close the way it opened, then do what was pressed -- once, on the
    *  animation's end or, where motion is off and there is no animation
    *  to end, a moment later regardless. */
@@ -133,31 +165,6 @@ export function AskPanel({ context, onClose }: { context: AskContext; onClose: (
     }
     setLeaving(() => once)
     window.setTimeout(once, LEAVE_MS)
-  }
-
-  /** Carry on a conversation from the drawer. */
-  async function resume(id: string) {
-    setShelf(false)
-    if (id === conversationId) return
-    setBusy(true)
-    const { ok, body } = await api.ask.read(id)
-    if (ok) {
-      setConversationId(id)
-      setLines(body.messages.map(m => ({ role: m.role, content: m.content })))
-      setQuote(body.context.quote)
-      setFolded(body.folded)
-      setUndone(new Set())
-    }
-    setBusy(false)
-  }
-
-  /** Start again on this page, with nothing carried. */
-  function fresh() {
-    setShelf(false)
-    setConversationId(undefined)
-    setLines([])
-    setQuote(context.quote)
-    setFolded(false)
   }
 
   /**
@@ -202,7 +209,6 @@ export function AskPanel({ context, onClose }: { context: AskContext; onClose: (
   }
 
   return (
-    <>
     <div
       ref={panel}
       className={`${styles.panel} ${leaving ? styles.leaving : ''}`}
@@ -221,11 +227,11 @@ export function AskPanel({ context, onClose }: { context: AskContext; onClose: (
               : 'Ask about this'}
         </span>
         <span className={styles.headActions}>
-          {listable && (
+          {onShelf && (
             <button
               type="button"
               className={styles.shelfButton}
-              onClick={() => setShelf(true)}
+              onClick={onShelf}
               aria-expanded={shelf}
             >
               Asked here
@@ -302,17 +308,6 @@ export function AskPanel({ context, onClose }: { context: AskContext; onClose: (
         </button>
       )}
     </div>
-
-      {shelf && listable && (
-        <AsksDrawer
-          about={listable}
-          current={conversationId}
-          onResume={id => void resume(id)}
-          onFresh={fresh}
-          onClose={() => setShelf(false)}
-        />
-      )}
-    </>
   )
 }
 
