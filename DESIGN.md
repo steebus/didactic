@@ -153,7 +153,7 @@ separate piece of furniture bolted under the page rather than the last line of
 it. The catalogue runs to six sheet measures, from the sign-in sheet's `30rem`
 to the bed's `1240px`, and every one of them ends with the same
 `padding: 0 0 var(--space-6)` — so the foot takes exactly that margin back and
-needs no ground, no tooth and no width of its own to keep in step with six
+needs no ground and no width of its own to keep in step with six
 others. It is centred, because the middle is the one position that lands on
 paper whatever the measure, and because that is where a printed page keeps its
 own marginalia. It has to be lifted (`position: relative; z-index: 1`) to be
@@ -286,38 +286,26 @@ running warm-black on paper and bone on board; six flat plate inks that carry
 meaning (subject identity, band structure, one interactive accent) and never
 atmosphere. Warm throughout under both lights — never a neutral grey, which would
 read as a different product wearing this one's type. No gradients as colour — the
-only gradients in the build are the paper-tooth threads and the SVG hatch
+only gradients in the build are the graph bed's drill grid and the SVG hatch
 patterns, both of which are texture.
 
 **Rule — a colour is a token or it is a bug.** There are no colour literals
 outside the `:root` blocks. Ink and paper at alpha are `--ink-rgb` and
 `--paper-rgb` (and `--on-plate-rgb` for what sits on a band), because 130 scrims
-and tooth threads were written as raw `rgba()` copies of the light theme's
+and texture threads were written as raw `rgba()` copies of the light theme's
 ground — which stated that ground in 130 places no dark block could reach.
 
-### Paper tooth
+### Flat paper
 
-Two fine directional threads as `repeating-linear-gradient`, never a noise
-overlay or a raster texture:
+The sheet is flat `--paper` and the bed flat `--press-bed`, with no texture on
+either. **Rule — no fine repeating texture on a ground.** They had a laid-paper
+tooth once, threads a pixel wide on a three- and four-pixel period, and at
+every browser zoom but 100% and on any sheet not standing on a whole device
+pixel they beat against the pixel grid as bands and moire. Snapping the
+threads to device pixels fixed the zoom and not the offset. A ground is a
+colour.
 
-```
-repeating-linear-gradient(90deg, rgba(90,70,45,0.04) 0 1px, transparent 1px 3px),
-repeating-linear-gradient(0deg,  rgba(90,70,45,0.03) 0 1px, transparent 1px 4px)
-```
-
-On `body` the same threads run at `0.035` / `0.025` over `--press-bed`. The
-tooth belongs to the sheet and the bed both, at slightly different weights.
-Both are tokens, `var(--tooth-sheet)` and `var(--tooth-bed)`, never restated
-in a module.
-
-**Rule — a thread is a whole device pixel.** The `1px` above is
-`var(--tooth-px)`, which the layout's head script restamps as
-`round(devicePixelRatio) / devicePixelRatio` whenever the zoom changes. In CSS
-px the threads land on fractions of a device pixel at 110% or 125% and beat
-against the pixel grid as bands and moire; in device pixels the tooth is the
-same at every zoom.
-
-The graph bed uses a different texture in the same family: a 48px drill grid at
+The graph bed is the exception, ruled rather than textured: a 48px drill grid at
 `rgba(107,92,69,0.06)`, ruled the way a planting plan is ruled.
 
 ---
@@ -435,7 +423,7 @@ only the measure changing:
 
 ```
 max-width: <measure>;  margin: 0 auto;  padding: 0 0 var(--space-6);
-background-color: var(--paper);  background-image: <tooth>;
+background-color: var(--paper);
 min-height: 100dvh;  box-shadow: 0 2px 24px rgba(36,29,22,0.16);
 ```
 
@@ -899,7 +887,7 @@ anywhere else, or Escape rolls it back up.
 
 | Part | Treatment |
 | --- | --- |
-| The slip | The sheet's paper and tooth, the margin block's `2px solid var(--rule-strong)` head rule, `1px` at its foot, and the soft sheet drop. Starts under the band's mustard rule, at the figures' left edge, `34rem` wide, trimmed at the sheet's edges; its own scroll past `min(70vh, 36rem)`. |
+| The slip | The sheet's paper, the margin block's `2px solid var(--rule-strong)` head rule, `1px` at its foot, and the soft sheet drop. Starts under the band's mustard rule, at the figures' left edge, `34rem` wide, trimmed at the sheet's edges; its own scroll past `min(70vh, 36rem)`. |
 | The standing | Both figures in one line of `--ink-soft`, with the date last tended. |
 | A line | The reason, what it moved, and the date. What it moved is signed and in points — `+6` in `--plate-green` at `600`, `±0` and *moved nothing* in `--ink-faint` italic, *made it a guess* in `--plate-terracotta`. On a phone the date drops under the reason, tighter to it than to the next line. |
 | The key | One faint italic line under a dotted rule saying the numbers are points and that the same work is worth less the more of it there is. |
@@ -2473,7 +2461,7 @@ to another sheet.
 | --- | --- |
 | The control | In the masthead band with the sheets, set apart by `1px solid rgba(239,231,214,0.35)` on its left — the treatment leaving already carries. Paper at `0.82`, full paper when open. |
 | Open state | Stated in full-strength paper at `600`, as the current sheet is. |
-| The composer | The sheet's own paper and tooth, at the sheet's measure, positioned from the measured foot of the masthead band. `1px solid var(--rule-strong)` at its foot. |
+| The composer | The sheet's own paper, at the sheet's measure, positioned from the measured foot of the masthead band. `1px solid var(--rule-strong)` at its foot. |
 | Motion | One unroll, `--dur-settle` on `--ease-settle`, spatial through `--motion-travel`. |
 
 **Rule — a control that acts rather than navigates is set apart by a rule, not

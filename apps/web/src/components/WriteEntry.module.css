@@ -47,9 +47,9 @@
 /* --- The composer ------------------------------------------------
 
    Not a modal: this world has none. It unrolls from the top of the
-   window on the sheet's own paper, wearing the sheet's own tooth and
-   the mustard rule every masthead band carries. Nothing is dimmed
-   behind it and nothing is trapped -- the page carries on existing
+   window on the sheet's own paper, wearing the mustard rule every
+   masthead band carries. Nothing is dimmed behind it and nothing is
+   trapped -- the page carries on existing
    underneath, and Escape rolls it back up.
 
    Taken out of the running head's flow rather than laid out inside it:
@@ -76,9 +76,6 @@
   z-index: 20;
   overflow-y: auto;
   background: var(--paper);
-  /* The sheet's own tooth, because this is the sheet: a panel on flat
-     paper beside a toothed one reads as a different material. */
-  background-image: var(--tooth-sheet);
   /* A rule at the foot, as everything in this world is ruled off. The
      mustard belongs to the band's own rule, which is directly above
      this panel; a second mustard rule a few pixels under the first

@@ -83,25 +83,11 @@
      light theme's ground in 130 places no dark block could reach. */
   --ink-rgb: 36, 29, 22;
   --paper-rgb: 239, 231, 214;
-  /* The tooth is mixed from a warmer brown than the ink itself. */
+  /* A warmer brown than the ink itself, for the one wash still mixed
+     from it. The sheet and the bed carried a laid-paper tooth in it once:
+     fine threads that beat against the pixel grid as bands and moire at
+     most zooms and offsets, so both are flat colour now. */
   --tooth-rgb: 90, 70, 45;
-  /* Laid-paper tooth: two fine directional threads, not a noise overlay.
-     A thread is one --tooth-px wide on a period of three and four, and
-     --tooth-px is a whole number of device pixels, restamped by the
-     layout's head script whenever the zoom changes. In plain CSS px a
-     1px thread at 110% or 125% lands on fractions of a device pixel,
-     and every period rounds differently: the tooth beats against the
-     pixel grid as bands and moire. 1px is the answer before the script
-     has run and wherever it cannot. Written once here, rather than in
-     every sheet, and resolved on :root so the dark blocks' --tooth-rgb
-     reaches it. */
-  --tooth-px: 1px;
-  --tooth-sheet:
-    repeating-linear-gradient(90deg, rgba(var(--tooth-rgb), 0.04) 0 var(--tooth-px), transparent var(--tooth-px) calc(3 * var(--tooth-px))),
-    repeating-linear-gradient(0deg, rgba(var(--tooth-rgb), 0.03) 0 var(--tooth-px), transparent var(--tooth-px) calc(4 * var(--tooth-px)));
-  --tooth-bed:
-    repeating-linear-gradient(90deg, rgba(var(--tooth-rgb), 0.035) 0 var(--tooth-px), transparent var(--tooth-px) calc(3 * var(--tooth-px))),
-    repeating-linear-gradient(0deg, rgba(var(--tooth-rgb), 0.025) 0 var(--tooth-px), transparent var(--tooth-px) calc(4 * var(--tooth-px)));
   /* Text reversed out of a band. The band is a deep plate under either
      light -- daylight's own green, and a deeper mix of the relit green
      after dark -- so this is the bone ink both times rather than
@@ -248,8 +234,6 @@ body {
   font-variant-numeric: tabular-nums;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
-
-  background-image: var(--tooth-bed);
 }
 
 h1,

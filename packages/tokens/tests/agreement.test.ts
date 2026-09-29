@@ -202,12 +202,6 @@ describe('the tokens agree with globals.css', () => {
       '--ink-rgb',
       '--paper-rgb',
       '--tooth-rgb',
-      // The tooth itself, and the width of one thread in whole device
-      // pixels, which the layout restamps as the zoom changes. Texture
-      // the phone draws for itself, if at all.
-      '--tooth-px',
-      '--tooth-sheet',
-      '--tooth-bed',
       // Surfaces derived from a plate rather than decisions of their
       // own: what a masthead is filled with and what reverses out of
       // it. The phone builds these from `plate` directly.

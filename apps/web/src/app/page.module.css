@@ -6,10 +6,7 @@
   max-width: var(--sheet-max);
   margin: 0 auto;
   padding: 0 0 var(--space-6);
-  /* The tooth belongs to the sheet, not the bed behind it. Colour is
-     set first: the shorthand would reset the image layers. */
   background-color: var(--paper);
-  background-image: var(--tooth-sheet);
   min-height: 100dvh;
   box-shadow: 0 2px 24px rgba(var(--ink-rgb), 0.16);
 }

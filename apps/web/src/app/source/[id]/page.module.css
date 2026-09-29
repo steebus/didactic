@@ -9,7 +9,6 @@
   margin: 0 auto;
   padding: 0 0 var(--space-6);
   background-color: var(--paper);
-  background-image: var(--tooth-sheet);
   min-height: 100dvh;
 }
 

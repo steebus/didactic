@@ -75,7 +75,6 @@
   overflow-y: auto;
   padding: var(--space-3) var(--space-4) var(--space-4);
   background-color: var(--paper);
-  background-image: var(--tooth-sheet);
   /* The margin block's own head rule, and ruled off at the foot. */
   border-top: 2px solid var(--rule-strong);
   border-bottom: 1px solid var(--rule-strong);
