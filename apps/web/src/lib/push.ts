@@ -6,17 +6,49 @@ import { nudgeMessage, shouldNudge, type Nudge } from '@didactic/core/tendPush'
 /**
  * Tend reminders, sent to a phone through Web Push.
  *
- * The keys are the app's VAPID pair: `VAPID_PUBLIC_KEY` and
- * `VAPID_PRIVATE_KEY`, made once with `npx web-push generate-vapid-keys`
- * and set on Vercel. Read at runtime rather than inlined into the build,
- * so setting them needs a redeploy of nothing but the environment.
- * Without them there are no reminders, and the Tend sheet says so rather
- * than offering a switch that does nothing.
+ * Signed with the app's VAPID pair, which is what the phone's push
+ * service knows this server by. The pair is made here the first time a
+ * phone asks for it and kept in `push_rounds` (070), so there is nothing
+ * to generate or set by hand. It is written only where it is still
+ * empty and read back after, so two first asks at once agree on one
+ * pair: every subscription is bound to the public key it was made with,
+ * and a second pair would silence every phone made against the first.
+ *
+ * Null only before 070 has run, or when the database cannot be reached;
+ * the Tend sheet then says reminders are not set up.
  */
-export function pushKeys(): { publicKey: string; privateKey: string } | null {
-  const publicKey = process.env.VAPID_PUBLIC_KEY
-  const privateKey = process.env.VAPID_PRIVATE_KEY
-  return publicKey && privateKey ? { publicKey, privateKey } : null
+export async function pushKeys(
+  db: SupabaseClient
+): Promise<{ publicKey: string; privateKey: string } | null> {
+  const read = async () => {
+    const { data, error } = await db
+      .from('push_rounds')
+      .select('vapid_public, vapid_private')
+      .eq('id', true)
+      .maybeSingle()
+    if (error) {
+      console.error('push: could not read the key pair', error.message)
+      return undefined
+    }
+    return data?.vapid_public && data.vapid_private
+      ? { publicKey: data.vapid_public as string, privateKey: data.vapid_private as string }
+      : null
+  }
+
+  const kept = await read()
+  if (kept !== null) return kept ?? null
+
+  const made = webpush.generateVAPIDKeys()
+  const { error } = await db
+    .from('push_rounds')
+    .update({ vapid_public: made.publicKey, vapid_private: made.privateKey })
+    .eq('id', true)
+    .is('vapid_public', null)
+  if (error) {
+    console.error('push: could not keep a new key pair', error.message)
+    return null
+  }
+  return (await read()) ?? null
 }
 
 interface Subscription {
@@ -42,10 +74,10 @@ export async function sendNudge(
   sub: Pick<Subscription, 'id' | 'endpoint' | 'p256dh' | 'auth'>,
   nudge: Nudge
 ): Promise<'sent' | 'gone' | 'failed'> {
-  const keys = pushKeys()
+  const keys = await pushKeys(db)
   if (!keys) return 'failed'
   webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT ?? 'mailto:owner@didactic.invalid',
+    process.env.VAPID_SUBJECT || 'mailto:owner@didactic.invalid',
     keys.publicKey,
     keys.privateKey
   )

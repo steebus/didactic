@@ -1,20 +1,22 @@
 import { NextResponse } from 'next/server'
 import { ownerId } from '@/lib/auth'
 import { pushKeys } from '@/lib/push'
+import { supabaseAdmin } from '@/lib/supabase'
 
 /**
  * The app's public push key, for a phone subscribing to Tend reminders.
- * 503 when the pair is not set on the deployment: the sheet then says
- * reminders are not set up, rather than offering a switch that fails.
+ * The pair is made on the first ask and kept (`lib/push.pushKeys`, 070).
+ * 503 only before 070 has run or when the database cannot be reached:
+ * the sheet then says so, rather than offering a switch that fails.
  */
 export async function GET() {
   const userId = await ownerId()
   if (!userId) return NextResponse.json({ error: 'not signed in' }, { status: 401 })
 
-  const keys = pushKeys()
+  const keys = await pushKeys(supabaseAdmin())
   if (!keys) {
     return NextResponse.json(
-      { error: 'Reminders are not set up on this deployment: VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY are missing.' },
+      { error: 'Reminders are not ready yet: the push keys could not be made. Try again in a minute.' },
       { status: 503 }
     )
   }
