@@ -21,9 +21,20 @@ function remembered(): boolean {
  * The notes open out to the column beside the reading, or folded back
  * to a panel: one preference for a mark's panel and a summary's, since
  * both are the reader writing about what they read.
+ *
+ * `yieldOut` folds this one back for as long as it is `active` -- the
+ * note being written, the summary open -- without touching the
+ * preference: another column has taken the strip beside the reading
+ * (`useSideColumn`), and a reader who opened the list of their marks
+ * has not decided to stop writing opened out. The next note opens out
+ * again, and so does this one if its own control is pressed.
  */
-export function useOpenedOut(): [boolean, (next: boolean) => void] {
+export function useOpenedOut(
+  active = true
+): [boolean, (next: boolean) => void, () => void] {
   const [big, setBig] = useState(remembered)
+  const [yielded, setYielded] = useState(false)
+  if (yielded && !active) setYielded(false)
 
   useEffect(() => {
     const follow = () => setBig(remembered())
@@ -38,9 +49,12 @@ export function useOpenedOut(): [boolean, (next: boolean) => void] {
       // Site data blocked. The preference is not worth an error on the
       // page; it just will not outlast the session.
     }
+    setYielded(false)
     setBig(next)
     window.dispatchEvent(new Event(CHANGED))
   }, [])
 
-  return [big, openOut]
+  const yieldOut = useCallback(() => setYielded(true), [])
+
+  return [big && !yielded, openOut, yieldOut]
 }

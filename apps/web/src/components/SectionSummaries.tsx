@@ -11,6 +11,7 @@ import { NoteText } from './NoteText'
 import { SummaryIcon } from './SummaryIcon'
 import { ExpandIcon } from './ExpandIcon'
 import { useOpenedOut } from './useOpenedOut'
+import { useSideColumn } from './useSideColumn'
 import { RemoveGate } from './RemoveGate'
 import styles from './SectionSummaries.module.css'
 
@@ -76,7 +77,7 @@ export function SectionSummaries({
   const sections = useMemo(() => lessonSections(body), [body])
   const [hosts, setHosts] = useState<Host[]>([])
   const [open, setOpen] = useState<number | null>(null)
-  const [big, openOut] = useOpenedOut()
+  const [big, openOut, yieldOut] = useOpenedOut(open !== null)
   /** Sections whose written summary the reader has put away with the
    *  sprig. Shown by default: it is the reader's own account, and it
    *  belongs under the heading it sums up. */
@@ -97,14 +98,10 @@ export function SectionSummaries({
 
   // Open out, the summary takes the notes' column beside the reading,
   // and the sheet gives up the strip it stands in -- the same as a mark.
+  // Another column taking the strip folds it back to its panel under the
+  // heading, with what is written in it.
   const column = big && open !== null
-  useEffect(() => {
-    if (!column) return
-    document.body.dataset.notes = 'open'
-    return () => {
-      delete document.body.dataset.notes
-    }
-  }, [column])
+  useSideColumn(column, 'summary', yieldOut)
 
   useEffect(() => {
     if (!root) return

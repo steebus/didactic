@@ -6,6 +6,7 @@ import { useAskContext } from '@/lib/useAskContext'
 import type { AskContext } from '@didactic/core/ask'
 import { AskPanel } from './AskPanel'
 import { AsksDrawer } from './AsksDrawer'
+import { useSideColumn } from './useSideColumn'
 import { AskIcon } from './AskIcon'
 import styles from './Ask.module.css'
 
@@ -95,14 +96,9 @@ export function AskButton() {
   }
 
   // The drawer is a column beside the reading, as the marks' list is, so
-  // the sheet moves over for it the same way (`body[data-notes]`).
-  useEffect(() => {
-    if (!shelf) return
-    document.body.dataset.notes = 'open'
-    return () => {
-      delete document.body.dataset.notes
-    }
-  }, [shelf])
+  // the sheet moves over for it the same way, and it gives way when
+  // another column opens.
+  useSideColumn(shelf, 'asks', () => setShelf(false))
 
   // The pages whose conversations can be listed: one thing, with an id.
   const listable =

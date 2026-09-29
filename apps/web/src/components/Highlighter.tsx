@@ -24,6 +24,7 @@ import { MarkList } from './MarkList'
 import { UNSAVED, isUnsaved, inReadingOrder } from '@didactic/core/marks'
 import { ExpandIcon } from './ExpandIcon'
 import { useOpenedOut } from './useOpenedOut'
+import { useSideColumn } from './useSideColumn'
 import { useBookmark, useKeptScroll } from './useReadingPlace'
 import { BookmarkIcon } from './BookmarkIcon'
 import { DialIcon } from './DialIcon'
@@ -261,7 +262,7 @@ export function Highlighter({
   }, [restored, place.top, reading])
 
   const narrow = useNarrow()
-  const [big, openOut] = useOpenedOut()
+  const [big, openOut, yieldOut] = useOpenedOut(Boolean(pending || open))
 
   /**
    * The room beside the sheet, where there is enough of it for notes.
@@ -1068,13 +1069,13 @@ export function Highlighter({
     })
   }
 
-  useEffect(() => {
-    if (!columnOpen) return
-    document.body.dataset.notes = 'open'
-    return () => {
-      delete document.body.dataset.notes
-    }
-  }, [columnOpen])
+  // One column beside the reading at a time: another taking the strip
+  // shuts the list, and folds a note being written back to its panel
+  // with what is written in it.
+  useSideColumn(columnOpen, 'marks', () => {
+    if (writing) yieldOut()
+    else showMarks(false)
+  })
 
 
   // --- Pulling the page aside ---------------------------------------
