@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { urlTitle } from '@didactic/core/titles'
+import { cleanSharedUrl } from '@didactic/core/shared'
 import { supabaseAdmin } from '@/lib/supabase'
 import { drainAfter } from '@/lib/drain'
 import { ownerId } from '@/lib/auth'
@@ -53,7 +54,10 @@ export async function POST(req: Request) {
   // Filing it again is not an error and does not overwrite anything.
   // What it does is file the existing row against the topic you were
   // filing from, which is almost always what was actually meant.
-  const trimmedUrl = typeof url === 'string' && url.trim() ? url.trim() : null
+  //
+  // Cleaned first (`core/shared`): the same video shared twice arrives
+  // with two different `si=` marks, and would be two things otherwise.
+  const trimmedUrl = typeof url === 'string' && url.trim() ? cleanSharedUrl(url) : null
   if (trimmedUrl) {
     const { data: already } = await db.from('resources')
       .select('id, title, status')

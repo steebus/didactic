@@ -1,0 +1,111 @@
+/* What was sent, and what became of it. The sheet itself is the inbox's:
+   this is the inbox's door. */
+
+.receipt {
+  display: grid;
+  gap: var(--space-3);
+  max-width: 60ch;
+}
+
+.kind {
+  margin: 0;
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--step-2);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.said {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.problem {
+  margin: 0;
+  color: var(--plate-terracotta);
+}
+
+.ways {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin: var(--space-2) 0 0;
+}
+
+.ways a,
+.again {
+  font: inherit;
+  color: var(--ink);
+  background: none;
+  border: 0;
+  padding: var(--space-2) 0;
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.ways a:hover,
+.again:hover {
+  text-decoration-color: var(--ink);
+}
+
+/* How to send it things: three short ways, each for one device. */
+.how {
+  display: grid;
+  gap: var(--space-5);
+  max-width: 60ch;
+}
+
+.way {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.way p {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+.wayTitle {
+  margin: 0;
+  font-size: var(--step-1);
+}
+
+/* Something to drag rather than press, so it is drawn as an object: the
+   band's plate, square, with the grab cursor. */
+.bookmarklet {
+  display: inline-block;
+  padding: var(--space-2) var(--space-4);
+  background: var(--band-fill);
+  color: var(--on-plate);
+  text-decoration: none;
+  cursor: grab;
+}
+
+.code {
+  font-family: ui-monospace, monospace;
+  font-size: var(--step--1);
+  overflow-wrap: anywhere;
+}
+
+.code span {
+  padding: 0 0.3em;
+  background: var(--rule);
+}
+
+.note {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+}

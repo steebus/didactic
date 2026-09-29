@@ -1,6 +1,8 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { isPlaceholderTitle } from '@didactic/core/titles'
+import { mediaOf } from '@didactic/core/shared'
 import { extractFromHtml } from './extract/url'
+import { readMedia } from './extract/media'
 
 /** Long enough for a slow page, short enough that the sheet's own
  *  request is long finished and nobody is waiting on this. */
@@ -35,19 +37,10 @@ export async function retitleFromPage(
 
   let found: string | null = null
   try {
-    const res = await fetch(url, {
-      headers: { 'user-agent': 'didactic/1.0' },
-      signal: AbortSignal.timeout(FETCH_MS),
-    })
-    if (res.ok) {
-      const html = await res.text()
-      try {
-        found = extractFromHtml(html, url).title
-      } catch {
-        // A page Readability cannot read may still say what it is called.
-        found = html.match(/<title[^>]*>([^<]{1,300})<\/title>/i)?.[1] ?? null
-      }
-    }
+    // A video or a post names itself through the door it is read by;
+    // its page is a script or a sign-in wall.
+    const media = mediaOf(url)
+    found = media ? (await readMedia(media, url)).title : await pageTitle(url)
   } catch {
     return { title, changed: false }
   }
@@ -57,4 +50,20 @@ export async function retitleFromPage(
 
   const { error } = await db.from('resources').update({ title: named }).eq('id', id)
   return error ? { title, changed: false } : { title: named, changed: true }
+}
+
+/** The title a page carries, or null for one that says nothing. */
+async function pageTitle(url: string): Promise<string | null> {
+  const res = await fetch(url, {
+    headers: { 'user-agent': 'didactic/1.0' },
+    signal: AbortSignal.timeout(FETCH_MS),
+  })
+  if (!res.ok) return null
+  const html = await res.text()
+  try {
+    return extractFromHtml(html, url).title
+  } catch {
+    // A page Readability cannot read may still say what it is called.
+    return html.match(/<title[^>]*>([^<]{1,300})<\/title>/i)?.[1] ?? null
+  }
 }

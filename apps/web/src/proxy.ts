@@ -81,13 +81,15 @@ export async function proxy(request: NextRequest) {
   entry.pathname = '/enter'
   entry.search = ''
   // Where they were headed, so the sign-in sheet can put them back
-  // rather than always landing on the stock list.
-  if (pathname !== '/') entry.searchParams.set('next', pathname)
+  // rather than always landing on the stock list. With its query: a link
+  // shared to `/send` before signing in is in the query, and would
+  // otherwise be lost at the door.
+  if (pathname !== '/') entry.searchParams.set('next', pathname + request.nextUrl.search)
   return NextResponse.redirect(entry)
 }
 
 export const config = {
   // Everything except Next's own asset routes, which have no session to
   // check and are needed to print the sign-in sheet.
-  matcher: ['/((?!_next/static|_next/image|icon.png).*)'],
+  matcher: ['/((?!_next/static|_next/image|icon.png|manifest.webmanifest).*)'],
 }

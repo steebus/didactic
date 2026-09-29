@@ -3,6 +3,8 @@ import type { ResourceKind } from '@didactic/core/types'
 import type { BodySource, ReadableBody } from '@didactic/core/shapes'
 import { extractFromHtml } from './extract/url'
 import { htmlToMarkdown, IMPORTER } from './extract/markdown'
+import { mediaOf } from '@didactic/core/shared'
+import { readMedia } from './extract/media'
 
 /**
  * A resource, made readable in the app.
@@ -127,6 +129,17 @@ async function makeBody(db: SupabaseClient, resource: ResourceLike): Promise<Mad
 
     case 'article': {
       if (!resource.url) return { body: null, why: 'There is no address to read this from.' }
+      const media = mediaOf(resource.url)
+      if (media) {
+        try {
+          const { body } = await readMedia(media, resource.url)
+          return body
+            ? { body, source: 'article', keep: true }
+            : { body: null, why: 'It came with no words to read here beyond its title.' }
+        } catch (e) {
+          return { body: null, why: `It could not be read here — ${e instanceof Error ? e.message : String(e)}.` }
+        }
+      }
       try {
         const res = await fetch(resource.url, {
           headers: { 'user-agent': 'didactic/1.0' },

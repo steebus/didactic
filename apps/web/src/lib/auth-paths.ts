@@ -23,6 +23,10 @@ const OPEN = [
   // gate would otherwise send the browser's icon request to the
   // sign-in sheet.
   '/icon.png',
+  // The web app manifest, the same way. Browsers fetch it without
+  // cookies, so behind the gate the app could never be installed -- and
+  // installing it is what puts it in a phone's share sheet.
+  '/manifest.webmanifest',
 ]
 
 export function isOpenPath(pathname: string): boolean {

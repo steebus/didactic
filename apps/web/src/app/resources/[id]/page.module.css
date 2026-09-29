@@ -100,3 +100,33 @@
   font-size: var(--step--1);
   color: var(--ink-soft);
 }
+
+/* A video or a post, shown where the reading starts. The frame is the
+   player's own; the sheet only gives it the measure. Square, as the
+   catalogue is. */
+.media {
+  max-width: 68ch;
+  background: var(--ink);
+}
+
+.media iframe {
+  display: block;
+  width: 100%;
+  border: 0;
+}
+
+.media[data-kind='youtube'] iframe {
+  aspect-ratio: 16 / 9;
+}
+
+/* A post is a picture with its caption under it, narrower than a video
+   and much taller: the embed's own width, and room for the caption. */
+.media[data-kind='instagram'] {
+  max-width: 34rem;
+  background: none;
+  border: 1px solid var(--rule);
+}
+
+.media[data-kind='instagram'] iframe {
+  height: min(52rem, 85vh);
+}

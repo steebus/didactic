@@ -10,6 +10,7 @@ import type { ExposureDepth, Highlight as Mark, ResourceStatus } from '@didactic
 import { lessonSections } from '@didactic/core/sections'
 import { summaryOf, summaryTally } from '@didactic/core/summaries'
 import { isPlaceholderTitle } from '@didactic/core/titles'
+import { kindLabel, mediaOf } from '@didactic/core/shared'
 import { filingLine, refileAs, refiledSentence, refileLabel } from '@didactic/core/whole'
 import { Prose } from '@/components/Prose'
 import { Highlighter } from '@/components/Highlighter'
@@ -26,13 +27,6 @@ import styles from '@/app/lesson/[id]/page.module.css'
 import own from './page.module.css'
 
 const api = didactic()
-
-const KIND_LABEL: Record<string, string> = {
-  article: 'Article',
-  pdf: 'Document',
-  book: 'Book',
-  note: 'Note',
-}
 
 const STATUS_LABEL: Record<ResourceStatus, string> = {
   queued: 'Unread',
@@ -203,6 +197,7 @@ export default function ResourceSheet({ initial }: { initial: ResourceReading })
     ...(topics[0] ? [{ href: `/topics/${topics[0].id}`, label: topics[0].title }] : []),
   ]
   const host = resource.url ? safeHost(resource.url) : null
+  const media = mediaOf(resource.url)
 
   return (
     <>
@@ -229,7 +224,7 @@ export default function ResourceSheet({ initial }: { initial: ResourceReading })
           <div className={styles.figures}>
             <span className={styles.figure}>
               <span className={styles.figureLabel}>Kind</span>
-              <span className={styles.figureValue}>{KIND_LABEL[resource.kind] ?? resource.kind}</span>
+              <span className={styles.figureValue}>{kindLabel(resource.kind, resource.url)}</span>
             </span>
             {host && (
               <span className={styles.figure}>
@@ -297,6 +292,22 @@ export default function ResourceSheet({ initial }: { initial: ResourceReading })
           )}
 
           {error && <p className={styles.problem}>{error}</p>}
+
+          {/* A video is watched here and a post seen here; what they said
+              in words -- the description, the transcript, the caption --
+              is the reading under them. */}
+          {media && (
+            <div className={own.media} data-kind={media.kind}>
+              <iframe
+                src={media.embed}
+                title={title}
+                allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="strict-origin-when-cross-origin"
+              />
+            </div>
+          )}
 
           {body ? (
             <>

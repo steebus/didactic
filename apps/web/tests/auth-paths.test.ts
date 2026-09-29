@@ -15,6 +15,7 @@ describe('isOpenPath', () => {
   it('opens the asset routes the sign-in sheet is printed with', () => {
     expect(isOpenPath('/_next/static/chunk.js')).toBe(true)
     expect(isOpenPath('/icon.png')).toBe(true)
+    expect(isOpenPath('/manifest.webmanifest')).toBe(true)
   })
 
   it('closes everything the catalogue is made of', () => {

@@ -15,7 +15,9 @@ import { cosineSimilarity } from '@didactic/core/similarity'
 import { config } from '@didactic/core/config'
 import { keptReading, type KeptReading } from '@didactic/core/resolution'
 import { asFiling, conceptsToFile } from '@didactic/core/whole'
+import { mediaOf } from '@didactic/core/shared'
 import { extractFromHtml } from './extract/url'
+import { readMedia } from './extract/media'
 import { articleBody, keepBody } from './resourceBody'
 import { readDocumentRound } from './document'
 
@@ -123,7 +125,24 @@ export async function ingestResource(
   }
 
   if (!text) {
-    if (resource.kind === 'article' && resource.url) {
+    const media = resource.kind === 'article' ? mediaOf(resource.url) : null
+    if (media) {
+      // A video or a post: read by the door each one keeps open, and
+      // what it said kept as the reader's copy, printed under the player.
+      const read = await readMedia(media, resource.url)
+      title = read.title
+      text = read.text
+      if (isPlaceholderTitle(resource.title, resource.url)) {
+        await db.from('resources').update({ title: read.title }).eq('id', resourceId)
+      }
+      if (read.body) {
+        try {
+          await keepBody(db, resource, read.body, 'article')
+        } catch (e) {
+          console.error('ingest: could not keep the readable body', e)
+        }
+      }
+    } else if (resource.kind === 'article' && resource.url) {
       const res = await fetch(resource.url, { headers: { 'user-agent': 'didactic/1.0' } })
       if (!res.ok) throw new Error(`ingest: fetch failed ${res.status}`)
       const extracted = extractFromHtml(await res.text(), resource.url)
