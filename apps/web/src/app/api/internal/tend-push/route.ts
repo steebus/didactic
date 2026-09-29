@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { tendRound } from '@/lib/push'
 
 /**
- * The hourly reminder round, called by `run_tend_push()` from pg_cron
+ * The reminder round, run every quarter hour and called by `run_tend_push()` from pg_cron
  * (069). Not part of the public surface, and behind no session: the key
  * it carries is made in the database and compared with the one there,
  * so it is never in an environment variable or in this repository.

@@ -172,6 +172,7 @@ describe('ENDPOINTS', () => {
       // Tend reminders: a phone's push subscription, which no sheet is
       // read from.
       'push.subscribe',
+      'push.retime',
       'push.unsubscribe',
       'push.test',
     ])

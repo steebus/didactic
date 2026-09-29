@@ -14,9 +14,18 @@ export interface PushSubscriptionIn {
 export const push = (api: Api) => ({
   /** The app's public key. 503 when reminders are not set up. */
   key: () => api.get<{ publicKey: string }>('/api/push/key'),
-  /** This phone says yes, in the time zone it is in. */
-  subscribe: (subscription: PushSubscriptionIn, timeZone: string) =>
-    api.post<{ ok: true }>('/api/push/subscribe', { subscription, timeZone }),
+  /** This phone's reminder time, if it is subscribed. */
+  status: (endpoint: string) =>
+    api.get<{ subscribed: boolean; remindAt: string | null }>(
+      `/api/push/subscribe?endpoint=${encodeURIComponent(endpoint)}`
+    ),
+  /** This phone says yes: once a day at `remindAt` (`HH:MM`), in the
+   *  time zone it is in. */
+  subscribe: (subscription: PushSubscriptionIn, timeZone: string, remindAt: string) =>
+    api.post<{ ok: true }>('/api/push/subscribe', { subscription, timeZone, remindAt }),
+  /** A new time for this phone's reminder. */
+  retime: (endpoint: string, remindAt: string, timeZone: string) =>
+    api.patch<{ ok: true; remindAt: string }>('/api/push/subscribe', { endpoint, remindAt, timeZone }),
   /** This phone says no. */
   unsubscribe: (endpoint: string) => api.del<{ ok: true }>('/api/push/subscribe', { endpoint }),
   /** A reminder now, to see that they arrive. */

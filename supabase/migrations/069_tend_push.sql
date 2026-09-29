@@ -3,11 +3,13 @@
 -- The notice in the corner of the catalogue only speaks while a tab is
 -- open. A push subscription is how the installed app asks when it is
 -- not: one row per phone (or browser) that has said yes, with the time
--- zone it gave, so a reminder never arrives at night.
+-- of day the reader chose and the time zone it is in. It is reminded
+-- once a day at that time, when something is due (`core/tendPush`).
 --
--- The rounds are run from here, hourly, by pg_cron through pg_net: the
--- app's plan allows its own cron once a day, which is not a rhythm, and
--- the database already runs the ingestion worker the same way (010).
+-- The rounds are run from here, every quarter hour, by pg_cron through
+-- pg_net: the app's plan allows its own cron once a day, at one time for
+-- everybody, and the database already runs the ingestion worker the
+-- same way (010).
 -- The address to call is written by the app the first time a phone
 -- subscribes (it is the address the phone subscribed through), and the
 -- key the call carries is made here, in the database, so neither sits in
@@ -25,9 +27,14 @@ create table if not exists push_subscriptions (
   p256dh text not null,
   auth text not null,
   time_zone text not null default 'UTC',
+  remind_at text not null default '08:00',
   created_at timestamptz not null default now(),
   last_sent_at timestamptz
 );
+
+alter table push_subscriptions drop constraint if exists push_subscriptions_remind_at_is_a_time;
+alter table push_subscriptions add constraint push_subscriptions_remind_at_is_a_time
+  check (remind_at ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$');
 
 create index if not exists push_subscriptions_user_idx on push_subscriptions (user_id);
 
@@ -74,11 +81,14 @@ $$;
 
 revoke all on function run_tend_push() from public, anon, authenticated;
 
--- Seven past each hour, off the top of it where everyone else's jobs are.
+-- Every quarter hour, so a reminder lands within fifteen minutes of the
+-- time chosen for it.
 select cron.unschedule(jobid) from cron.job where jobname = 'tend-push';
-select cron.schedule('tend-push', '7 * * * *', 'select run_tend_push()');
+select cron.schedule('tend-push', '*/15 * * * *', 'select run_tend_push()');
 
 comment on table push_subscriptions is
-  'A phone or browser that has said yes to Tend reminders: its Web Push endpoint and keys, and its time zone.';
+  'A phone or browser that has said yes to Tend reminders: its Web Push endpoint and keys, its time zone, and the time of day it is reminded at.';
+comment on column push_subscriptions.remind_at is
+  'The local time of day, HH:MM, the phone is reminded at: once a day, when something is due.';
 comment on table push_rounds is
-  'Where the hourly reminder round calls, and the key it carries. Written by the app; read by run_tend_push().';
+  'Where the quarter-hourly reminder round calls, and the key it carries. Written by the app; read by run_tend_push().';

@@ -26,6 +26,7 @@ interface Subscription {
   p256dh: string
   auth: string
   time_zone: string
+  remind_at: string
   last_sent_at: string | null
 }
 
@@ -52,8 +53,8 @@ export async function sendNudge(
     await webpush.sendNotification(
       { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
       JSON.stringify(nudge),
-      // A reminder four hours late is not a reminder; let the service
-      // drop it if the phone has been off all afternoon.
+      // A morning reminder at teatime is not a reminder; let the
+      // service drop it if the phone has been off for an hour.
       { TTL: 60 * 60, urgency: 'normal', topic: nudge.tag }
     )
     return 'sent'
@@ -74,7 +75,7 @@ export async function sendNudge(
 export async function tendRound(db: SupabaseClient, now = new Date()) {
   const { data, error } = await db
     .from('push_subscriptions')
-    .select('id, user_id, endpoint, p256dh, auth, time_zone, last_sent_at')
+    .select('id, user_id, endpoint, p256dh, auth, time_zone, remind_at, last_sent_at')
   if (error) throw error
 
   const subs = (data ?? []) as Subscription[]
@@ -82,11 +83,18 @@ export async function tendRound(db: SupabaseClient, now = new Date()) {
   const tally = { phones: subs.length, sent: 0, gone: 0, failed: 0, quiet: 0 }
 
   for (const sub of subs) {
+    // The time first: most rounds are not anyone's time, and they
+    // should cost no count at all.
+    const timing = { lastSentAt: sub.last_sent_at, remindAt: sub.remind_at, now, timeZone: sub.time_zone }
+    if (!shouldNudge({ ...timing, due: 1 })) {
+      tally.quiet++
+      continue
+    }
     if (!dueBy.has(sub.user_id)) {
       dueBy.set(sub.user_id, (await countClozes(db, sub.user_id)).due)
     }
     const due = dueBy.get(sub.user_id)!
-    if (!shouldNudge({ due, lastSentAt: sub.last_sent_at, now, timeZone: sub.time_zone })) {
+    if (!shouldNudge({ ...timing, due })) {
       tally.quiet++
       continue
     }

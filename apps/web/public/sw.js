@@ -1,6 +1,6 @@
 /*
  * Didactic's service worker. It does one thing: shows the Tend reminders
- * the hourly round sends (`lib/push.ts`), and opens the garden when one is
+ * the daily round sends (`lib/push.ts`), and opens the garden when one is
  * pressed. It caches nothing and answers no fetch, so the app behaves
  * exactly as it does without it.
  */

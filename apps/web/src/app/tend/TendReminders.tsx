@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { didactic } from '@didactic/api'
+import { DEFAULT_REMIND_AT } from '@didactic/core/tendPush'
 import styles from './page.module.css'
 
 const api = didactic()
@@ -17,6 +18,8 @@ type State =
   | { at: 'off' }
   | { at: 'on'; endpoint: string }
 
+const zone = () => Intl.DateTimeFormat().resolvedOptions().timeZone
+
 /** The key as the browser wants it: bytes, from URL-safe base64. */
 function keyBytes(base64: string): Uint8Array<ArrayBuffer> {
   const padded = (base64 + '='.repeat((4 - (base64.length % 4)) % 4)).replace(/-/g, '+').replace(/_/g, '/')
@@ -27,19 +30,21 @@ function keyBytes(base64: string): Uint8Array<ArrayBuffer> {
 }
 
 /**
- * Tend reminders on this phone: the four-hourly notice (`TendNotice`),
- * sent as an Android notification when the app is not open.
+ * Tend reminders on this phone: an Android notification once a day, at
+ * the time the reader picks here, when something is due
+ * (`core/tendPush`).
  *
  * At the foot of the garden because that is where the reader is when
  * they are thinking about tending, and because a switch for reminders
  * belongs to the thing it reminds about. Per phone: each one says yes
  * for itself, in its own time zone, and turning it off here turns off
- * only this one.
+ * only this one, and each keeps its own time.
  */
 export function TendReminders() {
   const [state, setState] = useState<State>({ at: 'looking' })
   const [busy, setBusy] = useState(false)
   const [said, setSaid] = useState<string | null>(null)
+  const [remindAt, setRemindAt] = useState(DEFAULT_REMIND_AT)
 
   useEffect(() => {
     let live = true
@@ -51,9 +56,24 @@ export function TendReminders() {
       const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' })
       const sub = await reg.pushManager.getSubscription()
       if (!live) return
-      if (Notification.permission === 'denied') setState({ at: 'blocked' })
-      else if (sub) setState({ at: 'on', endpoint: sub.endpoint })
-      else setState({ at: 'off' })
+      if (Notification.permission === 'denied') {
+        setState({ at: 'blocked' })
+        return
+      }
+      if (!sub) {
+        setState({ at: 'off' })
+        return
+      }
+      // Subscribed in the browser; the server says at what time, or
+      // that it has forgotten this phone, which is off.
+      const status = await api.push.status(sub.endpoint)
+      if (!live) return
+      if (status.ok && status.body.subscribed) {
+        if (status.body.remindAt) setRemindAt(status.body.remindAt)
+        setState({ at: 'on', endpoint: sub.endpoint })
+      } else {
+        setState({ at: 'off' })
+      }
     })().catch(() => live && setState({ at: 'unsupported' }))
     return () => {
       live = false
@@ -82,14 +102,14 @@ export function TendReminders() {
           applicationServerKey: keyBytes(key.body.publicKey),
         }))
       const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } }
-      const saved = await api.push.subscribe(json, Intl.DateTimeFormat().resolvedOptions().timeZone)
+      const saved = await api.push.subscribe(json, zone(), remindAt)
       if (!saved.ok) {
         await sub.unsubscribe()
         setSaid(saved.error ?? 'It could not be turned on.')
         return
       }
       setState({ at: 'on', endpoint: sub.endpoint })
-      setSaid('On. The garden will ask here when something is due, no more than every four hours, and not at night.')
+      setSaid(`On. The garden will ask here at ${remindAt} each day when something is due.`)
     } catch (e) {
       setSaid(e instanceof Error ? e.message : 'It could not be turned on.')
     } finally {
@@ -108,6 +128,13 @@ export function TendReminders() {
     } finally {
       setBusy(false)
     }
+  }
+
+  async function retime(endpoint: string, at: string) {
+    setRemindAt(at)
+    setSaid(null)
+    const saved = await api.push.retime(endpoint, at, zone())
+    setSaid(saved.ok ? `Moved to ${saved.body.remindAt}.` : (saved.error ?? 'The time could not be changed.'))
   }
 
   async function test(endpoint: string) {
@@ -140,10 +167,18 @@ export function TendReminders() {
       {state.at === 'off' && (
         <>
           <p className={styles.remindersNote}>
-            A notification when cards are due: no more than every four hours, and not between nine
-            at night and eight in the morning.
+            One notification a day, at the time you choose, when cards are due.
           </p>
           <div className={styles.actions}>
+            <label className={styles.remindAt}>
+              At
+              <input
+                type="time"
+                step={900}
+                value={remindAt}
+                onChange={e => e.target.value && setRemindAt(e.target.value.slice(0, 5))}
+              />
+            </label>
             <button type="button" className={styles.action} onClick={() => void turnOn()} disabled={busy}>
               {busy ? 'Asking…' : 'Remind me here'}
             </button>
@@ -152,6 +187,16 @@ export function TendReminders() {
       )}
       {state.at === 'on' && (
         <div className={styles.actions}>
+          <label className={styles.remindAt}>
+            Each day at
+            <input
+              type="time"
+              step={900}
+              value={remindAt}
+              disabled={busy}
+              onChange={e => e.target.value && void retime(state.endpoint, e.target.value.slice(0, 5))}
+            />
+          </label>
           <button
             type="button"
             className={styles.quietAction}
@@ -172,7 +217,9 @@ export function TendReminders() {
       )}
       {said && <p className={styles.remindersNote}>{said}</p>}
       {state.at === 'on' && !said && (
-        <p className={styles.remindersNote}>On. The garden asks here when something is due.</p>
+        <p className={styles.remindersNote}>
+          On. The garden asks here once a day at this time when something is due.
+        </p>
       )}
     </section>
   )

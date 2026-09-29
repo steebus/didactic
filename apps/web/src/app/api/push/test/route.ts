@@ -8,7 +8,7 @@ import { nudgeMessage } from '@didactic/core/tendPush'
 /**
  * Send this phone a reminder now, whatever the hour and however long
  * since the last: the way to see that reminders reach it at all. Does not
- * count as the round's reminder, so the four hours are not spent on it.
+ * count as the day's reminder, so the one at the chosen time still comes.
  */
 export async function POST(req: Request) {
   const userId = await ownerId()
