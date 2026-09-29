@@ -152,7 +152,13 @@ export const resources = (api: Api) => ({
   /** The consumed transition is what writes the exposure. */
   patch: (id: string, body: { status?: ResourceStatus; depth?: ExposureDepth }) =>
     api.patch<{ ok: true }>(`/api/resources/${id}`, body),
-  remove: (id: string) => api.del<{ ok: true }>(`/api/resources/${id}`),
+  /** Remove it. With `topics`, also the topics only it brought in --
+   *  the ones `removal` names. */
+  remove: (id: string, { topics = false }: { topics?: boolean } = {}) =>
+    api.del<{ ok: true; topicsRemoved?: number }>(`/api/resources/${id}`, topics ? { topics: true } : undefined),
+  /** What removing it could take with it: the topics nothing else holds. */
+  removal: (id: string) =>
+    api.get<{ topics: Array<{ id: string; title: string; state: string }> }>(`/api/resources/${id}/removal`),
 
   /** Moves exposures; cannot be undone. */
   merge: (id: string, mergeId: string) =>

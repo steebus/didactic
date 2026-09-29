@@ -142,11 +142,11 @@ export function InboxSheet({
     setBusy(null)
   }
 
-  async function remove(id: string) {
+  async function remove(id: string, { topics }: { topics: boolean }) {
     setBusy(id)
     setError(null)
 
-    const { ok, error: failed } = await api.resources.remove(id)
+    const { ok, error: failed } = await api.resources.remove(id, { topics })
     if (ok) startTransition(() => router.refresh())
     else setError(failed ?? 'Could not remove that.')
     setBusy(null)

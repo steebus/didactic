@@ -104,7 +104,7 @@ export const ENDPOINTS = {
   'resources.uploadUrl': { name: 'resources.uploadUrl', method: 'POST', path: '/api/resources/upload-url', invalidates: [] },
   'resources.uploaded': { name: 'resources.uploaded', method: 'POST', path: '/api/resources/uploaded', invalidates: MATERIAL },
   'resources.patch': { name: 'resources.patch', method: 'PATCH', path: '/api/resources/[id]', invalidates: [tags.resources, tags.topics, tags.subjects] },
-  'resources.remove': { name: 'resources.remove', method: 'DELETE', path: '/api/resources/[id]', invalidates: [tags.resources, tags.topics, tags.subjects] },
+  'resources.remove': { name: 'resources.remove', method: 'DELETE', path: '/api/resources/[id]', invalidates: [tags.resources, tags.topics, tags.subjects, tags.pending] },
   'resources.merge': { name: 'resources.merge', method: 'POST', path: '/api/resources/[id]/merge', invalidates: MATERIAL },
   'resources.retitle': { name: 'resources.retitle', method: 'POST', path: '/api/resources/[id]/retitle', invalidates: MATERIAL },
   'resources.refile': { name: 'resources.refile', method: 'POST', path: '/api/resources/[id]/refile', invalidates: [tags.resources, tags.topics, tags.subjects, tags.pending] },
@@ -144,6 +144,7 @@ export const ENDPOINTS = {
      a section writes the same light exposure a note does */
   'resources.reading': { name: 'resources.reading', method: 'GET', path: '/api/resources/[id]/reading', invalidates: [] },
   'resources.progress': { name: 'resources.progress', method: 'GET', path: '/api/resources/[id]/progress', invalidates: [] },
+  'resources.removal': { name: 'resources.removal', method: 'GET', path: '/api/resources/[id]/removal', invalidates: [] },
   'push.key': { name: 'push.key', method: 'GET', path: '/api/push/key', invalidates: [] },
   'push.status': { name: 'push.status', method: 'GET', path: '/api/push/subscribe', invalidates: [] },
   'push.subscribe': { name: 'push.subscribe', method: 'POST', path: '/api/push/subscribe', invalidates: [] },

@@ -9,6 +9,7 @@ import type { LibraryRow } from '@didactic/core/shapes'
 import { filingPhrase } from '@didactic/core/filingState'
 import { FOUND_IN_LABEL, snippetParts, type ShelfHit } from '@didactic/core/shelf'
 import { SaidBack } from './SaidBack'
+import { RemoveResource } from './RemoveResource'
 import styles from '@/app/inbox/page.module.css'
 
 const api = didactic()
@@ -35,7 +36,7 @@ export function ResourceList({
    *  a row rather than folded away at the foot of the sheet -- it used
    *  to live under *Tidy up*, which meant scrolling past everything to
    *  get rid of the thing you were looking at. */
-  onRemove?: (id: string) => void | Promise<void>
+  onRemove?: (id: string, opts: { topics: boolean }) => void | Promise<void>
 }) {
   const [asking, setAsking] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
@@ -222,13 +223,12 @@ export function ResourceList({
                     sheet -- unless something has been read out of it,
                     in which case the record it is part of keeps it. */}
                 {onRemove && !('readInto' in r && r.readInto) && (
-                  <button
+                  <RemoveResource
+                    id={r.id}
                     className={`${styles.button} ${styles.buttonQuiet} ${styles.buttonRemove}`}
                     disabled={busy === r.id}
-                    onClick={() => onRemove(r.id)}
-                  >
-                    Remove
-                  </button>
+                    onRemove={onRemove}
+                  />
                 )}
               </span>
             ) : asking === r.id ? (
@@ -282,13 +282,12 @@ export function ResourceList({
                     control off is better than printing one that
                     cannot work. */}
                 {onRemove && !('readInto' in r && r.readInto) && (
-                  <button
+                  <RemoveResource
+                    id={r.id}
                     className={`${styles.button} ${styles.buttonQuiet} ${styles.buttonRemove}`}
                     disabled={busy === r.id}
-                    onClick={() => onRemove(r.id)}
-                  >
-                    Remove
-                  </button>
+                    onRemove={onRemove}
+                  />
                 )}
               </span>
             )}

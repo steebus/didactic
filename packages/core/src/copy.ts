@@ -261,3 +261,16 @@ export const EDITION_DATE = new Intl.DateTimeFormat('en-GB', {
 export function editionDate(on: Date | string = new Date()): string {
   return EDITION_DATE.format(typeof on === 'string' ? new Date(on) : on)
 }
+
+/**
+ * The offer made when a resource is removed: to take with it the topics
+ * only it brought in. Named, because "3 topics" is not something anyone
+ * can say yes to without knowing which three.
+ */
+export function looseTopicsPhrase(titles: string[]): string {
+  const n = titles.length
+  if (n === 0) return ''
+  const named = n <= 5 ? titles : [...titles.slice(0, 4), `${n - 4} more`]
+  const list = named.length === 1 ? named[0] : `${named.slice(0, -1).join(', ')} and ${named[named.length - 1]}`
+  return `Also remove the ${n === 1 ? 'topic' : `${n} topics`} only it brought in: ${list}`
+}

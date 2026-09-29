@@ -1109,3 +1109,56 @@
   outline: 2px solid var(--plate-terracotta);
   outline-offset: 2px;
 }
+
+/* --- Removing a row ------------------------------------------- */
+
+/* The question stands where Remove was, as RemoveGate's does, with one
+   more line when the resource brought topics in that nothing else holds:
+   the offer to take them too, named, unticked. */
+.removeAsk {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: end;
+  max-width: 34rem;
+  animation: promptIn var(--dur-state) var(--ease-settle) both;
+}
+
+.removeSure {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--plate-terracotta);
+}
+
+.removeTopics {
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  text-align: left;
+  cursor: pointer;
+}
+
+.removeTopics input {
+  accent-color: var(--plate-terracotta);
+  flex: none;
+}
+
+.removeAnswers {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.removeYes {
+  color: var(--plate-terracotta);
+}
+
+@media (max-width: 48rem) {
+  .removeAsk {
+    justify-items: start;
+  }
+}

@@ -87,6 +87,10 @@ export async function refileResource(
  * The topics, of those given, that nothing but the resource being
  * re-filed ever touched -- once its links are gone.
  *
+ * `besides` asks the same question while the links are still there: the
+ * resource named is not counted as holding anything, so a sheet can say
+ * what removing it would take with it before it is removed.
+ *
  * A topic stays if anything else holds it: another resource, a lesson
  * or a route, a reading in the record, a mark or a tag, a card, a
  * conversation, a membership a person made or a bed it was sown into,
@@ -95,17 +99,25 @@ export async function refileResource(
  * go with it. A table that cannot be read counts as holding everything
  * it was asked about: when in doubt, a topic is kept.
  */
-export async function onlyFrom(db: SupabaseClient, topicIds: readonly string[]): Promise<string[]> {
+export async function onlyFrom(
+  db: SupabaseClient,
+  topicIds: readonly string[],
+  { besides }: { besides?: string } = {}
+): Promise<string[]> {
   if (topicIds.length === 0) return []
   const ids = [...topicIds]
   const held = new Set<string>()
 
   /** Every id `column` names in `table`, narrowed to rows not of the
-   *  reading's making (`byPerson`) or placed in a sown bed (`sown`). */
-  const holding = async (table: string, column: string, only?: 'byPerson' | 'sown') => {
+   *  reading's making (`byPerson`), placed in a sown bed (`sown`), or
+   *  belonging to another resource than `besides` (`others`). */
+  const holding = async (table: string, column: string, only?: 'byPerson' | 'sown' | 'others') => {
     const base = db.from(table).select(column).in(column, ids)
     const narrowed =
-      only === 'byPerson' ? base.neq('created_by', 'ai') : only === 'sown' ? base.not('position', 'is', null) : base
+      only === 'byPerson' ? base.neq('created_by', 'ai')
+      : only === 'sown' ? base.not('position', 'is', null)
+      : only === 'others' && besides ? base.neq('resource_id', besides)
+      : base
     const { data, error } = await narrowed
     if (error) {
       for (const id of ids) held.add(id)
@@ -116,7 +128,7 @@ export async function onlyFrom(db: SupabaseClient, topicIds: readonly string[]):
 
   await Promise.all([
     holding('topics', 'id', 'byPerson'),
-    holding('resource_topics', 'topic_id'),
+    holding('resource_topics', 'topic_id', 'others'),
     holding('lessons', 'topic_id'),
     holding('curricula', 'topic_id'),
     holding('exposures', 'topic_id'),

@@ -113,3 +113,15 @@ describe('editionDate', () => {
     expect(editionDate(new Date('2026-01-05T12:00:00Z'))).toBe('5 January 2026')
   })
 })
+
+describe('looseTopicsPhrase', () => {
+  it('names the topics it would take, so the offer can be answered', async () => {
+    const { looseTopicsPhrase } = await import('../src/copy')
+    expect(looseTopicsPhrase([])).toBe('')
+    expect(looseTopicsPhrase(['Bloom filters'])).toBe('Also remove the topic only it brought in: Bloom filters')
+    expect(looseTopicsPhrase(['A', 'B', 'C'])).toBe('Also remove the 3 topics only it brought in: A, B and C')
+    expect(looseTopicsPhrase(['A', 'B', 'C', 'D', 'E', 'F', 'G'])).toBe(
+      'Also remove the 7 topics only it brought in: A, B, C, D and 3 more'
+    )
+  })
+})
