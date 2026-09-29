@@ -205,7 +205,10 @@
   margin: 0;
 }
 
-:global([data-margins]) .panel {
+/* The panel follows only where the margin holds it as well
+   (`[data-margin-panels]`, from the same measure): in a narrower one the
+   summary rests beside the section and is written under its heading. */
+:global([data-margin-panels]) .panel {
   position: absolute;
   z-index: 5;
   right: calc(100% + var(--reach-left) + var(--space-4));

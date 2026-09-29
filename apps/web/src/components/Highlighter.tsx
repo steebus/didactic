@@ -66,6 +66,16 @@ const PULL = { latch: 60, rest: 8000, share: 0.72, most: 288 }
  */
 const MARGIN_MIN = 240
 
+/**
+ * The least room for a panel -- a mark's, or a summary being written --
+ * to open in the margin rather than against the passage. More than a
+ * note needs, because the panel carries the editor's toolbar and its
+ * buttons: 20rem of panel and the gap either side. Between the two a
+ * note rests in the margin and its panel opens in the prose, where it
+ * has the reading's width, rather than crushed into a strip.
+ */
+const PANEL_ROOM = 368
+
 /** Where a panel stands: against a passage, or in the margin beside it. */
 type At = Spot & { margin?: boolean }
 
@@ -470,7 +480,7 @@ export function Highlighter({
       setMaking(verb === 'cloze')
       // Written in the margin beside the passage where there is one,
       // so the words being written about stay in view.
-      setAt(margin && !listing ? inMargin(chosen.top) : chosen.panel)
+      setAt(margin && margin.room >= PANEL_ROOM && !listing ? inMargin(chosen.top) : chosen.panel)
       setPending({ quote: chosen.quote, prefix: chosen.prefix })
       setNote('')
       setError(null)
@@ -696,7 +706,11 @@ export function Highlighter({
       (id, where) => {
         const mark = marks.find(h => h.id === id)
         const aside = pinned.find(p => p.id === id)
-        if (mark) openMark(mark, margin && !listing && aside ? inMargin(aside.top) : where)
+        if (mark)
+          openMark(
+            mark,
+            margin && margin.room >= PANEL_ROOM && !listing && aside ? inMargin(aside.top) : where
+          )
       }
     )
     // Held by value: the effect runs on every render, and a new array
@@ -1022,6 +1036,21 @@ export function Highlighter({
 
   /** In the margin, and not under the notes column where it is open. */
   const marginalia = margin && !columnOpen
+  /** Room in the margin for a panel as well as its notes. */
+  const panelsAside = Boolean(marginalia && margin.room >= PANEL_ROOM)
+
+  /** A note in the margin opened where its panel fits: beside it, or
+   *  against the passage it marks when the margin is only a strip. */
+  function besideNote(id: string, top: number): At {
+    if (panelsAside) return inMargin(top)
+    const root = holder.current
+    const piece = root?.querySelector<HTMLElement>(`mark[data-mark="${CSS.escape(id)}"]`)
+    if (!root || !piece) return inMargin(top)
+    return panelSpot(piece.getBoundingClientRect(), root.getBoundingClientRect(), {
+      width: window.innerWidth,
+      height: window.innerHeight,
+    })
+  }
 
   useEffect(() => {
     if (!columnOpen) return
@@ -1496,6 +1525,7 @@ export function Highlighter({
       // prose by a component of their own, stand in the other margin
       // by the same measure.
       data-margins={marginalia ? '' : undefined}
+      data-margin-panels={panelsAside ? '' : undefined}
       data-narrow={narrow || undefined}
       style={
         {
@@ -1597,7 +1627,7 @@ export function Highlighter({
                 tabIndex={-1}
                 className={styles.marginNote}
                 data-top={top}
-                onClick={() => openMark(mark, inMargin(top))}
+                onClick={() => openMark(mark, besideNote(id, top))}
               >
                 {mark.note ? (
                   <NoteText markdown={mark.note} className={styles.marginText} />

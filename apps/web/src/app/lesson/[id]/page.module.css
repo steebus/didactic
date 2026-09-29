@@ -19,9 +19,7 @@
   margin: 0 auto;
   padding: 0 0 var(--space-6);
   background-color: var(--paper);
-  background-image:
-    repeating-linear-gradient(90deg, rgba(var(--tooth-rgb), 0.04) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(0deg, rgba(var(--tooth-rgb), 0.03) 0 1px, transparent 1px 4px);
+  background-image: var(--tooth-sheet);
   min-height: 100dvh;
   box-shadow: 0 2px 24px rgba(var(--ink-rgb), 0.16);
 }

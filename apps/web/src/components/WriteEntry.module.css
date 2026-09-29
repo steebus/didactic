@@ -78,9 +78,7 @@
   background: var(--paper);
   /* The sheet's own tooth, because this is the sheet: a panel on flat
      paper beside a toothed one reads as a different material. */
-  background-image:
-    repeating-linear-gradient(90deg, rgba(var(--tooth-rgb), 0.04) 0 1px, transparent 1px 3px),
-    repeating-linear-gradient(0deg, rgba(var(--tooth-rgb), 0.03) 0 1px, transparent 1px 4px);
+  background-image: var(--tooth-sheet);
   /* A rule at the foot, as everything in this world is ruled off. The
      mustard belongs to the band's own rule, which is directly above
      this panel; a second mustard rule a few pixels under the first

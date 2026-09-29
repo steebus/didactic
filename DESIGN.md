@@ -307,6 +307,15 @@ repeating-linear-gradient(0deg,  rgba(90,70,45,0.03) 0 1px, transparent 1px 4px)
 
 On `body` the same threads run at `0.035` / `0.025` over `--press-bed`. The
 tooth belongs to the sheet and the bed both, at slightly different weights.
+Both are tokens, `var(--tooth-sheet)` and `var(--tooth-bed)`, never restated
+in a module.
+
+**Rule — a thread is a whole device pixel.** The `1px` above is
+`var(--tooth-px)`, which the layout's head script restamps as
+`round(devicePixelRatio) / devicePixelRatio` whenever the zoom changes. In CSS
+px the threads land on fractions of a device pixel at 110% or 125% and beat
+against the pixel grid as bands and moire; in device pixels the tooth is the
+same at every zoom.
 
 The graph bed uses a different texture in the same family: a 48px drill grid at
 `rgba(107,92,69,0.06)`, ruled the way a planting plan is ruled.

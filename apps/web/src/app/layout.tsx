@@ -35,7 +35,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${archivo.variable} ${caveat.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${fraunces.variable} ${archivo.variable} ${caveat.variable}`}>
       <head>
         {/* Stamp the stored choice before the first paint.
 
@@ -52,6 +52,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script
           dangerouslySetInnerHTML={{
             __html: `try{var t=localStorage.getItem('didactic-theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}`,
+          }}
+        />
+        {/* Size the paper tooth in whole device pixels (see --tooth-px
+            in globals.css). Browser zoom changes devicePixelRatio, so
+            the value is restamped each time the ratio it was measured
+            at stops matching. Rounded to the nearest whole multiple,
+            so a retina screen keeps its two-pixel thread and 110% on
+            either keeps the one it had at 100%. Before paint for the
+            same reason the theme is: a tooth that settles after the
+            first frame is a shimmer across the whole sheet. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{(function s(){var d=window.devicePixelRatio||1;document.documentElement.style.setProperty('--tooth-px',Math.max(1,Math.round(d))/d+'px');matchMedia('(resolution: '+d+'dppx)').addEventListener('change',s,{once:true})})()}catch(e){}`,
           }}
         />
       </head>
