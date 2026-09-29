@@ -24,9 +24,12 @@ type State =
 /**
  * Saves what was shared, once, and says so.
  *
- * Opened by the bookmarklet it is a small window the reader wants gone
- * as soon as it has said *Saved*, so it closes itself; opened by a share
- * sheet it stays, with the way into what was just saved.
+ * Either way the reading is then shown as it happens. Opened by the
+ * bookmarklet it is a small window the reader wants gone once there is
+ * nothing more to see, so it closes itself a few seconds after the
+ * reading has filed it, unless the reader has touched it; one that
+ * failed stays open to say why. Opened by a share sheet it stays, with
+ * the way into what was just saved.
  */
 export function SendSheet({
   shared,
@@ -40,6 +43,7 @@ export function SendSheet({
   const nothing = !shared.url && !shared.note
   const [state, setState] = useState<State>({ at: 'saving' })
   const sent = useRef(false)
+  const [finished, setFinished] = useState(false)
 
   async function send() {
     setState({ at: 'saving' })
@@ -51,7 +55,6 @@ export function SendSheet({
       return
     }
     setState({ at: 'saved', id: body.id, title: body.title, already: Boolean(body.alreadyFiled) })
-    if (popup) setTimeout(() => window.close(), 1400)
   }
 
   useEffect(() => {
@@ -85,7 +88,8 @@ export function SendSheet({
             <Link href={`/resources/${state.id}`}>Open it</Link>
             <Link href="/inbox">The inbox</Link>
           </p>
-          {!popup && <Reading id={state.id} />}
+          <Reading id={state.id} onFiled={() => setFinished(true)} />
+          {popup && finished && <Closing />}
         </>
       )}
 
@@ -120,7 +124,7 @@ const GIVE_UP_MS = 4 * 60_000
  * is cheaper than a channel held open for it. Something already filed
  * settles on the first answer, and says where it went.
  */
-function Reading({ id }: { id: string }) {
+function Reading({ id, onFiled }: { id: string; onFiled?: () => void }) {
   const [progress, setProgress] = useState<IngestProgress | null>(null)
   const [stale, setStale] = useState(false)
 
@@ -133,7 +137,12 @@ function Reading({ id }: { id: string }) {
       const { ok, body } = await api.resources.progress(id)
       if (!live) return
       if (ok) setProgress(body)
-      if (ok && isSettled(body)) return
+      if (ok && isSettled(body)) {
+        // Done, or never queued. A failure is settled too, and is not
+        // something to close on.
+        if (body.job?.state !== 'failed') onFiled?.()
+        return
+      }
       if (Date.now() - started > GIVE_UP_MS) {
         setStale(true)
         return
@@ -146,6 +155,9 @@ function Reading({ id }: { id: string }) {
       live = false
       if (timer) clearTimeout(timer)
     }
+    // Once per resource: the callback is the parent's and changes with
+    // every render of it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
   if (!progress) return null
@@ -234,6 +246,42 @@ function Step({ step, since, current }: { step: TimedStep; since: number | null;
   )
 }
 
+/** How long the bookmarklet's window waits on a finished reading. */
+const CLOSE_AFTER_S = 8
+
+/**
+ * The bookmarklet's window, counting itself out once the reading is
+ * done. Any touch, key or scroll keeps it: a reader who has started
+ * looking at the topics, or reaching for *Open it*, is not done with it.
+ */
+function Closing() {
+  const [left, setLeft] = useState(CLOSE_AFTER_S)
+  const [kept, setKept] = useState(false)
+
+  useEffect(() => {
+    if (kept) return
+    const keep = () => setKept(true)
+    const events = ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const
+    for (const e of events) window.addEventListener(e, keep, { passive: true })
+    const tick = setInterval(() => setLeft(n => n - 1), 1000)
+    return () => {
+      clearInterval(tick)
+      for (const e of events) window.removeEventListener(e, keep)
+    }
+  }, [kept])
+
+  useEffect(() => {
+    if (!kept && left <= 0) window.close()
+  }, [kept, left])
+
+  if (kept) return null
+  return (
+    <p className={styles.closing}>
+      Closing in {Math.max(0, left)}. Touch anything to keep it open.
+    </p>
+  )
+}
+
 /**
  * The page opened with nothing sent to it: how to send it things.
  *
@@ -246,7 +294,7 @@ function HowToSend({ origin }: { origin: string }) {
   const link = useRef<HTMLAnchorElement>(null)
   const code =
     `javascript:(()=>{window.open('${origin}/send?popup=1&url='+encodeURIComponent(location.href)` +
-    `+'&title='+encodeURIComponent(document.title),'didactic-send','width=460,height=380')})()`
+    `+'&title='+encodeURIComponent(document.title),'didactic-send','width=480,height=720')})()`
 
   useEffect(() => {
     link.current?.setAttribute('href', code)
@@ -258,7 +306,7 @@ function HowToSend({ origin }: { origin: string }) {
         <h2 className={styles.wayTitle}>From a computer</h2>
         <p>
           Drag this to the bookmarks bar. Pressing it on any page sends that page here,
-          in a small window that closes itself.
+          in a small window that shows the reading and closes itself once it is filed.
         </p>
         <p>
           <a ref={link} className={styles.bookmarklet} onClick={e => e.preventDefault()}>
