@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { didactic } from '@didactic/api'
 import { kindLabel, type Shared } from '@didactic/core/shared'
 import { urlTitle } from '@didactic/core/titles'
+import { isPdf, MAX_DOCUMENT_BYTES, NOT_A_PDF, titleFromFilename, tooLarge } from '@didactic/core/documents'
 import {
   isSettled,
   progressNow,
@@ -18,8 +19,39 @@ const api = didactic()
 
 type State =
   | { at: 'saving' }
-  | { at: 'saved'; id: string; title: string; already: boolean }
+  | { at: 'saved'; id: string; title: string; already: boolean; shape?: string }
   | { at: 'failed'; why: string }
+
+/** Where the service worker leaves a shared file (`public/sw.js`). */
+const SHARED_CACHE = 'didactic-shared'
+const SHARED_FILE = '/send/shared-file'
+
+/**
+ * The file Android shared, from where the service worker left it. Taken
+ * once: the entry is removed as it is read, so it is not uploaded again
+ * by a reload, and the next share has the place to itself.
+ */
+async function takeSharedFile(): Promise<File | null> {
+  if (!('caches' in window)) return null
+  const cache = await caches.open(SHARED_CACHE)
+  const held = await cache.match(SHARED_FILE)
+  if (!held) return null
+  const name = decodeURIComponent(held.headers.get('x-file-name') ?? 'Shared document.pdf')
+  const blob = await held.blob()
+  await cache.delete(SHARED_FILE)
+  return new File([blob], name, { type: held.headers.get('content-type') || blob.type })
+}
+
+/** What the upload found in a document, said the way the inbox's upload
+ *  says it (`AddResource`). */
+function shapeOf(outline: { chapters: number; problem?: string } | null | undefined): string | undefined {
+  if (!outline) return undefined
+  if (outline.problem) return 'It could not be opened to be read. It is on the shelf either way.'
+  const n = outline.chapters
+  return n > 0
+    ? `${n} ${n === 1 ? 'chapter' : 'chapters'} found in it.`
+    : 'No chapters could be found in it, so it is material rather than a shape to follow.'
+}
 
 /**
  * Saves what was shared, once, and says so.
@@ -34,18 +66,65 @@ type State =
 export function SendSheet({
   shared,
   popup,
+  file,
   origin,
 }: {
   shared: Shared
   popup: boolean
+  /** A file was shared, and the service worker is holding it. */
+  file: boolean
   origin: string
 }) {
-  const nothing = !shared.url && !shared.note
+  const nothing = !file && !shared.url && !shared.note
   const [state, setState] = useState<State>({ at: 'saving' })
+  /** The shared file, once taken: kept so *Try again* has it. */
+  const [doc, setDoc] = useState<File | null>(null)
   const sent = useRef(false)
   const [finished, setFinished] = useState(false)
 
+  /**
+   * A shared PDF, filed exactly as the inbox's upload files one: checked
+   * here, sent straight to storage, then read for its shape and queued
+   * (`api.resources.uploadDocument`). The reading is then shown as it is
+   * for a link.
+   */
+  async function sendFile() {
+    setState({ at: 'saving' })
+    let picked = doc
+    if (!picked) {
+      try {
+        picked = await takeSharedFile()
+      } catch {
+        picked = null
+      }
+      setDoc(picked)
+    }
+    if (!picked) {
+      setState({
+        at: 'failed',
+        why: 'The shared file is no longer here. Share it again from the app it is in.',
+      })
+      return
+    }
+    if (!isPdf(picked.name, picked.type)) {
+      setState({ at: 'failed', why: NOT_A_PDF })
+      return
+    }
+    if (picked.size > MAX_DOCUMENT_BYTES) {
+      setState({ at: 'failed', why: tooLarge(picked.size) })
+      return
+    }
+
+    const { ok, status, body, error } = await api.resources.uploadDocument(picked)
+    if (!ok && status !== 202) {
+      setState({ at: 'failed', why: error ?? 'Could not take that file.' })
+      return
+    }
+    setState({ at: 'saved', id: body.id, title: body.title, already: false, shape: shapeOf(body.outline) })
+  }
+
   async function send() {
+    if (file) return sendFile()
     setState({ at: 'saving' })
     const { ok, body, error } = shared.url
       ? await api.resources.add({ kind: 'article', url: shared.url, ...(shared.title ? { title: shared.title } : {}) })
@@ -67,15 +146,23 @@ export function SendSheet({
 
   if (nothing) return <HowToSend origin={origin} />
 
-  const what = shared.url ? kindLabel('article', shared.url) : 'Note'
-  const name = shared.title ?? (shared.url ? urlTitle(shared.url) : shared.note!)
+  const what = file ? kindLabel('pdf') : shared.url ? kindLabel('article', shared.url) : 'Note'
+  const name = file
+    ? doc
+      ? titleFromFilename(doc.name)
+      : 'A shared document'
+    : (shared.title ?? (shared.url ? urlTitle(shared.url) : shared.note!))
 
   return (
     <section className={styles.receipt} aria-live="polite">
       <p className={styles.kind}>{what}</p>
       <p className={styles.name}>{state.at === 'saved' ? state.title : name}</p>
 
-      {state.at === 'saving' && <p className={styles.said}>Saving it…</p>}
+      {state.at === 'saving' && (
+        <p className={styles.said}>
+          {file ? 'Uploading it, and opening it to see how it is shaped…' : 'Saving it…'}
+        </p>
+      )}
 
       {state.at === 'saved' && (
         <>
@@ -84,6 +171,7 @@ export function SendSheet({
               ? 'Already in the inbox. Nothing was added twice.'
               : 'In the inbox. It is being read for what it is about.'}
           </p>
+          {state.shape && <p className={styles.said}>{state.shape}</p>}
           <p className={styles.ways}>
             <Link href={`/resources/${state.id}`}>Open it</Link>
             <Link href="/inbox">The inbox</Link>

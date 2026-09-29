@@ -13,7 +13,8 @@ import inbox from '@/app/inbox/page.module.css'
  * the installed app's share target (`manifest.ts`), and an iPhone
  * Shortcut opens it from Safari's. All three hand over some of `url`,
  * `title` and `text`, which `core/shared.sharedLink` reads into what was
- * meant.
+ * meant. A PDF shared from Android arrives as `?file=1`: the service
+ * worker has the file (`public/sw.js`), and the sheet uploads it.
  *
  * Saving happens in the browser, after the page has loaded, rather than
  * while it renders: a GET that writes is a GET that a prefetch, a
@@ -25,7 +26,7 @@ import inbox from '@/app/inbox/page.module.css'
 export default async function SendPage({
   searchParams,
 }: {
-  searchParams: Promise<{ url?: string; title?: string; text?: string; popup?: string }>
+  searchParams: Promise<{ url?: string; title?: string; text?: string; popup?: string; file?: string }>
 }) {
   const [, given, head] = await Promise.all([requireOwner(), searchParams, headers()])
   const shared = sharedLink(given)
@@ -42,7 +43,7 @@ export default async function SendPage({
       <div className={inbox.headRule} />
 
       <div className={inbox.body}>
-        <SendSheet shared={shared} popup={given.popup === '1'} origin={origin} />
+        <SendSheet shared={shared} popup={given.popup === '1'} file={given.file === '1'} origin={origin} />
       </div>
     </main>
   )

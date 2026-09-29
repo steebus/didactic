@@ -6,6 +6,7 @@ import { Bench } from '@/components/Bench'
 import { Player } from '@/components/Player'
 import { AskButton } from '@/components/AskButton'
 import { TendNotice } from '@/components/TendNotice'
+import { ServiceWorker } from '@/components/ServiceWorker'
 import { SheetFoot } from '@/components/SheetFoot'
 import { READING_SIZES, READING_SIZE_KEY } from '@didactic/core/readingSize'
 
@@ -87,6 +88,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Suspense fallback={null}>
             <TendNotice />
           </Suspense>
+          {/* Receives PDFs from the share sheet and shows Tend reminders;
+              put in place from whichever sheet is opened first. */}
+          <ServiceWorker />
           {/* Inside the bench, because queueing a reading is a bench
               job like any other; above the router, because that is the
               whole point of it. A player mounted under a route would
