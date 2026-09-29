@@ -173,6 +173,8 @@ Show a picture where seeing the thing helps: find it with find_pictures rather t
 
 Keep what is worth keeping: a mark when a passage should be findable again, a card when something should be asked again in a week. Do it rather than offering to. Propose a topic only when the conversation has genuinely opened one the map does not hold, and search first.
 
+When the map already holds a topic on what they asked, that is a pointer, never the answer. Answer the question first, in full, as though the map were empty; then say they have a topic on it and link it, on its name, with the address search_map gave you -- for example: "Pinecone is a hosted vector database: it stores embeddings and finds the nearest ones to a query. You already have a topic on [Vector Databases](/topics/…) -- worth a look if you want to go further." Link only a topic search_map returned; never write a topic address from memory.
+
 ${blockPromptSection()}`
 }
 
@@ -212,6 +214,9 @@ export async function askTurn(input: {
   const writes: AgentWrite[] = []
   let text = ''
   let drawn = false
+  // Every topic search_map handed back this turn: the only ones the
+  // answer may link to.
+  const mapped = new Set<string>()
 
   for (let round = 0; round < ROUNDS; round++) {
     const reply = await getClient().messages.create({
@@ -308,9 +313,10 @@ export async function askTurn(input: {
           }
         } else if (call.name === 'search_map') {
           const found = await deps.searchMap(toolText(given, 'query'))
+          for (const t of found) mapped.add(t.id)
           say(
             found.length
-              ? found.map(t => `${t.name} (${t.id})`).join('\n')
+              ? found.map(t => `${t.name} -- link as [${t.name}](${topicHref(t.id)})`).join('\n')
               : 'Nothing in the map matches.'
           )
         } else {
@@ -339,7 +345,27 @@ export async function askTurn(input: {
       : 'I ran out of room before writing an answer. Ask again.'
   }
 
-  return { text, proposals, writes }
+  return { text: unlinkUnknownTopics(text, mapped), proposals, writes }
+}
+
+/** Where a topic is read on the web. */
+function topicHref(id: string): string {
+  return `/topics/${id}`
+}
+
+const TOPIC_LINK = /\[([^\]]+)\]\(\/topics\/([^)\s]+)\)/g
+
+/**
+ * Keep a link to a topic only where search_map found it.
+ *
+ * A model asked to link will sometimes write an address it half
+ * remembers, and a link that lands on *not found* is worse than a name
+ * printed plainly. The name stays; only the address goes.
+ */
+export function unlinkUnknownTopics(text: string, known: Set<string>): string {
+  return text.replace(TOPIC_LINK, (whole, name: string, id: string) =>
+    known.has(id) ? whole : name
+  )
 }
 
 export { READ_CEILING }

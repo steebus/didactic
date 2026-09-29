@@ -323,3 +323,45 @@ describe('pictures in a conversation', () => {
     expect(told()).toContain('One drawing an answer')
   })
 })
+
+describe('pointing at a topic the map already holds', () => {
+  const ask = async (d: AskDeps) => {
+    const { askTurn } = await import('@/lib/llm/ask')
+    return askTurn({
+      context: { route: 'lesson', quote: 'Pinecone' },
+      history: [],
+      message: 'What is pinecone',
+      deps: d,
+    })
+  }
+
+  it('hands the model an address to link, and keeps the link it writes', async () => {
+    const searchMap = vi.fn(async () => [{ id: 't-vec', name: 'Vector Databases' }])
+    create
+      .mockResolvedValueOnce(callingTool('search_map', { query: 'vector' }))
+      .mockResolvedValueOnce(
+        answering('Pinecone is a hosted vector database. You already have a topic on [Vector Databases](/topics/t-vec).')
+      )
+
+    const turn = await ask(deps({ searchMap }))
+
+    expect(JSON.stringify(create.mock.calls.at(-1)![0].messages)).toContain('[Vector Databases](/topics/t-vec)')
+    expect(turn.text).toContain('[Vector Databases](/topics/t-vec)')
+  })
+
+  it('prints the name plainly where the address was not one search_map gave', async () => {
+    create.mockResolvedValueOnce(
+      answering('Pinecone is a hosted vector database. See [Vector Databases](/topics/made-up).')
+    )
+
+    const turn = await ask(deps())
+
+    expect(turn.text).toBe('Pinecone is a hosted vector database. See Vector Databases.')
+  })
+
+  it('tells the model to answer first and point second', async () => {
+    create.mockResolvedValueOnce(answering('Pinecone is a vector database.'))
+    await ask(deps())
+    expect(create.mock.calls[0][0].system).toContain('that is a pointer, never the answer')
+  })
+})
