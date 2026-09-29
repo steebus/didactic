@@ -6,6 +6,7 @@ import type {
   ResourceStatus,
 } from '@didactic/core/types'
 import type { ResourceReading } from '@didactic/core/shapes'
+import type { IngestProgress } from '@didactic/core/ingestProgress'
 
 export interface AddResource {
   kind: ResourceKind
@@ -64,6 +65,9 @@ export const resources = (api: Api) => ({
    *  first ask (053). Marks and summaries come with it in `written`. */
   reading: (id: string) => api.get<ResourceReading>(`/api/resources/${id}/reading`),
   add: (body: AddResource) => api.post<Filed>('/api/resources', body),
+  /** How the reading of it is going: each step passed and every topic
+   *  filed so far. Polled by the send sheet until the job settles. */
+  progress: (id: string) => api.get<IngestProgress>(`/api/resources/${id}/progress`),
 
   /**
    * The one multipart route. `consumed` marks a PDF as evidence of

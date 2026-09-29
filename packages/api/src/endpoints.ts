@@ -143,6 +143,7 @@ export const ENDPOINTS = {
   /* summaries — a mark of kind 'summary', one per section; the first of
      a section writes the same light exposure a note does */
   'resources.reading': { name: 'resources.reading', method: 'GET', path: '/api/resources/[id]/reading', invalidates: [] },
+  'resources.progress': { name: 'resources.progress', method: 'GET', path: '/api/resources/[id]/progress', invalidates: [] },
   'summaries.list': { name: 'summaries.list', method: 'GET', path: '/api/summaries', invalidates: [] },
   'summaries.save': { name: 'summaries.save', method: 'POST', path: '/api/summaries', invalidates: MARKS },
   'summaries.remove': { name: 'summaries.remove', method: 'DELETE', path: '/api/summaries', invalidates: MARKS },

@@ -5,6 +5,13 @@ import Link from 'next/link'
 import { didactic } from '@didactic/api'
 import { kindLabel, type Shared } from '@didactic/core/shared'
 import { urlTitle } from '@didactic/core/titles'
+import {
+  isSettled,
+  progressNow,
+  stepLine,
+  type IngestProgress,
+  type TimedStep,
+} from '@didactic/core/ingestProgress'
 import styles from './page.module.css'
 
 const api = didactic()
@@ -78,6 +85,7 @@ export function SendSheet({
             <Link href={`/resources/${state.id}`}>Open it</Link>
             <Link href="/inbox">The inbox</Link>
           </p>
+          {!popup && <Reading id={state.id} />}
         </>
       )}
 
@@ -92,6 +100,137 @@ export function SendSheet({
         </>
       )}
     </section>
+  )
+}
+
+/** How often the reading is asked after while it runs. */
+const POLL_MS = 1500
+
+/** When the sheet stops asking. A reading that has not settled by now is
+ *  being retried or read in rounds, and the inbox is where to watch it. */
+const GIVE_UP_MS = 4 * 60_000
+
+/**
+ * The reading, as it happens: each step the worker has passed, what the
+ * model said of the piece, and each topic it is filed against as it
+ * arrives (`core/ingestProgress`).
+ *
+ * Polled rather than pushed: the job is worked in another function, and
+ * a row read every second and a half for the half-minute a reading takes
+ * is cheaper than a channel held open for it. Something already filed
+ * settles on the first answer, and says where it went.
+ */
+function Reading({ id }: { id: string }) {
+  const [progress, setProgress] = useState<IngestProgress | null>(null)
+  const [stale, setStale] = useState(false)
+
+  useEffect(() => {
+    let live = true
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const started = Date.now()
+
+    async function ask() {
+      const { ok, body } = await api.resources.progress(id)
+      if (!live) return
+      if (ok) setProgress(body)
+      if (ok && isSettled(body)) return
+      if (Date.now() - started > GIVE_UP_MS) {
+        setStale(true)
+        return
+      }
+      timer = setTimeout(() => void ask(), POLL_MS)
+    }
+
+    void ask()
+    return () => {
+      live = false
+      if (timer) clearTimeout(timer)
+    }
+  }, [id])
+
+  if (!progress) return null
+
+  const settled = isSettled(progress)
+  const now = progressNow(progress)
+  const first = progress.steps[0] ? Date.parse(progress.steps[0].at) : null
+  // A resource read before there were steps to keep, or filed again:
+  // the summary it already has stands in for the reading.
+  const summary = progress.steps.some(s => s.kind === 'read') ? null : progress.summary
+
+  return (
+    <div className={styles.reading}>
+      {progress.steps.length > 0 && (
+        <section>
+          <h2 className={styles.label}>The reading</h2>
+          <ol className={styles.steps}>
+            {progress.steps.map((step, i) => (
+              <Step
+                key={`${step.at}-${i}`}
+                step={step}
+                since={first}
+                current={!settled && i === progress.steps.length - 1}
+              />
+            ))}
+          </ol>
+        </section>
+      )}
+
+      {summary && <p className={styles.aside}>{summary}</p>}
+
+      {now && <p className={styles.said}>{now}</p>}
+      {!settled && !now && progress.steps.length === 0 && (
+        <p className={styles.said}>Starting the reading…</p>
+      )}
+      {progress.job?.error && progress.job.state !== 'done' && (
+        <p className={progress.job.state === 'failed' ? styles.problem : styles.why}>
+          {progress.job.error}
+        </p>
+      )}
+      {stale && (
+        <p className={styles.said}>Still going. The inbox shows where it has got to.</p>
+      )}
+
+      {progress.topics.length > 0 && (
+        <section>
+          <h2 className={styles.label}>Filed under</h2>
+          <ul className={styles.topics}>
+            {progress.topics.map(t => (
+              <li key={t.id} className={styles.topic}>
+                <Link href={t.state === 'pending' ? '/inbox' : `/topics/${t.id}`}>{t.title}</Link>
+                {t.state === 'pending' && <span className={styles.asked}>to ask</span>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  )
+}
+
+/** One step, with the time it was passed since the reading began. */
+function Step({ step, since, current }: { step: TimedStep; since: number | null; current: boolean }) {
+  const { line, aside } = stepLine(step)
+  const seconds = since === null ? 0 : Math.max(0, Math.round((Date.parse(step.at) - since) / 1000))
+  const concepts = step.kind === 'read' && !step.whole ? step.concepts : []
+
+  return (
+    <li className={styles.step} data-current={current || undefined}>
+      <span className={styles.when}>
+        {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}
+      </span>
+      <span className={styles.what}>
+        {line}
+        {current && <span className={styles.dots} aria-hidden="true">…</span>}
+      </span>
+      {aside && <span className={styles.aside}>{aside}</span>}
+      {concepts.length > 0 && (
+        <ul className={styles.concepts}>
+          {concepts.map(c => (
+            <li key={c.name} title={c.description ?? undefined}>{c.name}</li>
+          ))}
+        </ul>
+      )}
+    </li>
   )
 }
 

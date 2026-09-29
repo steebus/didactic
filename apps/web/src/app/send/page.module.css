@@ -109,3 +109,162 @@
   font-size: var(--step--1);
   color: var(--ink-faint);
 }
+
+/* The reading, as it happens: each step on its own line with the time it
+   was passed, what the model said set under it in the display italic,
+   and the topics it is filed under arriving one by one below. The steps
+   are the information; the one moving thing is the current step's
+   ellipsis. */
+.reading {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--rule);
+}
+
+.reading section {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.label {
+  margin: 0;
+  font-family: inherit;
+  font-size: var(--step--2);
+  font-weight: normal;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.steps {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: grid;
+  grid-template-columns: 3.25rem 1fr;
+  column-gap: var(--space-3);
+  row-gap: var(--space-1);
+  animation: arrive var(--dur-state) var(--ease-settle) both;
+}
+
+.step > :not(.when) {
+  grid-column: 2;
+}
+
+.when {
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+  padding-top: 0.15em;
+}
+
+.what {
+  color: var(--ink);
+}
+
+.step:not([data-current]) .what {
+  color: var(--ink-soft);
+}
+
+.step[data-current] .when {
+  color: var(--plate-mustard);
+}
+
+.dots {
+  display: inline-block;
+  margin-left: 0.1em;
+  animation: breathe 1.2s ease-in-out infinite;
+}
+
+.aside {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+
+.why {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+  overflow-wrap: anywhere;
+}
+
+.concepts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+}
+
+.concepts li::before {
+  content: '·';
+  margin-right: var(--space-1);
+}
+
+.topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each topic arrives as its own small plate: keyed by id, so only the
+   one just filed plays the entrance. */
+.topic {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--plate-green);
+  animation: arrive var(--dur-settle) var(--ease-settle) both;
+}
+
+.topic a {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.topic a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+}
+
+.topic:has(.asked) {
+  border-left-color: var(--plate-mustard);
+}
+
+.asked {
+  font-size: var(--step--2);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(calc(0.25rem * var(--motion-travel)));
+  }
+}
+
+@keyframes breathe {
+  50% {
+    opacity: 0.25;
+  }
+}

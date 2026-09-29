@@ -20,6 +20,16 @@ import { extractFromHtml } from './extract/url'
 import { readMedia } from './extract/media'
 import { articleBody, keepBody } from './resourceBody'
 import { readDocumentRound } from './document'
+import { progressLog, wordsIn } from './ingestProgress'
+
+/** The host a page is fetched from, for the line that says so. */
+const hostOf = (url: string) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch {
+    return 'the web'
+  }
+}
 
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -73,6 +83,10 @@ export async function ingestResource(
     .from('resources').select('*').eq('id', resourceId).single()
   if (error) throw error
 
+  // What this attempt does, kept on the job for the send sheet to print
+  // as it happens (068). Never fatal.
+  const note = progressLog(db, resourceId)
+
   // 1. Get the text.
   let title = resource.title
   let text = resource.raw_text
@@ -85,6 +99,8 @@ export async function ingestResource(
     const round = await readDocumentRound(db, resourceId, {
       deadline: deadline ?? Date.now() + 45_000,
     })
+
+    await note({ kind: 'pages', done: round.pagesDone, of: round.pageCount })
 
     if (!round.done) {
       // Put it back in the queue itself. The worker deletes the message
@@ -129,9 +145,11 @@ export async function ingestResource(
     if (media) {
       // A video or a post: read by the door each one keeps open, and
       // what it said kept as the reader's copy, printed under the player.
+      await note({ kind: 'fetching', from: hostOf(resource.url) })
       const read = await readMedia(media, resource.url)
       title = read.title
       text = read.text
+      await note({ kind: 'fetched', words: wordsIn(text), title: read.title ?? null })
       if (isPlaceholderTitle(resource.title, resource.url)) {
         await db.from('resources').update({ title: read.title }).eq('id', resourceId)
       }
@@ -143,11 +161,17 @@ export async function ingestResource(
         }
       }
     } else if (resource.kind === 'article' && resource.url) {
+      await note({ kind: 'fetching', from: hostOf(resource.url) })
       const res = await fetch(resource.url, { headers: { 'user-agent': 'didactic/1.0' } })
       if (!res.ok) throw new Error(`ingest: fetch failed ${res.status}`)
       const extracted = extractFromHtml(await res.text(), resource.url)
       title = extracted.title
       text = extracted.text
+      await note({
+        kind: 'fetched',
+        words: wordsIn(text),
+        title: isPlaceholderTitle(extracted.title, resource.url) ? null : extracted.title.trim(),
+      })
 
       // The page's own title, kept. It was read here and used for the
       // reading and never written back, so every article went on being
@@ -189,9 +213,16 @@ export async function ingestResource(
   // concept it touches (`core/whole`); the reader's say, where they
   // gave one (060), overrules the reading either way.
   const filing = asFiling(resource.filing)
+  await note({ kind: 'reading', words: wordsIn(text) })
   const read = await extractConcepts(title, text, filing)
   const { summary, why } = read
   const concepts = conceptsToFile(read.concepts, read.whole, filing)
+  await note({
+    kind: 'read',
+    summary: summary ?? null,
+    whole: read.whole?.name ?? null,
+    concepts: concepts.map(c => ({ name: c.name, description: c.description ?? null })),
+  })
 
   // About one thing, and already filed under the one the reader named
   // when they added it from a topic sheet: that is the one thing. The
@@ -203,6 +234,7 @@ export async function ingestResource(
       .eq('resource_id', resourceId)
     if ((count ?? 0) > 0) {
       await db.from('resources').update({ summary: summary ?? resource.summary ?? null }).eq('id', resourceId)
+      await note({ kind: 'kept' })
       return { linked: 0, created: 0, pending: 0 }
     }
   }
@@ -226,6 +258,7 @@ export async function ingestResource(
   }
 
   // 3. Resolve each against the graph: first by name, then by reading.
+  await note({ kind: 'placing', count: concepts.length })
   const searched: Array<{
     concept: (typeof concepts)[number]
     vector: number[]
@@ -324,6 +357,13 @@ export async function ingestResource(
     title: c.out_title,
   }))
 
+  await note({
+    kind: 'placed',
+    linked: (existingTopics ?? []).map(t => t.title as string),
+    created: newTopics.filter(t => t.state === 'active').map(t => t.title as string),
+    asked: newTopics.filter(t => t.state === 'pending').map(t => t.title as string),
+  })
+
   // 4b. What the reading said about each topic it queued, so the queue
   // asks about the pair it was unsure of rather than the nearest title.
   // The commit hands the new topics back in the order they were sent;
@@ -372,6 +412,7 @@ export async function ingestResource(
         `Filed nothing from the bed: ${e instanceof Error ? e.message : String(e)}`
       )
     }
+    await note({ kind: 'connected', edges: edges.length, bedded: filedByBed })
   }
 
   // 6. Status stays 'queued'. Filing is not reading.
