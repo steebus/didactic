@@ -235,3 +235,33 @@
   flex-wrap: wrap;
   align-items: baseline;
 }
+
+/* --- Reminders on this phone ------------------------------------- */
+
+/* The foot of the garden, under a rule: a setting, not part of the
+   tending, so it is set in the quiet register and never competes with
+   the card. */
+.reminders {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--rule);
+  max-width: 60ch;
+}
+
+.remindersTitle {
+  margin: 0;
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  font-weight: normal;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.remindersNote {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}

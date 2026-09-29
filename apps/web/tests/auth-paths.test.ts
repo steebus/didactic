@@ -16,6 +16,7 @@ describe('isOpenPath', () => {
     expect(isOpenPath('/_next/static/chunk.js')).toBe(true)
     expect(isOpenPath('/icon.png')).toBe(true)
     expect(isOpenPath('/manifest.webmanifest')).toBe(true)
+    expect(isOpenPath('/sw.js')).toBe(true)
   })
 
   it('closes everything the catalogue is made of', () => {

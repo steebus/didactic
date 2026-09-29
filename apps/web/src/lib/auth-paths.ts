@@ -27,6 +27,10 @@ const OPEN = [
   // cookies, so behind the gate the app could never be installed -- and
   // installing it is what puts it in a phone's share sheet.
   '/manifest.webmanifest',
+  // The service worker that shows Tend reminders. The browser checks it
+  // for updates on its own schedule, and a gate would hand it the
+  // sign-in sheet, which would fail to register. It holds nothing.
+  '/sw.js',
 ]
 
 export function isOpenPath(pathname: string): boolean {

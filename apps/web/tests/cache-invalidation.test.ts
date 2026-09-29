@@ -42,7 +42,11 @@ const MUTATES = /export async function (POST|PATCH|PUT|DELETE)\b/
  */
 // `ask/[id]/draw` rewrites one stored answer in a conversation, and no
 // cached reader is built from a conversation's messages.
-const NO_CACHED_READS = ['auth', 'qualify', 'upload-url', 'audio', 'ask/[id]/draw']
+//
+// `push` is Tend reminders (069): a phone's subscription, and the round
+// that sends to it (`internal/tend-push`). Neither writes anything a
+// sheet is read from.
+const NO_CACHED_READS = ['auth', 'qualify', 'upload-url', 'audio', 'ask/[id]/draw', 'push']
 
 describe('cache invalidation', () => {
   // From this file, not the working directory: vitest runs from the

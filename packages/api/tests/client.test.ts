@@ -169,6 +169,11 @@ describe('ENDPOINTS', () => {
       // Rewrites one stored answer in a conversation; nothing cached is
       // built from a conversation's messages.
       'ask.draw',
+      // Tend reminders: a phone's push subscription, which no sheet is
+      // read from.
+      'push.subscribe',
+      'push.unsubscribe',
+      'push.test',
     ])
 
     for (const [key, endpoint] of entries) {

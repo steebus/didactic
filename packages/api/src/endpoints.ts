@@ -144,6 +144,10 @@ export const ENDPOINTS = {
      a section writes the same light exposure a note does */
   'resources.reading': { name: 'resources.reading', method: 'GET', path: '/api/resources/[id]/reading', invalidates: [] },
   'resources.progress': { name: 'resources.progress', method: 'GET', path: '/api/resources/[id]/progress', invalidates: [] },
+  'push.key': { name: 'push.key', method: 'GET', path: '/api/push/key', invalidates: [] },
+  'push.subscribe': { name: 'push.subscribe', method: 'POST', path: '/api/push/subscribe', invalidates: [] },
+  'push.unsubscribe': { name: 'push.unsubscribe', method: 'DELETE', path: '/api/push/subscribe', invalidates: [] },
+  'push.test': { name: 'push.test', method: 'POST', path: '/api/push/test', invalidates: [] },
   'summaries.list': { name: 'summaries.list', method: 'GET', path: '/api/summaries', invalidates: [] },
   'summaries.save': { name: 'summaries.save', method: 'POST', path: '/api/summaries', invalidates: MARKS },
   'summaries.remove': { name: 'summaries.remove', method: 'DELETE', path: '/api/summaries', invalidates: MARKS },

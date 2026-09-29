@@ -25,6 +25,7 @@ import { home } from './home'
 import { inbox } from './inbox'
 import { lessons } from './lessons'
 import { mentions } from './mentions'
+import { push } from './push'
 import { refresher } from './refresher'
 import { resources } from './resources'
 import { settings } from './settings'
@@ -60,6 +61,7 @@ export type { BookmarkIn } from './bookmarks'
 export type { DiaryExposure } from './diary'
 export type { ClozeEdit, ClozeScope, NewCloze, SownClozes, Tended } from './clozes'
 export type { PriorResource, Refresher } from './refresher'
+export type { PushSubscriptionIn } from './push'
 
 /** Every endpoint, grouped as `ARCHITECTURE.md` §4 lays them out. */
 export function didactic(options: ApiOptions = {}) {
@@ -78,6 +80,7 @@ export function didactic(options: ApiOptions = {}) {
     inbox: inbox(api),
     lessons: lessons(api),
     mentions: mentions(api),
+    push: push(api),
     refresher: refresher(api),
     resources: resources(api),
     settings: settings(api),

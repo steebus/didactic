@@ -1,6 +1,7 @@
 import { requireOwner } from '@/lib/auth'
 import { SheetNav } from '@/components/SheetNav'
 import { TendSheet } from './TendSheet'
+import { TendReminders } from './TendReminders'
 import styles from './page.module.css'
 
 /**
@@ -44,6 +45,7 @@ export default async function TendPage({
           lessonId={params.lesson ?? null}
           random={params.mode === 'random'}
         />
+        <TendReminders />
       </div>
     </main>
   )
