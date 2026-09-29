@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { NO_THINKING } from './thinking'
 import { toolText } from './toolInput'
 import { blockPromptSection } from '@didactic/core/blocks'
-import { contextPreamble, type AskContext, type Proposal, type AgentWrite } from '@didactic/core/ask'
+import { contextPreamble, toolStage, type AskContext, type AskStage, type Proposal, type AgentWrite } from '@didactic/core/ask'
 
 /**
  * The agent a reader talks to from the corner of the page.
@@ -191,8 +191,10 @@ export async function askTurn(input: {
   history: Array<{ role: 'user' | 'assistant'; content: string }>
   message: string
   deps: AskDeps
+  /** Told as each step starts, for the panel's working line. */
+  onStage?: (stage: AskStage) => void
 }): Promise<AskTurn> {
-  const { context, history, message, deps } = input
+  const { context, history, message, deps, onStage } = input
 
   const messages: Anthropic.MessageParam[] = []
 
@@ -219,6 +221,7 @@ export async function askTurn(input: {
   const mapped = new Set<string>()
 
   for (let round = 0; round < ROUNDS; round++) {
+    onStage?.(round === 0 ? 'thinking' : 'reconsidering')
     const reply = await getClient().messages.create({
       model: 'claude-sonnet-5',
       max_tokens: MAX_TOKENS,
@@ -252,6 +255,8 @@ export async function askTurn(input: {
       const given: unknown = call.input ?? {}
       const say = (content: string) =>
         results.push({ type: 'tool_result', tool_use_id: call.id, content })
+      const stage = toolStage(call.name)
+      if (stage) onStage?.(stage)
 
       try {
         if (call.name === 'add_mark') {

@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { didactic } from '@didactic/api'
-import { acceptedSentence } from '@didactic/core/ask'
-import type { AskContext, Proposal, AgentWrite } from '@didactic/core/ask'
+import { acceptedSentence, stageLine } from '@didactic/core/ask'
+import type { AskContext, AskStage, Proposal, AgentWrite } from '@didactic/core/ask'
 import { Prose } from './Prose'
 import styles from './Ask.module.css'
 
@@ -56,6 +56,9 @@ export function AskPanel({
   const [undone, setUndone] = useState<Set<string>>(new Set())
   const [folded, setFolded] = useState(false)
   const [drawing, setDrawing] = useState(false)
+  // Where the turn has got to, as the route reports it: one line,
+  // rewritten in place, never a log.
+  const [stage, setStage] = useState<AskStage | null>(null)
   // Adding to the lesson: the button says so while it is written, the
   // panel leaves, and only then does the lesson show what went in.
   const [folding, setFolding] = useState(false)
@@ -113,7 +116,9 @@ export function AskPanel({
     setDraft('')
     setLines(l => [...l, { role: 'user', content: message }])
     setBusy(true)
-    const { ok, body } = await api.ask.say({ conversationId, message, context })
+    setStage('thinking')
+    const { ok, body } = await api.ask.sayLive({ conversationId, message, context }, setStage)
+    setStage(null)
     if (ok) {
       setConversationId(body.conversationId)
       setLines(l => [
@@ -274,7 +279,7 @@ export function AskPanel({
           </div>
         ))}
 
-        {busy && <p className={styles.thinking}>{drawing ? 'Drawing the picture…' : 'Thinking…'}</p>}
+        {busy && <p className={styles.thinking} role="status">{drawing ? 'Drawing the picture…' : stageLine(stage)}</p>}
       </div>
 
       <div className={styles.composer}>

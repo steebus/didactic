@@ -6,7 +6,7 @@ import { readChats } from '@/lib/chats'
 import { searchCommons, settlePictures } from '@/lib/pictures'
 import { drawingOn } from '@/lib/features'
 import { pendingDrawings } from '@didactic/core/pictures'
-import { isAskContext } from '@didactic/core/ask'
+import { isAskContext, type AskStage } from '@didactic/core/ask'
 import { headingLines } from '@didactic/core/sections'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
@@ -53,6 +53,9 @@ const HISTORY_KEPT = 20
  * reason: a field posted from a browser is whatever the poster sends.
  */
 const MESSAGE_MAX = 4000
+
+/** What a caller sends in `Accept` to have the stages streamed. */
+const STREAMED = 'application/x-ndjson'
 
 export async function POST(req: Request) {
   const userId = await ownerId()
@@ -221,59 +224,102 @@ export async function POST(req: Request) {
     drawing,
   }
 
-  let turn
-  try {
-    turn = await askTurn({ context, history, message, deps })
-  } catch (e) {
-    // No key, no gateway, or a call that failed. The conversation is
-    // kept and says so, rather than the reader losing what they typed --
-    // the same posture `settleWithReading` takes in falling back.
+  // Set on both arms above; a closure cannot see that it was.
+  const conversation = id as string
+
+  /* The rest of the turn, told where it has got to as it goes. What it
+     answers with is the same body either way; only how it travels
+     differs. */
+  const answer = async (onStage: (stage: AskStage) => void) => {
+    let turn
+    try {
+      turn = await askTurn({ context, history, message, deps, onStage })
+    } catch (e) {
+      // No key, no gateway, or a call that failed. The conversation is
+      // kept and says so, rather than the reader losing what they typed --
+      // the same posture `settleWithReading` takes in falling back.
+      await db.from('messages').insert([
+        { conversation_id: conversation, role: 'user', content: message },
+        { conversation_id: conversation, role: 'assistant', content: UNREACHABLE },
+      ])
+      return {
+        conversationId: conversation,
+        text: UNREACHABLE,
+        proposals: [],
+        writes: [],
+        warning: e instanceof Error ? e.message : 'the model could not be reached',
+      }
+    }
+
+    /* Every picture in the answer, settled before it is kept, exactly as a
+       lesson's are: a Commons name looked up to where the file really is
+       (and at a width a sheet needs), anything that cannot be found taken
+       out. The agent is told to search first; this is what holds when it
+       remembers instead. A fold carries these addresses into the lesson. */
+    if (/```picture/.test(turn.text)) onStage('checking-pictures')
+    const settled = await settlePictures(turn.text, { keepCommissions: drawing })
+    turn = { ...turn, text: settled.text.trim() || turn.text }
+    // A picture the agent asked to have drawn is left in as a commission,
+    // printing nothing, and the panel comes back for it at `[id]/draw`.
+    const toDraw = drawing ? pendingDrawings(turn.text).length : 0
+
     await db.from('messages').insert([
-      { conversation_id: id, role: 'user', content: message },
-      { conversation_id: id, role: 'assistant', content: UNREACHABLE },
+      { conversation_id: conversation, role: 'user', content: message },
+      {
+        conversation_id: conversation,
+        role: 'assistant',
+        // Never empty: `messages.content` is `not null` but '' satisfies
+        // that, and a stored blank is what the history filter above exists
+        // to survive. Belt and braces, because the cost of one is a
+        // conversation that can never be spoken to again.
+        content: turn.text || 'I could not find an answer to that. Ask again.',
+        proposals: [...turn.proposals, ...turn.writes],
+      },
     ])
-    return NextResponse.json({
-      conversationId: id,
-      text: UNREACHABLE,
-      proposals: [],
-      writes: [],
-      warning: e instanceof Error ? e.message : 'the model could not be reached',
-    })
+
+    if (turn.writes.length) dropCache()
+
+    return {
+      conversationId: conversation,
+      text: turn.text,
+      proposals: turn.proposals,
+      writes: turn.writes,
+      ...(toDraw ? { drawing: toDraw } : {}),
+    }
   }
 
-  /* Every picture in the answer, settled before it is kept, exactly as a
-     lesson's are: a Commons name looked up to where the file really is
-     (and at a width a sheet needs), anything that cannot be found taken
-     out. The agent is told to search first; this is what holds when it
-     remembers instead. A fold carries these addresses into the lesson. */
-  const settled = await settlePictures(turn.text, { keepCommissions: drawing })
-  turn = { ...turn, text: settled.text.trim() || turn.text }
-  // A picture the agent asked to have drawn is left in as a commission,
-  // printing nothing, and the panel comes back for it at `[id]/draw`.
-  const toDraw = drawing ? pendingDrawings(turn.text).length : 0
+  // A caller that did not ask for the stages gets the one JSON body it
+  // always got: an older client never meets a stream.
+  if (!req.headers.get('accept')?.includes(STREAMED)) {
+    return NextResponse.json(await answer(() => {}))
+  }
 
-  await db.from('messages').insert([
-    { conversation_id: id, role: 'user', content: message },
-    {
-      conversation_id: id,
-      role: 'assistant',
-      // Never empty: `messages.content` is `not null` but '' satisfies
-      // that, and a stored blank is what the history filter above exists
-      // to survive. Belt and braces, because the cost of one is a
-      // conversation that can never be spoken to again.
-      content: turn.text || 'I could not find an answer to that. Ask again.',
-      proposals: [...turn.proposals, ...turn.writes],
+  /* One JSON object a line: `{ stage }` as each step starts, then
+     `{ done }` holding exactly the body above, or `{ error }` if the
+     turn threw past everything that catches. */
+  const encoder = new TextEncoder()
+  const stream = new ReadableStream({
+    async start(controller) {
+      let open = true
+      const send = (line: object) => {
+        if (!open) return
+        try {
+          controller.enqueue(encoder.encode(`${JSON.stringify(line)}\n`))
+        } catch {
+          // The reader went away. The turn still finishes and is kept.
+          open = false
+        }
+      }
+      try {
+        send({ done: await answer(stage => send({ stage })) })
+      } catch (e) {
+        send({ error: e instanceof Error ? e.message : 'the answer could not be finished' })
+      }
+      if (open) controller.close()
     },
-  ])
-
-  if (turn.writes.length) dropCache()
-
-  return NextResponse.json({
-    conversationId: id,
-    text: turn.text,
-    proposals: turn.proposals,
-    writes: turn.writes,
-    ...(toDraw ? { drawing: toDraw } : {}),
+  })
+  return new Response(stream, {
+    headers: { 'Content-Type': STREAMED, 'Cache-Control': 'no-store' },
   })
 }
 

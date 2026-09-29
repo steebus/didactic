@@ -403,3 +403,73 @@ export function acceptedSentence(accepted: Accepted): string {
         : 'Added to the map, filed under nothing yet.'
   }
 }
+
+/**
+ * Where a turn has got to, as the panel's one working line says it.
+ *
+ * A turn is a minute of model calls and tool calls, and "Thinking…" for
+ * the whole of it says nothing about whether anything is happening. The
+ * route streams one of these as each step starts and the line is
+ * rewritten in place -- never a log, because what the reader wants is
+ * where it is now, not where it has been.
+ *
+ * A tool is named by what it does for the reader, not by its name in
+ * the prompt: *Reading the map* rather than `search_map`.
+ */
+export type AskStage =
+  | 'thinking'
+  | 'reconsidering'
+  | 'reading-lesson'
+  | 'reading-map'
+  | 'finding-pictures'
+  | 'drawing'
+  | 'keeping-mark'
+  | 'making-card'
+  | 'offering-topic'
+  | 'checking-pictures'
+
+const STAGE_LINES: Record<AskStage, string> = {
+  thinking: 'Thinking…',
+  reconsidering: 'Thinking it over…',
+  'reading-lesson': 'Reading the lesson…',
+  'reading-map': 'Reading the map…',
+  'finding-pictures': 'Looking for a picture…',
+  drawing: 'Drawing…',
+  'keeping-mark': 'Keeping a mark…',
+  'making-card': 'Making a card…',
+  'offering-topic': 'Offering a topic…',
+  'checking-pictures': 'Checking the pictures…',
+}
+
+/** The stage a tool call is, or null for a tool this does not know. */
+export function toolStage(tool: string): AskStage | null {
+  switch (tool) {
+    case 'read_lesson':
+      return 'reading-lesson'
+    case 'search_map':
+      return 'reading-map'
+    case 'find_pictures':
+      return 'finding-pictures'
+    case 'draw_picture':
+      return 'drawing'
+    case 'add_mark':
+      return 'keeping-mark'
+    case 'add_card':
+      return 'making-card'
+    case 'propose_topic':
+      return 'offering-topic'
+    default:
+      return null
+  }
+}
+
+/** Whether a value off the wire is a stage this build knows. A newer
+ *  server may name one an older client has never heard of. */
+export function isAskStage(value: unknown): value is AskStage {
+  return typeof value === 'string' && value in STAGE_LINES
+}
+
+/** The working line for a stage. Anything unknown reads as thinking. */
+export function stageLine(stage: AskStage | null | undefined): string {
+  return (stage && STAGE_LINES[stage]) || STAGE_LINES.thinking
+}

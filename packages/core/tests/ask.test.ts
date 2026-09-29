@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isAskContext, contextPreamble, foldInto, groupChats, askOrigin, chatLine } from '../src/ask'
+import { isAskContext, contextPreamble, foldInto, groupChats, askOrigin, chatLine, stageLine, toolStage, isAskStage } from '../src/ask'
 
 describe('an ask context', () => {
   it('accepts the shape the panel sends', () => {
@@ -338,5 +338,23 @@ describe('chatLine', () => {
     expect(chatLine({ said: 6, kept: { marks: 1, cards: 2, topics: 0 }, folded: true })).toBe(
       '3 questions · 1 mark · 2 cards · in the lesson'
     )
+  })
+})
+
+describe('the working line', () => {
+  it('names each tool by what it does for the reader', () => {
+    expect(stageLine(toolStage('search_map'))).toBe('Reading the map…')
+    expect(stageLine(toolStage('draw_picture'))).toBe('Drawing…')
+    expect(stageLine(toolStage('read_lesson'))).toBe('Reading the lesson…')
+  })
+
+  it('knows no stage for a tool it has never heard of', () => {
+    expect(toolStage('launch_rockets')).toBeNull()
+  })
+
+  it('says thinking for nothing, or for a stage a newer server invented', () => {
+    expect(stageLine(null)).toBe('Thinking…')
+    expect(isAskStage('juggling')).toBe(false)
+    expect(isAskStage('reading-map')).toBe(true)
   })
 })

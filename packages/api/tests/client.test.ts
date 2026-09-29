@@ -198,3 +198,54 @@ describe('ENDPOINTS', () => {
     expect(invalidatedBy('home.read')).toEqual([])
   })
 })
+
+describe('an answer given a line at a time', () => {
+  /** A body that arrives in the pieces given, cut wherever they are cut. */
+  function streamed(pieces: string[]) {
+    const encoder = new TextEncoder()
+    const body = new ReadableStream({
+      start(c) {
+        for (const p of pieces) c.enqueue(encoder.encode(p))
+        c.close()
+      },
+    })
+    return vi.fn().mockResolvedValue(
+      new Response(body, { status: 200, headers: { 'Content-Type': 'application/x-ndjson' } })
+    )
+  }
+
+  it('hands over each stage as it lands and answers with the last line', async () => {
+    const fetchMock = streamed([
+      '{"stage":"thinking"}\n{"sta',
+      'ge":"reading-map"}\n{"stage":"juggling"}\n',
+      '{"done":{"conversationId":"c1","text":"Hi","proposals":[],"writes":[]}}\n',
+    ])
+    globalThis.fetch = fetchMock
+    const stages: string[] = []
+
+    const result = await didactic().ask.sayLive(
+      { message: 'what is pinecone', context: { route: 'other' } },
+      s => stages.push(s)
+    )
+
+    expect((fetchMock.mock.calls[0][1] as RequestInit).headers).toMatchObject({ Accept: 'application/x-ndjson' })
+    // A stage this build has never heard of is passed over.
+    expect(stages).toEqual(['thinking', 'reading-map'])
+    expect(result.ok).toBe(true)
+    expect(result.body.text).toBe('Hi')
+  })
+
+  it('reads an ordinary JSON answer the way post does', async () => {
+    globalThis.fetch = respond({ error: 'not signed in' }, { status: 401 })
+    const result = await didactic().ask.sayLive({ message: 'x', context: { route: 'other' } }, () => {})
+    expect(result.ok).toBe(false)
+    expect(result.error).toBe('not signed in')
+  })
+
+  it('says so when the lines stop before an answer', async () => {
+    globalThis.fetch = streamed(['{"stage":"thinking"}\n'])
+    const result = await didactic().ask.sayLive({ message: 'x', context: { route: 'other' } }, () => {})
+    expect(result.ok).toBe(false)
+    expect(result.error).toMatch(/stopped before it finished/)
+  })
+})

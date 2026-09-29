@@ -44,13 +44,28 @@ export interface Api {
   del<T>(path: string, body?: unknown): Promise<Result<T>>
   /** Multipart, for the one route that takes a file. */
   upload<T>(path: string, form: FormData): Promise<Result<T>>
+  /**
+   * A POST whose answer arrives a line at a time: every line but the
+   * last is handed to `onLine` as it lands, and the last -- `{ done }`
+   * or `{ error }` -- is the result. A server that answers with one
+   * ordinary JSON body instead is read exactly as `post` reads it.
+   */
+  postLines<T>(path: string, body: unknown, onLine: (line: unknown) => void): Promise<Result<T>>
 }
+
+/** What a caller sends in `Accept` to be answered a line at a time. */
+export const LINES = 'application/x-ndjson'
 
 export function createApi({ baseUrl = '', headers }: ApiOptions = {}): Api {
   async function send<T>(
     method: string,
     path: string,
-    init: { body?: FormData; json?: unknown; query?: Record<string, string | number | undefined> } = {}
+    init: {
+      body?: FormData
+      json?: unknown
+      query?: Record<string, string | number | undefined>
+      onLine?: (line: unknown) => void
+    } = {}
   ): Promise<Result<T>> {
     const url = new URL(`${baseUrl}${path}`, baseUrl || 'http://localhost')
     for (const [key, value] of Object.entries(init.query ?? {})) {
@@ -63,6 +78,7 @@ export function createApi({ baseUrl = '', headers }: ApiOptions = {}): Api {
     // here would replace it with one that has none, and the server
     // would read the parts as a single unparseable blob.
     if (init.json !== undefined) sent['Content-Type'] = 'application/json'
+    if (init.onLine) sent.Accept = LINES
 
     let res: Response
     try {
@@ -86,6 +102,9 @@ export function createApi({ baseUrl = '', headers }: ApiOptions = {}): Api {
       }
     }
 
+    if (init.onLine && res.headers.get('content-type')?.includes(LINES)) {
+      return readLines<T>(res, init.onLine)
+    }
     return readJson<T>(res) as Promise<Result<T>>
   }
 
@@ -95,5 +114,67 @@ export function createApi({ baseUrl = '', headers }: ApiOptions = {}): Api {
     patch: (path, body) => send('PATCH', path, { json: body ?? {} }),
     del: (path, body) => send('DELETE', path, { json: body ?? {} }),
     upload: (path, form) => send('POST', path, { body: form }),
+    postLines: (path, body, onLine) => send('POST', path, { json: body ?? {}, onLine }),
+  }
+}
+
+/**
+ * Read an answer given a line at a time.
+ *
+ * Where the platform hands back no stream to read from as it arrives,
+ * the whole text is read and split instead: the lines before the last
+ * are then delivered all at once, which is late but not wrong.
+ */
+async function readLines<T>(res: Response, onLine: (line: unknown) => void): Promise<Result<T>> {
+  let end: { done?: T; error?: unknown } | null = null
+  const take = (raw: string) => {
+    if (!raw.trim()) return
+    let line: unknown
+    try {
+      line = JSON.parse(raw)
+    } catch {
+      return
+    }
+    if (line && typeof line === 'object' && ('done' in line || 'error' in line)) {
+      end = line as { done?: T; error?: unknown }
+    } else {
+      onLine(line)
+    }
+  }
+
+  try {
+    const reader = res.body?.getReader()
+    if (reader) {
+      const decoder = new TextDecoder()
+      let held = ''
+      for (;;) {
+        const { value, done } = await reader.read()
+        if (done) break
+        held += decoder.decode(value, { stream: true })
+        const lines = held.split('\n')
+        held = lines.pop() ?? ''
+        lines.forEach(take)
+      }
+      take(held + decoder.decode())
+    } else {
+      ;(await res.text()).split('\n').forEach(take)
+    }
+  } catch {
+    // The connection dropped part way. Whatever ended the answer, if
+    // anything did, is still honoured below.
+  }
+
+  const last = end as { done?: T; error?: unknown } | null
+  if (last && 'done' in last && last.done !== undefined) {
+    return { ok: true, status: res.status, body: last.done, error: null }
+  }
+  return {
+    ok: false,
+    status: res.status,
+    body: {} as T,
+    error:
+      last && typeof last.error === 'string'
+        ? last.error
+        : 'The answer stopped before it finished. Try again.',
   }
 }

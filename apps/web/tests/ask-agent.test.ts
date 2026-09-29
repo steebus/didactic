@@ -365,3 +365,24 @@ describe('pointing at a topic the map already holds', () => {
     expect(create.mock.calls[0][0].system).toContain('that is a pointer, never the answer')
   })
 })
+
+describe('the stages a turn reports', () => {
+  it('says what it is doing as each step starts', async () => {
+    const { askTurn } = await import('@/lib/llm/ask')
+    create
+      .mockResolvedValueOnce(callingTool('search_map', { query: 'vector' }))
+      .mockResolvedValueOnce(callingTool('read_lesson', {}))
+      .mockResolvedValueOnce(answering('Here.'))
+    const stages: string[] = []
+
+    await askTurn({
+      context: { route: 'lesson', entityId: 'l1' },
+      history: [],
+      message: 'what is pinecone',
+      deps: deps(),
+      onStage: s => stages.push(s),
+    })
+
+    expect(stages).toEqual(['thinking', 'reading-map', 'reconsidering', 'reading-lesson', 'reconsidering'])
+  })
+})

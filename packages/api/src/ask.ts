@@ -1,5 +1,6 @@
 import type { Api } from './client'
-import type { AskContext, Proposal, AgentWrite, Accepted, Chat, ChatSummary } from '@didactic/core/ask'
+import { isAskStage } from '@didactic/core/ask'
+import type { AskContext, AskStage, Proposal, AgentWrite, Accepted, Chat, ChatSummary } from '@didactic/core/ask'
 
 /** What a turn answers with: what to print, what is offered, and what
  *  was kept without being asked. */
@@ -32,6 +33,17 @@ export const ask = (api: Api) => ({
   /** Say something. Omitting the conversation starts one. */
   say: (body: { conversationId?: string; message: string; context: AskContext }) =>
     api.post<AskAnswer>('/api/ask', body),
+  /** `say`, told where the turn has got to as it goes: `onStage` is
+   *  called with each step as it starts, for a working line. A stage
+   *  this build does not know is passed over rather than printed. */
+  sayLive: (
+    body: { conversationId?: string; message: string; context: AskContext },
+    onStage: (stage: AskStage) => void
+  ) =>
+    api.postLines<AskAnswer>('/api/ask', body, line => {
+      const stage = (line as { stage?: unknown } | null)?.stage
+      if (isAskStage(stage)) onStage(stage)
+    }),
   /** Create a topic the agent offered. The only call here that reaches
    *  the map. */
   /** Accept a proposed topic. It is read against the map first:
