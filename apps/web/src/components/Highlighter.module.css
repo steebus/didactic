@@ -810,6 +810,36 @@
   transform: rotate(45deg);
 }
 
+/* --- The size of the reading ------------------------------------ */
+
+/* The reading drawn at the device's size (`--reading-size`, stamped on
+   the root by the layout's head script and stepped from the dial). A
+   zoom rather than a font size, because the words, the pictures and the
+   blocks round them grow together: a callout's rule and padding, a
+   table's cells, a figure narrower than the measure. The measure itself
+   holds: a width set in `ch` or `rem` would be multiplied with the rest,
+   so the prose divides its own by `--page-zoom`, which is only ever set
+   here -- a reading elsewhere in the catalogue divides by nothing. A
+   larger reading is fewer words a line, not a column running under the
+   desk. Everything the holder lays over the reading is outside this box
+   and measured against what is on the screen, so it stays put. */
+.page {
+  --page-zoom: var(--reading-size, 1);
+  zoom: var(--page-zoom);
+}
+
+/* A minus and a plus side by side, as one item of the dial. */
+.sizes {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.sizes button:disabled {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+
 /* --- The bookmark ------------------------------------------------ */
 
 /* Its press is also the handle it is dragged off, so a finger dragging

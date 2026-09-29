@@ -26,6 +26,9 @@ import { useOpenedOut } from './useOpenedOut'
 import { useBookmark, useKeptScroll } from './useReadingPlace'
 import { BookmarkIcon } from './BookmarkIcon'
 import { DialIcon } from './DialIcon'
+import { SizeIcon } from './SizeIcon'
+import { useReadingSize } from './useReadingSize'
+import { READING_SIZES } from '@didactic/core/readingSize'
 import { RemoveGate } from './RemoveGate'
 import { OPEN_SUMMARY } from './SectionSummaries'
 import { NoteText } from './NoteText'
@@ -211,6 +214,11 @@ export function Highlighter({
 
   /** The desk's buttons out of their press. Folded on every visit. */
   const [unfurled, setUnfurled] = useState(false)
+  /** The reading itself, drawn at the device's size; everything else in
+   *  the holder -- panels, stars, the ribbon -- is measured against it
+   *  and stays the size it is. */
+  const [page, setPage] = useState<HTMLDivElement | null>(null)
+  const size = useReadingSize(page)
 
   // --- Where the reader stopped ------------------------------------
 
@@ -1332,6 +1340,7 @@ export function Highlighter({
     'ask',
     'bookmark',
     awayFromTop && 'top',
+    'size',
   ].filter(Boolean) as string[]
   const from = (name: string) => items.length - 1 - items.indexOf(name)
 
@@ -1490,6 +1499,39 @@ export function Highlighter({
               <TopIcon />
             </button>
           )}
+
+          {/* The size the reading is drawn at, on this device, for every
+              lesson and resource. Nearest the press, so it is the first
+              out and the one a thumb finds without looking; stepping it
+              leaves the dial out, because a size is found in two or
+              three presses rather than one. */}
+          <div
+            {...item(from('size'))}
+            className={`${styles.dialItem} ${styles.sizes}`}
+            role="group"
+            aria-label={`Size of the ${noun}`}
+          >
+            <button
+              type="button"
+              className={`${styles.deskNote} ${styles.deskQuiet}`}
+              onClick={() => size.step(-1)}
+              disabled={size.size === READING_SIZES[0]}
+              aria-label={`Smaller ${noun}, now ${Math.round(size.size * 100)}%`}
+              title="Smaller"
+            >
+              <SizeIcon way={-1} />
+            </button>
+            <button
+              type="button"
+              className={`${styles.deskNote} ${styles.deskQuiet}`}
+              onClick={() => size.step(1)}
+              disabled={size.size === READING_SIZES[READING_SIZES.length - 1]}
+              aria-label={`Larger ${noun}, now ${Math.round(size.size * 100)}%`}
+              title="Larger"
+            >
+              <SizeIcon way={1} />
+            </button>
+          </div>
         </div>
 
         {/* The one press that stays: the rest unfurl up from it and go
@@ -1502,7 +1544,7 @@ export function Highlighter({
           onClick={() => setUnfurled(u => !u)}
           aria-expanded={unfurled}
           aria-label={unfurled ? 'Put the buttons away' : `This ${noun}'s buttons`}
-          title={unfurled ? 'Put the buttons away' : `Mark, write, ask, bookmark`}
+          title={unfurled ? 'Put the buttons away' : `Mark, write, ask, bookmark, size`}
         >
           <DialIcon />
           {!unfurled && marks.length + summaries.length > 0 && (
@@ -1550,7 +1592,9 @@ export function Highlighter({
         } as Record<string, string | undefined> as React.CSSProperties
       }
     >
-      {children}
+      <div className={styles.page} ref={setPage}>
+        {children}
+      </div>
 
       {/* The bookmark: a ribbon hanging off the sheet's left edge at the
           line it was dropped on. The words are what is kept; this is

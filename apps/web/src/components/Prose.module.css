@@ -5,7 +5,9 @@
 .prose {
   font-size: var(--step-1);
   line-height: 1.6;
-  max-width: 68ch;
+  /* Held at the screen's measure under a reader's zoom (`.page` in
+     Highlighter.module.css); 68ch anywhere else. */
+  max-width: calc(68ch / var(--page-zoom, 1));
   color: var(--ink);
 }
 

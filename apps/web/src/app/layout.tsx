@@ -7,6 +7,7 @@ import { Player } from '@/components/Player'
 import { AskButton } from '@/components/AskButton'
 import { TendNotice } from '@/components/TendNotice'
 import { SheetFoot } from '@/components/SheetFoot'
+import { READING_SIZES, READING_SIZE_KEY } from '@didactic/core/readingSize'
 
 const fraunces = Fraunces({
   subsets: ['latin'],
@@ -54,17 +55,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             __html: `try{var t=localStorage.getItem('didactic-theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}`,
           }}
         />
-        {/* Size the paper tooth in whole device pixels (see --tooth-px
-            in globals.css). Browser zoom changes devicePixelRatio, so
-            the value is restamped each time the ratio it was measured
-            at stops matching. Rounded to the nearest whole multiple,
-            so a retina screen keeps its two-pixel thread and 110% on
-            either keeps the one it had at 100%. Before paint for the
-            same reason the theme is: a tooth that settles after the
-            first frame is a shimmer across the whole sheet. */}
+        {/* The size this device reads lessons and resources at (see
+            `useReadingSize`), before the first paint for the reason the
+            theme is: a reading that settles at its size a moment after
+            it arrives jumps under the reader's eye. Only a figure that
+            is one of the steps is taken; anything else is as set. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{(function s(){var d=window.devicePixelRatio||1;document.documentElement.style.setProperty('--tooth-px',Math.max(1,Math.round(d))/d+'px');matchMedia('(resolution: '+d+'dppx)').addEventListener('change',s,{once:true})})()}catch(e){}`,
+            __html: `try{var z=Number(localStorage.getItem(${JSON.stringify(READING_SIZE_KEY)}));if(${JSON.stringify(READING_SIZES)}.indexOf(z)>-1&&z!==1)document.documentElement.style.setProperty('--reading-size',String(z))}catch(e){}`,
           }}
         />
       </head>

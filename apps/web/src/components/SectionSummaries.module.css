@@ -171,11 +171,17 @@
   display: none;
 }
 
+/* A summary is set into the prose, which is drawn at the reader's size
+   (`.page` in Highlighter.module.css); the margin is not. What stands in
+   the margin, or opens out over the window, takes the zoom back off, so
+   it lands where the margin was measured and is the size the rest of
+   the catalogue's furniture is. */
 :global([data-margins]) .rest {
   display: block;
   position: absolute;
   right: calc(100% + var(--reach-left));
   width: min(20rem, calc(var(--margin-room) - 2 * var(--space-4)));
+  zoom: calc(1 / var(--page-zoom, 1));
   padding: 0 var(--space-4) var(--space-1) 0;
   border-bottom: 1px solid var(--rule-strong);
   /* In the reader's hand, as the marks in the other margin are. */
@@ -213,6 +219,7 @@
   z-index: 5;
   right: calc(100% + var(--reach-left) + var(--space-4));
   width: min(24rem, calc(var(--margin-room) - 2 * var(--space-4)));
+  zoom: calc(1 / var(--page-zoom, 1));
   margin: 0;
   box-shadow: 0 6px 18px rgba(var(--ink-rgb), 0.18);
 }
@@ -267,6 +274,7 @@
    the screen. The writing takes the height the rest leaves. */
 .big {
   position: fixed;
+  zoom: calc(1 / var(--page-zoom, 1));
   /* Over the running head, which is 20. */
   z-index: 21;
   inset: 0 0 0 auto;

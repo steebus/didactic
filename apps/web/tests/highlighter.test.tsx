@@ -233,7 +233,7 @@ describe('Highlighter, the two verbs a selection is offered', () => {
 
   it('offers them as one group rather than as two loose buttons', () => {
     offer()
-    const group = document.body.querySelector('[role="group"]')
+    const group = document.body.querySelector('[aria-label="What to do with this passage"]')
     expect(group).not.toBeNull()
     expect(group!.contains(pin()!)).toBe(true)
     expect(group!.contains(clozePin()!)).toBe(true)
@@ -272,7 +272,7 @@ describe('Highlighter, the two verbs a selection is offered', () => {
     act(() => {
       pin()!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
     })
-    expect(document.body.querySelector('[role="group"]')).toBeNull()
+    expect(document.body.querySelector('[aria-label="What to do with this passage"]')).toBeNull()
   })
 })
 
