@@ -16,6 +16,9 @@
   /* The band is a saturated plate, so the terracotta focus ring
      disappears into it. Controls in here state their own. */
   --focus-ink: var(--paper);
+  /* Above the sheet below, so the reminders panel draws over it. */
+  position: relative;
+  z-index: 20;
 }
 
 .headRow {
@@ -244,7 +247,7 @@
 .bellWrap {
   position: relative;
   margin-left: auto;
-  align-self: flex-start;
+  align-self: flex-end;
 }
 
 .bell {
