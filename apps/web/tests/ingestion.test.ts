@@ -193,7 +193,11 @@ describe('ingestResource', { timeout: 30_000 }, () => {
     await ingestResource(db as never, 'r1')
 
     expect(proposeEdges).toHaveBeenCalledWith(
-      [{ id: 'new-1', title: 'React Hooks' }, { id: 'new-2', title: 'CDN Distribution' }],
+      // Each carries its vector, so the edge pass can nominate by it.
+      [
+        expect.objectContaining({ id: 'new-1', title: 'React Hooks', embedding: expect.any(String) }),
+        expect.objectContaining({ id: 'new-2', title: 'CDN Distribution', embedding: expect.any(String) }),
+      ],
       expect.anything()
     )
   })

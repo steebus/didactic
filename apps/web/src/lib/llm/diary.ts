@@ -1,6 +1,6 @@
-import Anthropic from '@anthropic-ai/sdk'
-import { NO_THINKING } from './thinking'
+import { config } from '@didactic/core/config'
 import type { ExposureDepth } from '@didactic/core/types'
+import { askJev, type JevAnswer } from './jev'
 
 /**
  * Reading a diary entry back for what it says about the topics it
@@ -37,18 +37,6 @@ import type { ExposureDepth } from '@didactic/core/types'
  * cheapest way to get a bad `read` is to leave no way to say "nothing".
  */
 
-let client: Anthropic | null = null
-
-/** Constructed on first use: building the SDK at module load fails the
- *  production build on any machine without a key. */
-function getClient() {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error('diary: ANTHROPIC_API_KEY is not set')
-  }
-  client ??= new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-  return client
-}
-
 /** Well past the length of anything anyone types in one sitting. */
 const MAX_CHARS = 20_000
 
@@ -64,48 +52,35 @@ export interface Reading {
   because: string
 }
 
-const TOOL = {
-  name: 'record_reading',
-  description: 'Record what a learning diary entry shows about each topic it names.',
-  input_schema: {
-    type: 'object' as const,
-    properties: {
-      readings: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            topicId: {
-              type: 'string',
-              description: 'The id of one of the topics listed. Never anything else.',
-            },
-            verdict: {
-              type: 'string',
-              enum: [...VERDICTS],
-              description:
-                'applied: they built, shipped or used it. read: they read or studied it closely. skim: they touched it in passing. struggled: they say it is not landing or they do not understand it. mentioned: the entry names it but claims nothing about it.',
-            },
-            because: {
-              type: 'string',
-              description:
-                "A short quote from the entry, in the writer's own words, that shows this. Not a paraphrase.",
-            },
-          },
-          required: ['topicId', 'verdict', 'because'],
-        },
-      },
-    },
-    required: ['readings'],
-  },
+/** The five answers, worded to be conservative where it matters. */
+const MEANS: Record<Verdict, string> = {
+  applied:
+    'They describe actually doing it: building it, shipping it, using it in real work. Reading about how to do something is not applying it.',
+  read: 'They read or studied it closely.',
+  skim: 'They touched it in passing: an article glanced at, a talk half-watched.',
+  struggled:
+    'They say plainly that it is not landing, that they are confused, or that they cannot get it to work. Finding it hard but getting there is not struggling.',
+  mentioned:
+    'It is named in passing, or only as context for something else, and the entry claims nothing about their relationship to it.',
 }
+
+/**
+ * How many sentences a quote is chosen from: one request's worth
+ * (`jev.ts`). An entry longer than that is quoted from its opening.
+ */
+const QUOTABLE = 99
 
 /**
  * Read one entry against the topics it names.
  *
- * `topics` is what the reader tagged. Anything the model answers about
- * that is not in this list is dropped on the way back -- the tags are
- * the reader's, and a model that invented a topic would be writing
- * against something nobody pointed at.
+ * Jev rather than a generative model, for two reasons. A verdict comes back with a distribution behind it, so one it
+ * is unsure of can write nothing (`JEV_DIARY`) instead of the likeliest
+ * thing. And the quote is *chosen* from the entry's own sentences
+ * rather than written, so it cannot be a paraphrase: the model has no
+ * way to say a sentence the writer did not write.
+ *
+ * `topics` is what the reader tagged. The answer is keyed by them, so
+ * the model cannot reach a topic nobody pointed at.
  */
 export async function readEntry(
   entry: string,
@@ -114,55 +89,65 @@ export async function readEntry(
   topics: Array<{ id: string; title: string; writtenFrom?: boolean }>
 ): Promise<Reading[]> {
   if (topics.length === 0) return []
+  const text = entry.slice(0, MAX_CHARS)
 
-  const res = await getClient().messages.create({
-    model: 'claude-sonnet-5',
-    max_tokens: 2000,
-    thinking: NO_THINKING,
-    tools: [TOOL],
-    tool_choice: { type: 'tool', name: 'record_reading' },
-    messages: [
-      {
-        role: 'user',
-        content: `Below is a learning diary entry, and the topics it names. For each topic, say what the entry shows about the writer's relationship to it.
+  const answers = await askJev(
+    { entry: text },
+    Object.fromEntries(topics.map(t => [t.id, {
+      type: 'choice' as const,
+      instructions:
+        `What does \`entry\`, a learning diary entry, show about the writer's relationship to "${t.title}"?` +
+        (t.writtenFrom
+          ? ' The entry was written on the sheet for this topic, so it may be about it without naming it. If it is plainly about something else, it is mentioned.'
+          : ''),
+      criteria: MEANS,
+    }]))
+  )
 
-Be conservative. This decides figures the writer cannot edit by hand, so:
-
-- Only say "applied" if they describe actually doing the thing — building it, shipping it, using it in real work. Reading about how to do something is not applying it.
-- Only say "struggled" if they say plainly that it is not landing, that they are confused, or that they cannot get it to work. Finding something hard but getting there is not struggling.
-- Use "mentioned" freely. A topic named in passing, or named only as context for something else, gets "mentioned" and nothing is recorded against it. This is the right answer more often than not.
-- Quote the writer's own words in "because". Do not paraphrase, and do not write a sentence they did not write.
-
-${topics.some(t => !t.writtenFrom) ? `Topics named in this entry:
-${topics.filter(t => !t.writtenFrom).map(t => `- ${t.title} (id: ${t.id})`).join('\n')}
-
-` : ''}${topics.filter(t => t.writtenFrom).map(t => `The entry was written on the sheet for this topic, so it may be about it without naming it. Judge it by the same rules, and if the entry is plainly about something else it gets "mentioned":
-- ${t.title} (id: ${t.id})`).join('\n')}
-
-The entry:
-
-${entry.slice(0, MAX_CHARS)}`,
-      },
-    ],
+  const readings = topics.flatMap(t => {
+    const answer = answers[t.id]
+    if (!answer?.choice || !VERDICTS.includes(answer.choice as Verdict)) return []
+    const sure = (answer.probabilities?.[answer.choice] ?? 0) >= config.JEV_DIARY
+    return [{ topic: t, verdict: sure ? (answer.choice as Verdict) : 'mentioned' }]
   })
 
-  const tool = res.content.find(c => c.type === 'tool_use')
-  if (!tool || tool.type !== 'tool_use') throw new Error('readEntry: no structured output')
+  // The quote, only where something will be written: a question whose
+  // options are the entry's sentences, so what comes back is a sentence
+  // the writer wrote. A quote that cannot be found costs the exposure
+  // its reason, never the exposure.
+  const sentences = [...new Intl.Segmenter('en', { granularity: 'sentence' }).segment(text)]
+    .map(s => s.segment.trim())
+    .filter(Boolean)
+    // ponytail: an entry past QUOTABLE sentences is quoted from its opening; rank by the topic's name if long entries turn up.
+    .slice(0, QUOTABLE)
+  const writing = readings.filter(r => depthOf(r.verdict) !== null)
 
-  const input = tool.input as { readings: Reading[] }
-  const known = new Set(topics.map(t => t.id))
-
-  // Only topics the reader actually named, only verdicts that exist,
-  // and one reading per topic -- the last wins, which is no worse than
-  // any other rule and stops a duplicate becoming two exposures.
-  const byTopic = new Map<string, Reading>()
-  for (const r of input.readings ?? []) {
-    if (!known.has(r.topicId)) continue
-    if (!VERDICTS.includes(r.verdict)) continue
-    byTopic.set(r.topicId, { ...r, because: (r.because ?? '').trim() })
+  let quotes: Record<string, JevAnswer> = {}
+  if (sentences.length > 1 && writing.length > 0) {
+    try {
+      quotes = await askJev(
+        { entry: text },
+        Object.fromEntries(writing.map(r => [r.topic.id, {
+          type: 'choice' as const,
+          instructions: `Which one sentence of the entry best shows this about the writer and "${r.topic.title}": ${MEANS[r.verdict]}`,
+          criteria: Object.fromEntries(sentences.map((s, i) => [`s${i}`, s])),
+        }]))
+      )
+    } catch (e) {
+      console.error('diary: could not choose the quotes', e)
+    }
   }
 
-  return [...byTopic.values()]
+  return readings.map(({ topic, verdict }) => ({
+    topicId: topic.id,
+    verdict,
+    because:
+      depthOf(verdict) === null
+        ? ''
+        : sentences.length === 1
+          ? sentences[0]
+          : sentences[Number(quotes[topic.id]?.choice?.slice(1))] ?? '',
+  }))
 }
 
 /**

@@ -168,6 +168,19 @@ export const config = {
   // in whichever rounded up.
   JEV_SUBJECT: 0.25,
 
+  // What a diary verdict has to hold of its distribution before it is
+  // written. Below it the topic reads as `mentioned` and nothing is
+  // recorded: the diary moves figures the reader cannot edit by hand, so
+  // an unsure verdict writes nothing rather than the likeliest thing. A
+  // starting position from the shape of the decision, not yet from rows.
+  JEV_DIARY: 0.6,
+
+  // What a pair's relation has to hold of its distribution before it is
+  // drawn as an edge, and the weight it is drawn at. Seven options, so
+  // this is a clear winner rather than a plurality. A starting position,
+  // not yet measured.
+  JEV_EDGE: 0.5,
+
   // How many topics the embedding nominates for the reading to judge.
   //
   // `overlap.ts` shows five, on the grounds that the far end of the

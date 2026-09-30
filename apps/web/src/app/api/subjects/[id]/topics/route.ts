@@ -3,7 +3,8 @@ import { supabaseAdmin } from '@/lib/supabase'
 import { embed } from '@/lib/embedding'
 import { resolveConcept, fetchCandidates } from '@/lib/resolver'
 import { sortIntoBed, type BedTopic, type Sorted } from '@/lib/llm/filing'
-import { buildTopicTree } from '@didactic/core/subject'
+import { gatewayReachable } from '@/lib/llm/drawing'
+import { keptReading } from '@didactic/core/resolution'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -21,7 +22,7 @@ function dropCache() {
 }
 
 
-/** The resolver's similarity search, and then one model call over the
+/** The resolver's similarity search, and then Jev's reading of the
  *  bed. The same ceiling as relating a bed, for the same reason. */
 export const maxDuration = 60
 
@@ -114,7 +115,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     // A topic that already existed elsewhere arrives with its own
     // history and none of its edges into this bed. Placing it is the
     // same job as placing a new one.
-    const sorted = await sort(subject.title, resolution.topicId, title, bed, warnings)
+    const sorted = await sort(subject.title, { id: resolution.topicId, title, embedding: vector }, bed, warnings)
     const placed = await draw(db, subject.user_id, sorted)
 
     dropCache()
@@ -130,7 +131,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   // Nothing is written until the sort has had its say, because what it
   // says can change what is written: a topic the embedding called new
   // and the sort calls a restatement is queued rather than sown.
-  const sorted = await sort(subject.title, PROSPECT, title, bed, warnings)
+  const sorted = await sort(subject.title, { id: PROSPECT, title, embedding: vector }, bed, warnings)
 
   // The model may raise a question the embedding did not, and may
   // clear one the embedding raised. It may never merge: `sameAs` is a
@@ -147,6 +148,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     embedding: JSON.stringify(vector),
     primary_subject_id: subjectId,
     state: queued ? 'pending' : 'active',
+    // What the sort was unsure of, so the queue asks about that pair.
+    pending_reading: queued && sorted?.reading ? keptReading(sorted.reading) : null,
     created_by: 'user',
   }).select('id').single()
 
@@ -257,7 +260,7 @@ async function file(
   topicId: string
 ) {
   const { data: topic } = await db
-    .from('topics').select('id, title, user_id').eq('id', topicId).maybeSingle()
+    .from('topics').select('id, title, user_id, embedding').eq('id', topicId).maybeSingle()
 
   if (!topic) return NextResponse.json({ error: 'no such topic' }, { status: 404 })
   // The bed and the topic have to belong to the same person. Every
@@ -296,7 +299,16 @@ async function file(
   // its edges into this bed. Unplaced, the outline prints it as one
   // more root at the foot and the graph draws it floating beside
   // everything it belongs to -- so it is sorted exactly as a new one is.
-  const sorted = await sort(subject.title, topicId, topic.title, bed, warnings)
+  const sorted = await sort(
+    subject.title,
+    {
+      id: topicId,
+      title: topic.title,
+      embedding: typeof topic.embedding === 'string' ? JSON.parse(topic.embedding) : topic.embedding,
+    },
+    bed,
+    warnings
+  )
   const placed = await draw(db, subject.user_id, sorted)
 
   dropCache()
@@ -319,39 +331,16 @@ async function file(
  */
 const PROSPECT = 'the-new-topic'
 
-/**
- * The bed as the sort is shown it: what is here, and what sits under
- * what. The nesting is the outline's own reading of the edges, so the
- * sort sees the same shape the reader does rather than a flat list.
- */
+/** The bed as the sort is shown it: what is here, with the embeddings
+ *  that say which of it is nearest. */
 async function readBed(db: SupabaseClient, subjectId: string): Promise<BedTopic[]> {
   const { data: memberships } = await db
     .from('topic_subjects').select('topic_id').eq('subject_id', subjectId)
   const ids = (memberships ?? []).map(m => m.topic_id as string)
   if (ids.length === 0) return []
 
-  const [{ data: topics }, { data: edges }] = await Promise.all([
-    db.from('topics').select('id, title, summary').in('id', ids),
-    db.from('edges').select('from_topic, to_topic, kind, weight')
-      .in('from_topic', ids).in('to_topic', ids),
-  ])
-
-  const rows = (topics ?? []).map(t => ({
-    id: t.id as string,
-    title: t.title as string,
-    summary: (t.summary as string | null) ?? null,
-  }))
-
-  const under = new Map<string, string>()
-  const walk = (nodes: Array<{ topic: { id: string }; children: unknown[] }>, parent: string | null) => {
-    for (const node of nodes) {
-      if (parent) under.set(node.topic.id, parent)
-      walk(node.children as typeof nodes, node.topic.id)
-    }
-  }
-  walk(buildTopicTree(rows, edges ?? []), null)
-
-  return rows.map(t => ({ ...t, under: under.get(t.id) ?? null }))
+  const { data: topics } = await db.from('topics').select('id, title, summary, embedding').in('id', ids)
+  return (topics ?? []) as BedTopic[]
 }
 
 /**
@@ -363,19 +352,18 @@ async function readBed(db: SupabaseClient, subjectId: string): Promise<BedTopic[
  */
 async function sort(
   subjectTitle: string,
-  topicId: string,
-  title: string,
+  topic: { id: string; title: string; embedding: number[] | null },
   bed: BedTopic[],
   warnings: string[]
 ): Promise<Sorted | null> {
   if (bed.length === 0) return null
-  if (!process.env.ANTHROPIC_API_KEY) {
-    warnings.push('it was filed but not placed: no key to read the bed with.')
+  if (!gatewayReachable()) {
+    warnings.push('it was filed but not placed: no gateway to read the bed with.')
     return null
   }
 
   try {
-    return await sortIntoBed({ subjectTitle, topic: { id: topicId, title }, bed })
+    return await sortIntoBed({ subjectTitle, topic, bed })
   } catch (e) {
     warnings.push(
       `it was filed but not placed against the rest of the bed: ${

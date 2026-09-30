@@ -4,6 +4,8 @@ import { ownerId } from '@/lib/auth'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
 import { drawConnections, neighboursOfBed } from '@/lib/sowing'
+import type { EdgeTopic } from '@/lib/llm/edges'
+import { gatewayReachable } from '@/lib/llm/drawing'
 
 /** Edges change every sheet the bed appears on and the graph itself,
  *  and the subject's own sheet carries the wide tag as well as its own
@@ -48,9 +50,9 @@ async function relate(subjectId: string) {
   const userId = await ownerId()
   if (!userId) return NextResponse.json({ error: 'not signed in' }, { status: 401 })
 
-  if (!process.env.ANTHROPIC_API_KEY) {
+  if (!gatewayReachable()) {
     return NextResponse.json(
-      { error: 'ANTHROPIC_API_KEY not set, so nothing can be related yet.' },
+      { error: 'AI_GATEWAY_API_KEY not set, so nothing can be related yet.' },
       { status: 503 }
     )
   }
@@ -99,7 +101,7 @@ async function relate(subjectId: string) {
   // does not shut it into itself. A failure here costs the outward
   // connections, not the inward ones, so the bed is still related to
   // itself rather than not at all.
-  let neighbours: Array<{ id: string; title: string }> = []
+  let neighbours: EdgeTopic[] = []
   const warnings: string[] = []
   try {
     neighbours = await neighboursOfBed(db, bed)
@@ -114,7 +116,7 @@ async function relate(subjectId: string) {
   const drawn = await drawConnections(
     db,
     subject.user_id,
-    bed.map(t => ({ id: t.id, title: t.title })),
+    bed,
     neighbours
   )
 

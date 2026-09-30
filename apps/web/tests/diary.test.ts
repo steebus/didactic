@@ -1,6 +1,9 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { depthOf, VERDICTS } from '@/lib/llm/diary'
 import { config } from '@didactic/core/config'
+
+const evaluate = vi.hoisted(() => vi.fn())
+vi.mock('ai', () => ({ experimental_evaluate: evaluate }))
 
 describe('what a verdict records', () => {
   it('maps every verdict but one onto a depth the scorer knows', () => {
@@ -62,5 +65,45 @@ describe('what an entry is stored as', () => {
     // An entry is not anchored to anything: it is a page about a week,
     // not a thought about a sentence.
     expect(written!.lesson_id).toBeNull()
+  })
+})
+
+describe('reading an entry', () => {
+  beforeEach(() => evaluate.mockReset())
+
+  const ENTRY = 'Read a chapter on caching. Shipped the lazy loading today. It finally works.'
+
+  it('writes the verdict it was sure of, quoting a sentence the writer wrote', async () => {
+    evaluate
+      .mockResolvedValueOnce({ answers: { t1: { choice: 'applied', probabilities: { applied: 0.9 } } } })
+      .mockResolvedValueOnce({ answers: { t1: { choice: 's1', probabilities: { s1: 0.8 } } } })
+    const { readEntry } = await import('@/lib/llm/diary')
+
+    expect(await readEntry(ENTRY, [{ id: 't1', title: 'Lazy loading' }])).toEqual([
+      { topicId: 't1', verdict: 'applied', because: 'Shipped the lazy loading today.' },
+    ])
+  })
+
+  it('writes nothing for a verdict it was unsure of, and asks for no quote', async () => {
+    evaluate.mockResolvedValueOnce({
+      answers: { t1: { choice: 'applied', probabilities: { applied: 0.45, read: 0.4 } } },
+    })
+    const { readEntry } = await import('@/lib/llm/diary')
+
+    expect(await readEntry(ENTRY, [{ id: 't1', title: 'Lazy loading' }])).toEqual([
+      { topicId: 't1', verdict: 'mentioned', because: '' },
+    ])
+    expect(evaluate).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the verdict when the quote cannot be chosen', async () => {
+    evaluate
+      .mockResolvedValueOnce({ answers: { t1: { choice: 'read', probabilities: { read: 0.9 } } } })
+      .mockRejectedValueOnce(new Error('gateway down'))
+    const { readEntry } = await import('@/lib/llm/diary')
+
+    expect(await readEntry(ENTRY, [{ id: 't1', title: 'Caching' }])).toEqual([
+      { topicId: 't1', verdict: 'read', because: '' },
+    ])
   })
 })

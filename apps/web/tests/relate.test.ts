@@ -60,7 +60,7 @@ beforeEach(() => {
     { id: 't1', title: 'Caching', embedding: VECTOR },
     { id: 't2', title: 'CDNs', embedding: VECTOR },
   ]
-  process.env.ANTHROPIC_API_KEY = 'test-key'
+  process.env.AI_GATEWAY_API_KEY = 'test-key'
 })
 
 const post = async (id = 'sub-1') => {
@@ -79,9 +79,10 @@ describe('drawing a bed’s connections', () => {
 
     const [, userId, topics, neighbours] = drawConnections.mock.calls[0]
     expect(userId).toBe('user-1')
+    // With their vectors, so the edge pass can nominate by them.
     expect(topics).toEqual([
-      { id: 't1', title: 'Caching' },
-      { id: 't2', title: 'CDNs' },
+      { id: 't1', title: 'Caching', embedding: [0.1, 0.2, 0.3] },
+      { id: 't2', title: 'CDNs', embedding: [0.1, 0.2, 0.3] },
     ])
     expect(neighbours).toEqual([{ id: 'other-1', title: 'Indexing' }])
   })

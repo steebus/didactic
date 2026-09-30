@@ -347,14 +347,17 @@ export async function ingestResource(
   // neighbours, then write them. Edges are a second pass because the
   // LLM needs real topic ids to reference.
   const { data: existingTopics } = await db
-    .from('topics').select('id, title').in('id', links.map(l => l.topic_id))
+    .from('topics').select('id, title, embedding').in('id', links.map(l => l.topic_id))
 
   // commit_ingestion returns out_id/out_title: a plpgsql function whose
   // OUT params are named id/title shadows those column names inside its
   // own body, so the prefix is load-bearing, not cosmetic.
-  const newTopicRefs = (createdIds ?? []).map((c: { out_id: string; out_title: string }) => ({
+  const newTopicRefs = (createdIds ?? []).map((c: { out_id: string; out_title: string }, i: number) => ({
     id: c.out_id,
     title: c.out_title,
+    // Sent in order and handed back in order; the title check keeps a
+    // mismatch from borrowing another topic's vector for the edge pass.
+    embedding: newTopics[i]?.title === c.out_title ? (newTopics[i].embedding as string) : null,
   }))
 
   await note({

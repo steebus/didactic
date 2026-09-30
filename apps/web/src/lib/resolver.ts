@@ -157,8 +157,8 @@ export function neighboursFor(
   /** Ids created by this sowing: new topics are not existing neighbours. */
   exclude: ReadonlySet<string>,
   limit: number
-): Array<{ id: string; title: string; score: number }> {
-  const best = new Map<string, { id: string; title: string; score: number }>()
+): Array<{ id: string; title: string; embedding: number[]; score: number }> {
+  const best = new Map<string, { id: string; title: string; embedding: number[]; score: number }>()
 
   for (const { vector, candidates } of searched) {
     for (const candidate of candidates) {
@@ -166,7 +166,7 @@ export function neighboursFor(
       const score = cosineSimilarity(vector, candidate.embedding)
       const held = best.get(candidate.id)
       if (!held || score > held.score) {
-        best.set(candidate.id, { id: candidate.id, title: candidate.title, score })
+        best.set(candidate.id, { id: candidate.id, title: candidate.title, embedding: candidate.embedding, score })
       }
     }
   }

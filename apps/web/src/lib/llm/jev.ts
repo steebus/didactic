@@ -357,6 +357,37 @@ async function checkScope(
   }
 }
 
+export type JevQuestion = Parameters<typeof evaluate>[0]['questions'][string]
+export type JevAnswer = { choice?: string; probabilities?: Record<string, number> }
+
+/**
+ * Independent questions over one state, packed into as few requests as
+ * `OPTIONS_PER_REQUEST` allows and sent together. Throws where any
+ * request fails: a caller that can do without the answers catches.
+ */
+export async function askJev(
+  state: Parameters<typeof evaluate>[0]['state'],
+  questions: Record<string, JevQuestion>,
+  signal?: AbortSignal
+): Promise<Record<string, JevAnswer>> {
+  const chunks: Array<Record<string, JevQuestion>> = []
+  let carrying = 0
+  for (const [id, question] of Object.entries(questions)) {
+    const options = question.type === 'choice' ? Object.keys(question.criteria).length : 1
+    if (chunks.length === 0 || carrying + options > OPTIONS_PER_REQUEST) {
+      chunks.push({})
+      carrying = 0
+    }
+    chunks[chunks.length - 1][id] = question
+    carrying += options
+  }
+
+  const results = await Promise.all(
+    chunks.map(chunk => evaluate({ model: MODEL, state, questions: chunk, abortSignal: signal }))
+  )
+  return Object.assign({}, ...results.map(r => r.answers as Record<string, JevAnswer>))
+}
+
 /** How many topics the embedding is asked for. Named here so the
  *  ingest path and the harness cannot drift apart. */
 export const NOMINATED = config.RESOLVER_NOMINATED

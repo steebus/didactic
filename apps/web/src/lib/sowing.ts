@@ -5,7 +5,7 @@ import { resolveConcept, fetchCandidates, neighboursFor } from './resolver'
 import { recomputeAbilities } from './scoring'
 import { config } from '@didactic/core/config'
 import { pickRoute } from '@didactic/core/progress'
-import { proposeEdges } from './llm/edges'
+import { proposeEdges, type EdgeTopic } from './llm/edges'
 import type { Fidelity } from '@didactic/core/documents'
 import type { OutlineEntry } from '@didactic/core/passages'
 import { flattenChapters, printOutline, bedEdgesFromOutline } from '@didactic/core/documentBed'
@@ -1006,7 +1006,7 @@ export async function plantMap(
           state: t.pending ? 'pending' : 'active',
           created_by: 'ai' as const,
         }))
-      ).select('id, title')
+      ).select('id, title, embedding')
     : { data: [], error: null }
 
   if (createError) {
@@ -1239,8 +1239,12 @@ export async function plantMap(
         await drawConnections(
           db,
           subject.user_id,
-          created.map(t => ({ id: t.id, title: t.title })),
-          [...byId].filter(([, title]) => title).map(([id, title]) => ({ id, title }))
+          created.map(t => ({ id: t.id, title: t.title, embedding: t.embedding })),
+          [...byId].filter(([, title]) => title).map(([id, title]) => ({
+            id,
+            title,
+            embedding: nearest.find(n => n.id === id)?.embedding,
+          }))
         )
       } catch (e) {
         warnings.push(
@@ -1327,8 +1331,8 @@ async function firstOfBed(
 export async function drawConnections(
   db: SupabaseClient,
   userId: string,
-  topics: Array<{ id: string; title: string }>,
-  neighbours: Array<{ id: string; title: string }>
+  topics: EdgeTopic[],
+  neighbours: EdgeTopic[]
 ): Promise<number> {
   const edges = await proposeEdges(topics, neighbours)
   if (edges.length === 0) return 0
@@ -1362,14 +1366,11 @@ export async function neighboursOfBed(
   db: SupabaseClient,
   bed: Array<{ id: string; title: string; embedding: number[] }>,
   limit = EDGE_NEIGHBOURS
-): Promise<Array<{ id: string; title: string }>> {
+): Promise<EdgeTopic[]> {
   const searched = await inBatches(bed, CONCURRENCY, async topic => ({
     vector: topic.embedding,
     candidates: await fetchCandidates(db, topic.embedding),
   }))
 
-  return neighboursFor(searched, new Set(bed.map(t => t.id)), limit).map(n => ({
-    id: n.id,
-    title: n.title,
-  }))
+  return neighboursFor(searched, new Set(bed.map(t => t.id)), limit)
 }
