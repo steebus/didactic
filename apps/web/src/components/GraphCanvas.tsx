@@ -990,7 +990,7 @@ export function GraphCanvas({
   return (
     <div className={styles.frame}>
       <div className={styles.controls} ref={controls}>
-        <SheetNav back={{ href: '/', label: 'Subjects' }} current="bed" hideHere />
+        <SheetNav current="bed" hideHere />
         <div className={styles.headRow}>
           <h1 className={styles.title}>The Bed</h1>
           <BannerFigures

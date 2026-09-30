@@ -15,7 +15,7 @@ export default function Loading() {
   return (
     <main className={styles.bed}>
       <div className={canvas.controls}>
-        <SheetNav back={{ href: '/', label: 'Subjects' }} current="bed" hideHere />
+        <SheetNav current="bed" hideHere />
         <div className={canvas.headRow}>
           <h1 className={canvas.title}>The Bed</h1>
           <BannerFigures lines={[<Slug key="a" w="12rem" band />]} />
