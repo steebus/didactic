@@ -31,7 +31,10 @@ export const WRITE_ENTRY = 'didactic:write-entry'
  */
 export function WriteEntry({
   filedUnder,
+  always,
 }: {
+  /** Kept in the head on a phone too, where the foot bar would carry it. */
+  always?: boolean
   /** The topic the sheet this is printed on is about, if it is about
    *  one. An entry written from here starts filed under it. */
   filedUnder?: { id: string; title: string }
@@ -127,6 +130,7 @@ export function WriteEntry({
       <button
         type="button"
         className={styles.open}
+        data-always={always ? '' : undefined}
         onClick={() => setOpen(was => !was)}
         aria-expanded={open}
         aria-controls="write-entry"

@@ -219,7 +219,11 @@
     display: none;
   }
 
-  .nav:not(:has(.back)) {
+  .nav:not(:has(.back)):not([data-always]) {
     display: none;
+  }
+
+  .nav[data-always] .sheets {
+    display: flex;
   }
 }

@@ -42,10 +42,6 @@ export default async function Home() {
             </span>
           </div>
         </div>
-        <p className={styles.strapline}>
-          Everything you are growing, with its viability and what has gone
-          dormant since you last tended it.
-        </p>
       </header>
       {/* The rule carries the reader's year. It streams in behind the
           plain rule so the stock list never waits on it. */}
@@ -204,42 +200,6 @@ export default async function Home() {
             <Suspense fallback={null}>
               <SproutingEntry largestHolding={largestHolding} index={data.subjects.length + 1} />
             </Suspense>
-
-            {/* Something read that matched nothing already sown. The
-                topics are real and in the ground; what they are missing
-                is a subject to belong to, and the resource that put them
-                there is the case for sowing one. */}
-            {data.fertile.length > 0 && (
-              <section className={styles.loose}>
-                <h3 className={styles.looseTitle}>Fertile ground</h3>
-                <p className={styles.looseNote}>
-                  Read, but about nothing you are growing yet. Sowing a subject
-                  around one of these files it and its topics at once.
-                </p>
-                <ul className={styles.fertileList}>
-                  {data.fertile.map(({ resource, topics }) => (
-                    <li key={resource.id} className={styles.fertileRow}>
-                      <div className={styles.fertileHead}>
-                        <span className={styles.fertileTitle} title={resource.title}>{resource.title}</span>
-                        <span className={styles.fertileKind}>{resource.kind}</span>
-                      </div>
-                      <p className={styles.fertileTopics}>
-                        {topics.map(t => t.title).join(' · ')}
-                      </p>
-                      {/* The sow form takes it from here: the resource
-                          rides along as evidence, and its loose topics
-                          are what the bed is laid out around. */}
-                      <Link
-                        href={`/subjects/new?from=${resource.id}`}
-                        className={styles.fertileAction}
-                      >
-                        Sow a subject from this
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            )}
 
           </section>
 

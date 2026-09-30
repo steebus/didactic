@@ -58,7 +58,7 @@
 .body {
   padding: 0 var(--space-5);
   display: grid;
-  gap: var(--space-6);
+  gap: var(--space-4);
 }
 
 @media (max-width: 48rem) {
@@ -771,13 +771,13 @@
 
 .controls {
   display: grid;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
+  gap: var(--space-2);
+  margin-bottom: 0;
 }
 
 .search {
   font: inherit;
-  padding: var(--space-3);
+  padding: var(--space-2) var(--space-3);
   background: var(--paper-deep);
   border: 1px solid var(--paper-edge);
 }
@@ -1003,64 +1003,6 @@
   color: var(--ink-faint);
 }
 
-/* --- Sending something in ---------------------------------------- */
-
-/* A press at the right of the head of the page, just under the band;
-   the form opens under it, the width of the sheet. It is pulled up into
-   the gap under the rule so it takes no row of its own while shut. */
-.send {
-  margin-top: calc(-1 * var(--space-3));
-}
-
-.sendHead {
-  display: flex;
-  justify-content: flex-end;
-  list-style: none;
-  cursor: pointer;
-}
-
-.sendHead::-webkit-details-marker {
-  display: none;
-}
-
-.sendPress {
-  font-family: var(--font-text);
-  font-size: var(--step--2);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--rule-strong);
-  transition:
-    color var(--dur-state, 160ms) ease,
-    border-color var(--dur-state, 160ms) ease;
-}
-
-.sendHead:hover .sendPress {
-  color: var(--ink);
-  border-color: var(--ink);
-}
-
-.sendHead:focus-visible {
-  outline: none;
-}
-
-.sendHead:focus-visible .sendPress {
-  outline: 2px solid var(--plate-terracotta);
-  outline-offset: 2px;
-}
-
-.send[open] .sendPress {
-  color: var(--paper);
-  background: var(--ink);
-  border-color: var(--ink);
-}
-
-.send[open] > :not(summary) {
-  margin-top: var(--space-4);
-}
-
 /* --- By topic ---------------------------------------------------- */
 
 /* Set apart from the kinds: they narrow, this rearranges. */
@@ -1170,4 +1112,33 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--ink-soft);
+}
+
+/* Unread and Read: two tabs on one rule. */
+.tabs {
+  display: flex;
+  gap: var(--space-5);
+  border-bottom: 1px solid var(--rule-strong);
+}
+
+.tab {
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 40;
+  color: var(--ink-faint);
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  padding: var(--space-1) 0;
+  cursor: pointer;
+}
+
+.tab[aria-selected='true'] {
+  color: var(--ink);
+  border-bottom-color: var(--plate-mustard);
+}
+
+.adder {
+  margin-bottom: var(--space-4);
 }

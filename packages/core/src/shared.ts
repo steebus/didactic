@@ -109,9 +109,14 @@ export function mediaOf(url: string | null | undefined): Media | null {
  */
 export function kindLabel(kind: string, url?: string | null): string {
   const media = mediaOf(url)
-  if (media?.kind === 'youtube') return 'Video'
-  if (media?.kind === 'instagram') return 'Post'
+  if (media) return 'Video'
   return KIND_LABEL[kind] ?? kind
+}
+
+/** The kind a resource is filed under: a YouTube or Instagram link is a
+ *  `video`, whatever row it is kept in. */
+export function filedKind(kind: string, url?: string | null): string {
+  return mediaOf(url) ? 'video' : kind
 }
 
 const KIND_LABEL: Record<string, string> = {

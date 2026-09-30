@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { didactic } from '@didactic/api'
 import type { Sprouting, SproutView } from '@didactic/core/shapes'
-import { kindLine, SUBJECT_VERDICT, UNNAMED } from '@didactic/core/sprouting'
+import { kindLine, UNNAMED } from '@didactic/core/sprouting'
 import { SproutActions } from '@/components/SproutActions'
 import styles from './page.module.css'
 
@@ -59,41 +59,6 @@ export function SproutingSheet({ initial }: { initial: Sprouting }) {
 
   return (
     <>
-      <p className={styles.standing}>
-        Topics your material keeps putting together, read off the map with
-        your subjects taken out, that no subject you have already accounts
-        for. What holds each one together is counted under it. Nothing is
-        filed until you give one a bed.
-      </p>
-
-      {sprouting.found && <p className={styles.found}>{sprouting.found}</p>}
-
-      {/* Which subjects, and why not. The count alone says how far to
-          trust the reading; this says where it went wrong and what would
-          give it more to go on. Open when anything was missed. */}
-      {sprouting.subjectReadings.length > 0 && (
-        <details
-          className={styles.readings}
-          open={sprouting.subjectReadings.some(r => r.verdict === 'mixed' || r.verdict === 'thin')}
-        >
-          <summary className={styles.readingsHead}>How each subject read</summary>
-          <ul className={styles.readingsList}>
-            {sprouting.subjectReadings.map(r => (
-              <li key={r.subjectId} className={styles.readingRow}>
-                <p className={styles.readingName}>
-                  <span className={styles.chip} style={{ '--chip': r.colour } as React.CSSProperties} aria-hidden="true" />
-                  <Link href={`/subjects/${r.subjectId}`}>{r.title}</Link>
-                  <span className={r.verdict === 'mixed' || r.verdict === 'thin' ? styles.verdictMissed : styles.verdictFound}>
-                    {SUBJECT_VERDICT[r.verdict]}
-                  </span>
-                </p>
-                <p className={styles.readingWhy}>{r.sentence}</p>
-              </li>
-            ))}
-          </ul>
-        </details>
-      )}
-
       {!sprouting.keeps && (
         <p className={styles.note}>
           The reading works, but nothing can be kept yet: the database has

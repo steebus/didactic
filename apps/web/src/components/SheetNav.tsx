@@ -12,7 +12,11 @@ export function SheetNav({
   back,
   current,
   filedUnder,
+  always,
 }: {
+  /** Keep the sheets in the head on a phone, for a sheet (the bed) that
+   *  is a full-screen canvas the foot bar's arrangement does not suit. */
+  always?: boolean
   /** Where "back" goes, and what it is called. */
   back?: { href: string; label: string }
   /**
@@ -44,7 +48,7 @@ export function SheetNav({
   ] as const
 
   return (
-    <nav className={styles.nav} aria-label="Sheets">
+    <nav className={styles.nav} aria-label="Sheets" data-always={always ? '' : undefined}>
       {/* The way back sits top-left, where a reader looks first to leave;
           the sheets keep the right. They share one row and wrap to two
           only when the width runs out, rather than being stacked by
@@ -96,7 +100,7 @@ export function SheetNav({
             in the most-read row in the catalogue; it now sits at the
             foot of the subjects sheet, which is where someone who means
             to leave ends up anyway. */}
-        <WriteEntry filedUnder={filedUnder} />
+        <WriteEntry filedUnder={filedUnder} always={always} />
       </span>
     </nav>
   )

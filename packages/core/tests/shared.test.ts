@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cleanSharedUrl, kindLabel, mediaOf, sharedLink } from '../src/shared'
+import { cleanSharedUrl, filedKind, kindLabel, mediaOf, sharedLink } from '../src/shared'
 
 describe('a shared link, cleaned', () => {
   it('spells a YouTube video one way whatever form it came in', () => {
@@ -55,9 +55,11 @@ describe('what a link is played as', () => {
 
   it('names a video a video', () => {
     expect(kindLabel('article', 'https://youtu.be/aircAruvnKk')).toBe('Video')
-    expect(kindLabel('article', 'https://www.instagram.com/p/Dd0Sqf5F3AK/')).toBe('Post')
+    expect(kindLabel('article', 'https://www.instagram.com/p/Dd0Sqf5F3AK/')).toBe('Video')
     expect(kindLabel('article', 'https://example.com')).toBe('Article')
     expect(kindLabel('pdf')).toBe('Document')
+    expect(filedKind('article', 'https://www.instagram.com/reel/Dd0Sqf5F3AK/')).toBe('video')
+    expect(filedKind('pdf')).toBe('pdf')
   })
 })
 

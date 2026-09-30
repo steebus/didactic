@@ -1,7 +1,7 @@
 import { getLibrary } from '@/lib/library'
 import { InboxSheet } from './InboxSheet'
 import { PendingQueue } from '@/components/PendingQueue'
-import { AddResource } from '@/components/AddResource'
+import { InboxAdd } from '@/components/InboxAdd'
 import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
@@ -76,19 +76,8 @@ export default async function InboxPage({
             <Link href="/inbox">Show everything</Link>
           </p>
         )}
-        {/* Sending something in is an occasional act and the inbox is
-            mostly for reading what came, so the form waits behind a
-            press at the head of the page rather than standing over the
-            search. A `details`: the page is a server component, and
-            the browser's element carries the keyboard and the ARIA. */}
-        <details className={styles.send}>
-          <summary className={styles.sendHead}>
-            <span className={styles.sendPress}>Send it something</span>
-          </summary>
-          <AddResource />
-        </details>
 
-        <InboxSheet resources={resources}>
+        <InboxSheet resources={resources} adder={<InboxAdd />}>
           <PendingQueue topics={pending} />
         </InboxSheet>
       </div>

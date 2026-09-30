@@ -8,7 +8,7 @@ import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
 import { SheetNav } from '@/components/SheetNav'
 import { Graph, Cards, Tray } from '@/components/NavGlyphs'
 import glyphs from '@/components/FootBar.module.css'
-import { BandSpecimen, BandSpecimenCaption } from '@/components/BandSpecimen'
+import { BandSpecimen } from '@/components/BandSpecimen'
 import { routeProgress, aggregateRoutes } from '@didactic/core/progress'
 import { ROOT_STAGES } from '@/components/RootsSpecimen'
 import { SubjectBed } from './SubjectBed'
@@ -68,10 +68,6 @@ export default async function SubjectPage({
               {counts.unread > 0 && ` (${counts.unread} unread)`} · {counts.curricula}{' '}
               {counts.curricula === 1 ? 'curriculum' : 'curricula'}
             </p>
-            {/* The figure the specimen used to carry under it. The
-                drawing is the band's ground now, and a faded drawing
-                cannot be read as a figure. */}
-            <BandSpecimenCaption progress={routes} />
           </div>
         </div>
 

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { didactic } from '@didactic/api'
 import type { LibraryRow } from '@didactic/core/shapes'
 import { ResourceList } from '@/components/ResourceList'
+import { filedKind } from '@didactic/core/shared'
 import { bestHits, byTopic, filedUnder, shelfMatches, type ShelfHit } from '@didactic/core/shelf'
 import styles from './page.module.css'
 
@@ -17,6 +18,7 @@ const STOP_LOOKING_MS = 5 * 60_000
 
 const KIND_LABEL: Record<string, string> = {
   article: 'Article',
+  video: 'Video',
   pdf: 'PDF',
   book: 'Book',
   note: 'Note',
@@ -38,13 +40,17 @@ const KIND_LABEL: Record<string, string> = {
 export function InboxSheet({
   resources,
   children,
+  adder,
 }: {
   resources: LibraryRow[]
   /** What stands between the search and the lists: the queue of topics
    *  waiting on a decision. Under the search, which is the head of the
    *  page, and over what it is waiting on. */
   children?: React.ReactNode
+  /** The send form, opened from the docked + button. */
+  adder?: React.ReactNode
 }) {
+  const [tab, setTab] = useState<'unread' | 'read'>('unread')
   const [term, setTerm] = useState('')
   const [kind, setKind] = useState<string>('all')
   /** Shelved by what each is most about, rather than read and unread. */
@@ -117,7 +123,7 @@ export function InboxSheet({
   const shown = useMemo(
     () =>
       resources.filter(r => {
-        if (kind !== 'all' && r.kind !== kind) return false
+        if (kind !== 'all' && filedKind(r.kind, r.url) !== kind) return false
         if (only && !filedUnder(r, only.id)) return false
         return shelfMatches(r, query) || hits.has(r.id)
       }),
@@ -175,7 +181,7 @@ export function InboxSheet({
             </p>
           )}
           <div className={styles.kinds} role="group" aria-label="Filter by kind">
-            {['all', 'article', 'book', 'pdf', 'note'].map(k => (
+            {['all', 'video', 'article', 'book', 'pdf', 'note'].map(k => (
               <button
                 key={k}
                 type="button"
@@ -212,6 +218,8 @@ export function InboxSheet({
         </div>
       )}
 
+      {adder}
+
       {children}
 
       {error && <p className={styles.problem}>{error}</p>}
@@ -245,22 +253,28 @@ export function InboxSheet({
         ))}
 
       {!grouped && (
-      <section>
-        <div className={styles.sectionHead}>
-          <h2 className={styles.sectionTitle}>Unread</h2>
-          <span className={styles.sectionNote}>{unread.length} to read</span>
-        </div>
-        <ResourceList resources={unread} onRemove={remove} hits={hits} />
-      </section>
-      )}
-
-      {!grouped && read.length > 0 && (
         <section>
-          <div className={styles.sectionHead}>
-            <h2 className={styles.sectionTitle}>Read</h2>
-            <span className={styles.sectionNote}>{read.length} done with</span>
+          <div className={styles.tabs} role="tablist">
+            <button
+              type="button"
+              role="tab"
+              className={styles.tab}
+              aria-selected={tab === 'unread'}
+              onClick={() => setTab('unread')}
+            >
+              Unread <span className={styles.sectionNote}>{unread.length}</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              className={styles.tab}
+              aria-selected={tab === 'read'}
+              onClick={() => setTab('read')}
+            >
+              Read <span className={styles.sectionNote}>{read.length}</span>
+            </button>
           </div>
-          <ResourceList resources={read} onRemove={remove} hits={hits} />
+          <ResourceList resources={tab === 'unread' ? unread : read} onRemove={remove} hits={hits} />
         </section>
       )}
 

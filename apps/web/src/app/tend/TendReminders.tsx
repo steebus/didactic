@@ -45,6 +45,7 @@ export function TendReminders() {
   const [busy, setBusy] = useState(false)
   const [said, setSaid] = useState<string | null>(null)
   const [remindAt, setRemindAt] = useState(DEFAULT_REMIND_AT)
+  const [open, setOpen] = useState(false)
 
   useEffect(() => {
     let live = true
@@ -147,7 +148,26 @@ export function TendReminders() {
 
   if (state.at === 'looking') return null
 
+  const on = state.at === 'on'
+
   return (
+    <div className={styles.bellWrap}>
+      <button
+        type="button"
+        className={styles.bell}
+        data-on={on || undefined}
+        aria-label={on ? 'Reminders: on' : 'Reminders: off'}
+        aria-expanded={open}
+        title={on ? 'Reminders are on' : 'Set a reminder'}
+        onClick={() => setOpen(o => !o)}
+      >
+        <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false">
+          <path d="M6 17V11a6 6 0 0 1 12 0v6l1.500 2h-15Z" fill={on ? 'currentColor' : 'none'} />
+          <path d="M10 21h4" />
+          {!on && <path d="M4 4l16 16" />}
+        </svg>
+      </button>
+      {open && (
     <section className={styles.reminders} aria-live="polite">
       <h2 className={styles.remindersTitle}>Reminders on this phone</h2>
 
@@ -222,5 +242,7 @@ export function TendReminders() {
         </p>
       )}
     </section>
+      )}
+    </div>
   )
 }

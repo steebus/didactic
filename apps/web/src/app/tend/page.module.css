@@ -241,13 +241,49 @@
 /* The foot of the garden, under a rule: a setting, not part of the
    tending, so it is set in the quiet register and never competes with
    the card. */
+.bellWrap {
+  position: relative;
+  margin-left: auto;
+  align-self: flex-start;
+}
+
+.bell {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: rgba(var(--on-plate-rgb), 0.7);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.bell[data-on] {
+  color: var(--paper);
+}
+
+.bell svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The panel drops from the bell, in the paper register of the body. */
 .reminders {
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--space-2));
+  z-index: 5;
+  width: min(22rem, calc(100vw - 2 * var(--space-4)));
   display: grid;
   gap: var(--space-2);
-  margin-top: var(--space-6);
-  padding-top: var(--space-4);
-  border-top: 1px solid var(--rule);
-  max-width: 60ch;
+  padding: var(--space-4);
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
 }
 
 .remindersTitle {

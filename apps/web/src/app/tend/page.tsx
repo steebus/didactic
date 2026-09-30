@@ -34,6 +34,7 @@ export default async function TendPage({
             <p className={styles.eyebrow}>What you have already read</p>
             <h1 className={styles.title}>Tend</h1>
           </div>
+          <TendReminders />
         </div>
       </header>
       <div className={styles.headRule} />
@@ -45,7 +46,6 @@ export default async function TendPage({
           lessonId={params.lesson ?? null}
           random={params.mode === 'random'}
         />
-        <TendReminders />
       </div>
     </main>
   )

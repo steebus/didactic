@@ -8,6 +8,14 @@ import { AskPanel } from './AskPanel'
 import { AsksDrawer } from './AsksDrawer'
 import { useSideColumn } from './useSideColumn'
 import { AskIcon } from './AskIcon'
+
+function PlusIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true" fill="none">
+      <path d="M10 4v12M4 10h12" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  )
+}
 import styles from './Ask.module.css'
 
 /**
@@ -85,6 +93,8 @@ export function AskButton() {
   // A resource read in the app has the same desk (053), so it gives way
   // there too -- but not on its document viewer below it, which has no
   // desk and would otherwise have no way to ask at all.
+  // The inbox's disc is the way to send it something: a +.
+  const adding = path === '/inbox'
   const onDesk = path.startsWith('/lesson/') || /^\/resources\/[^/]+\/?$/.test(path)
 
   // A drawer left out lists the page it was opened on: walking to another
@@ -126,11 +136,13 @@ export function AskButton() {
         <button
           type="button"
           className={styles.disc}
-          aria-label="Ask about this"
-          aria-expanded={open}
-          onClick={() => (open ? close() : open_())}
+          aria-label={adding ? 'Send it something' : 'Ask about this'}
+          aria-expanded={adding ? undefined : open}
+          onClick={() =>
+            adding ? window.dispatchEvent(new Event('didactic:add')) : open ? close() : open_()
+          }
         >
-          <AskIcon />
+          {adding ? <PlusIcon /> : <AskIcon />}
         </button>
       )}
       {open && context && (

@@ -29,6 +29,7 @@
 }
 
 .headRow {
+  margin-top: var(--space-4);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -53,7 +54,7 @@
 }
 
 .summary {
-  margin: var(--space-3) 0 0;
+  margin: var(--space-2) 0 0;
   max-width: 60ch;
   font-size: var(--step-0);
   color: rgba(var(--on-plate-rgb), 0.85);
@@ -65,12 +66,12 @@
   justify-content: space-between;
   gap: var(--space-4);
   flex-wrap: wrap;
-  margin-top: var(--space-3);
+  margin-top: var(--space-2);
 }
 
 .figures {
   display: flex;
-  gap: var(--space-5);
+  gap: var(--space-1) var(--space-4);
   flex-wrap: wrap;
 }
 
