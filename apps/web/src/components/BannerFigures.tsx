@@ -7,9 +7,16 @@ import styles from './BannerFigures.module.css'
  * left of a row and these at the right, ending on the same lines. On a
  * phone they drop under the title as one run, joined by dots.
  */
-export function BannerFigures({ lines }: { lines: React.ReactNode[] }) {
+export function BannerFigures({
+  lines,
+  under,
+}: {
+  lines: React.ReactNode[]
+  /** Set under the title, at the left, rather than at the right. */
+  under?: boolean
+}) {
   return (
-    <p className={styles.figures}>
+    <p className={`${styles.figures} ${under ? styles.under : ''}`}>
       {lines.map((line, i) => (
         <span key={i} className={styles.line}>
           {line}

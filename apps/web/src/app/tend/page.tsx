@@ -32,9 +32,11 @@ export default async function TendPage({
       <header className={styles.head}>
         <SheetNav current="tend" />
         <div className={styles.headRow}>
-          <h1 className={styles.title}>Tend</h1>
+          <div>
+            <h1 className={styles.title}>Tend</h1>
+            <BannerFigures under lines={[<TendDue key="due" />]} />
+          </div>
           <div className={styles.headAside}>
-            <BannerFigures lines={[<TendDue key="due" />]} />
             <TendReminders />
           </div>
         </div>

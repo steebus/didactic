@@ -28,9 +28,9 @@ export default function Loading() {
       <header className={styles.head}>
         <SheetNav current="tend" />
         <div className={styles.headRow}>
-          <h1 className={styles.title}>Tend</h1>
-          <div className={styles.headAside}>
-            <BannerFigures lines={[<Slug key="due" w="9rem" band />]} />
+          <div>
+            <h1 className={styles.title}>Tend</h1>
+            <BannerFigures under lines={[<Slug key="due" w="9rem" band />]} />
           </div>
         </div>
       </header>
