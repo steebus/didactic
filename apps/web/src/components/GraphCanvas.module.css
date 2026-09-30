@@ -551,6 +551,14 @@
 
 /* --- Title, and the two corner tools ------------------------------ */
 
+.headRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
 .title {
   font-size: var(--step-3);
   font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 72;

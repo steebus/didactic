@@ -2,6 +2,7 @@ import { getLibrary } from '@/lib/library'
 import { InboxSheet } from './InboxSheet'
 import { PendingQueue } from '@/components/PendingQueue'
 import { InboxAdd } from '@/components/InboxAdd'
+import { BannerFigures } from '@/components/BannerFigures'
 import { SheetNav } from '@/components/SheetNav'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
@@ -65,6 +66,12 @@ export default async function InboxPage({
         <SheetNav current="inbox" />
         <div className={styles.headRow}>
           <h1 className={styles.title}>Inbox</h1>
+          <BannerFigures
+            lines={[
+              `${resources.filter(r => r.status === 'queued' || r.status === 'reading').length} unread`,
+              `${resources.filter(r => r.status === 'consumed' || r.status === 'abandoned').length} read`,
+            ]}
+          />
         </div>
       </header>
       <div className={styles.headRule} />

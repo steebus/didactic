@@ -1,6 +1,7 @@
 import { sproutingSentence } from '@didactic/core/sprouting'
 import { getSprouting } from '@/lib/sprouting'
 import { requireOwner } from '@/lib/auth'
+import { BannerFigures } from '@/components/BannerFigures'
 import { SheetNav } from '@/components/SheetNav'
 import { SproutingSheet } from './SproutingSheet'
 import styles from './page.module.css'
@@ -24,7 +25,7 @@ export default async function SproutingPage() {
         <SheetNav back={{ href: '/', label: 'Subjects' }} />
         <div className={styles.headRow}>
           <h1 className={styles.title}>Sprouting subjects</h1>
-          <p className={styles.standfirst}>{sproutingSentence(sprouting.sprouts.length)}</p>
+          <BannerFigures lines={[sproutingSentence(sprouting.sprouts.length)]} />
         </div>
       </header>
       <div className={styles.headRule} />

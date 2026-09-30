@@ -22,6 +22,13 @@ import styles from './page.module.css'
 
 const api = didactic()
 
+/** Which of the sheet's three filters a row falls under: a passage or a
+ *  note of your own is a mark. */
+function strandFilter(h: HighlightRow): 'mark' | 'summary' | 'entry' {
+  const strand = strandOf(h)
+  return strand === 'entry' || strand === 'summary' ? strand : 'mark'
+}
+
 /**
  * The timeline: what was kept and what was written, in the order it
  * happened, drawn as a plate.
@@ -61,6 +68,7 @@ export function MarkedSheet({
   query: string
 }) {
   const [term, setTerm] = useState(query)
+  const [only, setOnly] = useState<'all' | 'mark' | 'summary' | 'entry'>('all')
   const [editing, setEditing] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
   const [busy, setBusy] = useState(false)
@@ -162,7 +170,8 @@ export function MarkedSheet({
 
   // What is on the sheet after this reader's own removals, gathered
   // into the days they happened on.
-  const shown = highlights.filter(h => !removed.includes(h.id))
+  const live = highlights.filter(h => !removed.includes(h.id))
+  const shown = only === 'all' ? live : live.filter(h => strandFilter(h) === only)
   const days = byDay(shown)
 
   /** What can be opened at all. A row holding nothing under its summary
@@ -204,12 +213,29 @@ export function MarkedSheet({
       </form>
 
       <div className={styles.countRow}>
-        <p className={styles.count}>
-          {/* Both counted, because they are two different things to have
-              done and a single total would hide which. */}
-          {query ? `Matching "${query}": ` : ''}
-          {tallyOf(shown) || 'nothing'}
-        </p>
+        {/* What is shown: the kinds, as text in the count's register. The
+            totals are in the banner. */}
+        <div className={styles.kinds} role="group" aria-label="Show">
+          {(
+            [
+              ['all', 'All'],
+              ['mark', 'Marks'],
+              ['summary', 'Summaries'],
+              ['entry', 'Entries'],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              className={styles.kind}
+              aria-pressed={only === key}
+              onClick={() => setOnly(key)}
+            >
+              {label}
+            </button>
+          ))}
+          {query && <span className={styles.count}>Matching “{query}”</span>}
+        </div>
 
         {/* One press for the whole plate, for reading a season rather
             than finding one thing in it. Absent when nothing on the

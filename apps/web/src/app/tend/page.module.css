@@ -244,10 +244,15 @@
 /* The foot of the garden, under a rule: a setting, not part of the
    tending, so it is set in the quiet register and never competes with
    the card. */
+.headAside {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
 .bellWrap {
   position: relative;
-  margin-left: auto;
-  align-self: flex-end;
 }
 
 .bell {

@@ -1,5 +1,7 @@
 import { requireOwner } from '@/lib/auth'
 import { SheetNav } from '@/components/SheetNav'
+import { BannerFigures } from '@/components/BannerFigures'
+import { TendDue } from '@/components/TendTally'
 import { TendSheet } from './TendSheet'
 import { TendReminders } from './TendReminders'
 import styles from './page.module.css'
@@ -30,11 +32,11 @@ export default async function TendPage({
       <header className={styles.head}>
         <SheetNav current="tend" />
         <div className={styles.headRow}>
-          <div>
-            <p className={styles.eyebrow}>What you have already read</p>
-            <h1 className={styles.title}>Tend</h1>
+          <h1 className={styles.title}>Tend</h1>
+          <div className={styles.headAside}>
+            <BannerFigures lines={[<TendDue key="due" />]} />
+            <TendReminders />
           </div>
-          <TendReminders />
         </div>
       </header>
       <div className={styles.headRule} />

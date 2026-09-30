@@ -1,6 +1,7 @@
 /* The bed is not a sheet: it fills the window and lies on the press
    bed rather than on paper. */
 .bed {
+  position: relative;
   height: calc(100dvh - var(--foot-bar));
   background: var(--paper);
   display: grid;

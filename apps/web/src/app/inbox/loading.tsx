@@ -1,3 +1,4 @@
+import { BannerFigures } from '@/components/BannerFigures'
 import { SheetNav } from '@/components/SheetNav'
 import { Slug, Working } from '@/components/Setting'
 import styles from './page.module.css'
@@ -17,6 +18,7 @@ export default function Loading() {
         <SheetNav current="inbox" />
         <div className={styles.headRow}>
           <h1 className={styles.title}>Inbox</h1>
+          <BannerFigures lines={[<Slug key="a" w="6rem" band />]} />
         </div>
       </header>
       <div className={styles.headRule} />

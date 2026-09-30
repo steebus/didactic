@@ -1,3 +1,4 @@
+import { BannerFigures } from '@/components/BannerFigures'
 import { SheetNav } from '@/components/SheetNav'
 import { Slug, Working } from '@/components/Setting'
 import styles from './page.module.css'
@@ -11,6 +12,7 @@ export default function Loading() {
         <SheetNav back={{ href: '/', label: 'Subjects' }} />
         <div className={styles.headRow}>
           <h1 className={styles.title}>Sprouting subjects</h1>
+          <BannerFigures lines={[<Slug key="a" w="10rem" band />]} />
         </div>
       </header>
       <div className={styles.headRule} />

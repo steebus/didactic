@@ -1,6 +1,8 @@
 import { supabaseAdmin } from '@/lib/supabase'
 import { requireOwner } from '@/lib/auth'
 import { searchHighlights } from '@/lib/highlights'
+import { BannerFigures } from '@/components/BannerFigures'
+import { tallyOf } from '@didactic/core/timeline'
 import { SheetNav } from '@/components/SheetNav'
 import { MarkedSheet } from './MarkedSheet'
 import styles from './page.module.css'
@@ -39,6 +41,7 @@ export default async function MarkedPage({
         <SheetNav current="marked" />
         <div className={styles.headRow}>
           <h1 className={styles.title}>Marked</h1>
+          <BannerFigures lines={[tallyOf(highlights) || 'Nothing kept yet']} />
         </div>
       </header>
       <div className={styles.headRule} />

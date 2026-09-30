@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { getLooseStock } from '@/lib/loose'
 import { requireOwner } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase'
+import { BannerFigures } from '@/components/BannerFigures'
 import { SheetNav } from '@/components/SheetNav'
 import { LooseSheet } from './LooseSheet'
 import styles from './page.module.css'
@@ -35,11 +36,13 @@ export default async function LoosePage() {
         <SheetNav back={{ href: '/', label: 'Subjects' }} />
         <div className={styles.headRow}>
           <h1 className={styles.title}>Loose stock</h1>
-          <p className={styles.standfirst}>
-            {loose.length === 0
-              ? 'Everything you hold is filed under a subject.'
-              : `${loose.length} ${loose.length === 1 ? 'topic sits' : 'topics sit'} under no subject.`}
-          </p>
+          <BannerFigures
+            lines={[
+              loose.length === 0
+                ? 'Everything is filed'
+                : `${loose.length} ${loose.length === 1 ? 'topic' : 'topics'} under no subject`,
+            ]}
+          />
         </div>
       </header>
       <div className={styles.headRule} />

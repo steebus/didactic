@@ -13,8 +13,8 @@
 }
 
 .head {
-  background: var(--plate-terracotta);
-  color: var(--on-accent);
+  background: var(--band-fill);
+  color: var(--on-plate);
   padding: var(--space-5);
   /* A saturated plate: controls in here state their own focus ink. */
   --focus-ink: var(--paper);
@@ -34,12 +34,6 @@
   line-height: 0.95;
   letter-spacing: -0.02em;
   margin: 0;
-}
-
-.standfirst {
-  font-size: var(--step--1);
-  margin: 0;
-  opacity: 0.9;
 }
 
 .headRule {

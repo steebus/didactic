@@ -1,5 +1,6 @@
 import { SheetNav } from '@/components/SheetNav'
-import { Setting } from '@/components/Setting'
+import { BannerFigures } from '@/components/BannerFigures'
+import { Setting, Slug } from '@/components/Setting'
 import styles from './page.module.css'
 
 /**
@@ -27,9 +28,9 @@ export default function Loading() {
       <header className={styles.head}>
         <SheetNav current="tend" />
         <div className={styles.headRow}>
-          <div>
-            <p className={styles.eyebrow}>What you have already read</p>
-            <h1 className={styles.title}>Tend</h1>
+          <h1 className={styles.title}>Tend</h1>
+          <div className={styles.headAside}>
+            <BannerFigures lines={[<Slug key="due" w="9rem" band />]} />
           </div>
         </div>
       </header>

@@ -21,6 +21,8 @@ import { contains, outline, type Point } from '@didactic/core/hull'
 import type { Sprouting, SproutView } from '@didactic/core/shapes'
 import { kindLine, UNNAMED } from '@didactic/core/sprouting'
 import { SheetNav } from './SheetNav'
+import { BannerFigures } from './BannerFigures'
+import { Slug } from './Setting'
 import styles from './GraphCanvas.module.css'
 
 const api = didactic()
@@ -288,6 +290,19 @@ export function GraphCanvas({
   // comes back with anything unnamed: naming is a model call, so it is
   // asked for only where there is something to name.
   const wantsSprouts = showSprouts || forces.kinshipPull > 0
+  // The count for the banner alone: read without naming, so nothing is
+  // asked of the model until the outlines are wanted.
+  const [sproutCount, setSproutCount] = useState<number | null>(null)
+  useEffect(() => {
+    if (wantsSprouts) return
+    let cancelled = false
+    void api.sprouts.read().then(read => {
+      if (!cancelled && read.ok) setSproutCount(read.body.sprouts.length)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [wantsSprouts, reload, sproutReload])
   useEffect(() => {
     if (!wantsSprouts) return
     let cancelled = false
@@ -300,12 +315,16 @@ export function GraphCanvas({
         return
       }
       setSprouting(read.body)
+      setSproutCount(read.body.sprouts.length)
       setSproutNote(null)
       if (read.body.keeps && (read.body.unnamed > 0 || read.body.unembedded > 0)) {
         setSproutNote('Naming what is sprouting…')
         const named = await api.sprouts.name()
         if (cancelled) return
-        if (named.ok) setSprouting(named.body)
+        if (named.ok) {
+          setSprouting(named.body)
+          setSproutCount(named.body.sprouts.length)
+        }
         setSproutNote(named.ok ? null : named.error ?? 'Could not name what is sprouting.')
       }
     })()
@@ -966,12 +985,27 @@ export function GraphCanvas({
 
   const selectedTopic = data?.topics.find(t => t.id === selected) ?? null
   const chosen = sprouting?.sprouts.find(s => s.key === chosenSprout) ?? null
+  const active = data?.topics.filter(t => t.state === 'active').length ?? 0
 
   return (
     <div className={styles.frame}>
       <div className={styles.controls} ref={controls}>
         <SheetNav back={{ href: '/', label: 'Subjects' }} current="bed" hideHere />
-        <h1 className={styles.title}>The Bed</h1>
+        <div className={styles.headRow}>
+          <h1 className={styles.title}>The Bed</h1>
+          <BannerFigures
+            lines={
+              data
+                ? [
+                    `${active} ${active === 1 ? 'topic' : 'topics'} · ${data.subjects.length} ${data.subjects.length === 1 ? 'subject' : 'subjects'}`,
+                    sproutCount === null
+                      ? ''
+                      : `${sproutCount} sprouting`,
+                  ].filter(Boolean)
+                : [<Slug key="a" w="12rem" band />]
+            }
+          />
+        </div>
         {wantsSprouts && sproutNote && <p className={styles.sproutNote}>{sproutNote}</p>}
       </div>
 

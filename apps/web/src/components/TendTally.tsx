@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { didactic } from '@didactic/api'
 import type { ClozeCount } from '@didactic/core/clozes'
 import { tendPhrase } from '@didactic/core/clozes'
+import { Slug } from './Setting'
 import styles from './SheetNav.module.css'
 
 const api = didactic()
@@ -32,7 +33,7 @@ export const TENDED = 'didactic:tended'
  * is the only part of it that is an errand, and a figure in a nav is a
  * figure you are being asked to do something about.
  */
-export function TendTally() {
+function useDue(): ClozeCount | null {
   const [counts, setCounts] = useState<ClozeCount | null>(held)
 
   useEffect(() => {
@@ -61,6 +62,18 @@ export function TendTally() {
     }
   }, [])
 
+  return counts
+}
+
+/** The count in the Tend banner, in the banner's figure size. A slug
+ *  stands in until it is read, so the banner keeps its height. */
+export function TendDue() {
+  const counts = useDue()
+  return counts ? <>{tendPhrase(counts.due)}</> : <Slug w="9rem" band />
+}
+
+export function TendTally() {
+  const counts = useDue()
   if (!counts || counts.due === 0) return null
 
   return (

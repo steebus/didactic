@@ -143,9 +143,11 @@ export function TendSheet({
   return (
     <>
       <div className={styles.standing}>
-        <span className={styles.left}>
-          {random ? 'One at random' : tendPhrase(queue.length)}
-        </span>
+        {(random || narrowed) && (
+          <span className={styles.left}>
+            {random ? 'One at random' : tendPhrase(queue.length)}
+          </span>
+        )}
         {done > 0 && <span className={styles.scope}>{done} tended</span>}
         {narrowed && (
           <Link className={styles.scopeLink} href="/tend">

@@ -566,3 +566,32 @@
   color: var(--plate-terracotta);
   margin: 0 0 var(--space-3);
 }
+
+.kinds {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+
+.kind {
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: var(--space-2) 0;
+  cursor: pointer;
+}
+
+.kind[aria-pressed='true'] {
+  color: var(--ink);
+  border-bottom-color: var(--plate-mustard);
+}
+
+.kind:hover {
+  color: var(--ink);
+}

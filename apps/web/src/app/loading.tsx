@@ -23,10 +23,6 @@ export default function Loading() {
             <Slug w="8rem" band />
           </div>
         </div>
-        <p className={styles.strapline}>
-          Everything you are growing, with its viability and what has gone
-          dormant since you last tended it.
-        </p>
       </header>
       <div className={styles.headRule} />
 

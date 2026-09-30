@@ -1,6 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase'
 import { requireOwner } from '@/lib/auth'
 import { readChats } from '@/lib/chats'
+import { BannerFigures } from '@/components/BannerFigures'
 import { SheetNav } from '@/components/SheetNav'
 import { ChatsSheet } from './ChatsSheet'
 import styles from './page.module.css'
@@ -34,13 +35,18 @@ export default async function ChatsPage({
     <main className={styles.sheet}>
       <header className={styles.head}>
         <SheetNav current="chats" />
-        <h1 className={styles.title}>Conversations</h1>
-        <p className={styles.standfirst}>
-          {chats.length === 0
-            ? 'Nothing asked yet. The button at the foot of a sheet starts one.'
-            : `${chats.length} ${chats.length === 1 ? 'conversation' : 'conversations'}, kept.`}
-        </p>
+        <div className={styles.headRow}>
+          <h1 className={styles.title}>Conversations</h1>
+          <BannerFigures
+            lines={[
+              chats.length === 0
+                ? 'Nothing asked yet'
+                : `${chats.length} ${chats.length === 1 ? 'conversation' : 'conversations'}`,
+            ]}
+          />
+        </div>
       </header>
+      <div className={styles.headRule} />
 
       <ChatsSheet chats={chats} order={order} />
     </main>
