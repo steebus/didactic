@@ -9,7 +9,7 @@
   position: fixed;
   left: 0;
   right: 0;
-  bottom: 0;
+  bottom: var(--foot-bar);
   z-index: 50;
 
   display: flex;
@@ -17,7 +17,7 @@
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
   /* The phone's own chin, so the controls are not under the home bar. */
-  padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--space-3) + max(0px, env(safe-area-inset-bottom, 0px) - var(--foot-bar)));
 
   background: var(--paper);
   /* A rule along the top rather than a shadow: this is part of the
@@ -378,8 +378,8 @@
      not both there, since on a phone the composer covers the corner the
      bench is in. */
   bottom: max(
-    calc(var(--bench-stack, 0px) + env(safe-area-inset-bottom, 0px) + var(--space-4)),
-    calc(var(--mark-panel, 0px) + var(--space-2))
+    calc(var(--bench-stack, 0px) + var(--foot-clear) + var(--space-4)),
+    calc(var(--foot-bar) + var(--mark-panel, 0px) + var(--space-2))
   );
   z-index: 50;
 

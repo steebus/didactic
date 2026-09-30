@@ -20,7 +20,6 @@ export default function Loading() {
 
         <div className={styles.headRow}>
           <div className={styles.headTitle}>
-            <p className={styles.eyebrow}>Subject</p>
             <Slug tall w="60%" band />
             <Slug w="34%" band delay={0.1} />
           </div>

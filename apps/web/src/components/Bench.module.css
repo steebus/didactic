@@ -16,7 +16,7 @@
   left: var(--space-4);
   /* Stands on the foot bar when there is one (Phase 3). Nought on a
      sheet that has neither. */
-  bottom: calc(var(--foot-bar, 0px) + env(safe-area-inset-bottom, 0px) + var(--space-4));
+  bottom: calc(var(--foot-clear) + var(--space-4));
   z-index: 40;
 
   display: flex;
@@ -195,7 +195,7 @@
     left: var(--space-2);
     right: var(--space-2);
     bottom: calc(
-      var(--foot-bar, 0px) + env(safe-area-inset-bottom, 0px) + var(--space-2)
+      var(--foot-clear) + var(--space-2)
     );
     width: auto;
   }

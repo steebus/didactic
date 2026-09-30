@@ -15,7 +15,7 @@
    a sheet is printed in the ink of the thing it is about. */
 .head {
   color: var(--paper);
-  padding: var(--space-5);
+  padding: var(--space-4) var(--space-5);
   /* The growing specimen is laid in as this band's ground, absolutely
      placed against it, and cropped by it. */
   position: relative;
@@ -44,14 +44,6 @@
    own ink. It is the subject's plate on its own sheet — the growing
    specimen, not a second static emblem beside it. */
 
-.eyebrow {
-  font-size: var(--step--2);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: rgba(var(--on-plate-rgb), 0.7);
-  margin: 0 0 var(--space-2);
-}
-
 .title {
   font-size: var(--step-3);
   font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 72;
@@ -73,7 +65,7 @@
   justify-content: space-between;
   gap: var(--space-4);
   flex-wrap: wrap;
-  margin-top: var(--space-4);
+  margin-top: var(--space-3);
 }
 
 .figures {
@@ -119,21 +111,36 @@
   opacity: 0.75;
 }
 
-.showGraph {
+/* Three ways into the same bed, as glyphs over their words, standing
+   left above the year. */
+.tools {
+  display: flex;
+  gap: var(--space-5);
+  flex: 1 1 100%;
+}
+
+.tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 2.75rem;
   font-size: var(--step--2);
   letter-spacing: 0.1em;
   text-transform: uppercase;
   font-weight: 600;
-  color: var(--paper);
+  color: rgba(var(--on-plate-rgb), 0.9);
   text-decoration: none;
-  border-bottom: 2px solid var(--plate-mustard);
-  padding-bottom: 3px;
   white-space: nowrap;
 }
 
-.showGraph:hover {
-  border-bottom-color: var(--paper);
+.tool:hover {
+  color: var(--paper);
   text-decoration: none;
+}
+
+.tool:hover > span {
+  transform: translateY(-2px) scale(1.08);
 }
 
 .headRule {
@@ -172,6 +179,7 @@
 
 .sectionHead {
   display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
   gap: var(--space-3);
@@ -181,11 +189,16 @@
 }
 
 .sectionTitle {
+  /* Never the thing that gives: the note beside it wraps instead. */
+  flex: none;
+  overflow-wrap: normal;
   font-size: var(--step-2);
   font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 40;
 }
 
 .sectionNote {
+  margin-left: auto;
+  text-align: right;
   font-size: var(--step--2);
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -761,7 +774,7 @@
 
 .sowSubmit,
 .remove,
-.showGraph {
+.tool {
   transition:
     background-color var(--dur-feedback) var(--ease-settle),
     color var(--dur-feedback) var(--ease-settle),
@@ -1059,6 +1072,13 @@
   gap: var(--space-3);
   align-self: start;
   margin-top: var(--space-1);
+  /* On its own row at every width, and allowed to wrap. Beside the name
+     the rack (two nudges, the group select, Take out, Grub out) is wider
+     than the room between the sidebar and the window's edge, and the
+     name -- the only thing in the row that can shrink -- was squeezed to
+     a letter. */
+  grid-column: 1 / -1;
+  flex-wrap: wrap;
 }
 
 .grubRow {
@@ -1083,6 +1103,7 @@
 /* Asked. The note has to sit with the name it names, so the whole
    confirmation wraps onto the row rather than replacing it. */
 .rowConfirm {
+  grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;

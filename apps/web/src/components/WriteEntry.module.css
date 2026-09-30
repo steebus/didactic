@@ -278,3 +278,10 @@
     padding: var(--space-3);
   }
 }
+
+/* On a phone the foot bar's Add menu opens the composer. */
+@media (max-width: 40rem) {
+  .open {
+    display: none;
+  }
+}

@@ -1,0 +1,266 @@
+/* The foot bar: the masthead's band, printed at the foot of a phone.
+
+   Not there at all above 40rem, where the running head carries the
+   sheets. It stands on the window, outside `main`, so the sheet's own
+   transform cannot become its containing block. */
+
+.bar {
+  display: none;
+}
+
+@media (max-width: 40rem) {
+  .bar {
+    display: block;
+    position: fixed;
+    inset: auto 0 0 0;
+    /* Over the Ask disc, so the menu is not tucked under it. */
+    z-index: 55;
+    height: var(--foot-bar);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--band-fill);
+    border-top: 4px solid var(--plate-mustard);
+    /* The band's own focus ink: terracotta is invisible on green. */
+    --focus-ink: var(--paper);
+  }
+}
+
+.row {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  max-width: var(--sheet-max);
+  height: 100%;
+  margin: 0 auto;
+}
+
+/* The sheet you are on is marked by a paper segment laid over the
+   mustard rule. It is one element that slides between cells, so moving
+   from sheet to sheet is a movement rather than a swap. */
+.marker {
+  position: absolute;
+  top: -4px;
+  left: 0;
+  width: 20%;
+  height: 4px;
+  background: var(--paper);
+  transform: translateX(calc(var(--at, 0) * 100%));
+  transition: transform var(--dur-state) var(--ease-settle);
+}
+
+.addWrap {
+  position: relative;
+  display: grid;
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-width: 0;
+  padding: 0;
+  font-family: var(--font-text);
+  font-size: var(--step--2);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(var(--on-plate-rgb), 0.82);
+  background: none;
+  border: none;
+  border-radius: 0;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color var(--dur-state) var(--ease-settle);
+}
+
+.cell:hover {
+  color: var(--paper);
+  text-decoration: none;
+}
+
+.cell[data-on] {
+  color: var(--paper);
+  font-weight: 600;
+  cursor: default;
+}
+
+/* A cell in the area but not on its own address still goes there. */
+a.cell[data-on] {
+  cursor: pointer;
+}
+
+.glyph {
+  position: relative;
+  display: block;
+  width: 24px;
+  height: 24px;
+  transition: transform var(--dur-state) var(--ease-settle);
+}
+
+.cell[data-on] .glyph {
+  transform: translateY(-2px) scale(1.12);
+}
+
+.svg {
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  overflow: visible;
+}
+
+.svg * {
+  transition:
+    transform var(--dur-state) var(--ease-settle),
+    stroke-width var(--dur-state) var(--ease-settle),
+    fill var(--dur-state) var(--ease-settle);
+  transform-box: fill-box;
+}
+
+.cell[data-on] .svg {
+  stroke-width: 2;
+}
+
+/* Each glyph does its own small thing when it becomes the sheet. */
+
+.leaves {
+  transform-origin: 50% 100%;
+  transform: scale(0.72);
+}
+.cell[data-on] .leaves {
+  transform: scale(1);
+}
+
+.nodes circle {
+  transform-origin: 50% 50%;
+  transform: scale(0.8);
+}
+.cell[data-on] .nodes circle {
+  transform: scale(1);
+  fill: currentColor;
+}
+
+.cardBack {
+  transform-origin: 50% 90%;
+  transform: rotate(-9deg);
+}
+.cardMid {
+  transform-origin: 50% 90%;
+  transform: rotate(7deg);
+}
+.cardFront {
+  fill: var(--glyph-ground, var(--band-fill));
+}
+.cell[data-on] .cardBack {
+  transform: rotate(-16deg) translateX(-1px);
+}
+.cell[data-on] .cardMid {
+  transform: rotate(13deg) translateX(1px);
+}
+
+.lip {
+  transform-origin: 50% 100%;
+}
+.cell[data-on] .lip {
+  transform: translateY(-1.5px);
+}
+
+.pen {
+  transform-origin: 50% 50%;
+}
+.cell[data-on] .pen,
+.glyph[data-open] .pen {
+  transform: scale(1.12, 1.25);
+}
+
+.label {
+  line-height: 1;
+}
+
+/* The figures: stamped on the glyph's corner. The stamp itself is the
+   running head's; only where it stands is set here. */
+.badge {
+  position: absolute;
+  top: -6px;
+  left: 60%;
+  font-size: 0.7rem;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  pointer-events: none;
+}
+
+.badge > span {
+  margin: 0;
+  padding: 0.1em 0.35em;
+}
+
+/* --- The Add menu ------------------------------------------------- */
+
+.menu {
+  position: absolute;
+  right: var(--space-2);
+  bottom: calc(100% + var(--space-2));
+  min-width: 12rem;
+  display: grid;
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  border-top: 4px solid var(--plate-mustard);
+  box-shadow: 0 -6px 24px rgba(var(--ink-rgb), 0.22);
+  animation: rise var(--dur-state) var(--ease-settle) both;
+  transform-origin: 100% 100%;
+}
+
+.item {
+  display: block;
+  padding: var(--space-3) var(--space-4);
+  min-height: 2.75rem;
+  text-align: left;
+  font-family: var(--font-text);
+  font-size: var(--step--1);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.item:hover {
+  background: var(--band-fill);
+  color: var(--on-plate);
+  text-decoration: none;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marker,
+  .glyph,
+  .cell,
+  .svg * {
+    transition: none;
+  }
+  .menu {
+    animation: none;
+  }
+}

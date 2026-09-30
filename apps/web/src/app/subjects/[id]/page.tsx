@@ -6,7 +6,8 @@ import { GRAIN } from '@didactic/core/config'
 import { getSubjectArea } from '@/lib/subject'
 import { StockBar, stockState, STOCK_LABEL } from '@/components/StockBar'
 import { SheetNav } from '@/components/SheetNav'
-import { GardenLine } from '@/components/GardenLine'
+import { Graph, Cards, Tray } from '@/components/NavGlyphs'
+import glyphs from '@/components/FootBar.module.css'
 import { BandSpecimen, BandSpecimenCaption } from '@/components/BandSpecimen'
 import { routeProgress, aggregateRoutes } from '@didactic/core/progress'
 import { ROOT_STAGES } from '@/components/RootsSpecimen'
@@ -60,7 +61,6 @@ export default async function SubjectPage({
 
         <div className={styles.headRow}>
           <div className={styles.headTitle}>
-            <p className={styles.eyebrow}>Subject</p>
             <h1 className={styles.title}>{subject.title}</h1>
             <p className={styles.summary}>
               {counts.topics} {counts.topics === 1 ? 'topic' : 'topics'} ·{' '}
@@ -107,12 +107,27 @@ export default async function SubjectPage({
             )}
           </div>
 
-          {/* The other reading of the same bed. The outline below is
-              fixed and scannable; the graph is where position is
-              emergent and the connections are the point. */}
-          <Link href={`/graph?subject=${subject.id}`} className={styles.showGraph}>
-            Show graph
-          </Link>
+          {/* The other readings of the same bed: the graph, where
+              position is emergent and the connections are the point;
+              the cards to turn over from it; and what has been sent in
+              for it. Words under the glyphs: the word is the carrier. */}
+          <div
+            className={styles.tools}
+            style={{ '--glyph-ground': subject.colour } as React.CSSProperties}
+          >
+            <Link href={`/graph?subject=${subject.id}`} className={styles.tool}>
+              <span className={glyphs.glyph}><Graph /></span>
+              Subject bed
+            </Link>
+            <Link href={`/tend?subject=${subject.id}`} className={styles.tool}>
+              <span className={glyphs.glyph}><Cards /></span>
+              Tend subject
+            </Link>
+            <Link href={`/inbox?subject=${subject.id}`} className={styles.tool}>
+              <span className={glyphs.glyph}><Tray /></span>
+              Resources
+            </Link>
+          </div>
         </div>
       </header>
       {/* The year of this bed, grown up out of the rule; streamed in
@@ -127,11 +142,6 @@ export default async function SubjectPage({
       </Suspense>
 
       <div className={styles.body}>
-        {/* Tending this bed and nothing else. A subject is the widest
-            scope anyone actually thinks in, and turning over a cloze
-            from the one you are standing in is a different errand from
-            turning over one from the whole catalogue. */}
-        <GardenLine subjectId={subject.id} here={subject.title} />
         <div className={styles.spread}>
           <div className={styles.main}>
             <SubjectBed

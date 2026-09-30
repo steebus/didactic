@@ -7,6 +7,8 @@ the band with the way back and Sow. This is the specification for both
 platforms, and the text that goes into `DESIGN.md` when the web half lands
 (Phase 3) so the design record stays true.
 
+> **Superseded on the web (phone width only).** The shipped bar has five cells: Home (`/`, potted plant), Bed (`/graph`), Tend (`/tend`, stack of cards, due tally), Inbox (`/inbox`, tally) and Add (pen), whose menu holds Marks, Chats and Write an entry. It stands on `--foot-bar` below `40rem` and is absent above it; the glyphs are line drawings, an exception to the reversed-silhouette rule below that the owner asked for. The rest of this guide is the earlier, unbuilt spec.
+
 ## What it carries
 
 | Position | Glyph | Label | Address | Notes |

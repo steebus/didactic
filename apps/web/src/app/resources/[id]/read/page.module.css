@@ -11,7 +11,7 @@
   /* Not `min-height`: the viewer below claims what is left, and a sheet
      that can grow past the window would put the file's own scrollbar
      out of reach at the foot of a long page. */
-  height: 100dvh;
+  height: calc(100dvh - var(--foot-bar));
   background: var(--paper);
 }
 

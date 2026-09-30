@@ -198,8 +198,8 @@
      have, so the alternative is two buttons permanently over the
      player's own controls. */
   bottom: max(
-    calc(var(--space-5) + env(safe-area-inset-bottom, 0px)),
-    calc(var(--player-bar, 0px) + var(--space-2))
+    calc(var(--space-5) + var(--foot-clear)),
+    calc(var(--foot-bar) + var(--player-bar, 0px) + var(--space-2))
   );
   z-index: 4;
   display: flex;
@@ -363,11 +363,10 @@
   .pins {
     top: auto !important;
     right: 0;
-    bottom: 0;
+    bottom: var(--foot-bar);
     left: 0 !important;
     justify-content: stretch;
     gap: 0;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
     background: var(--paper);
     border-top: 1px solid var(--rule);
     box-shadow: 0 -4px 20px rgba(var(--ink-rgb), 0.25);
@@ -430,15 +429,15 @@
    here has to out-specify an inline style. */
 .docked {
   position: fixed;
-  inset: auto 0 0 0;
+  inset: auto 0 var(--foot-bar) 0;
   width: auto;
-  max-height: 70vh;
+  max-height: calc(70vh - var(--foot-bar));
   overflow-y: auto;
   transform: none;
   border-left: none;
   border-right: none;
   border-bottom: none;
-  padding-bottom: calc(var(--space-3) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(var(--space-3) + max(0px, env(safe-area-inset-bottom, 0px) - var(--foot-bar)));
   box-shadow: 0 -8px 24px rgba(var(--ink-rgb), 0.22);
 }
 
@@ -473,7 +472,7 @@
   position: fixed;
   /* Over the running head, which is 20. */
   z-index: 21;
-  inset: 0 0 0 auto;
+  inset: 0 0 var(--foot-bar) auto;
   width: var(--notes-width);
   max-width: 100vw;
   max-height: none;
@@ -506,7 +505,7 @@
 
 @media (max-width: 40rem) {
   .big {
-    inset: 12dvh 0 0 0;
+    inset: 12dvh 0 var(--foot-bar) 0;
     width: auto;
     border-left: none;
     border-top: 1px solid var(--rule-strong);
@@ -649,8 +648,8 @@
 @media (max-width: 40rem) {
   .desk {
     bottom: max(
-      calc(var(--space-5) + env(safe-area-inset-bottom, 0px) + var(--bench-stack, 0px)),
-      calc(var(--player-bar, 0px) + var(--space-2))
+      calc(var(--space-5) + var(--foot-clear) + var(--bench-stack, 0px)),
+      calc(var(--foot-bar) + var(--player-bar, 0px) + var(--space-2))
     );
   }
 }

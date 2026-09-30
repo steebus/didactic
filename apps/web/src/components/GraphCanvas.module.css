@@ -2,7 +2,7 @@
 
 .frame {
   position: relative;
-  height: 100dvh;
+  height: calc(100dvh - var(--foot-bar));
   background: var(--paper);
   overflow: hidden;
 }

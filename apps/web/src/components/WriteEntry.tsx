@@ -10,6 +10,10 @@ import styles from './WriteEntry.module.css'
 
 const api = didactic()
 
+/** Sent by the foot bar's Add menu, which has no composer of its own: the
+ *  one on the sheet opens, so it is filed under the sheet's topic. */
+export const WRITE_ENTRY = 'didactic:write-entry'
+
 /**
  * Writing an entry, from wherever you are standing.
  *
@@ -66,6 +70,12 @@ export function WriteEntry({
     const foot = band ? band.getBoundingClientRect().bottom + window.scrollY : 0
     document.body.style.setProperty('--under-band', `${Math.max(0, foot)}px`)
   }, [open])
+
+  useEffect(() => {
+    const show = () => setOpen(true)
+    window.addEventListener(WRITE_ENTRY, show)
+    return () => window.removeEventListener(WRITE_ENTRY, show)
+  }, [])
 
   // Closing on Escape, because a thing that unrolls has to roll back up
   // the way everything else in this build does.

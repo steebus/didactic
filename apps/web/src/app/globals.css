@@ -77,6 +77,14 @@
      is what the notices happen to be, not a decision about the design. */
   --bench-stack: 0px;
 
+  /* The foot bar's height, including the device's own inset: nought on a
+     wide screen, where the sheets are in the running head, and the bar's
+     own height on a phone. Everything docked at the foot stands on it.
+     `--foot-clear` is what to clear when standing on the window's edge:
+     the bar if there is one, the inset if there is not. */
+  --foot-bar: 0px;
+  --foot-clear: max(var(--foot-bar), env(safe-area-inset-bottom, 0px));
+
   /* Ink and paper at alpha, as tokens rather than as 130 inlined copies.
      Every scrim, tooth and reversed-out label was written as a literal
      rgba() of one of these two, which meant the whole build stated the
@@ -310,6 +318,28 @@ body[data-notes='open'] {
 @media (max-width: 40rem) {
   body[data-notes='open'] {
     padding-right: 0;
+  }
+
+  /* The foot bar is fixed to the window; the body gives up its height so
+     the end of a sheet is never printed under it. Not on the entry
+     sheet, which has no bar. */
+  :root:not([data-bare]) {
+    --foot-bar: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  body {
+    padding-bottom: var(--foot-bar);
+  }
+
+  /* The masthead bands lost their sheet links, so they give back the
+     height they made room for. Vertical padding only; `[class]` is what
+     lets this out-specify each page's own `.head`. */
+  main[class] {
+    min-height: calc(100dvh - var(--foot-bar));
+  }
+
+  main > header[class] {
+    padding-block: var(--space-4);
   }
 }
 

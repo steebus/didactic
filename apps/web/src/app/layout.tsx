@@ -6,6 +6,7 @@ import { Bench } from '@/components/Bench'
 import { Player } from '@/components/Player'
 import { AskButton } from '@/components/AskButton'
 import { TendNotice } from '@/components/TendNotice'
+import { FootBar } from '@/components/FootBar'
 import { ServiceWorker } from '@/components/ServiceWorker'
 import { SheetFoot } from '@/components/SheetFoot'
 import { READING_SIZES, READING_SIZE_KEY } from '@didactic/core/readingSize'
@@ -134,6 +135,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               arriving where it was always going to be. */}
           <Suspense fallback={null}>
             <AskButton />
+          </Suspense>
+          {/* The sheets, at the foot of a phone. Outside `main` because
+              `main` arrives under a transform, which would make it the
+              containing block for anything fixed inside it. Behind a
+              boundary because it reads the address it is standing at. */}
+          <Suspense fallback={null}>
+            <FootBar />
           </Suspense>
         </Bench>
       </body>

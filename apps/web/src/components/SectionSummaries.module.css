@@ -277,7 +277,7 @@
   zoom: calc(1 / var(--page-zoom, 1));
   /* Over the running head, which is 20. */
   z-index: 21;
-  inset: 0 0 0 auto;
+  inset: 0 0 var(--foot-bar) auto;
   width: var(--notes-width);
   max-width: 100vw;
   margin: 0;
@@ -303,7 +303,7 @@
 
 @media (max-width: 40rem) {
   .big {
-    inset: 12dvh 0 0 0;
+    inset: 12dvh 0 var(--foot-bar) 0;
     width: auto;
     border-left: none;
     border-top: 3px solid var(--plate-ultramarine);

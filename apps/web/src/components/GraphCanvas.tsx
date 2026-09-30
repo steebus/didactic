@@ -20,7 +20,7 @@ import {
 import { contains, outline, type Point } from '@didactic/core/hull'
 import type { Sprouting, SproutView } from '@didactic/core/shapes'
 import { kindLine, UNNAMED } from '@didactic/core/sprouting'
-import { SheetNav } from './SheetNav'
+import { WriteEntry } from './WriteEntry'
 import styles from './GraphCanvas.module.css'
 
 const api = didactic()
@@ -963,7 +963,9 @@ export function GraphCanvas({
   return (
     <div className={styles.frame}>
       <div className={styles.controls} ref={controls}>
-        <SheetNav back={{ href: '/', label: 'Subjects' }} current="bed" />
+        {/* The bed has no running head; writing an entry is still offered
+            here, and from the foot bar on a phone. */}
+        <WriteEntry />
         <div className={styles.filters}>
           <input
             className={styles.search}

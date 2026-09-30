@@ -211,4 +211,15 @@
     border-left: none;
     padding-left: 0;
   }
+
+  /* The sheets are in the foot bar on a phone, so the head keeps only the
+     way back -- and nothing at all where there is none. The entry
+     composer is still mounted in here: it is opened from the bar. */
+  .sheets {
+    display: none;
+  }
+
+  .nav:not(:has(.back)) {
+    display: none;
+  }
 }
