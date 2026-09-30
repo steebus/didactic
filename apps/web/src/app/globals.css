@@ -113,6 +113,10 @@
      it after dark, where the relit plate is far too light to reverse
      a masthead out of. */
   --band-fill: var(--plate-green);
+  --band-bed: var(--plate-ultramarine);
+  --band-tend: var(--plate-plum);
+  --band-inbox: var(--plate-terracotta);
+  --band-activity: var(--plate-olive);
   --band-text: var(--paper);
 
   /* Two plates that are washed over prose rather than printed flat: the
@@ -177,6 +181,10 @@
     --on-plate: #ece3d1;
     --on-accent: #12100d;
     --band-fill: #23412a;
+    --band-bed: #1f3557;
+    --band-tend: #4d2639;
+    --band-inbox: #7a3220;
+    --band-activity: #4a4f24;
     --band-text: #ece3d1;
 
     --on-plate-rgb: 236, 227, 209;
@@ -214,6 +222,10 @@
   --on-plate: #ece3d1;
   --on-accent: #12100d;
   --band-fill: #23412a;
+  --band-bed: #1f3557;
+  --band-tend: #4d2639;
+  --band-inbox: #7a3220;
+  --band-activity: #4a4f24;
   --band-text: #ece3d1;
 
   --on-plate-rgb: 236, 227, 209;

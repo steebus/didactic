@@ -10,7 +10,7 @@
 }
 
 .head {
-  background: var(--plate-plum);
+  background: var(--band-tend);
   color: var(--paper);
   padding: var(--space-5);
   /* The band is a saturated plate, so the terracotta focus ring

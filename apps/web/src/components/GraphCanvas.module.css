@@ -38,7 +38,8 @@
   /* As the other sheets' bands: the same inset, so the title stands
      where theirs do. */
   padding: var(--space-5);
-  background: var(--band-fill);
+  --band-fill: var(--band-bed);
+  background: var(--band-bed);
   border-bottom: 4px solid var(--plate-mustard);
 }
 
