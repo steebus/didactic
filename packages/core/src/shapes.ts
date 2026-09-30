@@ -82,6 +82,13 @@ export interface FertileGround {
   topics: TopicSummary[]
 }
 
+/** Where to pick things back up: the lesson being worked, or failing
+ *  that the next one in line, and the resource being read. */
+export interface JumpBack {
+  lesson: { id: string; title: string; topicTitle: string; resumed: boolean } | null
+  resource: { id: string; title: string; kind: string; readTo: number | null } | null
+}
+
 export interface HomeData {
   subjects: SubjectCell[]
   unfiled: TopicSummary[]
@@ -95,6 +102,8 @@ export interface HomeData {
   pendingCount: number
   suggested: TopicSummary | null
   inProgress: CurriculumInProgress[]
+  /** Additive: absent from an older server. */
+  jumpBack?: JumpBack
   totals: { topics: number; subjects: number; resources: number }
 }
 

@@ -261,7 +261,7 @@ export function ResourceList({
                   disabled={busy === r.id}
                   onClick={() => setAsking(r.id)}
                 >
-                  Done with it
+                  Done
                 </button>
                 <button
                   className={`${styles.button} ${styles.buttonQuiet}`}

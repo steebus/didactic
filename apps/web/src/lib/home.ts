@@ -14,6 +14,7 @@ import type {
   CurriculumInProgress,
   FertileGround,
   HomeData,
+  JumpBack,
 } from '@didactic/core/shapes'
 
 /**
@@ -81,6 +82,56 @@ async function getCurriculaInProgress(
 }
 
 /**
+ * The lesson to go back to -- the latest opened and not finished, or
+ * failing that the next open one in a route under way -- and the
+ * resource being read, the one whose bookmark moved last.
+ */
+async function getJumpBack(
+  db: SupabaseClient,
+  inProgress: CurriculumInProgress[],
+  resources: Array<{ id: string; title: string; kind: string; status: string; added_at: string }>
+): Promise<JumpBack> {
+  const [{ data: opened }, { data: places }] = await Promise.all([
+    db
+      .from('lessons')
+      .select('id, title, curricula(topics(title))')
+      .is('completed_at', null)
+      .not('opened_at', 'is', null)
+      .order('opened_at', { ascending: false })
+      .limit(1),
+    db.from('bookmarks').select('resource_id, at, updated_at').not('resource_id', 'is', null),
+  ])
+
+  const row = opened?.[0] as unknown as
+    | { id: string; title: string; curricula: { topics: { title: string } | null } | null }
+    | undefined
+  const next = inProgress.find(c => c.nextLesson)
+  const lesson = row
+    ? { id: row.id, title: row.title, topicTitle: row.curricula?.topics?.title ?? '', resumed: true }
+    : next?.nextLesson
+      ? { ...next.nextLesson, topicTitle: next.topicTitle, resumed: false }
+      : null
+
+  const place = new Map((places ?? []).map(b => [b.resource_id as string, b]))
+  const when = (r: { id: string; added_at: string }) => place.get(r.id)?.updated_at ?? r.added_at
+  const current = resources
+    .filter(r => r.status === 'reading')
+    .sort((a, b) => when(b).localeCompare(when(a)))[0]
+
+  return {
+    lesson,
+    resource: current
+      ? {
+          id: current.id,
+          title: current.title,
+          kind: current.kind,
+          readTo: place.has(current.id) ? Number(place.get(current.id)!.at) : null,
+        }
+      : null,
+  }
+}
+
+/**
  * The stock list, cached.
  *
  * The query and the caching are separate so the query can be tested
@@ -92,7 +143,7 @@ export async function getHomeData(): Promise<HomeData> {
   'use cache'
   // Read at a glance, so it is dropped by any write that could move a
   // figure on it.
-  cacheTag(tags.subjects, tags.topics, tags.resources)
+  cacheTag(tags.subjects, tags.topics, tags.resources, tags.bookmarks)
   // Held until a write drops one of the tags above. See the `held`
   // profile in next.config.ts for why nothing here expires on time.
   cacheLife('held')
@@ -249,6 +300,7 @@ export async function readHomeData(db: SupabaseClient): Promise<HomeData> {
     pendingCount,
     suggested: cold[0] ?? null,
     inProgress,
+    jumpBack: await getJumpBack(db, inProgress, resources ?? []),
     totals: {
       topics: active.length,
       subjects: subjectCells.length,

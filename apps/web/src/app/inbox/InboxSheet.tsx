@@ -123,7 +123,7 @@ function NowReadingRow({
         <span style={{ width: `${pct}%` }} />
       </span>
       {error && <p className={styles.problem}>{error}</p>}
-      {open && (
+      <div className={styles.nowCollapse} data-open={open}>
         <div className={styles.nowMore}>
           <div className={styles.rowMeta}>
             <span className={styles.kind}>{r.kind}</span>
@@ -134,14 +134,14 @@ function NowReadingRow({
           {r.topics.length > 0 && (
             <span className={styles.filingTopics}>
               {r.topics.map(t => (
-                <Link key={t.id} href={`/topics/${t.id}`} className={styles.filingTopic}>
+                <Link key={t.id} href={`/topics/${t.id}`} className={styles.filingTopic} tabIndex={open ? 0 : -1}>
                   {t.title}
                 </Link>
               ))}
             </span>
           )}
         </div>
-      )}
+      </div>
     </li>
   )
 }

@@ -150,7 +150,7 @@ export default function ResourceSheet({ initial }: { initial: ResourceReading })
   /**
    * Say it was read, and how.
    *
-   * The same write the inbox's *Done with it* makes: the exposure is
+   * The same write the inbox's *Done* makes: the exposure is
    * what moves the topics it is filed under. The word changes on the
    * press and the writing happens behind it; a failure puts it back.
    */

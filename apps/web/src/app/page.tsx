@@ -11,6 +11,7 @@ import { LeaveLine } from '@/components/LeaveLine'
 import { ActivityEntry } from '@/components/ActivityEntry'
 import styles from './page.module.css'
 import { requireOwner } from '@/lib/auth'
+import { percentRead } from '@didactic/core/bookmarks'
 import { plate } from '@didactic/tokens'
 
 
@@ -67,6 +68,39 @@ export default async function Home() {
       ) : (
         <div className={styles.spread}>
           <section>
+            {data.jumpBack && (data.jumpBack.lesson || data.jumpBack.resource) && (
+              <div className={styles.jump}>
+                <h2 className={styles.jumpHead}>Jump back in</h2>
+                <ul className={styles.jumpList}>
+                  {data.jumpBack.lesson && (
+                    <li>
+                      <Link href={`/lesson/${data.jumpBack.lesson.id}`} className={styles.jumpItem}>
+                        <span className={styles.jumpKind}>
+                          {data.jumpBack.lesson.resumed ? 'Lesson' : 'Next lesson'}
+                        </span>
+                        <span className={styles.jumpTitle}>{data.jumpBack.lesson.title}</span>
+                        {data.jumpBack.lesson.topicTitle && (
+                          <span className={styles.jumpNote}>{data.jumpBack.lesson.topicTitle}</span>
+                        )}
+                      </Link>
+                    </li>
+                  )}
+                  {data.jumpBack.resource && (
+                    <li>
+                      <Link href={`/resources/${data.jumpBack.resource.id}`} className={styles.jumpItem}>
+                        <span className={styles.jumpKind}>{data.jumpBack.resource.kind}</span>
+                        <span className={styles.jumpTitle}>{data.jumpBack.resource.title}</span>
+                        {data.jumpBack.resource.readTo != null && (
+                          <span className={styles.jumpNote}>
+                            {percentRead(data.jumpBack.resource.readTo)}% read
+                          </span>
+                        )}
+                      </Link>
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>Subjects</h2>
               {/* Starting a subject, offered where the decision is
