@@ -33,8 +33,7 @@
   z-index: 2;
   display: flex;
   gap: var(--space-3);
-  align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   /* As the other sheets' bands: the same inset, so the title stands
      where theirs do. */
   padding: var(--space-5);
