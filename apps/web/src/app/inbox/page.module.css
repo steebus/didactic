@@ -1130,26 +1130,26 @@
   border-bottom: 1px solid var(--rule);
 }
 
-.nowSummary {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+.nowLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-1) var(--space-3);
-  align-items: baseline;
   padding: var(--space-2) 0;
-  cursor: pointer;
-  list-style: none;
-}
-
-.nowSummary::-webkit-details-marker {
-  display: none;
 }
 
 .nowTitle {
+  flex: 1 1 10rem;
+  min-width: 0;
   font-family: var(--font-display);
   font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  color: inherit;
+  text-decoration: none;
+}
+
+.nowTitle:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--plate-mustard);
 }
 
 .nowPct {
@@ -1158,8 +1158,29 @@
   font-variant-numeric: tabular-nums;
 }
 
+.nowActions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: auto;
+}
+
+.nowButton {
+  padding: var(--space-1) var(--space-2);
+  font-size: 0.625rem;
+}
+
+.nowToggle {
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+  padding: var(--space-1) var(--space-2);
+}
+
 .nowBar {
-  grid-column: 1 / -1;
+  display: block;
   height: 3px;
   background: var(--rule);
 }

@@ -8,6 +8,8 @@ import { ResourceList } from '@/components/ResourceList'
 import { filedKind } from '@didactic/core/shared'
 import { percentRead } from '@didactic/core/bookmarks'
 import Link from 'next/link'
+import { RemoveResource } from '@/components/RemoveResource'
+import type { ExposureDepth, ResourceStatus } from '@didactic/core/types'
 import { bestHits, byTopic, filedUnder, shelfMatches, type ShelfHit } from '@didactic/core/shelf'
 import styles from './page.module.css'
 
@@ -24,6 +26,124 @@ const KIND_LABEL: Record<string, string> = {
   pdf: 'PDF',
   book: 'Book',
   note: 'Note',
+}
+
+const DEPTHS: Array<{ value: ExposureDepth; label: string }> = [
+  { value: 'skim', label: 'Skimmed' },
+  { value: 'read', label: 'Read it' },
+  { value: 'applied', label: 'Applied it' },
+]
+
+/** One thing being read: title opens it, small actions, expand for the rest. */
+function NowReadingRow({
+  r,
+  onRemove,
+}: {
+  r: LibraryRow
+  onRemove: (id: string, opts: { topics: boolean }) => void | Promise<void>
+}) {
+  const [open, setOpen] = useState(false)
+  const [asking, setAsking] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [, startTransition] = useTransition()
+  const router = useRouter()
+  const pct = percentRead(r.readTo)
+
+  async function patch(body: { status: ResourceStatus; depth?: ExposureDepth }) {
+    setBusy(true)
+    setError(null)
+    const { ok, error: failed } = await api.resources.patch(r.id, body)
+    if (ok) startTransition(() => router.refresh())
+    else setError(failed ?? 'Could not save that. Try again.')
+    setBusy(false)
+  }
+
+  const small = `${styles.button} ${styles.nowButton}`
+  return (
+    <li className={styles.nowRow}>
+      <div className={styles.nowLine}>
+        <Link href={`/resources/${r.id}`} className={styles.nowTitle}>
+          {r.title}
+        </Link>
+        <span className={styles.nowPct}>{pct}%</span>
+        <span className={styles.nowActions}>
+          {asking ? (
+            <>
+              {DEPTHS.map(d => (
+                <button
+                  key={d.value}
+                  type="button"
+                  className={small}
+                  disabled={busy}
+                  onClick={() => patch({ status: 'consumed', depth: d.value })}
+                >
+                  {d.label}
+                </button>
+              ))}
+              <button type="button" className={`${small} ${styles.buttonQuiet}`} onClick={() => setAsking(false)}>
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <button type="button" className={small} disabled={busy} onClick={() => setAsking(true)}>
+                Done
+              </button>
+              <button
+                type="button"
+                className={`${small} ${styles.buttonQuiet}`}
+                disabled={busy}
+                onClick={() => patch({ status: 'abandoned' })}
+              >
+                Set aside
+              </button>
+              {!r.readInto && (
+                <RemoveResource
+                  id={r.id}
+                  className={`${small} ${styles.buttonQuiet} ${styles.buttonRemove}`}
+                  disabled={busy}
+                  onRemove={onRemove}
+                />
+              )}
+            </>
+          )}
+          <button
+            type="button"
+            className={styles.nowToggle}
+            aria-expanded={open}
+            aria-label={open ? 'Collapse' : 'Expand'}
+            onClick={() => setOpen(o => !o)}
+          >
+            {open ? '▴' : '▾'}
+          </button>
+        </span>
+      </div>
+      <span className={styles.nowBar} aria-hidden="true">
+        <span style={{ width: `${pct}%` }} />
+      </span>
+      {error && <p className={styles.problem}>{error}</p>}
+      {open && (
+        <div className={styles.nowMore}>
+          <div className={styles.rowMeta}>
+            <span className={styles.kind}>{r.kind}</span>
+            <span>
+              added {new Date(r.added_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+            </span>
+          </div>
+          {r.topics.length > 0 && (
+            <span className={styles.filingTopics}>
+              {r.topics.map(t => (
+                <Link key={t.id} href={`/topics/${t.id}`} className={styles.filingTopic}>
+                  {t.title}
+                </Link>
+              ))}
+            </span>
+          )}
+        </div>
+      )}
+    </li>
+  )
 }
 
 /**
@@ -263,44 +383,9 @@ export function InboxSheet({
             Currently reading <span className={styles.sectionNote}>{reading.length}</span>
           </h2>
           <ul className={styles.list}>
-            {reading.map(r => {
-              const pct = percentRead(r.readTo)
-              return (
-                <li key={r.id}>
-                  <details className={styles.nowRow}>
-                    <summary className={styles.nowSummary}>
-                      <span className={styles.nowTitle}>{r.title}</span>
-                      <span className={styles.nowPct}>{pct}%</span>
-                      <span className={styles.nowBar} aria-hidden="true">
-                        <span style={{ width: `${pct}%` }} />
-                      </span>
-                    </summary>
-                    <div className={styles.nowMore}>
-                      <div className={styles.rowMeta}>
-                        <span className={styles.kind}>{r.kind}</span>
-                        <span>
-                          added {new Date(r.added_at).toLocaleDateString('en-GB', {
-                            day: 'numeric', month: 'short',
-                          })}
-                        </span>
-                        <Link className={styles.rowLink} href={`/resources/${r.id}`}>
-                          {r.readTo == null ? 'Open' : 'Carry on'}
-                        </Link>
-                      </div>
-                      {r.topics.length > 0 && (
-                        <span className={styles.filingTopics}>
-                          {r.topics.map(t => (
-                            <Link key={t.id} href={`/topics/${t.id}`} className={styles.filingTopic}>
-                              {t.title}
-                            </Link>
-                          ))}
-                        </span>
-                      )}
-                    </div>
-                  </details>
-                </li>
-              )
-            })}
+            {reading.map(r => (
+              <NowReadingRow key={r.id} r={r} onRemove={remove} />
+            ))}
           </ul>
         </section>
       )}
