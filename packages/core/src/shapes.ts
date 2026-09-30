@@ -124,6 +124,9 @@ export interface LibraryRow extends Resource {
   said?: Said | null
   /** How many passages and notes were kept in it, read in the app. */
   marks?: number
+  /** How far down it the bookmark sits, 0 to 1; null where none is
+   *  dropped. Additive: absent from an older server. */
+  readTo?: number | null
 }
 
 /* ------------------------------------------------------------- pending */

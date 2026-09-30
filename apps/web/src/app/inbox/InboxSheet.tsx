@@ -6,6 +6,8 @@ import { didactic } from '@didactic/api'
 import type { LibraryRow } from '@didactic/core/shapes'
 import { ResourceList } from '@/components/ResourceList'
 import { filedKind } from '@didactic/core/shared'
+import { percentRead } from '@didactic/core/bookmarks'
+import Link from 'next/link'
 import { bestHits, byTopic, filedUnder, shelfMatches, type ShelfHit } from '@didactic/core/shelf'
 import styles from './page.module.css'
 
@@ -130,7 +132,8 @@ export function InboxSheet({
     [resources, query, kind, only, hits]
   )
 
-  const unread = shown.filter(r => r.status === 'queued' || r.status === 'reading')
+  const reading = shown.filter(r => r.status === 'reading')
+  const unread = shown.filter(r => r.status === 'queued')
   const read = shown.filter(r => r.status === 'consumed' || r.status === 'abandoned')
 
   const unfiled = resources.filter(r => r.topics.length === 0).length
@@ -228,7 +231,7 @@ export function InboxSheet({
           about, unread before read. A shelf's head narrows the inbox to
           that topic, which also finds what only touches it. */}
       {grouped &&
-        byTopic([...unread, ...read]).map(shelf => (
+        byTopic([...reading, ...unread, ...read]).map(shelf => (
           <section key={shelf.topic?.id ?? 'unfiled'}>
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>{shelf.topic?.title ?? 'Filed against nothing'}</h2>
@@ -251,6 +254,56 @@ export function InboxSheet({
             <ResourceList resources={shelf.rows} onRemove={remove} hits={hits} />
           </section>
         ))}
+
+      {/* Begun and not finished: a slim row each, the place reached
+          read off the bookmark. Opening one gives the rest of the row. */}
+      {!grouped && reading.length > 0 && (
+        <section className={styles.nowReading}>
+          <h2 className={styles.nowReadingHead}>
+            Currently reading <span className={styles.sectionNote}>{reading.length}</span>
+          </h2>
+          <ul className={styles.list}>
+            {reading.map(r => {
+              const pct = percentRead(r.readTo)
+              return (
+                <li key={r.id}>
+                  <details className={styles.nowRow}>
+                    <summary className={styles.nowSummary}>
+                      <span className={styles.nowTitle}>{r.title}</span>
+                      <span className={styles.nowPct}>{pct}%</span>
+                      <span className={styles.nowBar} aria-hidden="true">
+                        <span style={{ width: `${pct}%` }} />
+                      </span>
+                    </summary>
+                    <div className={styles.nowMore}>
+                      <div className={styles.rowMeta}>
+                        <span className={styles.kind}>{r.kind}</span>
+                        <span>
+                          added {new Date(r.added_at).toLocaleDateString('en-GB', {
+                            day: 'numeric', month: 'short',
+                          })}
+                        </span>
+                        <Link className={styles.rowLink} href={`/resources/${r.id}`}>
+                          {r.readTo == null ? 'Open' : 'Carry on'}
+                        </Link>
+                      </div>
+                      {r.topics.length > 0 && (
+                        <span className={styles.filingTopics}>
+                          {r.topics.map(t => (
+                            <Link key={t.id} href={`/topics/${t.id}`} className={styles.filingTopic}>
+                              {t.title}
+                            </Link>
+                          ))}
+                        </span>
+                      )}
+                    </div>
+                  </details>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      )}
 
       {!grouped && (
         <section>

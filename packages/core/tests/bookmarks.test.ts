@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { findPlace, placeAt, PLACE_WORDS } from '../src/bookmarks'
+import { findPlace, percentRead, placeAt, PLACE_WORDS } from '../src/bookmarks'
 
 const text =
   'Caching happens at nearly every layer. Your browser remembers recent lookups, ' +
@@ -50,5 +50,17 @@ describe('findPlace', () => {
 
   it('says so when the words are gone', () => {
     expect(findPlace('An entirely different lesson now.', placeAt(text, 40, 0.5))).toBe(-1)
+  })
+})
+
+describe('percentRead', () => {
+  it('rounds the fraction to a whole percent and holds it to 0-100', () => {
+    expect(percentRead(0.374)).toBe(37)
+    expect(percentRead(1.4)).toBe(100)
+    expect(percentRead(-1)).toBe(0)
+  })
+  it('is 0 where nothing is bookmarked', () => {
+    expect(percentRead(null)).toBe(0)
+    expect(percentRead(undefined)).toBe(0)
   })
 })

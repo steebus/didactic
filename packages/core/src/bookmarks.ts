@@ -87,3 +87,8 @@ export function findPlace(flat: string, place: Pick<Place, 'words' | 'prefix'>):
   const half = words.slice(0, Math.ceil(words.length / 2)).trim()
   return half.length >= 12 ? flat.indexOf(half) : -1
 }
+
+/** How far down a reading a bookmark is, as the whole percent both apps print. */
+export function percentRead(at: number | null | undefined): number {
+  return at == null || !Number.isFinite(at) ? 0 : Math.round(Math.min(1, Math.max(0, at)) * 100)
+}

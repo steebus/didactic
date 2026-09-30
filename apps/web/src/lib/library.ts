@@ -64,7 +64,7 @@ export async function getLibrary(): Promise<LibraryRow[]> {
   'use cache'
   // Marks too: a row prints what was said back about it, and a summary
   // written in a resource is a mark (053).
-  cacheTag(tags.resources, tags.topics, tags.highlights)
+  cacheTag(tags.resources, tags.topics, tags.highlights, tags.bookmarks)
   // Held until a write drops one of the tags above. See the `held`
   // profile in next.config.ts for why nothing here expires on time.
   cacheLife('held')
@@ -82,6 +82,7 @@ export async function readLibrary(db: SupabaseClient): Promise<LibraryRow[]> {
     { data: exposures },
     { data: jobs },
     { data: written },
+    { data: places },
   ] = await Promise.all([
     db.from('resources').select('*').order('added_at', { ascending: false }),
     db.from('resource_topics').select('resource_id, relevance, topics(id, title)'),
@@ -100,7 +101,11 @@ export async function readLibrary(db: SupabaseClient): Promise<LibraryRow[]> {
       .from('highlights')
       .select('resource_id, kind, section, note')
       .not('resource_id', 'is', null),
+    // Where the reader stopped, for the *Currently reading* strip.
+    db.from('bookmarks').select('resource_id, at').not('resource_id', 'is', null),
   ])
+
+  const stopped = new Map((places ?? []).map(b => [b.resource_id as string, Number(b.at)]))
 
   const said = saidFrom(written ?? [], 'resource_id')
   const marked = new Map<string, number>()
@@ -145,6 +150,7 @@ export async function readLibrary(db: SupabaseClient): Promise<LibraryRow[]> {
     readInto: read.has(r.id),
     said: said.get(r.id) ?? null,
     marks: marked.get(r.id) ?? 0,
+    readTo: stopped.get(r.id) ?? null,
     sameAs: all
       .filter(other => other.id !== r.id && titleOverlap(r.title, other.title) >= SAME_THING)
       .map(other => ({ id: other.id, title: other.title })),
