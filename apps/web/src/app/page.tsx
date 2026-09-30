@@ -69,37 +69,41 @@ export default async function Home() {
         <div className={styles.spread}>
           <section>
             {data.jumpBack && (data.jumpBack.lesson || data.jumpBack.resource) && (
-              <div className={styles.jump}>
-                <h2 className={styles.jumpHead}>Jump back in</h2>
+              <section className={styles.jump} aria-labelledby="jump-back-in">
+                <h2 id="jump-back-in" className={styles.jumpHead}>Jump back in</h2>
                 <ul className={styles.jumpList}>
                   {data.jumpBack.lesson && (
-                    <li>
-                      <Link href={`/lesson/${data.jumpBack.lesson.id}`} className={styles.jumpItem}>
-                        <span className={styles.jumpKind}>
-                          {data.jumpBack.lesson.resumed ? 'Lesson' : 'Next lesson'}
-                        </span>
+                    <li className={styles.jumpItem}>
+                      <Link href={`/lesson/${data.jumpBack.lesson.id}`} className={styles.jumpLink}>
                         <span className={styles.jumpTitle}>{data.jumpBack.lesson.title}</span>
-                        {data.jumpBack.lesson.topicTitle && (
-                          <span className={styles.jumpNote}>{data.jumpBack.lesson.topicTitle}</span>
-                        )}
+                        <span className={styles.jumpMeta}>
+                          {data.jumpBack.lesson.resumed ? 'Lesson' : 'Next lesson'}
+                          {data.jumpBack.lesson.topicTitle && ` · ${data.jumpBack.lesson.topicTitle}`}
+                        </span>
+                        <span className={styles.jumpGo}>Carry on</span>
                       </Link>
                     </li>
                   )}
                   {data.jumpBack.resource && (
-                    <li>
-                      <Link href={`/resources/${data.jumpBack.resource.id}`} className={styles.jumpItem}>
-                        <span className={styles.jumpKind}>{data.jumpBack.resource.kind}</span>
+                    <li className={styles.jumpItem}>
+                      <Link href={`/resources/${data.jumpBack.resource.id}`} className={styles.jumpLink}>
                         <span className={styles.jumpTitle}>{data.jumpBack.resource.title}</span>
+                        <span className={styles.jumpMeta}>
+                          <span className={styles.jumpKind}>{data.jumpBack.resource.kind}</span>
+                          {data.jumpBack.resource.readTo != null &&
+                            ` · ${percentRead(data.jumpBack.resource.readTo)}% read`}
+                        </span>
                         {data.jumpBack.resource.readTo != null && (
-                          <span className={styles.jumpNote}>
-                            {percentRead(data.jumpBack.resource.readTo)}% read
+                          <span className={styles.jumpBar} aria-hidden="true">
+                            <span style={{ width: `${percentRead(data.jumpBack.resource.readTo)}%` }} />
                           </span>
                         )}
+                        <span className={styles.jumpGo}>Carry on</span>
                       </Link>
                     </li>
                   )}
                 </ul>
-              </div>
+              </section>
             )}
             <div className={styles.sectionHead}>
               <h2 className={styles.sectionTitle}>Subjects</h2>

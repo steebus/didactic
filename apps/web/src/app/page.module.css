@@ -654,71 +654,121 @@
 }
 
 
-/* Jump back in: the page's main call to action, outlined and set on
-   paper-deep (darker in light, lighter in dark), kept slim. */
+/* Jump back in: the sheet's one call to action. A ruled block on
+   paper-deep (a step darker in daylight, lighter after dark), the
+   lesson and the reading side by side, divided by a hairline as two
+   columns of a printed page are. Each names itself in the display face
+   and offers one underlined action, as the other actions on the sheet
+   do. Stacked on a phone. */
 .jump {
   margin-bottom: var(--space-5);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-4);
   border: 1px solid var(--rule-strong);
   background: var(--paper-deep);
 }
 
 .jumpHead {
-  margin: 0;
-  font-size: var(--step--2);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
+  margin: 0 0 var(--space-3);
+  font-size: var(--step-1);
+  font-variation-settings: 'SOFT' 30, 'WONK' 1, 'opsz' 40;
 }
 
 .jumpList {
   list-style: none;
-  margin: var(--space-2) 0 0;
+  margin: 0;
   padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  border-top: 1px solid var(--rule);
 }
 
 .jumpItem {
   display: grid;
-  grid-template-columns: 5rem minmax(0, 1fr) auto;
-  gap: var(--space-3);
-  align-items: baseline;
-  padding: var(--space-1) 0;
+  padding: var(--space-3) var(--space-4) 0 0;
+}
+
+.jumpItem + .jumpItem {
+  padding-left: var(--space-4);
+  border-left: 1px solid var(--rule);
+}
+
+.jumpLink {
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
   color: inherit;
   text-decoration: none;
 }
 
-.jumpItem:hover .jumpTitle {
-  text-decoration: underline;
-  text-decoration-color: var(--plate-mustard);
-}
-
-.jumpKind {
-  font-size: var(--step--2);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-}
-
 .jumpTitle {
   font-family: var(--font-display);
+  font-size: var(--step-1);
   font-weight: 600;
-  min-width: 0;
+  line-height: 1.15;
+  font-variation-settings: 'SOFT' 25, 'WONK' 1, 'opsz' 24;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.jumpNote {
+.jumpMeta {
   font-size: var(--step--1);
   color: var(--ink-soft);
 }
 
+.jumpKind {
+  text-transform: capitalize;
+}
+
+.jumpBar {
+  display: block;
+  height: 3px;
+  margin-top: var(--space-1);
+  background: var(--rule);
+}
+
+.jumpBar > span {
+  display: block;
+  height: 100%;
+  background: var(--plate-mustard);
+}
+
+.jumpGo {
+  justify-self: start;
+  margin-top: var(--space-2);
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--plate-green);
+  border-bottom: 2px solid var(--plate-mustard);
+  padding-bottom: 1px;
+  transition:
+    color var(--dur-feedback) var(--ease-settle),
+    border-color var(--dur-feedback) var(--ease-settle);
+}
+
+.jumpLink:hover .jumpGo,
+.jumpLink:focus-visible .jumpGo {
+  color: var(--plate-terracotta);
+  border-bottom-color: var(--plate-terracotta);
+}
+
+.jumpLink:focus-visible {
+  outline: 2px solid var(--plate-terracotta);
+  outline-offset: 4px;
+}
+
 @media (max-width: 40rem) {
-  .jumpItem {
-    grid-template-columns: minmax(0, 1fr) auto;
+  .jump {
+    padding: var(--space-3);
   }
-  .jumpKind {
-    grid-column: 1 / -1;
+  .jumpItem,
+  .jumpItem + .jumpItem {
+    padding: var(--space-3) 0 0;
+    border-left: none;
+  }
+  .jumpItem + .jumpItem {
+    margin-top: var(--space-3);
+    border-top: 1px solid var(--rule);
   }
 }
