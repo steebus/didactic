@@ -212,7 +212,14 @@ export function GraphCanvas({
   const [query, setQuery] = useState('')
   const [subject, setSubject] = useState<string | null>(initialSubject)
   const [showDormantOnly, setShowDormantOnly] = useState(false)
-  const [showForces, setShowForces] = useState(false)
+  /** Which of the two corner panels is open; opening one closes the other. */
+  const [panel, setPanel] = useState<'filters' | 'forces' | null>(null)
+  useEffect(() => {
+    if (!panel) return
+    const shut = (e: KeyboardEvent) => e.key === 'Escape' && setPanel(null)
+    document.addEventListener('keydown', shut)
+    return () => document.removeEventListener('keydown', shut)
+  }, [panel])
   // The bed is topics by default. Material and lessons are layers over
   // it, off until asked for, or the planting is unreadable.
   const [showResources, setShowResources] = useState(false)
@@ -963,117 +970,144 @@ export function GraphCanvas({
   return (
     <div className={styles.frame}>
       <div className={styles.controls} ref={controls}>
-        <SheetNav back={{ href: '/', label: 'Subjects' }} current="bed" always />
-        <div className={styles.filters}>
-          <input
-            className={styles.search}
-            value={query}
-            onChange={e => setQuery(e.target.value)}
-            placeholder="Find a topic"
-            aria-label="Find a topic"
-          />
-          <select
-            className={styles.select}
-            value={subject ?? ''}
-            onChange={e => setSubject(e.target.value || null)}
-            aria-label="Filter by subject"
-          >
-            <option value="">All subjects</option>
-            {data?.subjects.map(s => (
-              <option key={s.id} value={s.id}>{s.title}</option>
-            ))}
-          </select>
-          <label className={styles.toggle}>
-            <input
-              type="checkbox"
-              checked={showDormantOnly}
-              onChange={e => setShowDormantOnly(e.target.checked)}
-            />
-            Dormant only
-          </label>
+        <SheetNav back={{ href: '/', label: 'Subjects' }} current="bed" always hideHere />
+        <h1 className={styles.title}>The Bed</h1>
+        {wantsSprouts && sproutNote && <p className={styles.sproutNote}>{sproutNote}</p>}
+      </div>
 
-          <label className={styles.toggle}>
-            <input
-              type="checkbox"
-              checked={showResources}
-              onChange={e => setShowResources(e.target.checked)}
-            />
-            Material
-          </label>
-
-          <label className={styles.toggle}>
-            <input
-              type="checkbox"
-              checked={showLessons}
-              onChange={e => setShowLessons(e.target.checked)}
-            />
-            Lessons
-          </label>
-
-          <label className={styles.toggle}>
-            <input
-              type="checkbox"
-              checked={showMarks}
-              onChange={e => setShowMarks(e.target.checked)}
-            />
-            Marks
-          </label>
-
-          <label className={styles.toggle}>
-            <input
-              type="checkbox"
-              checked={showSprouts}
-              onChange={e => {
-                setShowSprouts(e.target.checked)
-                if (!e.target.checked) setChosenSprout(null)
-              }}
-            />
-            Sprouting
-          </label>
-
+      <div className={styles.tools} style={controlsHeight ? ({ '--controls-height': `${controlsHeight}px` } as React.CSSProperties) : undefined}>
+        <div className={styles.tool}>
           <button
-            className={styles.forcesToggle}
-            onClick={() => setShowForces(v => !v)}
-            aria-expanded={showForces}
+            type="button"
+            className={styles.glyphButton}
+            onClick={() => setPanel(p => (p === 'filters' ? null : 'filters'))}
+            aria-expanded={panel === 'filters'}
+            aria-label="Filters"
+            title="Filters"
           >
-            Forces
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+              <path d="M4 5h16l-6 8v6l-4-2v-4Z" />
+            </svg>
           </button>
-        </div>
-
-        {showForces && (
-          <div className={styles.forces}>
-            {FORCE_CONTROLS.map(control => (
-              <label key={control.key} className={styles.force}>
-                <span className={styles.forceLabel}>{control.label}</span>
+          {panel === 'filters' && (
+        <div className={`${styles.popover} ${styles.filters}`}>
+              <input
+                className={styles.search}
+                value={query}
+                onChange={e => setQuery(e.target.value)}
+                placeholder="Find a topic"
+                aria-label="Find a topic"
+              />
+              <select
+                className={styles.select}
+                value={subject ?? ''}
+                onChange={e => setSubject(e.target.value || null)}
+                aria-label="Filter by subject"
+              >
+                <option value="">All subjects</option>
+                {data?.subjects.map(s => (
+                  <option key={s.id} value={s.id}>{s.title}</option>
+                ))}
+              </select>
+              <label className={styles.toggle}>
                 <input
-                  type="range" min={0} max={control.max} step={control.step}
-                  value={forces[control.key]}
+                  type="checkbox"
+                  checked={showDormantOnly}
+                  onChange={e => setShowDormantOnly(e.target.checked)}
+                />
+                Dormant only
+              </label>
+
+              <label className={styles.toggle}>
+                <input
+                  type="checkbox"
+                  checked={showResources}
+                  onChange={e => setShowResources(e.target.checked)}
+                />
+                Material
+              </label>
+
+              <label className={styles.toggle}>
+                <input
+                  type="checkbox"
+                  checked={showLessons}
+                  onChange={e => setShowLessons(e.target.checked)}
+                />
+                Lessons
+              </label>
+
+              <label className={styles.toggle}>
+                <input
+                  type="checkbox"
+                  checked={showMarks}
+                  onChange={e => setShowMarks(e.target.checked)}
+                />
+                Marks
+              </label>
+
+              <label className={styles.toggle}>
+                <input
+                  type="checkbox"
+                  checked={showSprouts}
                   onChange={e => {
-                    const value = +e.target.value
-                    setForces(current => ({ ...current, [control.key]: value }))
+                    setShowSprouts(e.target.checked)
+                    if (!e.target.checked) setChosenSprout(null)
                   }}
                 />
-                <span className={styles.forceValue}>{forces[control.key].toFixed(1)}</span>
+                Sprouting
               </label>
-            ))}
-            {/* Subjects let go and kinship taken up: whatever clumps
-                now is clumping because the material puts it together. */}
-            <button
-              className={styles.forcesToggle}
-              onClick={() => setForces(KINSHIP_FORCES)}
-            >
-              By kinship
-            </button>
-            <button
-              className={styles.forcesToggle}
-              onClick={() => setForces(DEFAULT_FORCES)}
-            >
-              Reset
-            </button>
-          </div>
-        )}
-
-        {wantsSprouts && sproutNote && <p className={styles.sproutNote}>{sproutNote}</p>}
+            </div>
+          )}
+        </div>
+        <div className={styles.tool}>
+          <button
+            type="button"
+            className={styles.glyphButton}
+            onClick={() => setPanel(p => (p === 'forces' ? null : 'forces'))}
+            aria-expanded={panel === 'forces'}
+            aria-label="Forces"
+            title="Forces"
+          >
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+              <path d="M4 7h16M4 12h16M4 17h16" />
+              <circle cx="9" cy="7" r="2" />
+              <circle cx="15" cy="12" r="2" />
+              <circle cx="8" cy="17" r="2" />
+            </svg>
+          </button>
+          {panel === 'forces' && (
+          <div className={styles.popover} data-wide>
+                {FORCE_CONTROLS.map(control => (
+                  <label key={control.key} className={styles.force}>
+                    <span className={styles.forceLabel}>{control.label}</span>
+                    <input
+                      type="range" min={0} max={control.max} step={control.step}
+                      value={forces[control.key]}
+                      onChange={e => {
+                        const value = +e.target.value
+                        setForces(current => ({ ...current, [control.key]: value }))
+                      }}
+                    />
+                    <span className={styles.forceValue}>{forces[control.key].toFixed(1)}</span>
+                  </label>
+                ))}
+                {/* Subjects let go and kinship taken up: whatever clumps
+                    now is clumping because the material puts it together. */}
+                <button
+                  className={styles.forcesToggle}
+                  onClick={() => setForces(KINSHIP_FORCES)}
+                >
+                  By kinship
+                </button>
+                <button
+                  className={styles.forcesToggle}
+                  onClick={() => setForces(DEFAULT_FORCES)}
+                >
+                  Reset
+                </button>
+              </div>
+          )}
+        </div>
       </div>
 
       <div

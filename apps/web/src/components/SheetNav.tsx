@@ -13,7 +13,10 @@ export function SheetNav({
   current,
   filedUnder,
   always,
+  hideHere,
 }: {
+  /** Leave the sheet you are on out of the run, as the subjects sheet does. */
+  hideHere?: boolean
   /** Keep the sheets in the head on a phone, for a sheet (the bed) that
    *  is a full-screen canvas the foot bar's arrangement does not suit. */
   always?: boolean
@@ -71,7 +74,7 @@ export function SheetNav({
           // is how you know which of six you are on -- but the head on
           // the home sheet was the most crowded in the build, and its
           // own title is already the largest thing on the page.
-          .filter(sheet => !(sheet.key === 'stock' && current === 'stock'))
+          .filter(sheet => !((sheet.key === 'stock' || hideHere) && sheet.key === current))
           .map(sheet =>
           sheet.key === current ? (
             <span key={sheet.key} className={styles.here} aria-current="page">

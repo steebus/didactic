@@ -540,3 +540,92 @@
   line-height: 1.5;
   color: var(--ink);
 }
+
+/* --- Title, and the two corner tools ------------------------------ */
+
+.title {
+  font-size: var(--step-3);
+  font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 72;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  margin: var(--space-3) 0 0;
+  color: var(--on-plate);
+}
+
+.tools {
+  position: absolute;
+  top: calc(var(--controls-height, 6rem) + var(--space-3));
+  right: var(--space-3);
+  z-index: 2;
+  display: grid;
+  gap: var(--space-2);
+  justify-items: end;
+}
+
+.tool {
+  position: relative;
+}
+
+.glyphButton {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--rule-strong);
+  cursor: pointer;
+}
+
+.glyphButton[aria-expanded='true'] {
+  color: var(--on-plate);
+  background: var(--band-fill);
+  border-color: var(--band-fill);
+}
+
+.glyphButton svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Drawn on the banner's plate, so the controls keep their own colours,
+   to the left of the button that opened it. */
+.popover {
+  position: absolute;
+  top: 0;
+  right: calc(100% + var(--space-2));
+  z-index: 5;
+  width: max-content;
+  max-width: min(22rem, calc(100vw - 5rem));
+  padding: var(--space-3);
+  background: var(--band-fill);
+  color: var(--on-plate);
+  border-bottom: 4px solid var(--plate-mustard);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+  animation: forcesIn var(--dur-state) var(--ease-settle) both;
+}
+
+.popover.filters {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: start;
+}
+
+.popover .search,
+.popover .select {
+  width: 100%;
+  max-width: none;
+}
+
+.popover .forces,
+.popover[data-wide] {
+  display: grid;
+  gap: var(--space-2) var(--space-3);
+  border-top: none;
+  margin: 0;
+  padding: var(--space-3);
+}
