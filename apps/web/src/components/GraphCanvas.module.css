@@ -552,6 +552,8 @@
 /* --- Title, and the two corner tools ------------------------------ */
 
 .headRow {
+  align-self: stretch;
+  width: 100%;
   display: flex;
   align-items: baseline;
   justify-content: space-between;

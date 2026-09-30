@@ -190,21 +190,21 @@ describe('a sitting', () => {
     expect(labels).not.toContain('Next')
   })
 
-  it('counts what was tended, and what is left', async () => {
+  it('counts what was tended', async () => {
     review.mockResolvedValue({
       ok: true, status: 200, error: null,
       body: { cloze: FIRST, intervalDays: 3, retrievability: 0.9, wait: '3 d' },
     })
 
     await sitting()
-    expect(container.textContent).toContain('2 cards are due')
+    // The count of what is due is in the banner, not on this sheet.
+    expect(container.textContent).not.toContain('tended')
 
     press('Show it')
     await act(async () => {
       press('Got it')
     })
 
-    expect(container.textContent).toContain('1 card is due')
     expect(container.textContent).toContain('1 tended')
   })
 
