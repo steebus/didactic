@@ -281,7 +281,7 @@
 
 /* On a phone the foot bar's Add menu opens the composer. */
 @media (max-width: 40rem) {
-  .open:not([data-always]) {
+  .open {
     display: none;
   }
 }

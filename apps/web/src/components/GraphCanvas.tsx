@@ -970,7 +970,7 @@ export function GraphCanvas({
   return (
     <div className={styles.frame}>
       <div className={styles.controls} ref={controls}>
-        <SheetNav back={{ href: '/', label: 'Subjects' }} current="bed" always hideHere />
+        <SheetNav back={{ href: '/', label: 'Subjects' }} current="bed" hideHere />
         <h1 className={styles.title}>The Bed</h1>
         {wantsSprouts && sproutNote && <p className={styles.sproutNote}>{sproutNote}</p>}
       </div>

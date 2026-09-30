@@ -35,7 +35,9 @@
   gap: var(--space-3);
   align-items: center;
   flex-wrap: wrap;
-  padding: var(--space-3) var(--space-4);
+  /* As the other sheets' bands: the same inset, so the title stands
+     where theirs do. */
+  padding: var(--space-5);
   background: var(--band-fill);
   border-bottom: 4px solid var(--plate-mustard);
 }
@@ -93,8 +95,14 @@
   }
 
   .controls {
-    padding: var(--space-3);
+    padding: var(--space-4) var(--space-5);
     gap: var(--space-2);
+  }
+
+  /* The sheets are in the foot bar here, and the bed has no need of a
+     way back on top of them. */
+  .controls > nav {
+    display: none;
   }
 
   .search {
@@ -548,7 +556,7 @@
   font-variation-settings: 'SOFT' 40, 'WONK' 1, 'opsz' 72;
   line-height: 0.95;
   letter-spacing: -0.02em;
-  margin: var(--space-3) 0 0;
+  margin: 0;
   color: var(--on-plate);
 }
 
