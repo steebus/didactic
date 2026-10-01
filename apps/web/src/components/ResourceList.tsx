@@ -74,7 +74,7 @@ export function ResourceList({
 
     // A row that changes section should be seen leaving it, or the
     // list simply reshuffles and the reader has to find what moved.
-    if (status === 'consumed' || status === 'abandoned') setLeaving(id)
+    if (status === 'consumed' || status === 'abandoned' || status === 'queued') setLeaving(id)
 
     void (async () => {
       const { ok, error: failed } = await api.resources.patch(id, body)
@@ -218,6 +218,15 @@ export function ResourceList({
                 ) : (
                   <span className={styles.status}>Set aside</span>
                 )}
+                {/* Back to the unread pile. What was read out of it stays
+                    on the record; this only says the reader is not done. */}
+                <button
+                  className={`${styles.button} ${styles.buttonQuiet}`}
+                  disabled={busy === r.id}
+                  onClick={() => patch(r.id, { status: 'queued' })}
+                >
+                  Mark unread
+                </button>
                 {/* A row that has been dealt with can still be thrown
                     away, and from here rather than from the foot of the
                     sheet -- unless something has been read out of it,

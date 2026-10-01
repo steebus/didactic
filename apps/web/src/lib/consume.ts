@@ -40,8 +40,15 @@ export async function setResourceStatus(
     .select('topic_id, relevance').eq('resource_id', resourceId)
   if (linkError) throw linkError
 
+  // A resource marked unread and read again is the same reading: what was
+  // already written for a topic stands, so the figure is not counted twice.
+  const { data: had } = await db.from('exposures')
+    .select('topic_id').eq('source', 'resource').eq('source_id', resourceId)
+  const counted = new Set((had ?? []).map(e => e.topic_id))
+
   let written = 0
   for (const link of links ?? []) {
+    if (counted.has(link.topic_id)) continue
     await db.from('exposures').insert({
       user_id: resource.user_id,
       topic_id: link.topic_id,

@@ -11,6 +11,7 @@ import {
   progressNow,
   stepLine,
   type IngestProgress,
+  type ProgressTopic,
   type TimedStep,
 } from '@didactic/core/ingestProgress'
 import styles from './page.module.css'
@@ -81,6 +82,7 @@ export function SendSheet({
   const [doc, setDoc] = useState<File | null>(null)
   const sent = useRef(false)
   const [finished, setFinished] = useState(false)
+  const [shown, setShown] = useState(false)
 
   /**
    * A shared PDF, filed exactly as the inbox's upload files one: checked
@@ -175,8 +177,17 @@ export function SendSheet({
           <p className={styles.ways}>
             <Link href={`/resources/${state.id}`}>Open it</Link>
             <Link href="/inbox">The inbox</Link>
+            {shown && <Link href={`/graph?show=${state.id}`}>Show on graph</Link>}
           </p>
-          <Reading id={state.id} onFiled={() => setFinished(true)} />
+          <Reading
+            id={state.id}
+            onFiled={topics => {
+              setFinished(true)
+              // Only a topic on the map can be shown there: one still
+              // waiting in the inbox to be asked about is not on it.
+              setShown(topics.some(t => t.state === 'active'))
+            }}
+          />
           {popup && finished && <Closing />}
         </>
       )}
@@ -212,7 +223,7 @@ const GIVE_UP_MS = 4 * 60_000
  * is cheaper than a channel held open for it. Something already filed
  * settles on the first answer, and says where it went.
  */
-function Reading({ id, onFiled }: { id: string; onFiled?: () => void }) {
+function Reading({ id, onFiled }: { id: string; onFiled?: (topics: ProgressTopic[]) => void }) {
   const [progress, setProgress] = useState<IngestProgress | null>(null)
   const [stale, setStale] = useState(false)
 
@@ -228,7 +239,7 @@ function Reading({ id, onFiled }: { id: string; onFiled?: () => void }) {
       if (ok && isSettled(body)) {
         // Done, or never queued. A failure is settled too, and is not
         // something to close on.
-        if (body.job?.state !== 'failed') onFiled?.()
+        if (body.job?.state !== 'failed') onFiled?.(body.topics)
         return
       }
       if (Date.now() - started > GIVE_UP_MS) {

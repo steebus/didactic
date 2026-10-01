@@ -84,6 +84,17 @@ describe.skipIf(!reachable)('setResourceStatus against real Postgres', () => {
     expect(Number(data!.ability)).toBeLessThanOrEqual(3.5)
   })
 
+  it('does not count a topic twice when marked unread and read again', async () => {
+    const { resourceId, topicId } = await seed()
+    await setResourceStatus(db, resourceId, 'consumed', 'read')
+    await setResourceStatus(db, resourceId, 'queued')
+    const again = await setResourceStatus(db, resourceId, 'consumed', 'read')
+
+    const { data } = await db.from('exposures').select('*').eq('topic_id', topicId)
+    expect(data).toHaveLength(1)
+    expect(again.exposuresWritten).toBe(0)
+  })
+
   it('refuses to consume without a depth', async () => {
     const { resourceId } = await seed()
     await expect(setResourceStatus(db, resourceId, 'consumed'))

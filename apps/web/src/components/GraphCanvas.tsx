@@ -196,7 +196,11 @@ const HISTORY_MS = 30_000
 /** How long a seed takes to grow from nothing, in ms. */
 const GROW_MS = 450
 
-type Lapse = { mode: 'history' } | { mode: 'arrival'; since: number }
+type Lapse =
+  | { mode: 'history' }
+  // `only` names the seeds to bring in when the reader asked to be shown
+  // one resource's topics rather than whatever is newer than the last look.
+  | { mode: 'arrival'; since: number; only?: Set<string> }
 
 /**
  * Whether anything has been made since the bed was last opened, and when
@@ -231,6 +235,7 @@ export function GraphCanvas({
   initialSubject,
   initialTopic,
   initialSprouts = false,
+  showResource = null,
   days = [],
 }: {
   initialSubject: string | null
@@ -238,6 +243,9 @@ export function GraphCanvas({
   /** Open with the sprouting outlines drawn: the sprouting sheet's
    *  *See it on the bed* arrives this way. */
   initialSprouts?: boolean
+  /** A resource whose topics the bed is to bring in view: the import
+   *  sheet's *Show on graph*. Plays the arrival replay over just those. */
+  showResource?: string | null
   /** The reader's year, for the rule under the head. */
   days?: ActivityDay[]
 }) {
@@ -434,7 +442,17 @@ export function GraphCanvas({
   useEffect(() => {
     if (!data || !holder.current) return
 
-    if (lapse.current === undefined) lapse.current = arrivals(data)
+    if (lapse.current === undefined) {
+      // Asked even when a resource is named, for the bookmark it moves:
+      // what the reader has just been shown is not new on the next visit.
+      const latest = arrivals(data)
+      const named = showResource ? data.resources.find(r => r.id === showResource) : null
+      const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+      lapse.current =
+        named && named.topic_ids.length > 0 && !still
+          ? { mode: 'arrival', since: 0, only: new Set(named.topic_ids) }
+          : latest
+    }
     const run = lapse.current
     // The whole history shows every layer: the replay is of the profile,
     // not of whichever layers were switched on.
@@ -690,9 +708,10 @@ export function GraphCanvas({
       }
     }
 
-    const fresh = (ms: number) => (run?.mode === 'arrival' ? ms > run.since : true)
-    const comingIn = run ? order.filter(n => fresh(stamp.get(n.id) ?? 0)) : []
-    const newSubjects = run ? data.subjects.filter(s => fresh(when(s.created_at) ?? 0)) : []
+    const fresh = (id: string, ms: number) =>
+      run?.mode === 'arrival' ? (run.only ? run.only.has(id) : ms > run.since) : true
+    const comingIn = run ? order.filter(n => fresh(n.id, stamp.get(n.id) ?? 0)) : []
+    const newSubjects = run ? data.subjects.filter(s => fresh(`subject:${s.id}`, when(s.created_at) ?? 0)) : []
     const bornAtStart = new Set(
       run ? order.filter(n => !comingIn.includes(n)).map(n => n.id) : bedNodes.map(n => n.id)
     )
@@ -1359,7 +1378,7 @@ export function GraphCanvas({
     // styled: a reader switching to dark gets the whole thing drawn
     // again, which is the only way a canvas can follow a theme. The
     // forces are not: moving one warms the running bed instead.
-  }, [data, query, subject, showDormantOnly, showResources, showLessons, showMarks, colourFor, inks, theme, replays, days])
+  }, [data, query, subject, showDormantOnly, showResources, showLessons, showMarks, colourFor, inks, theme, replays, days, showResource])
 
   const selectedTopic = data?.topics.find(t => t.id === selected) ?? null
   const chosen = sprouting?.sprouts.find(s => s.key === chosenSprout) ?? null
