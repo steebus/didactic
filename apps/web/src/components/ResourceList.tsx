@@ -256,6 +256,15 @@ export function ResourceList({
               </span>
             ) : (
               <span className={styles.actions}>
+                {status === 'reading' && (
+                  <button
+                    className={`${styles.button} ${styles.buttonQuiet}`}
+                    disabled={busy === r.id}
+                    onClick={() => patch(r.id, { status: 'queued' })}
+                  >
+                    Mark unread
+                  </button>
+                )}
                 {status === 'queued' && (
                   <button
                     className={`${styles.button} ${styles.buttonQuiet}`}

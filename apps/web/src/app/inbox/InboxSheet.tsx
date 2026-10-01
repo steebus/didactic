@@ -94,6 +94,14 @@ function NowReadingRow({
                 type="button"
                 className={`${small} ${styles.buttonQuiet}`}
                 disabled={busy}
+                onClick={() => patch({ status: 'queued' })}
+              >
+                Mark unread
+              </button>
+              <button
+                type="button"
+                className={`${small} ${styles.buttonQuiet}`}
+                disabled={busy}
                 onClick={() => patch({ status: 'abandoned' })}
               >
                 Set aside
