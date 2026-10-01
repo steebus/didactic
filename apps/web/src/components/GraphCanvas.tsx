@@ -933,6 +933,7 @@ export function GraphCanvas({
     // Where each bed's name is on screen as last drawn, so a press on
     // one can be told from a press on the bed.
     const subjectBoxes: Array<{ id: string; x: number; y: number; w: number; h: number }> = []
+    let nameHovered: string | null = null
     const nameAt = (x: number, y: number) =>
       subjectBoxes.find(b => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h)
 
@@ -987,7 +988,7 @@ export function GraphCanvas({
         const narrow = Math.min(1, width / 900)
         const size = (16 + Math.min(acc.n, 12) * 1.1) * (0.62 + narrow * 0.38) * grow
         context.font = `600 ${size}px Georgia, serif`
-        context.globalAlpha = Math.min(1, (performance.now() - since) / 700) * presence
+        context.globalAlpha = Math.min(1, (performance.now() - since) / 700) * (subjectId === nameHovered ? 1 : presence)
         context.fillStyle = fade(subject.colour, hullFade(1), inks.ground)
         // A paper halo so a name over a dense bed stays readable.
         context.lineWidth = size * 0.28
@@ -1003,6 +1004,15 @@ export function GraphCanvas({
         subjectBoxes.push({ id: subjectId, x: x - half, y: y - size, w: half * 2, h: size * 1.3 })
         context.strokeText(subject.title, x, y)
         context.fillText(subject.title, x, y)
+        // Hovered: full strength, and underlined as a link is.
+        if (subjectId === nameHovered) {
+          context.lineWidth = Math.max(1.5, size * 0.07)
+          context.strokeStyle = context.fillStyle
+          context.beginPath()
+          context.moveTo(x - half, y + size * 0.14)
+          context.lineTo(x + half, y + size * 0.14)
+          context.stroke()
+        }
       }
       context.restore()
     })
@@ -1320,7 +1330,12 @@ export function GraphCanvas({
 
     const pointer = (e: MouseEvent) => {
       const r = holder.current!.getBoundingClientRect()
-      holder.current!.style.cursor = nameAt(e.clientX - r.left, e.clientY - r.top) ? 'pointer' : ''
+      const over = nameAt(e.clientX - r.left, e.clientY - r.top)
+      holder.current!.style.cursor = over ? 'pointer' : ''
+      if ((over?.id ?? null) !== nameHovered) {
+        nameHovered = over?.id ?? null
+        renderer.refresh()
+      }
     }
     const box = holder.current
     box.addEventListener('mousemove', pointer)
