@@ -23,6 +23,8 @@ export interface Planting {
     /** Every subject the topic is filed under, home included. */
     subject_ids: string[]
     state: string
+    /** When it was sown: what the bed's replay is played from. */
+    created_at: string
   }>
   edges: Array<{ from_topic: string; to_topic: string; kind: string; weight: number }>
   resources: Array<{
@@ -30,6 +32,7 @@ export interface Planting {
     title: string
     kind: string
     status: string
+    created_at: string
     topic_ids: string[]
   }>
   lessons: Array<{
@@ -39,6 +42,7 @@ export interface Planting {
     stage: string
     completed_at: string | null
     curriculum_id: string
+    created_at: string
   }>
   /**
    * Kept passages, and what their notes name.
@@ -56,10 +60,11 @@ export interface Planting {
     lesson_id: string
     /** Whether anything was written, or only a passage kept. */
     noted: boolean
+    created_at: string
     topic_ids: string[]
     lesson_ids: string[]
   }>
-  subjects: Array<Pick<Subject, 'id' | 'title' | 'colour'>>
+  subjects: Array<Pick<Subject, 'id' | 'title' | 'colour'> & { created_at: string }>
 }
 
 export const graph = (api: Api) => ({

@@ -9,6 +9,7 @@ import { vagueFigure } from '@didactic/core/scoring'
 import {
   layBed,
   seedBed,
+  SPACING,
   DEFAULT_FORCES,
   FORCE_CONTROLS,
   KINSHIP_FORCES,
@@ -18,6 +19,7 @@ import {
   type Forces,
 } from '@didactic/core/forces'
 import { contains, outline, type Point } from '@didactic/core/hull'
+import { timeline, when, type Birth } from '@didactic/core/timelapse'
 import type { Sprouting, SproutView } from '@didactic/core/shapes'
 import { kindLine, UNNAMED } from '@didactic/core/sprouting'
 import { SheetNav } from './SheetNav'
@@ -122,6 +124,7 @@ interface GraphTopic {
   subject_ids: string[]
   state: string
   last_exposure_at: string | null
+  created_at: string
 }
 
 interface GraphEdge {
@@ -135,6 +138,7 @@ interface Subject {
   id: string
   title: string
   colour: string
+  created_at: string
 }
 
 interface GraphResource {
@@ -142,6 +146,7 @@ interface GraphResource {
   title: string
   kind: string
   status: string
+  created_at: string
   /** Every topic it touches: a paper on retrieval reaches into both
    *  embeddings and vector search. */
   topic_ids: string[]
@@ -154,6 +159,7 @@ interface GraphLesson {
   stage: string
   completed_at: string | null
   curriculum_id: string
+  created_at: string
 }
 
 /**
@@ -173,9 +179,49 @@ interface GraphMark {
   lesson_id: string
   /** Whether anything was written, or only a passage kept. */
   noted: boolean
+  created_at: string
   /** What the note names. */
   topic_ids: string[]
   lesson_ids: string[]
+}
+
+/** Where the bed remembers when it was last looked at. */
+const SEEN = 'didactic:bed-seen'
+
+/** How long the whole of a profile takes to play back, in ms. */
+const HISTORY_MS = 30_000
+/** How long a seed takes to grow from nothing, in ms. */
+const GROW_MS = 450
+
+type Lapse = { mode: 'history' } | { mode: 'arrival'; since: number }
+
+/**
+ * Whether anything has been made since the bed was last opened, and when
+ * the last look was. Reads and moves the bookmark in one go: the answer
+ * is wanted once per visit, and the next visit starts from now.
+ */
+function arrivals(data: {
+  topics: GraphTopic[]; subjects: Subject[]; resources: GraphResource[]
+  lessons: GraphLesson[]; marks: GraphMark[]
+}): Lapse | null {
+  const times = [
+    ...data.topics, ...data.subjects, ...data.resources, ...data.lessons, ...data.marks,
+  ].map(x => when(x.created_at)).filter((t): t is number => t !== null)
+  if (times.length === 0) return null
+  const latest = Math.max(...times)
+
+  let seen = 0
+  try {
+    seen = Number(localStorage.getItem(SEEN))
+    localStorage.setItem(SEEN, String(latest))
+  } catch {
+    // Private window: no bookmark, so no arrivals either.
+    return null
+  }
+  const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  // The first visit has nothing to be new relative to.
+  if (!seen || !Number.isFinite(seen) || latest <= seen || still) return null
+  return { mode: 'arrival', since: seen }
 }
 
 export function GraphCanvas({
@@ -216,6 +262,13 @@ export function GraphCanvas({
   const [showDormantOnly, setShowDormantOnly] = useState(false)
   /** Which of the two corner panels is open; opening one closes the other. */
   const [panel, setPanel] = useState<'filters' | 'forces' | null>(null)
+  // The replay: `undefined` until the first read of the bed has asked
+  // whether anything arrived since the last look. The Animate button
+  // sets it to the whole history; finishing, or a stop, clears it.
+  const lapse = useRef<Lapse | null | undefined>(undefined)
+  const [replays, setReplays] = useState(0)
+  const [replaying, setReplaying] = useState(false)
+  const clock = useRef<HTMLParagraphElement>(null)
   useEffect(() => {
     if (!panel) return
     const shut = (e: KeyboardEvent) => e.key === 'Escape' && setPanel(null)
@@ -365,6 +418,14 @@ export function GraphCanvas({
   useEffect(() => {
     if (!data || !holder.current) return
 
+    if (lapse.current === undefined) lapse.current = arrivals(data)
+    const run = lapse.current
+    // The whole history shows every layer: the replay is of the profile,
+    // not of whichever layers were switched on.
+    const withResources = showResources || run?.mode === 'history'
+    const withLessons = showLessons || run?.mode === 'history'
+    const withMarks = showMarks || run?.mode === 'history'
+
     const graph = new Graph()
     const visible = data.topics.filter(t => {
       if (t.state !== 'active') return false
@@ -431,7 +492,7 @@ export function GraphCanvas({
     // you know, they are things that touch what you know. A resource
     // reaches into every topic it covers, which is how the canvas shows
     // one paper feeding several subjects at once.
-    if (showResources) {
+    if (withResources) {
       for (const r of data.resources ?? []) {
         const attached = r.topic_ids.filter(id => visibleIds.has(id))
         if (attached.length === 0) continue
@@ -460,7 +521,7 @@ export function GraphCanvas({
       }
     }
 
-    if (showLessons) {
+    if (withLessons) {
       for (const l of data.lessons ?? []) {
         if (!visibleIds.has(l.topic_id)) continue
 
@@ -490,7 +551,7 @@ export function GraphCanvas({
     // custody, noted as being about settlement, is a line between two
     // topics that nothing else on the map would ever draw -- it exists
     // only because somebody thought it.
-    if (showMarks) {
+    if (withMarks) {
       for (const m of data.marks ?? []) {
         // Every end a line could be drawn to, and whether any of them
         // is actually on the bed as it is filtered right now.
@@ -500,7 +561,7 @@ export function GraphCanvas({
         // is up. With it down the line goes to the topic that lesson
         // teaches instead, so naming a lesson still draws something.
         const aboutLessons = m.lesson_ids.flatMap(id => {
-          if (showLessons && graph.hasNode(`lesson:${id}`)) return [`lesson:${id}`]
+          if (withLessons && graph.hasNode(`lesson:${id}`)) return [`lesson:${id}`]
           const topicId = data.lessons?.find(l => l.id === id)?.topic_id
           return topicId && visibleIds.has(topicId) ? [topicId] : []
         })
@@ -579,8 +640,55 @@ export function GraphCanvas({
       }
     })
 
+    // --- When each thing was made ---------------------------------------
+    //
+    // A replay lays the bed down in the order it was made, so the bed
+    // starts from whatever was already there (nothing, for the whole
+    // history; everything older than the last look, for an arrival) and
+    // the rest is brought in one by one. Material, lessons and marks
+    // come in no earlier than the first topic they hang off, or they
+    // would float in with nothing to be beside.
+    const stamp = new Map<string, number>()
+    const stampOf = (id: string): number | null => {
+      if (id.startsWith('resource:')) return when(data.resources.find(r => r.id === id.slice(9))?.created_at)
+      if (id.startsWith('lesson:')) return when(data.lessons.find(l => l.id === id.slice(7))?.created_at)
+      if (id.startsWith('mark:')) return when(data.marks.find(m => m.id === id.slice(5))?.created_at)
+      return when(topicById.get(id)?.created_at)
+    }
+    const order = [
+      ...bedNodes.filter(n => !n.satellite),
+      ...['resource:', 'lesson:', 'mark:'].flatMap(k => bedNodes.filter(n => n.id.startsWith(k))),
+    ]
+    if (run) {
+      for (const n of order) {
+        let when0 = stampOf(n.id) ?? 0
+        if (n.satellite) {
+          let earliest = Infinity
+          graph.forEachNeighbor(n.id, nb => {
+            const t = stamp.get(nb)
+            if (t !== undefined) earliest = Math.min(earliest, t)
+          })
+          if (earliest !== Infinity) when0 = Math.max(when0, earliest)
+        }
+        stamp.set(n.id, when0)
+      }
+    }
+
+    const fresh = (ms: number) => (run?.mode === 'arrival' ? ms > run.since : true)
+    const comingIn = run ? order.filter(n => fresh(stamp.get(n.id) ?? 0)) : []
+    const newSubjects = run ? data.subjects.filter(s => fresh(when(s.created_at) ?? 0)) : []
+    const bornAtStart = new Set(
+      run ? order.filter(n => !comingIn.includes(n)).map(n => n.id) : bedNodes.map(n => n.id)
+    )
+    // Subjects with a name on the bed, and since when. `null` is all of
+    // them, which is every bed that is not being replayed.
+    const subjectsUp: Map<string, number> | null = run
+      ? new Map(data.subjects.filter(s => !newSubjects.includes(s)).map(s => [s.id, -Infinity]))
+      : null
+    const startNodes = run ? bedNodes.filter(n => bornAtStart.has(n.id)) : bedNodes
+
     seedBed(
-      bedNodes,
+      startNodes,
       n => topicById.get(n.id)?.primary_subject_id ?? 'loose',
       n => {
         let anchor: string | null = null
@@ -592,8 +700,14 @@ export function GraphCanvas({
     )
 
     const kinship = overlay.current.sprouting ? kinLinks(overlay.current.sprouting) : []
-    const bed = layBed(bedNodes, { stated, attach, kinship }, forcesNow.current)
+    let bed = layBed(startNodes, { stated, attach, kinship }, forcesNow.current)
     const at = new Map(bedNodes.map(n => [n.id, n]))
+    // Everything not yet made waits unseen, at the origin.
+    const fullSize = new Map<string, number>()
+    for (const n of comingIn) {
+      fullSize.set(n.id, graph.getNodeAttribute(n.id, 'size') as number)
+      graph.mergeNodeAttributes(n.id, { hidden: true, size: 0 })
+    }
 
     // Copy the simulation's positions onto the graph, which is what
     // Sigma draws from and what makes it schedule a frame.
@@ -623,7 +737,8 @@ export function GraphCanvas({
     // direct response to the hand, which is feedback, not decoration.
     const still = typeof window !== 'undefined'
       && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
-    if (still) bed.settle()
+    // An arrival opens on the bed as the last look left it.
+    if (still || run?.mode === 'arrival') bed.settle()
     place()
     bed.simulation.on('tick', place)
     layout.current = bed
@@ -775,7 +890,10 @@ export function GraphCanvas({
       const ratio = renderer.getCamera().ratio
       // Below this the seed labels carry the sheet; above it they have
       // thinned out and the bed names take over.
-      const strength = Math.min(1, Math.max(0, (ratio - 0.9) / 0.6))
+      // The whole history is read at one zoom, with the names up.
+      const strength = run?.mode === 'history'
+        ? 1
+        : Math.min(1, Math.max(0, (ratio - 0.9) / 0.6))
       if (strength <= 0.01) return
 
       // CSS pixels, not device pixels: positions from graphToViewport
@@ -786,7 +904,7 @@ export function GraphCanvas({
       const centres = new Map<string, { x: number; y: number; n: number }>()
       graph.forEachNode((node, attrs) => {
         const subjectId = subjectOf.get(node)
-        if (!subjectId) return
+        if (!subjectId || attrs.hidden) return
         const p = renderer.graphToViewport({ x: attrs.x as number, y: attrs.y as number })
         const acc = centres.get(subjectId) ?? { x: 0, y: 0, n: 0 }
         centres.set(subjectId, { x: acc.x + p.x, y: acc.y + p.y, n: acc.n + 1 })
@@ -797,6 +915,9 @@ export function GraphCanvas({
       for (const [subjectId, acc] of centres) {
         const subject = data.subjects.find(s => s.id === subjectId)
         if (!subject || acc.n === 0) continue
+        // A subject comes up with its first seed, and fades in.
+        const since = subjectsUp ? subjectsUp.get(subjectId) : -Infinity
+        if (since === undefined) continue
         // Fixed screen size, not scaled by zoom: a name that grows as
         // you pull back ends up filling the frame and overprinting its
         // neighbours. Bigger beds get a slightly larger name, and the
@@ -805,6 +926,7 @@ export function GraphCanvas({
         const narrow = Math.min(1, width / 900)
         const size = (16 + Math.min(acc.n, 12) * 1.1) * (0.62 + narrow * 0.38)
         context.font = `600 ${size}px Georgia, serif`
+        context.globalAlpha = Math.min(1, (performance.now() - since) / 700)
         context.fillStyle = fade(subject.colour, hullFade(strength), inks.ground)
         // A paper halo so a name over a dense bed stays readable.
         context.lineWidth = size * 0.28
@@ -968,8 +1090,141 @@ export function GraphCanvas({
     // hand; not worth it until the framing actually gets in the way.
     renderer.getCamera().animatedReset({ duration: 0 })
 
+    // --- The replay -------------------------------------------------------
+    //
+    // Births come off a clock stretched from real time (see
+    // `core/timelapse`). Each batch is added to the simulation and the
+    // bed is laid out again around what is there, warm rather than from
+    // nothing, so the beds grow and shift as seeds arrive instead of
+    // being redrawn. A seed is born beside what it hangs off.
+    let frame = 0
+    if (run && (comingIn.length > 0 || newSubjects.length > 0)) {
+      const arriving = run.mode === 'arrival'
+      const births: Birth[] = [
+        ...comingIn.map(n => ({ id: n.id, at: stamp.get(n.id) ?? 0 })),
+        ...newSubjects.map(s => ({ id: `subject:${s.id}`, at: when(s.created_at) ?? 0 })),
+      ]
+      const plan = arriving
+        ? timeline(births, 4000, { min: 350, max: 700 })
+        : timeline(births, HISTORY_MS)
+      const queue = [...births].sort((a, b) => plan.at.get(a.id)! - plan.at.get(b.id)!)
+      const realAt = new Map(births.map(b => [b.id, b.at]))
+      const born = new Set(bornAtStart)
+      const growing = new Map<string, number>()
+      let next = 0
+      let golden = 0
+      let lastBatch = performance.now()
+      const t0 = performance.now()
+      const camera = renderer.getCamera()
+
+      // Beside what it hangs off: a neighbour already born, or failing
+      // that a seed of the same subject, or failing that the middle.
+      const settleBeside = (n: BedNode) => {
+        const near: BedNode[] = []
+        graph.forEachNeighbor(n.id, nb => {
+          const m = at.get(nb)
+          if (m && born.has(nb)) near.push(m)
+        })
+        if (near.length === 0) {
+          for (const m of bedNodes) {
+            if (born.has(m.id) && !m.satellite && m.subjects.some(s => n.subjects.includes(s))) near.push(m)
+          }
+        }
+        const mean = (key: 'x' | 'y') =>
+          near.length ? near.reduce((sum, m) => sum + (m[key] ?? 0), 0) / near.length : 0
+        golden += 2.399963
+        const reach = SPACING * (n.satellite ? 0.5 : 0.8)
+        n.x = mean('x') + Math.cos(golden) * reach
+        n.y = mean('y') + Math.sin(golden) * reach
+        n.vx = 0
+        n.vy = 0
+      }
+
+      const adopt = () => {
+        bed.simulation.on('tick', null)
+        bed.simulation.stop()
+        const warm = layBed(
+          bedNodes.filter(n => born.has(n.id)),
+          { stated, attach, kinship },
+          forcesNow.current
+        )
+        // Gently: a fresh simulation starts at full heat, which would
+        // throw the whole bed about for every seed that arrives.
+        warm.simulation.alpha(0.35)
+        warm.simulation.on('tick', place)
+        bed = warm
+        layout.current = warm
+      }
+
+      const finish = () => {
+        lapse.current = null
+        setReplaying(false)
+        bed.simulation.alpha(Math.max(bed.simulation.alpha(), 0.5))
+        if (arriving) camera.animatedReset({ duration: 900 })
+      }
+
+      const step = (now: number) => {
+        const t = now - t0
+        const batch: BedNode[] = []
+        while (next < queue.length && plan.at.get(queue[next].id)! <= t) {
+          const id = queue[next++].id
+          if (id.startsWith('subject:')) {
+            subjectsUp?.set(id.slice(8), now)
+            continue
+          }
+          batch.push(at.get(id)!)
+        }
+
+        if (batch.length > 0) {
+          for (const n of batch) {
+            settleBeside(n)
+            born.add(n.id)
+            growing.set(n.id, now)
+            graph.setNodeAttribute(n.id, 'hidden', false)
+          }
+          adopt()
+          place()
+          lastBatch = now
+          const date = realAt.get(queue[next - 1].id)
+          if (clock.current && date) {
+            clock.current.textContent = new Date(date).toLocaleDateString('en-GB', {
+              month: 'short', year: 'numeric',
+            })
+          }
+          if (arriving) {
+            // Close on what has just come in, and follow it.
+            const shown = renderer.getNodeDisplayData(batch[batch.length - 1].id)
+            if (shown) camera.animate({ x: shown.x, y: shown.y, ratio: 0.35 }, { duration: 600 })
+          }
+        }
+
+        for (const [id, since] of growing) {
+          const p = Math.min(1, (now - since) / GROW_MS)
+          graph.setNodeAttribute(id, 'size', fullSize.get(id)! * (1 - (1 - p) ** 3))
+          if (p === 1) growing.delete(id)
+        }
+        renderer.refresh()
+
+        const done = next >= queue.length && growing.size === 0
+        // After the last arrival the camera holds a moment before it
+        // pulls back out.
+        if (done && now - lastBatch >= (arriving ? 1400 : 700)) {
+          finish()
+          return
+        }
+        frame = requestAnimationFrame(step)
+      }
+
+      setReplaying(true)
+      frame = requestAnimationFrame(step)
+    } else if (run) {
+      // Nothing to play, so nothing to wait for.
+      lapse.current = null
+    }
+
     sigma.current = renderer
     return () => {
+      cancelAnimationFrame(frame)
       bed.simulation.on('tick', null)
       bed.simulation.stop()
       layout.current = null
@@ -981,7 +1236,7 @@ export function GraphCanvas({
     // styled: a reader switching to dark gets the whole thing drawn
     // again, which is the only way a canvas can follow a theme. The
     // forces are not: moving one warms the running bed instead.
-  }, [data, query, subject, showDormantOnly, showResources, showLessons, showMarks, colourFor, inks, theme])
+  }, [data, query, subject, showDormantOnly, showResources, showLessons, showMarks, colourFor, inks, theme, replays])
 
   const selectedTopic = data?.topics.find(t => t.id === selected) ?? null
   const chosen = sprouting?.sprouts.find(s => s.key === chosenSprout) ?? null
@@ -1142,7 +1397,28 @@ export function GraphCanvas({
               </div>
           )}
         </div>
+        <div className={styles.tool}>
+          <button
+            type="button"
+            className={styles.glyphButton}
+            onClick={() => {
+              lapse.current = replaying ? null : { mode: 'history' }
+              setReplaying(!replaying)
+              setReplays(n => n + 1)
+              setPanel(null)
+            }}
+            aria-pressed={replaying}
+            aria-label={replaying ? 'Stop the replay' : 'Animate the bed'}
+            title={replaying ? 'Stop the replay' : 'Animate the bed from its first seed'}
+          >
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" focusable="false">
+              {replaying ? <path d="M7 6h3v12H7zM14 6h3v12h-3z" /> : <path d="M8 5v14l11-7Z" />}
+            </svg>
+          </button>
+        </div>
       </div>
+
+      {replaying && <p className={styles.clock} ref={clock} aria-hidden="true" />}
 
       <div
         ref={holder}

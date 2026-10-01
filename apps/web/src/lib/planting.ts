@@ -33,16 +33,16 @@ export async function getPlanting() {
     { data: lessons },
   ] = await Promise.all([
     db.from('topics').select(
-      'id, title, ability, ability_confidence, last_exposure_at, primary_subject_id, state'
+      'id, title, ability, ability_confidence, last_exposure_at, primary_subject_id, state, created_at'
     ),
     db.from('edges').select('from_topic, to_topic, kind, weight'),
     db.from('topic_subjects').select('topic_id, subject_id'),
     // A resource can touch several topics, so it is returned once with
     // every topic it links to rather than duplicated per topic.
     db.from('resource_topics')
-      .select('topic_id, relevance, resources(id, title, kind, status)'),
+      .select('topic_id, relevance, resources(id, title, kind, status, added_at)'),
     db.from('lessons')
-      .select('id, title, topic_id, stage, completed_at, curriculum_id')
+      .select('id, title, topic_id, stage, completed_at, curriculum_id, created_at')
       .not('topic_id', 'is', null),
   ])
 
@@ -54,7 +54,7 @@ export async function getPlanting() {
   // everything would otherwise draw a bed nobody can read.
   const [{ data: marks }, { data: marked }] = await Promise.all([
     db.from('highlights')
-      .select('id, quote, note, topic_id, lesson_id')
+      .select('id, quote, note, topic_id, lesson_id, created_at')
       .order('created_at', { ascending: false })
       .limit(MARKS_ON_THE_BED),
     db.from('highlight_tags').select('highlight_id, topic_id, lesson_id'),
@@ -74,7 +74,7 @@ export async function getPlanting() {
   // canvas should show it reaching into each.
   const resourceMap = new Map<
     string,
-    { id: string; title: string; kind: string; status: string; topic_ids: string[] }
+    { id: string; title: string; kind: string; status: string; created_at: string; topic_ids: string[] }
   >()
   // What each mark names, gathered onto the mark rather than left as
   // rows: the canvas draws per node.
@@ -88,12 +88,15 @@ export async function getPlanting() {
 
   for (const link of resourceLinks ?? []) {
     const r = link.resources as unknown as {
-      id: string; title: string; kind: string; status: string
+      id: string; title: string; kind: string; status: string; added_at: string
     } | null
     if (!r) continue
     const existing = resourceMap.get(r.id)
     if (existing) existing.topic_ids.push(link.topic_id)
-    else resourceMap.set(r.id, { ...r, topic_ids: [link.topic_id] })
+    else {
+      const { added_at, ...rest } = r
+      resourceMap.set(r.id, { ...rest, created_at: added_at, topic_ids: [link.topic_id] })
+    }
   }
 
   return {
@@ -116,6 +119,7 @@ export async function getPlanting() {
       topic_id: m.topic_id as string | null,
       lesson_id: m.lesson_id as string,
       noted: Boolean(m.note),
+      created_at: m.created_at as string,
       ...(named.get(m.id as string) ?? { topic_ids: [], lesson_ids: [] }),
     })),
   }

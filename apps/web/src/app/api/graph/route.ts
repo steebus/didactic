@@ -18,7 +18,7 @@ export async function GET() {
 
   const [planting, { data: subjects }] = await Promise.all([
     getPlanting(),
-    supabaseAdmin().from('subjects').select('id, title, colour').order('title'),
+    supabaseAdmin().from('subjects').select('id, title, colour, created_at').order('title'),
   ])
 
   return NextResponse.json({ ...planting, subjects: subjects ?? [] })

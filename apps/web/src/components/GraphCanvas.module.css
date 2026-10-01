@@ -121,6 +121,19 @@
   margin: 0;
 }
 
+/* The date the replay has reached, set small at the foot of the bed. */
+.clock {
+  position: absolute;
+  left: var(--space-3);
+  bottom: calc(var(--foot-bar, 0px) + var(--space-3));
+  z-index: 2;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--step-1);
+  color: var(--ink-faint);
+  pointer-events: none;
+}
+
 /* --- Topic panel: a specimen card slipped over the bed ----------- */
 
 .panel {
@@ -596,7 +609,8 @@
   cursor: pointer;
 }
 
-.glyphButton[aria-expanded='true'] {
+.glyphButton[aria-expanded='true'],
+.glyphButton[aria-pressed='true'] {
   color: var(--on-plate);
   background: var(--band-fill);
   border-color: var(--band-fill);
