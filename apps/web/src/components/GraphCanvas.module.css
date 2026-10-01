@@ -14,7 +14,7 @@
      wraps to two rows on a phone, hence the taller inset there. */
   /* Set from the controls strip, which grows when the forces panel
      opens. A fixed inset hides the top of the planting. */
-  inset: var(--controls-height, 4.5rem) 0 0 0;
+  inset: calc(var(--controls-height, 4.5rem) + var(--year-h, 0px)) 0 0 0;
   transition: inset var(--dur-state) var(--ease-settle);
   /* Bed markings: a faint drill grid, the way a planting plan is ruled. */
   background-image:
@@ -42,17 +42,25 @@
   border-bottom: 4px solid var(--plate-mustard);
 }
 
-/* The year's rule, at the foot of the head. It brings its own mustard
-   band, so it stands in for the head's border and bleeds to its edges. */
+/* The year's rule, across the top of the bed itself: stems on a
+   hairline, the months set on the paper beneath. The bed starts below
+   it. */
 .year {
-  /* The labels sit on the blue band here, not on paper. */
-  --rule-date: color-mix(in srgb, var(--on-plate) 75%, transparent);
-  --rule-date-line: color-mix(in srgb, var(--on-plate) 40%, transparent);
-  margin: 0 calc(-1 * var(--space-5)) calc(-1 * var(--space-5) - 4px);
+  position: absolute;
+  top: var(--controls-height, 4.5rem);
+  left: 0;
+  right: 0;
+  z-index: 1;
+  height: var(--year-h);
 }
 
 .year > div {
-  margin-bottom: 0;
+  margin: 0;
+}
+
+.year > div::before {
+  height: 1px;
+  background: var(--rule-strong);
 }
 
 .filters {
@@ -104,7 +112,7 @@
   /* The measured strip height wins when there is one; this is only the
      guess before the first measurement. */
   .canvas {
-    inset: var(--controls-height, 7.5rem) 0 0 0;
+    inset: calc(var(--controls-height, 7.5rem) + var(--year-h, 0px)) 0 0 0;
   }
 
   .controls {
@@ -598,7 +606,7 @@
 
 .tools {
   position: absolute;
-  top: calc(var(--controls-height, 6rem) + var(--space-3));
+  top: calc(var(--controls-height, 6rem) + var(--year-h, 0px) + var(--space-3));
   right: var(--space-3);
   z-index: 2;
   display: grid;

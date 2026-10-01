@@ -1333,7 +1333,10 @@ export function GraphCanvas({
   const active = data?.topics.filter(t => t.state === 'active').length ?? 0
 
   return (
-    <div className={styles.frame}>
+    <div
+      className={styles.frame}
+      style={days.length > 0 ? ({ '--year-h': '3.75rem' } as React.CSSProperties) : undefined}
+    >
       <div className={styles.controls} ref={controls}>
         <SheetNav current="bed" hideHere />
         <div className={styles.headRow}>
@@ -1352,16 +1355,20 @@ export function GraphCanvas({
           />
         </div>
         {wantsSprouts && sproutNote && <p className={styles.sproutNote}>{sproutNote}</p>}
-        {days.length > 0 && (
-          <div className={styles.year}>
-            <ActivityRule
-              days={days}
-              colours={Object.fromEntries((data?.subjects ?? []).map(s => [s.id, s.colour]))}
-              onPlayhead={el => { playhead.current = el }}
-            />
-          </div>
-        )}
       </div>
+
+      {days.length > 0 && (
+        <div
+          className={styles.year}
+          style={controlsHeight ? ({ '--controls-height': `${controlsHeight}px` } as React.CSSProperties) : undefined}
+        >
+          <ActivityRule
+            days={days}
+            colours={Object.fromEntries((data?.subjects ?? []).map(s => [s.id, s.colour]))}
+            onPlayhead={el => { playhead.current = el }}
+          />
+        </div>
+      )}
 
       <div className={styles.tools} style={controlsHeight ? ({ '--controls-height': `${controlsHeight}px` } as React.CSSProperties) : undefined}>
         <div className={styles.tool}>
