@@ -841,10 +841,13 @@ export function GraphCanvas({
         const points = sprout.topics.flatMap(t => {
           if (!graph.hasNode(t.id)) return []
           const a = graph.getNodeAttributes(t.id)
+          if (a.hidden) return []
           return [renderer.graphToViewport({ x: a.x as number, y: a.y as number })]
         })
-        // One seed left on the bed after a filter is not a clump.
-        if (points.length < 2) continue
+        // One seed left on the bed after a filter is not a clump. In a
+        // replay a sprout is only seen once four of its topics have
+        // come up: before that it is not yet a shape.
+        if (points.length < (run ? 4 : 2)) continue
 
         const shape = outline(points, SPROUT_PAD)
         sproutShapes.set(sprout.key, shape)
