@@ -1335,7 +1335,7 @@ export function GraphCanvas({
   return (
     <div
       className={styles.frame}
-      style={days.length > 0 ? ({ '--year-h': '3.75rem' } as React.CSSProperties) : undefined}
+      style={days.length > 0 ? ({ '--year-h': '2.25rem' } as React.CSSProperties) : undefined}
     >
       <div className={styles.controls} ref={controls}>
         <SheetNav current="bed" hideHere />

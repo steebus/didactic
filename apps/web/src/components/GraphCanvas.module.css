@@ -42,25 +42,23 @@
   border-bottom: 4px solid var(--plate-mustard);
 }
 
-/* The year's rule, across the top of the bed itself: stems on a
-   hairline, the months set on the paper beneath. The bed starts below
-   it. */
+/* The year's rule stands on the head's one mustard band: its stems
+   rise into the blue, the months run along under it on the paper. The
+   band is the rule's own, so the head has no border of its own. */
 .year {
   position: absolute;
-  top: var(--controls-height, 4.5rem);
+  top: calc(var(--controls-height, 4.5rem) - 1.5rem);
   left: 0;
   right: 0;
-  z-index: 1;
-  height: var(--year-h);
+  z-index: 3;
 }
 
 .year > div {
   margin: 0;
 }
 
-.year > div::before {
-  height: 1px;
-  background: var(--rule-strong);
+.controls:has(~ .year) {
+  border-bottom: 0;
 }
 
 .filters {
