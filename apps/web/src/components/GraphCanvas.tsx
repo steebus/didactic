@@ -930,9 +930,16 @@ export function GraphCanvas({
       if (t.primary_subject_id) subjectOf.set(t.id, t.primary_subject_id)
     }
 
+    // Where each bed's name is on screen as last drawn, so a press on
+    // one can be told from a press on the bed.
+    const subjectBoxes: Array<{ id: string; x: number; y: number; w: number; h: number }> = []
+    const nameAt = (x: number, y: number) =>
+      subjectBoxes.find(b => x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h)
+
     renderer.on('afterRender', () => {
       const context = renderer.getCanvases().labels.getContext('2d')
       if (!context) return
+      subjectBoxes.length = 0
 
       drawSprouts(context)
       drawRelations(context)
@@ -953,7 +960,6 @@ export function GraphCanvas({
       // CSS pixels, not device pixels: positions from graphToViewport
       // are in the same space.
       const width = context.canvas.width / (window.devicePixelRatio || 1)
-      const height = context.canvas.height / (window.devicePixelRatio || 1)
 
       // Mean position of each bed's members, in screen coordinates.
       const centres = new Map<string, { x: number; y: number; n: number }>()
@@ -989,16 +995,12 @@ export function GraphCanvas({
         context.lineJoin = 'round'
 
         // Sit the name above its bed rather than through the middle of
-        // it, and keep it inside the frame: a bed near the edge would
-        // otherwise have its name half off-screen.
+        // it, and stay with it: a bed that has moved off screen has its
+        // name go with it.
         const half = context.measureText(subject.title).width / 2
-        const margin = 6
-        const x = Math.min(
-          Math.max(acc.x / acc.n, half + margin),
-          width - half - margin
-        )
-        // Held inside the frame as well as across it.
-        const y = Math.min(Math.max(acc.y / acc.n - size * 1.4, size + 4), height - size)
+        const x = acc.x / acc.n
+        const y = acc.y / acc.n - size * 1.4
+        subjectBoxes.push({ id: subjectId, x: x - half, y: y - size, w: half * 2, h: size * 1.3 })
         context.strokeText(subject.title, x, y)
         context.fillText(subject.title, x, y)
       }
@@ -1096,6 +1098,11 @@ export function GraphCanvas({
     // A press on open ground inside a sprout's outline opens that
     // sprout; anywhere else closes whatever was open.
     renderer.on('clickStage', ({ event }) => {
+      const name = nameAt(event.x, event.y)
+      if (name) {
+        travel.current(`/subjects/${name.id}`)
+        return
+      }
       const hit = [...sproutShapes].find(([, shape]) => contains(shape, { x: event.x, y: event.y }))
       setSelected(null)
       setChosenSprout(hit ? hit[0] : null)
@@ -1193,7 +1200,7 @@ export function GraphCanvas({
         // One day is a `--pitch` (4px) and a stem is 2px wide.
         head.style.left = `${day * 4 + 1}px`
         // Keep it in view on a strip that scrolls.
-        const scroller = head.closest<HTMLElement>('[role="button"]')
+        const scroller = head.closest<HTMLElement>('[data-scroller]')
         if (scroller) {
           const pad = 48
           const over = head.getBoundingClientRect().right - scroller.getBoundingClientRect().right + pad
@@ -1311,8 +1318,16 @@ export function GraphCanvas({
       lapse.current = null
     }
 
+    const pointer = (e: MouseEvent) => {
+      const r = holder.current!.getBoundingClientRect()
+      holder.current!.style.cursor = nameAt(e.clientX - r.left, e.clientY - r.top) ? 'pointer' : ''
+    }
+    const box = holder.current
+    box.addEventListener('mousemove', pointer)
+
     sigma.current = renderer
     return () => {
+      box.removeEventListener('mousemove', pointer)
       cancelAnimationFrame(frame)
       if (playhead.current) playhead.current.style.opacity = '0'
       bed.simulation.on('tick', null)
@@ -1366,6 +1381,7 @@ export function GraphCanvas({
             days={days}
             colours={Object.fromEntries((data?.subjects ?? []).map(s => [s.id, s.colour]))}
             onPlayhead={el => { playhead.current = el }}
+            still
           />
         </div>
       )}

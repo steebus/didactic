@@ -51,6 +51,10 @@
   display: none;
 }
 
+.rule[data-still] .scroller {
+  cursor: default;
+}
+
 .scroller:active {
   cursor: grabbing;
 }

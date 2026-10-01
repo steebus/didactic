@@ -31,6 +31,7 @@ export function ActivityRule({
   stemInk,
   cellInk,
   onPlayhead,
+  still = false,
 }: {
   days: ActivityDay[]
   /** Subject id to plate, for a strip that spans subjects. */
@@ -44,6 +45,8 @@ export function ActivityRule({
    *  every frame without rendering: it sits at `left` px along the
    *  stems, one `--pitch` a day, and is invisible until shown. */
   onPlayhead?: (el: HTMLSpanElement | null) => void
+  /** A strip that only shows: it does not open into the calendar. */
+  still?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [closing, setClosing] = useState(false)
@@ -77,7 +80,7 @@ export function ActivityRule({
     setOpen(false)
   }
   const toggle = () => {
-    if (closing) return
+    if (closing || still) return
     if (!open) {
       setStart(null)
       setOpen(true)
@@ -98,15 +101,17 @@ export function ActivityRule({
       data-open={open || undefined}
       data-closing={closing || undefined}
       data-ready={start !== null || undefined}
+      data-still={still || undefined}
       style={{ '--start': start ?? 0, '--cols': layout.cols } as React.CSSProperties}
     >
       <div
         ref={scroller}
         className={styles.scroller}
-        role="button"
-        tabIndex={0}
-        aria-expanded={open}
-        aria-label={open ? 'Fold the year away' : 'Open the year of activity'}
+        data-scroller
+        role={still ? undefined : 'button'}
+        tabIndex={still ? undefined : 0}
+        aria-expanded={still ? undefined : open}
+        aria-label={still ? undefined : open ? 'Fold the year away' : 'Open the year of activity'}
         onPointerDown={e => {
           if (e.pointerType !== 'mouse' || e.button !== 0) return
           drag.current = { x: e.clientX, left: e.currentTarget.scrollLeft, moved: false }
