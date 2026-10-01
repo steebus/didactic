@@ -45,6 +45,9 @@
 /* The year's rule, at the foot of the head. It brings its own mustard
    band, so it stands in for the head's border and bleeds to its edges. */
 .year {
+  /* The labels sit on the blue band here, not on paper. */
+  --rule-date: color-mix(in srgb, var(--on-plate) 75%, transparent);
+  --rule-date-line: color-mix(in srgb, var(--on-plate) 40%, transparent);
   margin: 0 calc(-1 * var(--space-5)) calc(-1 * var(--space-5) - 4px);
 }
 

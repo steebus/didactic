@@ -773,7 +773,7 @@ export function GraphCanvas({
       labelColor: { color: inks.label },
       // Sigma hides labels that would collide; a larger grid cell means
       // it hides more of them rather than overprinting into mush.
-      labelGridCellSize: 90,
+      labelGridCellSize: 150,
       labelRenderedSizeThreshold: 7,
       // Wide enough to pull right back and read the beds as beds, or
       // push in until a single planting fills the frame.
@@ -944,11 +944,16 @@ export function GraphCanvas({
       const strength = run?.mode === 'history'
         ? 1
         : Math.min(1, Math.max(0, (ratio - 0.9) / 0.6))
-      if (strength <= 0.01) return
+      // Zoomed in the names do not go: they sit back, fainter, and
+      // grow, so a bed is still named when only a corner of it is in
+      // frame.
+      const presence = 0.22 + 0.78 * strength
+      const grow = Math.min(3, Math.max(1, 1 / Math.sqrt(ratio)))
 
       // CSS pixels, not device pixels: positions from graphToViewport
       // are in the same space.
       const width = context.canvas.width / (window.devicePixelRatio || 1)
+      const height = context.canvas.height / (window.devicePixelRatio || 1)
 
       // Mean position of each bed's members, in screen coordinates.
       const centres = new Map<string, { x: number; y: number; n: number }>()
@@ -974,10 +979,10 @@ export function GraphCanvas({
         // whole scale comes down on a narrow canvas where a desktop
         // size would be wider than the bed it names.
         const narrow = Math.min(1, width / 900)
-        const size = (16 + Math.min(acc.n, 12) * 1.1) * (0.62 + narrow * 0.38)
+        const size = (16 + Math.min(acc.n, 12) * 1.1) * (0.62 + narrow * 0.38) * grow
         context.font = `600 ${size}px Georgia, serif`
-        context.globalAlpha = Math.min(1, (performance.now() - since) / 700)
-        context.fillStyle = fade(subject.colour, hullFade(strength), inks.ground)
+        context.globalAlpha = Math.min(1, (performance.now() - since) / 700) * presence
+        context.fillStyle = fade(subject.colour, hullFade(1), inks.ground)
         // A paper halo so a name over a dense bed stays readable.
         context.lineWidth = size * 0.28
         context.strokeStyle = inks.hullEdge
@@ -992,7 +997,8 @@ export function GraphCanvas({
           Math.max(acc.x / acc.n, half + margin),
           width - half - margin
         )
-        const y = acc.y / acc.n - size * 1.4
+        // Held inside the frame as well as across it.
+        const y = Math.min(Math.max(acc.y / acc.n - size * 1.4, size + 4), height - size)
         context.strokeText(subject.title, x, y)
         context.fillText(subject.title, x, y)
       }

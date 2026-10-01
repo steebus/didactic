@@ -125,12 +125,12 @@
   top: 0.25rem;
   left: calc(var(--i) * var(--pitch));
   padding-left: 3px;
-  border-left: 1px solid var(--rule);
+  border-left: 1px solid var(--rule-date-line, var(--rule));
   font-size: var(--step--2);
   line-height: 1;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--rule-date, var(--ink-faint));
   white-space: nowrap;
 }
 
