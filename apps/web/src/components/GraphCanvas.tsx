@@ -20,9 +20,11 @@ import {
 } from '@didactic/core/forces'
 import { contains, outline, type Point } from '@didactic/core/hull'
 import { timeline, when, type Birth } from '@didactic/core/timelapse'
+import type { ActivityDay } from '@didactic/core/activity'
 import type { Sprouting, SproutView } from '@didactic/core/shapes'
 import { kindLine, UNNAMED } from '@didactic/core/sprouting'
 import { SheetNav } from './SheetNav'
+import { ActivityRule } from './ActivityRule'
 import { BannerFigures } from './BannerFigures'
 import { Slug } from './Setting'
 import styles from './GraphCanvas.module.css'
@@ -33,6 +35,7 @@ import { WhereItLooks } from '@/components/WhereItLooks'
 import type { LooseClaim } from '@didactic/core/shapes'
 import {
   fade,
+  edgeLine,
   nodeSize,
   edgeSize,
   nodeFade,
@@ -228,12 +231,15 @@ export function GraphCanvas({
   initialSubject,
   initialTopic,
   initialSprouts = false,
+  days = [],
 }: {
   initialSubject: string | null
   initialTopic: string | null
   /** Open with the sprouting outlines drawn: the sprouting sheet's
    *  *See it on the bed* arrives this way. */
   initialSprouts?: boolean
+  /** The reader's year, for the rule under the head. */
+  days?: ActivityDay[]
 }) {
   const holder = useRef<HTMLDivElement>(null)
   const controls = useRef<HTMLDivElement>(null)
@@ -269,6 +275,16 @@ export function GraphCanvas({
   const [replays, setReplays] = useState(0)
   const [replaying, setReplaying] = useState(false)
   const clock = useRef<HTMLParagraphElement>(null)
+  // The playhead on the activity rule, moved by the replay each frame.
+  const playhead = useRef<HTMLSpanElement | null>(null)
+  // Whether lines carry a caption for what they claim. A ref as well as
+  // state: the canvas paints from the ref and is only asked to redraw.
+  const [showRelations, setShowRelations] = useState(false)
+  const relationsOn = useRef(false)
+  useEffect(() => {
+    relationsOn.current = showRelations
+    sigma.current?.refresh()
+  }, [showRelations])
   useEffect(() => {
     if (!panel) return
     const shut = (e: KeyboardEvent) => e.key === 'Escape' && setPanel(null)
@@ -870,6 +886,39 @@ export function GraphCanvas({
       }
     }
 
+    // --- What each line claims, printed on it --------------------------
+    //
+    // Drawn by hand rather than as Sigma edge labels, because the
+    // wording runs one way along a line and has to be told which: an
+    // arrow turns to follow whichever way the line lies on screen.
+    // With a seed hovered only its own lines are captioned.
+    const drawRelations = (context: CanvasRenderingContext2D) => {
+      if (!relationsOn.current) return
+      context.save()
+      context.font = `italic 500 11px Georgia, serif`
+      context.textAlign = 'center'
+      context.textBaseline = 'middle'
+      context.lineJoin = 'round'
+      context.lineWidth = 3
+      graph.forEachEdge((edge, attrs, source, target, from, to) => {
+        const line = edgeLine(attrs.kind as string)
+        if (!line || from.hidden || to.hidden) return
+        if (hovered && source !== hovered && target !== hovered) return
+        const a = renderer.graphToViewport({ x: from.x as number, y: from.y as number })
+        const b = renderer.graphToViewport({ x: to.x as number, y: to.y as number })
+        const text = a.x <= b.x ? `${line} →` : `← ${line}`
+        // Not where it would overprint the seeds at either end.
+        if (Math.hypot(b.x - a.x, b.y - a.y) < context.measureText(text).width + 24) return
+        const x = (a.x + b.x) / 2
+        const y = (a.y + b.y) / 2
+        context.strokeStyle = inks.hullEdge
+        context.strokeText(text, x, y)
+        context.fillStyle = inks.label
+        context.fillText(text, x, y)
+      })
+      context.restore()
+    }
+
     // --- Pulling back shows the beds -----------------------------------
     //
     // Zoomed in you read topics; zoomed out the individual names stop
@@ -886,6 +935,7 @@ export function GraphCanvas({
       if (!context) return
 
       drawSprouts(context)
+      drawRelations(context)
 
       const ratio = renderer.getCamera().ratio
       // Below this the seed labels carry the sheet; above it they have
@@ -1115,6 +1165,37 @@ export function GraphCanvas({
       let golden = 0
       let lastBatch = performance.now()
       const t0 = performance.now()
+      const head = playhead.current
+      const year = days.length ? Date.parse(days[0].day) : null
+      if (head) head.style.opacity = '1'
+
+      // The date the clock has reached, run smoothly between births:
+      // the last one's real time to the next one's, by how far through
+      // the gap playback is.
+      const dateAt = (t: number, i: number) => {
+        const a = queue[Math.max(0, i - 1)]
+        const b = queue[Math.min(queue.length - 1, i)]
+        const ta = plan.at.get(a.id)!
+        const tb = plan.at.get(b.id)!
+        const f = tb > ta ? Math.min(1, Math.max(0, (t - ta) / (tb - ta))) : 1
+        return realAt.get(a.id)! + (realAt.get(b.id)! - realAt.get(a.id)!) * f
+      }
+
+      const movePlayhead = (t: number) => {
+        if (!head || year === null) return
+        const day = Math.min(days.length - 1, Math.max(0, (dateAt(t, next) - year) / 86_400_000))
+        // One day is a `--pitch` (4px) and a stem is 2px wide.
+        head.style.left = `${day * 4 + 1}px`
+        // Keep it in view on a strip that scrolls.
+        const scroller = head.closest<HTMLElement>('[role="button"]')
+        if (scroller) {
+          const pad = 48
+          const over = head.getBoundingClientRect().right - scroller.getBoundingClientRect().right + pad
+          const under = scroller.getBoundingClientRect().left - head.getBoundingClientRect().left + pad
+          if (over > 0) scroller.scrollLeft += over
+          else if (under > 0) scroller.scrollLeft -= under
+        }
+      }
       const camera = renderer.getCamera()
 
       // Beside what it hangs off: a neighbour already born, or failing
@@ -1157,6 +1238,7 @@ export function GraphCanvas({
       }
 
       const finish = () => {
+        if (head) head.style.opacity = '0'
         lapse.current = null
         setReplaying(false)
         bed.simulation.alpha(Math.max(bed.simulation.alpha(), 0.5))
@@ -1203,6 +1285,7 @@ export function GraphCanvas({
           graph.setNodeAttribute(id, 'size', fullSize.get(id)! * (1 - (1 - p) ** 3))
           if (p === 1) growing.delete(id)
         }
+        movePlayhead(t)
         renderer.refresh()
 
         const done = next >= queue.length && growing.size === 0
@@ -1225,6 +1308,7 @@ export function GraphCanvas({
     sigma.current = renderer
     return () => {
       cancelAnimationFrame(frame)
+      if (playhead.current) playhead.current.style.opacity = '0'
       bed.simulation.on('tick', null)
       bed.simulation.stop()
       layout.current = null
@@ -1236,7 +1320,7 @@ export function GraphCanvas({
     // styled: a reader switching to dark gets the whole thing drawn
     // again, which is the only way a canvas can follow a theme. The
     // forces are not: moving one warms the running bed instead.
-  }, [data, query, subject, showDormantOnly, showResources, showLessons, showMarks, colourFor, inks, theme, replays])
+  }, [data, query, subject, showDormantOnly, showResources, showLessons, showMarks, colourFor, inks, theme, replays, days])
 
   const selectedTopic = data?.topics.find(t => t.id === selected) ?? null
   const chosen = sprouting?.sprouts.find(s => s.key === chosenSprout) ?? null
@@ -1262,6 +1346,15 @@ export function GraphCanvas({
           />
         </div>
         {wantsSprouts && sproutNote && <p className={styles.sproutNote}>{sproutNote}</p>}
+        {days.length > 0 && (
+          <div className={styles.year}>
+            <ActivityRule
+              days={days}
+              colours={Object.fromEntries((data?.subjects ?? []).map(s => [s.id, s.colour]))}
+              onPlayhead={el => { playhead.current = el }}
+            />
+          </div>
+        )}
       </div>
 
       <div className={styles.tools} style={controlsHeight ? ({ '--controls-height': `${controlsHeight}px` } as React.CSSProperties) : undefined}>
@@ -1332,6 +1425,15 @@ export function GraphCanvas({
                   onChange={e => setShowMarks(e.target.checked)}
                 />
                 Marks
+              </label>
+
+              <label className={styles.toggle}>
+                <input
+                  type="checkbox"
+                  checked={showRelations}
+                  onChange={e => setShowRelations(e.target.checked)}
+                />
+                Relationships
               </label>
 
               <label className={styles.toggle}>

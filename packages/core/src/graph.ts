@@ -129,6 +129,24 @@ export function edgeKindLabel(kind: string, incoming: boolean): string {
   return table[kind] ?? kind
 }
 
+/**
+ * What an edge says, read from its `from` end to its `to` end, for a
+ * caption printed on the line itself. Not the sheet's wording: those
+ * captions are written onto the far topic's name, where "this" is
+ * implied, and on a line between two seeds it is not. Null for the
+ * lines that are not a claim between topics (material, lessons, marks).
+ */
+export function edgeLine(kind: string): string | null {
+  return EDGE_LINE[kind] ?? null
+}
+
+const EDGE_LINE: Record<string, string> = {
+  prereq: 'sow first',
+  related: 'grows with',
+  specialises: 'broader than',
+  alternative: 'instead of',
+}
+
 /** One topic near another, as the sheet lists it. */
 export interface Neighbour {
   id: string

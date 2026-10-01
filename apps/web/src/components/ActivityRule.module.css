@@ -61,6 +61,23 @@
   width: max-content;
 }
 
+.track {
+  position: relative;
+}
+
+/* A hairline up the stems, set by the bed's replay as it plays. */
+.playhead {
+  position: absolute;
+  top: 0;
+  bottom: var(--ground);
+  left: 0;
+  width: 1px;
+  background: var(--ink-soft);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-state) var(--ease-settle);
+}
+
 .ticks {
   display: flex;
   align-items: flex-end;

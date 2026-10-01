@@ -42,6 +42,16 @@
   border-bottom: 4px solid var(--plate-mustard);
 }
 
+/* The year's rule, at the foot of the head. It brings its own mustard
+   band, so it stands in for the head's border and bleeds to its edges. */
+.year {
+  margin: 0 calc(-1 * var(--space-5)) calc(-1 * var(--space-5) - 4px);
+}
+
+.year > div {
+  margin-bottom: 0;
+}
+
 .filters {
   display: flex;
   gap: var(--space-3);

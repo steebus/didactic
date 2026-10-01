@@ -30,6 +30,7 @@ export function ActivityRule({
   colours = {},
   stemInk,
   cellInk,
+  onPlayhead,
 }: {
   days: ActivityDay[]
   /** Subject id to plate, for a strip that spans subjects. */
@@ -39,6 +40,10 @@ export function ActivityRule({
    *  plate a stem in that plate would vanish, and cells in the plate. */
   stemInk?: string
   cellInk?: string
+  /** Hands back the playhead's element, for a caller that moves it
+   *  every frame without rendering: it sits at `left` px along the
+   *  stems, one `--pitch` a day, and is invisible until shown. */
+  onPlayhead?: (el: HTMLSpanElement | null) => void
 }) {
   const [open, setOpen] = useState(false)
   const [closing, setClosing] = useState(false)
@@ -131,6 +136,7 @@ export function ActivityRule({
         }}
       >
         <div className={styles.track} aria-hidden>
+          {onPlayhead && <span ref={onPlayhead} className={styles.playhead} />}
           <div className={styles.ticks}>
             {days.map((d, i) => (
               <span
