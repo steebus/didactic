@@ -13,6 +13,9 @@ import {
   holdings,
   NAME_ONLY,
   overlap,
+  RELATION_ASK,
+  RELATIONS,
+  relationLabel,
   releasedSentence,
   REREADING,
 } from '@didactic/core/adjudication'
@@ -78,13 +81,13 @@ export function PendingQueue({ topics }: { topics: PendingTopic[] }) {
     })
   }, [onNameAlone, router])
 
-  function adjudicate(topicId: string, action: PendingAction, mergeInto?: string) {
+  function adjudicate(topicId: string, action: PendingAction, other?: string) {
     setBusy(topicId)
     setError(null)
     setDecided(gone => [...gone, topicId])
 
     void (async () => {
-      const { ok, error: failed } = await api.topics.decide(topicId, action, mergeInto)
+      const { ok, error: failed } = await api.topics.decide(topicId, action, other)
       if (ok) {
         startTransition(() => router.refresh())
       } else {
@@ -184,6 +187,28 @@ export function PendingQueue({ topics }: { topics: PendingTopic[] }) {
                   {overlap(topic.evidence, topic.nearest.evidence)}
                 </p>
               </>
+            )}
+
+            {/* Neither the same nor unrelated is the commonest answer to a
+                close pair, and until it could be said the choice was a
+                merge that cannot be undone or a topic filed as if its
+                neighbour did not exist. */}
+            {topic.nearest && (
+              <div className={styles.relations}>
+                <span className={styles.relationsAsk}>{RELATION_ASK}</span>
+                <div className={styles.actions}>
+                  {RELATIONS.map(relation => (
+                    <button
+                      key={relation}
+                      className={`${styles.button} ${styles.buttonQuiet}`}
+                      disabled={busy === topic.id}
+                      onClick={() => adjudicate(topic.id, relation, topic.nearest!.id)}
+                    >
+                      {relationLabel(relation, topic.nearest!.title)}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
 
             <div className={styles.actions}>

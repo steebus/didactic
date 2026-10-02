@@ -237,3 +237,69 @@ export function releasedSentence(released: number): string | null {
     ? 'One was read as a topic of its own and has gone onto the map.'
     : `${released} were read as topics of their own and have gone onto the map.`
 }
+
+/**
+ * How a queued topic can stand to the one beside it without being it.
+ *
+ * The queue offered one answer to "these read close" other than *same*:
+ * *different*, which files the new topic with nothing said about its
+ * neighbour. Most close pairs are neither. Vue is a narrower case of
+ * *Alternative Frontend Frameworks*; two topics can simply grow together.
+ * Saying so keeps both records, which is why none of these is the press
+ * that cannot be undone, and draws the edge the map would otherwise have
+ * to wait for a reading to find.
+ *
+ * Four of the five edge kinds. `prereq` is left off on purpose: it is a
+ * claim about the order a reader should take things in, which wording
+ * alone never settles, and this sheet is only ever shown wording and a
+ * tally.
+ */
+export const RELATIONS = ['narrower', 'broader', 'related', 'alternative'] as const
+
+export type Relation = (typeof RELATIONS)[number]
+
+export function isRelation(value: unknown): value is Relation {
+  return typeof value === 'string' && (RELATIONS as readonly string[]).includes(value)
+}
+
+/**
+ * The edge a relation draws, `from` and `to` being topic ids.
+ *
+ * `specialises` runs general to narrower (`graph.edgeKindLabel`), so the
+ * edge for "this one is the narrower case" starts at the topic already on
+ * the map, and for "this one is broader" starts at the queued one. The
+ * sideways kinds read the same either way round.
+ */
+export function relationEdge(
+  relation: Relation,
+  pendingId: string,
+  nearestId: string
+): { from: string; to: string; kind: 'specialises' | 'related' | 'alternative' } {
+  switch (relation) {
+    case 'narrower':
+      return { from: nearestId, to: pendingId, kind: 'specialises' }
+    case 'broader':
+      return { from: pendingId, to: nearestId, kind: 'specialises' }
+    case 'related':
+      return { from: pendingId, to: nearestId, kind: 'related' }
+    case 'alternative':
+      return { from: pendingId, to: nearestId, kind: 'alternative' }
+  }
+}
+
+/** The button for a relation, said about the topic already on the map. */
+export function relationLabel(relation: Relation, nearestTitle: string): string {
+  switch (relation) {
+    case 'narrower':
+      return `A narrower case of ${nearestTitle}`
+    case 'broader':
+      return `Broader than ${nearestTitle}`
+    case 'related':
+      return `Related to ${nearestTitle}`
+    case 'alternative':
+      return `An alternative to ${nearestTitle}`
+  }
+}
+
+/** Said above the relation buttons: what pressing one does. */
+export const RELATION_ASK = 'Or keep both, and say how they relate:'

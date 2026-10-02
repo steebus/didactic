@@ -4,6 +4,8 @@ import { getPendingTopics } from '@/lib/pending'
 import { fileWhatTheBedIsSureOf } from '@/lib/filing'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
+import { isRelation, relationEdge } from '@didactic/core/adjudication'
+import { ownerId } from '@/lib/auth'
 
 /**
  * Drop what this route just changed.
@@ -42,7 +44,7 @@ export async function GET() {
 }
 
 export async function PATCH(req: Request) {
-  const { topicId, action, mergeInto } = await req.json()
+  const { topicId, action, mergeInto, relateTo } = await req.json()
   const db = supabaseAdmin()
 
   if (!topicId) {
@@ -69,6 +71,48 @@ export async function PATCH(req: Request) {
       filed = await fileWhatTheBedIsSureOf(db, [topicId])
     } catch {
       // Left loose, deliberately silently: the confirm succeeded.
+    }
+
+    dropCache()
+    return NextResponse.json({ ok: true, filed: filed.length })
+  }
+
+  if (isRelation(action)) {
+    if (!relateTo) {
+      return NextResponse.json({ error: 'relateTo is required to relate' }, { status: 400 })
+    }
+    if (relateTo === topicId) {
+      return NextResponse.json({ error: 'A topic cannot be related to itself.' }, { status: 400 })
+    }
+    const userId = await ownerId()
+    if (!userId) return NextResponse.json({ error: 'not signed in' }, { status: 401 })
+
+    // Keep both, and say how they stand. Settled the way `confirm`
+    // settles it -- the topic goes active and the bed is asked where it
+    // belongs -- with one edge drawn first. Asking twice is ordinary
+    // here, so the edge is an upsert on its own key.
+    const edge = relationEdge(action, topicId, relateTo)
+    const { error: edgeError } = await db.from('edges').upsert(
+      {
+        user_id: userId,
+        from_topic: edge.from,
+        to_topic: edge.to,
+        kind: edge.kind,
+        weight: 0.8,
+        created_by: 'user' as const,
+      },
+      { onConflict: 'from_topic,to_topic,kind', ignoreDuplicates: true }
+    )
+    if (edgeError) return NextResponse.json({ error: edgeError.message }, { status: 500 })
+
+    const { error } = await db.from('topics').update({ state: 'active' }).eq('id', topicId)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    let filed: Array<{ topicId: string; subjectId: string }> = []
+    try {
+      filed = await fileWhatTheBedIsSureOf(db, [topicId])
+    } catch {
+      // Left loose, as in `confirm`: the decision is saved either way.
     }
 
     dropCache()

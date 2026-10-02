@@ -6,7 +6,11 @@ import {
   established,
   filedUnder,
   holdings,
+  isRelation,
   overlap,
+  RELATIONS,
+  relationEdge,
+  relationLabel,
   sharedSubjects,
   releasedSentence,
   NAME_ONLY,
@@ -172,5 +176,34 @@ describe('reading the queue again', () => {
   it('owns up to a pair that is only the nearest title', () => {
     expect(NAME_ONLY).toMatch(/nearest title/)
     expect(REREADING).toMatch(/by what it says/)
+  })
+})
+
+describe('relations', () => {
+  it('names the four ways a topic can stand beside another', () => {
+    expect([...RELATIONS]).toEqual(['narrower', 'broader', 'related', 'alternative'])
+  })
+
+  it('recognises a relation and nothing else', () => {
+    expect(isRelation('narrower')).toBe(true)
+    expect(isRelation('merge')).toBe(false)
+    expect(isRelation(undefined)).toBe(false)
+  })
+
+  it('runs specialises from the broader topic to the narrower one', () => {
+    expect(relationEdge('narrower', 'new', 'old')).toEqual({ from: 'old', to: 'new', kind: 'specialises' })
+    expect(relationEdge('broader', 'new', 'old')).toEqual({ from: 'new', to: 'old', kind: 'specialises' })
+  })
+
+  it('draws the sideways kinds from the queued topic', () => {
+    expect(relationEdge('related', 'new', 'old')).toEqual({ from: 'new', to: 'old', kind: 'related' })
+    expect(relationEdge('alternative', 'new', 'old')).toEqual({ from: 'new', to: 'old', kind: 'alternative' })
+  })
+
+  it('labels each button about the topic already on the map', () => {
+    expect(relationLabel('narrower', 'Frameworks')).toBe('A narrower case of Frameworks')
+    expect(relationLabel('broader', 'Frameworks')).toBe('Broader than Frameworks')
+    expect(relationLabel('related', 'Frameworks')).toBe('Related to Frameworks')
+    expect(relationLabel('alternative', 'Frameworks')).toBe('An alternative to Frameworks')
   })
 })

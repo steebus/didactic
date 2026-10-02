@@ -1,4 +1,5 @@
 import type { ActivityDay } from '@didactic/core/activity'
+import { isRelation, type Relation } from '@didactic/core/adjudication'
 import type { Api } from './client'
 import type { Curriculum, Exposure, Resource, Subject, Topic } from '@didactic/core/types'
 import type { LooseClaim, LooseTopic, PendingTopic, TopicArea } from '@didactic/core/shapes'
@@ -23,8 +24,11 @@ export interface TopicPatch {
  * These are the route's own words. A wrong merge destroys history
  * irrecoverably and a wrong keep costs one click, which is why the
  * resolver defers here at all.
+ *
+ * A relation (`narrower`, `broader`, `related`, `alternative`) keeps the
+ * topic as well and draws one edge to the topic beside it.
  */
-export type PendingAction = 'confirm' | 'merge' | 'discard'
+export type PendingAction = 'confirm' | 'merge' | 'discard' | Relation
 
 /**
  * What the graph panel asks for: the topic and everything filed against
@@ -146,6 +150,13 @@ export const topics = (api: Api) => ({
    * it deferred happens here. Additive, and `0` is the ordinary answer
    * rather than a failure.
    */
-  decide: (topicId: string, action: PendingAction, mergeInto?: string) =>
-    api.patch<{ ok: true; filed?: number }>('/api/topics/pending', { topicId, action, mergeInto }),
+  decide: (topicId: string, action: PendingAction, other?: string) =>
+    api.patch<{ ok: true; filed?: number }>('/api/topics/pending', {
+      topicId,
+      action,
+      // One id, two names on the wire: `mergeInto` is what a merge has
+      // always been sent as, and a phone on an old build still sends it.
+      // A relation names the topic it is about as `relateTo`.
+      ...(action === 'merge' ? { mergeInto: other } : isRelation(action) ? { relateTo: other } : {}),
+    }),
 })

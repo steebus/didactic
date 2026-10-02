@@ -404,6 +404,18 @@
   justify-self: end;
 }
 
+.relations {
+  display: grid;
+  gap: var(--space-2);
+  justify-self: end;
+}
+
+.relationsAsk {
+  font-size: var(--step--2);
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+}
+
 .button {
   font-family: var(--font-text);
   font-size: var(--step--2);
@@ -462,6 +474,7 @@
   }
 
   .actions,
+  .relations,
   .prompt,
   .status {
     justify-self: start;
