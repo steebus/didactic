@@ -152,3 +152,61 @@ export function linearPrereqs(lessonIds: string[]): PrereqLike[] {
     requires_lesson_id: lessonIds[i],
   }))
 }
+
+/** How a topic stands to the one being drafted for. */
+export type Standing = 'narrower' | 'broader' | 'alternative' | 'related'
+
+export interface Alongside {
+  title: string
+  summary: string | null
+  standing: Standing
+}
+
+/**
+ * What the graph says stands beside a topic, read off its edges.
+ *
+ * `specialises` runs general to narrower, so a topic at its `from` end
+ * has the other as a narrower case and one at its `to` end has it as
+ * the broader. `alternative` and `related` read the same from either
+ * end. Other kinds (`prereq` is asked about on its own) are skipped.
+ */
+export function standingOf(
+  kind: string,
+  topicIsFrom: boolean
+): Standing | null {
+  if (kind === 'specialises') return topicIsFrom ? 'narrower' : 'broader'
+  if (kind === 'alternative') return 'alternative'
+  if (kind === 'related') return 'related'
+  return null
+}
+
+/** The most of each standing the prompt carries: a hub with forty
+ *  related topics is a catalogue, and the curriculum is shown a
+ *  neighbourhood. */
+export const NEIGHBOURS_PER_STANDING = 5
+
+/**
+ * The paragraph that tells the curriculum writer what stands beside its
+ * topic, or an empty string where nothing does.
+ *
+ * Each standing says what to do with it, because a list of titles is
+ * read as a list of things to cover: the varieties of a broad topic are
+ * worth naming and the broader of a narrow one is background, but an
+ * alternative is something to contrast with and not to teach.
+ */
+export function neighbourhoodBrief(neighbours: readonly Alongside[]): string {
+  const line = (n: Alongside) => `- ${n.title}${n.summary ? ` — ${n.summary}` : ''}`
+  const section = (standing: Standing, head: string) => {
+    const these = neighbours.filter(n => n.standing === standing).slice(0, NEIGHBOURS_PER_STANDING)
+    return these.length ? `${head}\n${these.map(line).join('\n')}` : null
+  }
+
+  const parts = [
+    section('broader', 'It is a narrower case of these, which are background and not to be re-taught:'),
+    section('narrower', 'These are narrower cases that sit under it. Give them their place in the route, or point to them, rather than inventing material they already cover:'),
+    section('alternative', 'These are alternatives to it. Contrast with them where that helps the reader choose or understand; do not teach them:'),
+    section('related', 'These grow alongside it. Mention the connection where it is real; do not teach them:'),
+  ].filter((p): p is string => p !== null)
+
+  return parts.length ? `Elsewhere on their map:\n${parts.join('\n\n')}` : ''
+}

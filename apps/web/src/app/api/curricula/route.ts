@@ -4,7 +4,7 @@ import { getEffortMap } from '@/lib/effort'
 import { supabaseAdmin } from '@/lib/supabase'
 import { proposeCurriculum } from '@/lib/llm/curriculum'
 import { openPlan, qualifiersForTopic } from '@/lib/learningPlan'
-import { findPrereqCycle } from '@didactic/core/curriculum'
+import { findPrereqCycle, standingOf, type Alongside } from '@didactic/core/curriculum'
 import { revalidateTag } from 'next/cache'
 import { tags } from '@didactic/core/tags'
 
@@ -20,6 +20,40 @@ function dropCache() {
   for (const tag of [tags.topics]) revalidateTag(tag, { expire: 0 })
 }
 
+
+/**
+ * The active topics the graph puts beside this one, other than the ones
+ * that must come first (asked about separately).
+ */
+async function neighboursOf(db: ReturnType<typeof supabaseAdmin>, topicId: string): Promise<Alongside[]> {
+  const { data: edges } = await db.from('edges')
+    .select('from_topic, to_topic, kind')
+    .or(`from_topic.eq.${topicId},to_topic.eq.${topicId}`)
+    .in('kind', ['specialises', 'related', 'alternative'])
+
+  const standing = new Map<string, Alongside['standing']>()
+  for (const e of edges ?? []) {
+    const topicIsFrom = e.from_topic === topicId
+    const s = standingOf(e.kind, topicIsFrom)
+    const other = topicIsFrom ? e.to_topic : e.from_topic
+    // One standing a topic. A pair can make several claims about each
+    // other; the nesting one is the more definite and wins over a
+    // sideways one, whichever came back first.
+    if (!s || other === topicId) continue
+    const had = standing.get(other)
+    if (!had || ((had === 'related' || had === 'alternative') && (s === 'narrower' || s === 'broader'))) {
+      standing.set(other, s)
+    }
+  }
+  if (standing.size === 0) return []
+
+  const { data: rows } = await db.from('topics')
+    .select('id, title, summary')
+    .in('id', [...standing.keys()])
+    .eq('state', 'active')
+
+  return (rows ?? []).map(r => ({ title: r.title, summary: r.summary ?? null, standing: standing.get(r.id)! }))
+}
 
 const slugify = (s: string) =>
   s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'lesson'
@@ -58,6 +92,8 @@ export async function POST(req: Request) {
     ? await db.from('topics').select('title, ability').in('id', prereqIds)
     : { data: [] }
 
+  const neighbours = await neighboursOf(db, topicId)
+
   let proposal
   try {
     proposal = await proposeCurriculum({
@@ -76,6 +112,7 @@ export async function POST(req: Request) {
         title: t.title,
         ability: Number(t.ability),
       })),
+      neighbours,
       budget: await budgetFor(topicId),
     })
   } catch (e) {

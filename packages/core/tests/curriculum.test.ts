@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
+  neighbourhoodBrief,
+  standingOf,
   tierLessons,
   viewLessons,
   curriculumProgress,
@@ -176,5 +178,49 @@ describe('linearPrereqs', () => {
 
   it('gives a single lesson nothing to wait for', () => {
     expect(linearPrereqs(['a'])).toEqual([])
+  })
+})
+
+describe('standingOf', () => {
+  it('reads specialises from the end the topic is at', () => {
+    expect(standingOf('specialises', true)).toBe('narrower')
+    expect(standingOf('specialises', false)).toBe('broader')
+  })
+
+  it('reads the sideways kinds the same from either end', () => {
+    expect(standingOf('related', true)).toBe('related')
+    expect(standingOf('alternative', false)).toBe('alternative')
+  })
+
+  it('leaves prereq and unknown kinds to others', () => {
+    expect(standingOf('prereq', true)).toBeNull()
+    expect(standingOf('nonsense', false)).toBeNull()
+  })
+})
+
+describe('neighbourhoodBrief', () => {
+  it('says nothing where nothing stands beside the topic', () => {
+    expect(neighbourhoodBrief([])).toBe('')
+  })
+
+  it('says what to do with each standing, and only the ones present', () => {
+    const brief = neighbourhoodBrief([
+      { title: 'Vue.js', summary: 'A framework', standing: 'narrower' },
+      { title: 'Svelte', summary: null, standing: 'alternative' },
+    ])
+    expect(brief).toContain('Elsewhere on their map')
+    expect(brief).toContain('narrower cases that sit under it')
+    expect(brief).toContain('- Vue.js — A framework')
+    expect(brief).toContain('alternatives to it')
+    expect(brief).toContain('- Svelte')
+    expect(brief).not.toContain('background')
+    expect(brief).not.toContain('grow alongside')
+  })
+
+  it('carries no more than five of a standing', () => {
+    const many = Array.from({ length: 9 }, (_, i) => ({
+      title: `T${i}`, summary: null, standing: 'related' as const,
+    }))
+    expect(neighbourhoodBrief(many).match(/^- T/gm)).toHaveLength(5)
   })
 })

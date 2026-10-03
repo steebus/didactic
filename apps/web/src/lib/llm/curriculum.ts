@@ -5,6 +5,7 @@ import type { CurriculumShape, LessonStage } from '@didactic/core/types'
 import { blockPromptSection } from '@didactic/core/blocks'
 import { lessonSlug, type LessonLink } from '@didactic/core/lessonLinks'
 import { passagePromptSection, type CitedPassage } from '../citations'
+import { neighbourhoodBrief, type Alongside } from '@didactic/core/curriculum'
 import { planPrompt, type LearningPlan } from '@didactic/core/learningPlan'
 
 /** A lesson as the model proposes it, before it has an id. Branching is
@@ -47,6 +48,10 @@ export interface CurriculumBrief {
   /** Topics the graph says come first, so the route does not re-teach
    *  ground the user already holds or skip ground they do not. */
   prerequisiteTopics: Array<{ title: string; ability: number }>
+  /** Topics the graph puts beside this one: broader, narrower, an
+   *  alternative, or related. Said so the route knows what is already
+   *  covered elsewhere and what to contrast with. */
+  neighbours?: Alongside[]
   /**
    * How many lessons the route is drafted to (`core/grain.routeBudget`):
    * what taking the reader from where they are to their target comes to,
@@ -174,6 +179,8 @@ ${brief.prerequisiteTopics.length
       brief.prerequisiteTopics.map(t => `- ${t.title} (${t.ability}/5)`).join('\n')
     }\nDo not re-teach what they already hold; do cover what they do not.`
   : ''}
+
+${neighbourhoodBrief(brief.neighbours ?? [])}
 
 ${brief.sources.length
   ? `They handed over this material to steer it. Follow it where it is specific:\n${
