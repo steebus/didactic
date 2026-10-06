@@ -80,3 +80,13 @@ export function centroid(points: readonly Point[]): Point | null {
   const sum = points.reduce((acc, p) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 })
   return { x: sum.x / points.length, y: sum.y / points.length }
 }
+
+/** The area a polygon encloses, whichever way round it is wound. Where
+ *  two outlines overlap, the smaller is the one the pointer means. */
+export function area(polygon: readonly Point[]): number {
+  let twice = 0
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    twice += (polygon[j].x + polygon[i].x) * (polygon[j].y - polygon[i].y)
+  }
+  return Math.abs(twice) / 2
+}

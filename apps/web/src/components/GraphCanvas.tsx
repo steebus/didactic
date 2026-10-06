@@ -18,7 +18,7 @@ import {
   type BedNode,
   type Forces,
 } from '@didactic/core/forces'
-import { contains, outline, type Point } from '@didactic/core/hull'
+import { area, contains, outline, type Point } from '@didactic/core/hull'
 import { timeline, when, type Birth } from '@didactic/core/timelapse'
 import type { ActivityDay } from '@didactic/core/activity'
 import type { Sprouting, SproutView } from '@didactic/core/shapes'
@@ -805,6 +805,11 @@ export function GraphCanvas({
     // Everything unrelated recedes into the bed rather than disappearing,
     // so the neighbourhood reads without losing the shape around it.
     let hovered: string | null = null
+    // A sprout under the pointer -- its outline, or its name -- draws its
+    // own topics forward the same way. A seed hovered inside it wins.
+    let sproutHovered: string | null = null
+    const sproutTopics = (key: string) =>
+      new Set(overlay.current.sprouting?.sprouts.find(s => s.key === key)?.topics.map(t => t.id) ?? [])
 
     const neighboursOf = (topicId: string) => {
       const set = new Set<string>([topicId])
@@ -813,6 +818,12 @@ export function GraphCanvas({
     }
 
     renderer.setSetting('nodeReducer', (node, attrs) => {
+      if (!hovered && sproutHovered) {
+        if (sproutTopics(sproutHovered).has(node)) {
+          return { ...attrs, size: (attrs.size as number) * 1.2, forceLabel: true }
+        }
+        return { ...attrs, color: fade(attrs.color as string, 0.22, inks.ground), label: '' }
+      }
       if (!hovered) return attrs
       const near = neighboursOf(hovered)
       if (near.has(node)) {
@@ -822,6 +833,14 @@ export function GraphCanvas({
     })
 
     renderer.setSetting('edgeReducer', (edge, attrs) => {
+      if (!hovered && sproutHovered) {
+        const [from, to] = graph.extremities(edge)
+        const inside = sproutTopics(sproutHovered)
+        if (inside.has(from) && inside.has(to)) {
+          return { ...attrs, color: inks.sprout, size: (attrs.size as number) * 1.6 }
+        }
+        return { ...attrs, color: inks.membership }
+      }
       if (!hovered) return attrs
       const [from, to] = graph.extremities(edge)
       const near = neighboursOf(hovered)
@@ -848,9 +867,29 @@ export function GraphCanvas({
     // sown there. The outlines are kept in screen space as they are
     // drawn, so a press inside one can be told from a press on the bed.
     const sproutShapes = new Map<string, Point[]>()
+    const sproutNames = new Map<string, { x: number; y: number; w: number; h: number }>()
+    // The sprout a point on screen means: its name, or the smallest
+    // outline it falls inside, since outlines can overlap.
+    const sproutAt = (x: number, y: number) => {
+      for (const [key, b] of sproutNames) {
+        if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return key
+      }
+      let best: string | null = null
+      let least = Infinity
+      for (const [key, shape] of sproutShapes) {
+        if (!contains(shape, { x, y })) continue
+        const size = area(shape)
+        if (size < least) {
+          best = key
+          least = size
+        }
+      }
+      return best
+    }
 
     const drawSprouts = (context: CanvasRenderingContext2D) => {
       sproutShapes.clear()
+      sproutNames.clear()
       const { show, sprouting: reading, chosen } = overlay.current
       if (!show || !reading) return
       // CSS pixels, as graphToViewport answers in.
@@ -871,17 +910,20 @@ export function GraphCanvas({
         const shape = outline(points, SPROUT_PAD)
         sproutShapes.set(sprout.key, shape)
         const isChosen = chosen === sprout.key
+        const isHovered = !hovered && sproutHovered === sprout.key
 
         context.save()
+        // Another sprout hovered: this one steps back with the bed.
+        if (!hovered && sproutHovered && !isHovered) context.globalAlpha = 0.35
         context.beginPath()
         shape.forEach((p, i) => (i === 0 ? context.moveTo(p.x, p.y) : context.lineTo(p.x, p.y)))
         context.closePath()
-        if (isChosen) {
+        if (isChosen || isHovered) {
           context.fillStyle = inks.sproutWash
           context.fill()
         }
         context.setLineDash([6, 5])
-        context.lineWidth = isChosen ? 2.2 : 1.5
+        context.lineWidth = isChosen || isHovered ? 2.2 : 1.5
         context.strokeStyle = inks.sprout
         context.stroke()
 
@@ -898,6 +940,7 @@ export function GraphCanvas({
         const half = context.measureText(name).width / 2
         const x = Math.min(Math.max(middle, half + 6), width - half - 6)
         const y = top - 6 >= 18 ? top - 6 : bottom + 18
+        sproutNames.set(sprout.key, { x: x - half, y: y - 15, w: half * 2, h: 19 })
         context.lineJoin = 'round'
         context.lineWidth = 4
         context.strokeStyle = inks.hullEdge
@@ -1135,9 +1178,8 @@ export function GraphCanvas({
         travel.current(`/subjects/${name.id}`)
         return
       }
-      const hit = [...sproutShapes].find(([, shape]) => contains(shape, { x: event.x, y: event.y }))
       setSelected(null)
-      setChosenSprout(hit ? hit[0] : null)
+      setChosenSprout(sproutAt(event.x, event.y))
     })
 
     // --- Dragging -------------------------------------------------------
@@ -1352,19 +1394,31 @@ export function GraphCanvas({
 
     const pointer = (e: MouseEvent) => {
       const r = holder.current!.getBoundingClientRect()
-      const over = nameAt(e.clientX - r.left, e.clientY - r.top)
-      holder.current!.style.cursor = over ? 'pointer' : ''
-      if ((over?.id ?? null) !== nameHovered) {
+      const x = e.clientX - r.left
+      const y = e.clientY - r.top
+      const over = nameAt(x, y)
+      const sprout = over || hovered || dragging ? null : sproutAt(x, y)
+      holder.current!.style.cursor = over || sprout ? 'pointer' : ''
+      if ((over?.id ?? null) !== nameHovered || sprout !== sproutHovered) {
         nameHovered = over?.id ?? null
+        sproutHovered = sprout
         renderer.refresh()
       }
     }
+    const away = () => {
+      if (!nameHovered && !sproutHovered) return
+      nameHovered = null
+      sproutHovered = null
+      renderer.refresh()
+    }
     const box = holder.current
     box.addEventListener('mousemove', pointer)
+    box.addEventListener('mouseleave', away)
 
     sigma.current = renderer
     return () => {
       box.removeEventListener('mousemove', pointer)
+      box.removeEventListener('mouseleave', away)
       cancelAnimationFrame(frame)
       if (playhead.current) playhead.current.style.opacity = '0'
       bed.simulation.on('tick', null)

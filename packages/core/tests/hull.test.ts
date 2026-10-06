@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { centroid, contains, convexHull, outline } from '../src/hull'
+import { area, centroid, contains, convexHull, outline } from '../src/hull'
 
 describe('convexHull', () => {
   it('drops the points inside', () => {
@@ -44,5 +44,17 @@ describe('centroid', () => {
   it('is the mean, and nothing for no points', () => {
     expect(centroid([{ x: 0, y: 0 }, { x: 4, y: 2 }])).toEqual({ x: 2, y: 1 })
     expect(centroid([])).toBeNull()
+  })
+})
+
+describe('area', () => {
+  it('measures a square either way round', () => {
+    const square = [{ x: 0, y: 0 }, { x: 4, y: 0 }, { x: 4, y: 3 }, { x: 0, y: 3 }]
+    expect(area(square)).toBe(12)
+    expect(area([...square].reverse())).toBe(12)
+  })
+
+  it('gives nothing for fewer than three points', () => {
+    expect(area([{ x: 1, y: 1 }, { x: 5, y: 5 }])).toBe(0)
   })
 })
