@@ -444,6 +444,7 @@ function present(map: MapRead, given?: SproutReading & { lines: KinLine[] }): Sp
       title: named?.title ?? null,
       why: named?.why ?? null,
       kind: sprout.kind,
+      grows: sprout.grows,
       from: sprout.from.flatMap(f => {
         const s = subjectById.get(f.subjectId)
         return s ? [{ subjectId: s.id, title: s.title, colour: s.colour, count: f.count }] : []

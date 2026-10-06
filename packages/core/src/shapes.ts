@@ -424,6 +424,9 @@ export interface SproutView {
   title: string | null
   why: string | null
   kind: 'new' | 'across'
+  /** The subject it grows out of -- most of it already, and the rest
+   *  loose -- or null. Optional because an older build never sent it. */
+  grows?: string | null
   /** The subjects its topics sit in, most first. Empty for new ground
    *  made wholly of loose topics. */
   from: SproutSource[]

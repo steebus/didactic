@@ -32,6 +32,9 @@ export const SPROUTING = {
   /** How much of a subject a community must hold to count as finding
    *  it again. */
   HOLDS: 0.5,
+  /** One subject's share of a sprout, with every other topic in it
+   *  loose, at which it reads as that subject growing. */
+  GROWS: 0.5,
   /**
    * The grains the map is read at, finest first. A community that fails
    * at one grain -- one article's worth of topics, most often -- is read
@@ -62,6 +65,15 @@ export interface Sprout {
   /** `new`: mostly loose, from one subject at most. `across`: drawn
    *  from two or more subjects without being most of any. */
   kind: 'new' | 'across'
+  /**
+   * The subject it is growing out of, or null. Set where at least half
+   * of it is one subject and everything else in it is loose: that
+   * subject plus topics nobody filed into it. Whether that is the
+   * subject spreading or a specialism inside it is the reader's call,
+   * so both are offered -- file the loose ones there, or a bed of its
+   * own.
+   */
+  grows: string | null
   /** How many of its topics sit under no subject at all. */
   loose: number
   /** The subjects its topics sit in, most first. */
@@ -271,6 +283,9 @@ export function readSprouts(input: SproutInput): SproutReading {
           (a, b) => (tie.get(b) ?? 0) - (tie.get(a) ?? 0) || a.localeCompare(b)
         ),
         kind: from.length >= 2 ? 'across' : 'new',
+        grows: dominant && from.length === 1 && dominant.count / members.length >= SPROUTING.GROWS
+          ? dominant.subjectId
+          : null,
         loose,
         from,
         binding,
@@ -669,13 +684,34 @@ export const UNNAMED = 'Not yet named'
  * the subjects it is drawn across, named in full because a colour chip
  * alone cannot say which subject it means.
  */
-export function kindLine(sprout: { kind: 'new' | 'across'; from: ReadonlyArray<{ title: string }> }): string {
+export function kindLine(sprout: {
+  kind: 'new' | 'across'
+  from: ReadonlyArray<{ subjectId?: string; title: string }>
+  grows?: string | null
+}): string {
+  const parent = sprout.grows ? sprout.from.find(f => f.subjectId === sprout.grows) : undefined
+  if (parent) return `Growing out of ${parent.title}`
   if (sprout.kind === 'new' || sprout.from.length === 0) return 'New ground'
   const names = sprout.from.map(f => f.title)
   const listed = names.length === 1
     ? names[0]
     : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`
   return `Across ${listed}`
+}
+
+/**
+ * Why a sprout that grows out of a subject is offered as filing rather
+ * than as a bed of its own: the counts, and where the rest go.
+ */
+export function growsSentence(sprout: {
+  grows?: string | null
+  from: ReadonlyArray<{ subjectId: string; title: string; count: number }>
+  topics: ReadonlyArray<{ loose: boolean }>
+}): string | null {
+  const parent = sprout.grows ? sprout.from.find(f => f.subjectId === sprout.grows) : undefined
+  if (!parent) return null
+  const loose = sprout.topics.filter(t => t.loose).length
+  return `${parent.count} of its ${sprout.topics.length} topics are ${parent.title} already, and the other ${loose === 1 ? 'one sits' : `${loose} sit`} under no subject. Filed there, ${parent.title} grows to take them; given a bed, it becomes a subject beside it.`
 }
 
 /** The sheet's standfirst: how many have come up. */

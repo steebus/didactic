@@ -98,3 +98,25 @@
   padding-left: var(--space-3);
   margin: 0;
 }
+
+/* Growing out of a subject: filing comes first, a bed of its own second. */
+.grows {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
+.growsWhy,
+.or {
+  font-size: var(--step--1);
+  line-height: 1.45;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.or {
+  font-style: italic;
+  color: var(--ink-faint);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--rule);
+}

@@ -3,6 +3,7 @@ import { kinship, type KinMark, type KinMaterial, type KinTopic } from '../src/k
 import {
   bindingSentence,
   foundSentence,
+  growsSentence,
   jaccard,
   keyOf,
   kindLine,
@@ -214,6 +215,12 @@ describe('the sentences', () => {
 })
 
 describe('kindLine and sproutingSentence', () => {
+  it('names the subject a sprout grows out of, ahead of its kind', () => {
+    expect(kindLine({ kind: 'new', grows: 'web', from: [{ subjectId: 'web', title: 'Web Development' }] }))
+      .toBe('Growing out of Web Development')
+    expect(kindLine({ kind: 'new', grows: null, from: [] })).toBe('New ground')
+  })
+
   it('names new ground, and every subject a bridge is drawn across', () => {
     expect(kindLine({ kind: 'new', from: [] })).toBe('New ground')
     expect(kindLine({ kind: 'across', from: [{ title: 'Web' }, { title: 'Statistics' }] }))
@@ -278,6 +285,16 @@ describe('two essays on one theme', () => {
     expect(sprouts.some(s => s.topicIds.includes('ph0') && s.topicIds.includes('ec0'))).toBe(false)
     const alone = setAside.filter(a => a.topicIds.includes('ph0') || a.topicIds.includes('ec0'))
     expect(alone.length).toBeGreaterThan(0)
+  })
+})
+
+describe('growsSentence', () => {
+  it('counts what is already the subject, and what is loose', () => {
+    const from = [{ subjectId: 'web', title: 'Web Development', count: 17 }]
+    const topics = [...Array(17).fill({ loose: false }), ...Array(13).fill({ loose: true })]
+    expect(growsSentence({ grows: 'web', from, topics }))
+      .toBe('17 of its 30 topics are Web Development already, and the other 13 sit under no subject. Filed there, Web Development grows to take them; given a bed, it becomes a subject beside it.')
+    expect(growsSentence({ grows: null, from, topics })).toBeNull()
   })
 })
 
@@ -380,6 +397,29 @@ describe('how each subject reads', () => {
     const lines = kinship({ topics, materials, marks: [], edges: [] })
     const r = readSprouts({ topics, lines, materials, marks: [] })
     expect(r.sprouts.filter(s => s.topicIds.some(id => id.startsWith('a')))).toEqual([])
+  })
+
+  it('grows out of a subject that is most of it, with the rest loose', () => {
+    // All of A and as many loose topics on the same theme, carried by
+    // material across both: A spreading, or a part of A worth its own
+    // bed, but not new ground.
+    const a = range('a', 6), l = range('l', 6), c = range('c', 6)
+    const topics: KinTopic[] = [
+      ...a.map((id, i) => ({ id, subjects: ['A'], vector: vec(0, i) })),
+      ...l.map((id, i) => ({ id, subjects: [], vector: vec(0, i + 6) })),
+      ...c.map((id, i) => ({ id, subjects: [], vector: vec(5, i + 12) })),
+    ]
+    const materials = [
+      read('m1', a[0], a[1], l[0], l[1]), read('m2', a[2], a[3], l[2], l[3]), read('m3', a[4], a[5], l[4], l[5]),
+      read('m4', a[1], a[2], l[1], l[4]),
+    ]
+    const lines = kinship({ topics, materials, marks: [], edges: [] })
+    const r = readSprouts({ topics, lines, materials, marks: [] })
+    const grown = r.sprouts.find(s => s.topicIds.includes('a0'))!
+    expect(grown.grows).toBe('A')
+    expect(grown.kind).toBe('new')
+    // Photography, all loose, grows out of nothing.
+    expect(reading().sprouts.every(s => s.grows === null)).toBe(true)
   })
 
   it('is thin where most of it is tied to nothing', () => {

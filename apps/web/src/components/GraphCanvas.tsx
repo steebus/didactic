@@ -810,6 +810,10 @@ export function GraphCanvas({
     let sproutHovered: string | null = null
     const sproutTopics = (key: string) =>
       new Set(overlay.current.sprouting?.sprouts.find(s => s.key === key)?.topics.map(t => t.id) ?? [])
+    // A sprout growing out of a subject is drawn in that subject's ink:
+    // nothing new is coming up there, the bed is spreading.
+    const sproutInk = (sprout: SproutView | undefined) =>
+      sprout?.from.find(f => f.subjectId === sprout.grows)?.colour ?? inks.sprout
 
     const neighboursOf = (topicId: string) => {
       const set = new Set<string>([topicId])
@@ -837,7 +841,8 @@ export function GraphCanvas({
         const [from, to] = graph.extremities(edge)
         const inside = sproutTopics(sproutHovered)
         if (inside.has(from) && inside.has(to)) {
-          return { ...attrs, color: inks.sprout, size: (attrs.size as number) * 1.6 }
+          const sprout = overlay.current.sprouting?.sprouts.find(s => s.key === sproutHovered)
+          return { ...attrs, color: sproutInk(sprout), size: (attrs.size as number) * 1.6 }
         }
         return { ...attrs, color: inks.membership }
       }
@@ -911,6 +916,7 @@ export function GraphCanvas({
         sproutShapes.set(sprout.key, shape)
         const isChosen = chosen === sprout.key
         const isHovered = !hovered && sproutHovered === sprout.key
+        const ink = sproutInk(sprout)
 
         context.save()
         // Another sprout hovered: this one steps back with the bed.
@@ -919,12 +925,18 @@ export function GraphCanvas({
         shape.forEach((p, i) => (i === 0 ? context.moveTo(p.x, p.y) : context.lineTo(p.x, p.y)))
         context.closePath()
         if (isChosen || isHovered) {
-          context.fillStyle = inks.sproutWash
+          if (ink === inks.sprout) {
+            context.fillStyle = inks.sproutWash
+          } else {
+            context.fillStyle = ink
+            context.globalAlpha *= 0.08
+          }
           context.fill()
+          context.globalAlpha = !hovered && sproutHovered && !isHovered ? 0.35 : 1
         }
         context.setLineDash([6, 5])
         context.lineWidth = isChosen || isHovered ? 2.2 : 1.5
-        context.strokeStyle = inks.sprout
+        context.strokeStyle = ink
         context.stroke()
 
         // The name sits above the outline, kept inside the frame: the
@@ -945,7 +957,7 @@ export function GraphCanvas({
         context.lineWidth = 4
         context.strokeStyle = inks.hullEdge
         context.strokeText(name, x, y)
-        context.fillStyle = inks.sprout
+        context.fillStyle = ink
         context.fillText(name, x, y)
         context.restore()
       }
