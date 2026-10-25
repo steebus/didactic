@@ -49,6 +49,18 @@ than the last.
 A mobile change is also opened on a device from a development build before
 it is called done, and the reply says so.
 
+After each push, wait for the deploy before taking the next task:
+
+    sha=$(git rev-parse HEAD)
+    gh api "repos/{owner}/{repo}/commits/$sha/status" -q .state   # Vercel: pending | success | failure
+    gh run list --commit "$sha" --json name,conclusion             # CI workflows
+
+Check every ~30s until nothing is pending, for up to 15 min.
+On failure: read the log (`gh run view <id> --log-failed` for CI; for Vercel,
+`npx vercel inspect <target_url> --logs` if VERCEL_TOKEN is set, otherwise
+reproduce with `npx turbo run build --filter=@didactic/web`), fix, push, and wait again.
+After two failed fix attempts, stop and report instead of pushing more.
+
 The exceptions are the ordinary ones: work the user has said to hold, a
 visible design change on the web, and anything else they would want to see
 before it is live.

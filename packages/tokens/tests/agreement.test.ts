@@ -216,6 +216,17 @@ describe('the tokens agree with globals.css', () => {
       '--plate-plum-rgb',
       '--plate-mustard-rgb',
       '--drill-rgb',
+      // The room the web's floating foot bar takes, and what to clear
+      // standing on the window's edge: a layout of the browser's window.
+      // The phone has safe-area insets of its own.
+      '--foot-bar',
+      '--foot-clear',
+      // Which plate each main area's masthead is filled with. Chosen
+      // per area, and the phone builds a band from `plate` directly.
+      '--band-bed',
+      '--band-tend',
+      '--band-inbox',
+      '--band-activity',
     ])
     const claimed = new Set(CLAIMS.map(([property]) => property))
     const unaccounted = [...props.keys()]
