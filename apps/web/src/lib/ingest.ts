@@ -450,6 +450,9 @@ export async function judge(
     }>
     deadline?: number
     warnings: string[]
+    /** For a caller with its own clock: the sowing stops the reading
+     *  where the writes it still owes would no longer fit. */
+    signal?: AbortSignal
   }
 ): Promise<Map<string, JevVerdict> | null> {
   if (input.deadline !== undefined && input.deadline - Date.now() < JUDGING_NEEDS_MS) {
@@ -511,7 +514,7 @@ export async function judge(
         .slice(0, config.RESOLVER_NOMINATED),
     }))
 
-    return await judgeWithJev({ resourceTitle: input.resourceTitle, concepts, subjects })
+    return await judgeWithJev({ resourceTitle: input.resourceTitle, concepts, subjects, signal: input.signal })
   } catch (e) {
     input.warnings.push(
       `Judged by name only: reading the descriptions failed (${e instanceof Error ? e.message : String(e)}).`

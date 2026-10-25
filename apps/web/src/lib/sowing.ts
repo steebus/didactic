@@ -1,7 +1,11 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { embed } from './embedding'
-import { resolveConcept, fetchCandidates, neighboursFor } from './resolver'
+import { resolveConcept, fetchCandidates, neighboursFor, settleWithReading } from './resolver'
+import { judge, keyOf } from './ingest'
+import type { JevVerdict } from './llm/jev'
+import { cosineSimilarity } from '@didactic/core/similarity'
+import { keptReading, type KeptReading } from '@didactic/core/resolution'
 import { recomputeAbilities } from './scoring'
 import { config } from '@didactic/core/config'
 import { pickRoute } from '@didactic/core/progress'
@@ -63,6 +67,22 @@ const PLANTING_NEEDS_MS = 32_000
  * browser as a timeout. Skipped, the bed stands unrelated and says so.
  */
 const EDGES_NEED_MS = 22_000
+
+/**
+ * What reading the proposals against the map needs to be worth
+ * starting, and what has to be left once it is stopped.
+ *
+ * The reading is what tells "Postgres" from "PostgreSQL" and
+ * "React" from "React Hooks", which no cosine cutoff can, and a
+ * duplicate it misses is a topic the reader has to merge by hand. A
+ * bed left unrelated is one press on the sheet. So the reading is
+ * asked before the edge pass and is allowed to crowd it out, but it is
+ * never allowed to crowd out the writes: it is cut off with
+ * `WRITES_NEED_MS` still on the clock, and a reading cut off is the
+ * cosine's answer, which is what sowing did before.
+ */
+const JUDGING_NEEDS_MS = 12_000
+const WRITES_NEED_MS = 6_000
 
 /** What the model is told on the second go. It is told what it did
  *  rather than asked the same thing twice, because the same question
@@ -853,6 +873,53 @@ export interface Planting {
 }
 
 /**
+ * Read the proposals against the topics the map already holds, or say
+ * why not.
+ *
+ * Never throws, and never fails the sowing: a reading that does not
+ * happen leaves the cosine to decide, and the warning is the trace.
+ */
+async function readAgainstMap(
+  db: SupabaseClient,
+  subject: { user_id: string; title: string },
+  searched: Array<{
+    candidate: Proposal
+    vector: number[]
+    candidates: Awaited<ReturnType<typeof fetchCandidates>>
+  }>,
+  deadline: number,
+  warnings: string[]
+): Promise<Map<string, JevVerdict> | null> {
+  // A first subject on an empty map has nothing to be read against.
+  if (searched.every(s => s.candidates.length === 0)) return null
+
+  const left = deadline - Date.now()
+  if (left < JUDGING_NEEDS_MS) {
+    warnings.push(
+      'there was not enough time left to read the topics against the map, so they were matched to existing ones by name alone'
+    )
+    return null
+  }
+
+  const failed: string[] = []
+  const verdicts = await judge(db, {
+    userId: subject.user_id,
+    resourceTitle: `A new subject, "${subject.title}", broken into topics`,
+    searched: searched.map(({ candidate, vector, candidates }) => ({
+      concept: { name: candidate.name, description: candidate.summary || null },
+      vector,
+      candidates,
+    })),
+    warnings: failed,
+    signal: AbortSignal.timeout(left - WRITES_NEED_MS),
+  })
+  if (!verdicts && failed.length) {
+    warnings.push(`the topics were matched to existing ones by name alone: ${failed.join(' ')}`)
+  }
+  return verdicts
+}
+
+/**
  * Plant a map: resolve every proposal against the rest of the graph,
  * write what is new, file what already exists, and relate the bed.
  */
@@ -906,6 +973,11 @@ export async function plantMap(
     candidates: await fetchCandidates(db, entry.vector),
   }))
 
+  // The same reading ingestion asks, of the same candidates. The cosine
+  // nominates and the reading decides; without a reading the cosine's
+  // bands stand, as they always did here.
+  const verdicts = await readAgainstMap(db, subject, searched, deadline, warnings)
+
   const toLink: string[] = []
   const toCreate: Array<{
     name: string
@@ -913,6 +985,8 @@ export async function plantMap(
     level: number
     vector: number[]
     pending: boolean
+    /** What the reading was unsure of, so the queue asks about that pair. */
+    reading: KeptReading | null
     chapter?: string
   }> = []
 
@@ -944,16 +1018,38 @@ export async function plantMap(
   // match against one is not mistaken for a row to link.
   const accepted: Array<{ id: string; title: string; embedding: number[] }> = []
 
-  for (const { candidate, vector, candidates } of searched) {
-    // The batch's own proposals are marked as siblings so the resolver
-    // can hold them to the restatement bar rather than the stranger
-    // bar. They are all meant to sit in one bed together.
-    const resolution = resolveConcept(
+  for (const [index, { candidate, vector, candidates }] of searched.entries()) {
+    // The batch's own proposals first, held to the restatement bar
+    // rather than the stranger bar: they are all meant to sit in one
+    // bed together. The reading is not asked about them -- it sees the
+    // map, not the batch -- so a sibling restated stands on the cosine.
+    const bySibling = resolveConcept(
       candidate.name,
-      [...candidates, ...accepted],
+      accepted,
       vector,
       new Set(accepted.map(a => a.id))
     )
+
+    const verdict = verdicts?.get(keyOf(index))
+    const similarityOf = (id: string) => {
+      const found = candidates.find(c => c.id === id)
+      return found ? cosineSimilarity(vector, found.embedding) : 0
+    }
+    const byMap = settleWithReading(
+      candidate.name,
+      verdict?.reading,
+      resolveConcept(candidate.name, candidates, vector),
+      similarityOf
+    )
+
+    // A restated sibling is the same topic twice, whatever the map
+    // says. A sibling it only might restate is a question, unless the
+    // map has already answered with a topic of its own.
+    const resolution =
+      bySibling.action === 'link' || (bySibling.action === 'pending' && byMap.action !== 'link')
+        ? bySibling
+        : byMap
+    const askedOfSibling = resolution === bySibling
 
     // An existing topic keeps its own history rather than being
     // duplicated into the new subject. It is filed under this subject
@@ -978,6 +1074,10 @@ export async function plantMap(
       level: Math.min(5, Math.max(1, candidate.estimated_level)),
       vector,
       pending: resolution.action === 'pending',
+      reading:
+        resolution.action === 'pending' && !askedOfSibling && verdict
+          ? keptReading(verdict.reading)
+          : null,
       ...(candidate.chapter ? { chapter: candidate.chapter } : {}),
     })
     accepted.push({ id: `batch:${accepted.length}`, title: candidate.name, embedding: vector })
@@ -1004,6 +1104,7 @@ export async function plantMap(
           embedding: JSON.stringify(t.vector),
           primary_subject_id: subject.id,
           state: t.pending ? 'pending' : 'active',
+          pending_reading: t.reading,
           created_by: 'ai' as const,
         }))
       ).select('id, title, embedding')

@@ -24,7 +24,11 @@ const recomputeAbilities = vi.fn()
 const proposeEdges = vi.fn()
 
 vi.mock('@/lib/embedding', () => ({ embed }))
-vi.mock('@/lib/resolver', () => ({ resolveConcept, fetchCandidates, neighboursFor }))
+// No reading here, so the cosine's answer stands, as it does whenever
+// the reading cannot run.
+const settleWithReading = (_: string, __: unknown, fallback: unknown) => fallback
+vi.mock('@/lib/resolver', () => ({ resolveConcept, fetchCandidates, neighboursFor, settleWithReading }))
+vi.mock('@/lib/ingest', () => ({ keyOf: (i: number) => `c${i + 1}`, judge: vi.fn(async () => null) }))
 vi.mock('@/lib/scoring', () => ({ recomputeAbilities }))
 vi.mock('@/lib/llm/edges', () => ({ proposeEdges }))
 

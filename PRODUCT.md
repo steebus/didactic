@@ -76,8 +76,10 @@ that flatters its owner.
   but no learning is recorded until the user marks it consumed and says how
   deeply.
 - Subjects overlap heavily. Topics must be reused across subjects rather than
-  duplicated per subject, which is why concept resolution runs through vector
-  similarity on every write path, ingestion and skeleton seeding alike.
+  duplicated per subject, which is why concept resolution runs on every write
+  path, ingestion and skeleton seeding alike: vector similarity nominates the
+  candidates and a model's reading of them decides, with the similarity
+  bands standing alone only when the reading cannot run.
 - The graph grows to thousands of topics; the home screen exists because a raw
   canvas at that size cannot be glanced at.
 - A subject has its own sheet: the bed as a **fixed outline** — topics nested
