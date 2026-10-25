@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { embed } from './embedding'
+import { asArray } from './llm/concepts'
 import { resolveConcept, fetchCandidates, neighboursFor, settleWithReading } from './resolver'
 import { judge, keyOf } from './ingest'
 import type { JevVerdict } from './llm/jev'
@@ -481,7 +482,11 @@ export interface MapReading {
 function readMap(res: Anthropic.Message): MapReading {
   const tool = res.content.find(c => c.type === 'tool_use')
   const raw: RawMap = tool && tool.type === 'tool_use' ? (tool.input as RawMap) : {}
-  const list = Array.isArray(raw.topics) ? raw.topics : []
+  // A whole tool call can still carry the list as JSON text rather than
+  // as a list -- "stop_reason tool_use, 2643 output tokens, topics
+  // arrived as string" was a full map refused as empty. Ingestion met
+  // the same answer first, and `asArray` is what it learned.
+  const list = asArray(raw.topics)
 
   // The model's shape is a promise, not a guarantee. Anything without a
   // usable name cannot be embedded or resolved, so it is dropped rather
@@ -500,6 +505,8 @@ function readMap(res: Anthropic.Message): MapReading {
 
   const shape = Array.isArray(raw.topics)
     ? `${raw.topics.length} recorded, ${topics.length} usable`
+    : list.length > 0
+      ? `${list.length} recorded as ${typeof raw.topics}, ${topics.length} usable`
     : raw.topics === undefined
       ? 'no topics at all'
       : `topics arrived as ${typeof raw.topics}`

@@ -68,6 +68,28 @@ describe('a tool call cut off at the token ceiling', () => {
   })
 })
 
+describe('a whole map handed back as JSON text', () => {
+  it('is read as the list it holds rather than refused as empty', async () => {
+    // What came back on a real sowing: "stop_reason tool_use, 2643
+    // output tokens, topics arrived as string".
+    mockCreate.mockResolvedValue({
+      stop_reason: 'tool_use',
+      usage: { output_tokens: 2643 },
+      content: [{
+        type: 'tool_use',
+        name: 'record_subject_topics',
+        input: { topics: JSON.stringify([{ name: 'Agent loops', summary: 'Plan, act, check.', estimated_level: 2 }]) },
+      }],
+    })
+
+    const res = await post()
+
+    // Past the map and into the sowing, which is all this can show.
+    expect(mockCreate).toHaveBeenCalledTimes(1)
+    expect((await res.json()).error).toMatch(/the database should not be reached/)
+  })
+})
+
 describe('a map that comes back empty', () => {
   it('is asked for a second time, and the second answer stands', async () => {
     mockCreate.mockResolvedValueOnce(anEmptyMap).mockResolvedValueOnce(aMap)
