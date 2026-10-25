@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseBlocks, blockPromptSection, straightenFlow, BLOCKS } from '../src/blocks'
+import { parseBlocks, blockPromptSection, straightenFlow, alignCompare, BLOCKS } from '../src/blocks'
 import { parseBlanks, acceptsAnswer, allCorrect } from '../src/answers'
 import { readModel, runModel, type ModelSpec } from '../src/model'
 
@@ -200,5 +200,34 @@ describe('straightening a flow the model drew wrong', () => {
     const flow = [{ text: 'Measure it' }, { text: 'Still uncertain?' }]
 
     expect(straightenFlow(flow)).toEqual(flow)
+  })
+})
+
+describe('alignCompare', () => {
+  it('leaves a header that matches its rows alone', () => {
+    const rows = [{ label: 'Voting', values: ['One vote', 'None'] }]
+    expect(alignCompare(['Common', 'Preferred'], rows)).toEqual({
+      corner: '',
+      columns: ['Common', 'Preferred'],
+    })
+  })
+
+  it('puts a row-name heading over the labels when every row is one value short', () => {
+    const rows = [
+      { label: 'Voting', values: ['One vote', 'None'] },
+      { label: 'Dividends', values: ['Variable', 'Fixed'] },
+    ]
+    expect(alignCompare(['Aspect', 'Common', 'Preferred'], rows)).toEqual({
+      corner: 'Aspect',
+      columns: ['Common', 'Preferred'],
+    })
+  })
+
+  it('does not guess when only some rows are short', () => {
+    const rows = [
+      { label: 'Voting', values: ['One vote', 'None'] },
+      { label: 'Dividends', values: ['Variable', 'Fixed', 'Extra'] },
+    ]
+    expect(alignCompare(['Aspect', 'Common', 'Preferred'], rows).columns).toHaveLength(3)
   })
 })

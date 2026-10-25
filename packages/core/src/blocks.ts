@@ -333,3 +333,31 @@ export function straightenFlow(steps: FlowStepData[]): FlowStepData[] {
 
   return out
 }
+
+export interface CompareRowData {
+  label?: string
+  values?: string[]
+}
+
+/**
+ * Line a compare block's header up with its rows.
+ *
+ * The writer is asked for the things compared in `columns` and the row
+ * name in `label`, but sometimes puts the row-name column's own heading
+ * first in `columns` ("Aspect", "Common", "Preferred") while the rows
+ * carry one value per thing. Every cell then sits one column to the
+ * right of its heading. When every row is exactly one value short of
+ * the header, that first heading belongs over the labels.
+ */
+export function alignCompare(
+  columns: string[],
+  rows: CompareRowData[]
+): { corner: string; columns: string[] } {
+  const shifted =
+    columns.length > 2 &&
+    rows.length > 0 &&
+    rows.every(r => (r.values?.length ?? 0) === columns.length - 1)
+  return shifted
+    ? { corner: columns[0] ?? '', columns: columns.slice(1) }
+    : { corner: '', columns }
+}

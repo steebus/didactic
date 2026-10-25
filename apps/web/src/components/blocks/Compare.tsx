@@ -1,5 +1,6 @@
 'use client'
 
+import { alignCompare } from '@didactic/core/blocks'
 import { Rich } from '../Rich'
 import styles from './blocks.module.css'
 
@@ -19,8 +20,8 @@ export interface CompareData {
  * does not.
  */
 export function Compare({ data }: { data: CompareData }) {
-  const columns = data.columns ?? []
   const rows = data.rows ?? []
+  const { corner, columns } = alignCompare(data.columns ?? [], rows)
   if (columns.length < 2 || rows.length === 0) return null
 
   return (
@@ -30,7 +31,7 @@ export function Compare({ data }: { data: CompareData }) {
         <table className={styles.compare}>
           <thead>
             <tr>
-              <th />
+              <th>{corner}</th>
               {columns.map((c, i) => (
                 <th key={i} scope="col">
                   {c}
