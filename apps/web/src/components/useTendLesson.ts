@@ -10,12 +10,10 @@ const api = didactic()
 /**
  * Read a worked lesson back for what is worth keeping.
  *
- * Set going when a lesson is marked read or worked -- not skimmed,
- * which is by definition not an exposure worth asking about -- and
- * never awaited by the sheet that started it. The reader has just
- * pressed the button that says they are finished with this lesson;
- * making them stand and watch a model read it back would be the app
- * taking the last thing they did and turning it into a wait.
+ * Set going only when the reader asks, from "Write some cards" at the
+ * foot of the lesson. Marking a lesson read or worked does not start it:
+ * cards are opt-in. It is never awaited by the sheet that started it;
+ * making the reader stand and watch a model read it back would be a wait.
  *
  * So it is a bench job like the others: it outlives the sheet, reports
  * from the corner of wherever they went next, and puts itself away

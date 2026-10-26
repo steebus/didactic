@@ -11,7 +11,6 @@ import { useBench } from '@/components/Bench'
 import { usePlayer } from '@/components/Player'
 import { useVoicings } from '@/components/useVoicings'
 import { useWriteLesson } from '@/components/useWriteLesson'
-import { useTendLesson } from '@/components/useTendLesson'
 import { TendLesson } from '@/components/TendLesson'
 import { SectionSummaries } from '@/components/SectionSummaries'
 import { ReadingSummary } from '@/components/ReadingSummary'
@@ -242,8 +241,6 @@ export default function LessonSheet({
   // does -- in the read effect's dependencies the whole bench would
   // re-read the lesson every time a notice in the corner ticked over.
   const writeLesson = useWriteLesson()
-  // Reading the lesson back for what to tend, once it is marked worked.
-  const tendLesson = useTendLesson()
   // Asking for the lesson again, and the press that confirms it. Two
   // presses because it cannot be undone: the body it replaces is not
   // kept anywhere.
@@ -580,15 +577,6 @@ export default function LessonSheet({
       })
     } else {
       setEntry(null)
-    }
-
-    // A lesson marked read or worked is read back for the two to four
-    // concepts it taught, and a card or two under each. Skimming is
-    // not: it is by definition not an exposure worth asking about, and
-    // planting cards off a lesson nobody read would fill the garden
-    // with sentences the reader has never met.
-    if (action === 'complete' && (depth === 'read' || depth === 'applied')) {
-      void tendLesson({ id, title: data?.lesson.title ?? 'This lesson' })
     }
 
     setRevision(r => r + 1)
